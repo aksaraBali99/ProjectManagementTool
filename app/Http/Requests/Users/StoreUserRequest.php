@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Users;
 
 use App\Models\Organization;
+use App\Rules\ValidPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Validator;
@@ -21,8 +22,8 @@ class StoreUserRequest extends FormRequest
             'password' => ['required', 'string', Password::min(8)->mixedCase()->numbers()->symbols()],
             'name' => ['required', 'string', 'max:255'],
             'employee_id' => ['required', 'string', 'max:255', 'unique:users,employee_id'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email:rfc,filter', 'max:255', 'unique:users,email'],
+            'phone' => ['required', 'string', 'max:30', new ValidPhoneNumber],
             'roles' => ['required', 'array'],
             'roles.*' => ['required', 'in:none,staff,management'],
         ];

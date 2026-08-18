@@ -52,7 +52,9 @@
 
         <div>
             <label for="phone" class="block text-sm font-medium text-gray-700">Phone</label>
-            <input id="phone" name="phone" type="text" value="{{ old('phone') }}" required
+            <input id="phone" name="phone" type="tel" value="{{ old('phone') }}" required
+                pattern="^\+?[0-9\s\-\(\)]{7,20}$"
+                title="7–15 digits, may include +, spaces, hyphens, and parentheses"
                 class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
         </div>
 

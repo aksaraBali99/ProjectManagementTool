@@ -237,3 +237,72 @@ test('the user index shows a global role badge instead of "no company access"', 
     $response->assertSee('Owner');
     $response->assertSee('Super_admin');
 });
+
+dataset('invalidEmails', [
+    'not-an-email',
+    'missing-domain@',
+    '@missing-local.com',
+    'no-at-sign.example.com',
+    'spaces in@email.com',
+    'double@@example.com',
+]);
+
+test('creating a user rejects an invalid email format', function (string $email) {
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'emailtest',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'Email Test',
+        'employee_id' => 'EMP-9010',
+        'email' => $email,
+        'phone' => '+1 555 0100',
+        'roles' => [$this->orgA->id => 'staff'],
+    ]);
+
+    $response->assertSessionHasErrors('email');
+    $this->assertDatabaseMissing('users', ['username' => 'emailtest']);
+})->with('invalidEmails');
+
+dataset('invalidPhones', [
+    'not-a-phone-number',
+    '123',
+    '12345678901234567890',
+    '+1 555-CALL-NOW',
+    '++1 555 0100',
+]);
+
+test('creating a user rejects an invalid phone format', function (string $phone) {
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'phonetest',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'Phone Test',
+        'employee_id' => 'EMP-9011',
+        'email' => 'phonetest@example.com',
+        'phone' => $phone,
+        'roles' => [$this->orgA->id => 'staff'],
+    ]);
+
+    $response->assertSessionHasErrors('phone');
+    $this->assertDatabaseMissing('users', ['username' => 'phonetest']);
+})->with('invalidPhones');
+
+dataset('validPhones', [
+    '+1 555 0100',
+    '+62 811-0000-0001',
+    '08123456789',
+    '(555) 123-4567',
+]);
+
+test('creating a user accepts a valid phone format', function (string $phone) {
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'validphone',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'Valid Phone',
+        'employee_id' => 'EMP-9012',
+        'email' => 'validphone@example.com',
+        'phone' => $phone,
+        'roles' => [$this->orgA->id => 'staff'],
+    ]);
+
+    $response->assertSessionDoesntHaveErrors('phone');
+    $this->assertDatabaseHas('users', ['username' => 'validphone']);
+})->with('validPhones');
