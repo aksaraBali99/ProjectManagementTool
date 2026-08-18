@@ -55,6 +55,18 @@ test('an inactive user cannot log in even with the correct password', function (
     $this->assertGuest();
 });
 
+test('a user with no password set cannot log in via the password form', function () {
+    $user = User::factory()->create(['password' => null, 'auth_provider' => 'google']);
+
+    $response = $this->post('/login', [
+        'identifier' => $user->username,
+        'password' => 'anything',
+    ]);
+
+    $response->assertSessionHasErrors('identifier');
+    $this->assertGuest();
+});
+
 test('a logged-in user can log out', function () {
     $user = User::factory()->create();
 
