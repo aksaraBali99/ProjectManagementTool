@@ -39,12 +39,22 @@
                         <td class="px-4 py-3 text-gray-600">{{ $user->username }}</td>
                         <td class="px-4 py-3 text-gray-600">{{ $user->email }}</td>
                         <td class="px-4 py-3 text-gray-600">
+                            @php $globalRoles = $user->roles->whereIn('slug', [\App\Models\Role::SUPER_ADMIN, \App\Models\Role::OWNER]) @endphp
+                            @forelse ($globalRoles as $role)
+                                <span class="mr-1 inline-block rounded-full bg-[#E1F5EE] px-2 py-0.5 text-xs text-[#085041]">
+                                    {{ $role->name }}
+                                </span>
+                            @empty
+                            @endforelse
+
                             @forelse ($user->orgMemberships as $membership)
                                 <span class="mr-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs">
                                     {{ $membership->organization->name }}: {{ ucfirst($membership->role->slug) }}
                                 </span>
                             @empty
-                                <span class="text-xs text-gray-400">No company access</span>
+                                @if ($globalRoles->isEmpty())
+                                    <span class="text-xs text-gray-400">No company access</span>
+                                @endif
                             @endforelse
                         </td>
                         <td class="px-4 py-3">

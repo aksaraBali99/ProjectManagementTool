@@ -88,6 +88,16 @@ class User extends Authenticatable
         return $this->roles()->where('slug', Role::OWNER)->exists();
     }
 
+    /**
+     * True if this user holds super_admin and/or owner — the two global
+     * roles that bypass organization scoping entirely. Company-level role
+     * assignment doesn't apply to these users.
+     */
+    public function hasGlobalRole(): bool
+    {
+        return $this->isSuperAdmin() || $this->isOwner();
+    }
+
     public function isManagementInOrg(int $organizationId): bool
     {
         return $this->orgMemberships()

@@ -20,7 +20,7 @@ class UserManagementController extends Controller
         Gate::authorize('viewAny', User::class);
 
         $users = User::query()
-            ->with('orgMemberships.organization', 'orgMemberships.role')
+            ->with('orgMemberships.organization', 'orgMemberships.role', 'roles')
             ->orderBy('name')
             ->get();
 
@@ -68,6 +68,7 @@ class UserManagementController extends Controller
             'user' => $user,
             'organizations' => $organizations,
             'currentRoles' => $currentRoles,
+            'globalRoles' => $user->roles()->whereIn('slug', [Role::SUPER_ADMIN, Role::OWNER])->pluck('name'),
         ]);
     }
 
@@ -83,7 +84,9 @@ class UserManagementController extends Controller
             'phone' => $request->string('phone'),
         ]);
 
-        $this->syncCompanyRoles($user, $request->input('roles', []));
+        if (! $user->hasGlobalRole()) {
+            $this->syncCompanyRoles($user, $request->input('roles', []));
+        }
 
         return redirect()->route('users.index')->with('status', 'User updated.');
     }

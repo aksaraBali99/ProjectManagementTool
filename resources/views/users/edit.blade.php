@@ -68,23 +68,34 @@
                 class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
         </div>
 
-        <div>
-            <span class="block text-sm font-medium text-gray-700">Company roles</span>
-            <p class="mt-1 text-xs text-gray-500">Assign this user a role in at least one company.</p>
-            <div class="mt-2 space-y-2">
-                @foreach ($organizations as $organization)
-                    @php $current = old('roles.'.$organization->id, $currentRoles[$organization->id] ?? 'none') @endphp
-                    <div class="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
-                        <span class="text-sm text-gray-900">{{ $organization->name }}</span>
-                        <select name="roles[{{ $organization->id }}]" class="rounded-md border border-gray-300 px-2 py-1 text-sm">
-                            <option value="none" {{ $current === 'none' ? 'selected' : '' }}>No access</option>
-                            <option value="staff" {{ $current === 'staff' ? 'selected' : '' }}>Staff</option>
-                            <option value="management" {{ $current === 'management' ? 'selected' : '' }}>Management</option>
-                        </select>
-                    </div>
-                @endforeach
+        @if ($globalRoles->isNotEmpty())
+            <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-3">
+                <span class="block text-sm font-medium text-gray-700">Global role</span>
+                <p class="mt-1 text-sm text-gray-900">{{ $globalRoles->implode(', ') }}</p>
+                <p class="mt-1 text-xs text-gray-500">
+                    This user has full cross-company access and doesn't need a per-company role. Global roles aren't
+                    assignable from this page.
+                </p>
             </div>
-        </div>
+        @else
+            <div>
+                <span class="block text-sm font-medium text-gray-700">Company roles</span>
+                <p class="mt-1 text-xs text-gray-500">Assign this user a role in at least one company.</p>
+                <div class="mt-2 space-y-2">
+                    @foreach ($organizations as $organization)
+                        @php $current = old('roles.'.$organization->id, $currentRoles[$organization->id] ?? 'none') @endphp
+                        <div class="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
+                            <span class="text-sm text-gray-900">{{ $organization->name }}</span>
+                            <select name="roles[{{ $organization->id }}]" class="rounded-md border border-gray-300 px-2 py-1 text-sm">
+                                <option value="none" {{ $current === 'none' ? 'selected' : '' }}>No access</option>
+                                <option value="staff" {{ $current === 'staff' ? 'selected' : '' }}>Staff</option>
+                                <option value="management" {{ $current === 'management' ? 'selected' : '' }}>Management</option>
+                            </select>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         <div class="flex items-center gap-3 pt-2">
             <button type="submit"

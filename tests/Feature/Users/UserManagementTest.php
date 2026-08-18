@@ -194,3 +194,46 @@ test('a valid password change succeeds and the new password works for login', fu
     ]);
     $login->assertRedirect('/dashboard');
 });
+
+test('editing a user with a global role does not require or show company roles', function () {
+    $response = $this->actingAs($this->owner)->get("/users/{$this->superAdmin->id}/edit");
+
+    $response->assertOk();
+    $response->assertSee('Super_admin');
+    $response->assertDontSee('name="roles[', false);
+});
+
+test('a global-role user can be updated without submitting any company roles', function () {
+    $response = $this->actingAs($this->owner)->put("/users/{$this->superAdmin->id}", [
+        'username' => $this->superAdmin->username,
+        'name' => 'Updated Name',
+        'employee_id' => $this->superAdmin->employee_id,
+        'email' => $this->superAdmin->email,
+        'phone' => $this->superAdmin->phone,
+    ]);
+
+    $response->assertRedirect('/users');
+    $response->assertSessionHasNoErrors();
+    expect($this->superAdmin->fresh()->name)->toBe('Updated Name');
+});
+
+test('submitting company roles for a global-role user does not create org_members rows', function () {
+    $this->actingAs($this->owner)->put("/users/{$this->superAdmin->id}", [
+        'username' => $this->superAdmin->username,
+        'name' => $this->superAdmin->name,
+        'employee_id' => $this->superAdmin->employee_id,
+        'email' => $this->superAdmin->email,
+        'phone' => $this->superAdmin->phone,
+        'roles' => [$this->orgA->id => 'management'],
+    ]);
+
+    expect(OrgMember::where('user_id', $this->superAdmin->id)->exists())->toBeFalse();
+});
+
+test('the user index shows a global role badge instead of "no company access"', function () {
+    $response = $this->actingAs($this->owner)->get('/users');
+
+    $response->assertOk();
+    $response->assertSee('Owner');
+    $response->assertSee('Super_admin');
+});
