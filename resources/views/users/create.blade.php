@@ -1,10 +1,12 @@
-@extends('layouts.app')
+@extends('layouts.authenticated')
 
 @section('title', 'Add user — FounderOS')
 
 @section('content')
-<div class="mx-auto max-w-2xl px-4 py-8">
-    <h1 class="text-xl font-semibold text-gray-900">Add user</h1>
+<div class="mx-auto max-w-2xl">
+    <a href="{{ route('users.index') }}" class="text-xs text-gray-500 hover:underline">← Users</a>
+
+    <h1 class="mt-2 text-xl font-semibold text-gray-900">Add user</h1>
 
     @if ($errors->any())
         <div class="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
