@@ -18,19 +18,28 @@ class UpdateUserRequest extends FormRequest
     {
         $userId = $this->route('user')->id;
 
-        return [
+        $rules = [
             'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($userId)],
             'name' => ['required', 'string', 'max:255'],
             'employee_id' => ['required', 'string', 'max:255', Rule::unique('users', 'employee_id')->ignore($userId)],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'phone' => ['required', 'string', 'max:255'],
-            'roles' => ['required', 'array'],
-            'roles.*' => ['required', 'in:none,staff,management'],
         ];
+
+        if (! $this->route('user')->hasGlobalRole()) {
+            $rules['roles'] = ['required', 'array'];
+            $rules['roles.*'] = ['required', 'in:none,staff,management'];
+        }
+
+        return $rules;
     }
 
     public function withValidator(Validator $validator): void
     {
+        if ($this->route('user')->hasGlobalRole()) {
+            return;
+        }
+
         $validator->after(function (Validator $validator) {
             $roles = $this->input('roles', []);
 
