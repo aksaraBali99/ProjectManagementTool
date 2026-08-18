@@ -1,16 +1,16 @@
 # Graph Report - ProjectManagementTool  (2026-08-18)
 
 ## Corpus Check
-- 87 files · ~10,625 words
+- 88 files · ~10,804 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 381 nodes · 523 edges · 54 communities (48 shown, 6 thin omitted)
+- 382 nodes · 524 edges · 54 communities (48 shown, 6 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `65daf63e`
+- Built from commit: `43942e7b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -45,10 +45,10 @@
 10. `scripts` - 9 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `joinOrg()` --references--> `User`  [EXTRACTED]
-  tests/Feature/RoleBasedAccessTest.php → app/Models/User.php
 - `joinOrg()` --references--> `Organization`  [EXTRACTED]
   tests/Feature/RoleBasedAccessTest.php → app/Models/Organization.php
+- `joinOrg()` --references--> `User`  [EXTRACTED]
+  tests/Feature/RoleBasedAccessTest.php → app/Models/User.php
 - `joinOrg()` --references--> `OrgMember`  [EXTRACTED]
   tests/Feature/RoleBasedAccessTest.php → app/Models/OrgMember.php
 - `joinOrg()` --references--> `Role`  [EXTRACTED]
@@ -82,12 +82,12 @@ Cohesion: 0.10
 Nodes (20): concurrently, @laravel/multiplex, laravel-vite-plugin, devDependencies, concurrently, laravel-vite-plugin, tailwindcss, @tailwindcss/vite (+12 more)
 
 ### Community 5 - "User"
-Cohesion: 0.09
-Nodes (6): Comment, User, CommentPolicy, ProjectPolicy, TaskPolicy, Illuminate\Foundation\Auth\User
+Cohesion: 0.07
+Nodes (8): Comment, Project, User, CommentPolicy, ProjectPolicy, TaskPolicy, Illuminate\Database\Eloquent\Relations\BelongsToMany, Illuminate\Foundation\Auth\User
 
 ### Community 6 - "Illuminate\Database\Eloquent\Relations\BelongsTo"
-Cohesion: 0.06
-Nodes (17): AccessPermission, AuditLog, organization(), Department, Document, NotificationSetting, OrgMember, Project (+9 more)
+Cohesion: 0.08
+Nodes (15): AccessPermission, AuditLog, organization(), Department, Document, NotificationSetting, OrgMember, Role (+7 more)
 
 ### Community 7 - "LARAVEL_README.md"
 Cohesion: 0.25
@@ -102,7 +102,7 @@ Cohesion: 0.15
 Nodes (10): AuthenticatedSessionController, Controller, DashboardController, EnsureBelongsToOrganization, EnsureUserIsActive, Closure, Illuminate\Http\RedirectResponse, Illuminate\Http\Request (+2 more)
 
 ## Knowledge Gaps
-- **79 isolated node(s):** `Composer\\Config::disableProcessTimeout`, `composer install`, `Illuminate\\Foundation\\ComposerScripts::postAutoloadDump`, `Illuminate\\Foundation\\ComposerScripts::prePackageUninstall`, `npm install --ignore-scripts` (+74 more)
+- **79 isolated node(s):** `$schema`, `name`, `type`, `description`, `laravel` (+74 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -111,13 +111,13 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `User` connect `User` to `User.php`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\Database\Eloquent\Relations\BelongsTo`?**
   _High betweenness centrality (0.065) - this node is a cross-community bridge._
-- **Why does `Organization` connect `Illuminate\Database\Eloquent\Relations\HasMany` to `AuthenticatedSessionController.php`, `User.php`, `User`, `Illuminate\Database\Eloquent\Relations\BelongsTo`?**
+- **Why does `Organization` connect `Illuminate\Database\Eloquent\Relations\HasMany` to `AuthenticatedSessionController.php`, `User`, `Illuminate\Database\Eloquent\Relations\BelongsTo`?**
   _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **Why does `LoginRequest` connect `User.php` to `AuthenticatedSessionController.php`?**
-  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+  _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `User` (e.g. with `.authenticate()` and `.run()`) actually correct?**
   _`User` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `Composer\\Config::disableProcessTimeout`, `composer install`, `Illuminate\\Foundation\\ComposerScripts::postAutoloadDump` to the rest of the system?**
+- **What connects `$schema`, `name`, `type` to the rest of the system?**
   _79 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `scripts` be split into smaller, more focused modules?**
   _Cohesion score 0.08 - nodes in this community are weakly interconnected._
