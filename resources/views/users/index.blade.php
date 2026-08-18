@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="mx-auto max-w-5xl">
-    <a href="{{ route('settings.index') }}" class="text-xs text-gray-500 hover:underline">← Settings</a>
+    <a href="{{ route('dashboard') }}" class="text-xs text-gray-500 hover:underline">← Dashboard</a>
 
     <div class="mt-2 flex items-center justify-between">
         <h1 class="text-xl font-semibold text-gray-900">Users</h1>
