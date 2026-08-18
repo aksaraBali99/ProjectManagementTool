@@ -120,6 +120,7 @@ class User extends Authenticatable
             ->where('organization_id', $organizationId)
             ->where('department_id', $departmentId)
             ->where('allowed', true)
+            ->whereHas('department', fn ($query) => $query->where('is_active', true))
             ->exists();
     }
 
@@ -130,8 +131,10 @@ class User extends Authenticatable
 
     /**
      * The organization IDs this user's queries are allowed to see.
-     * Super admins and owners see every organization; everyone else
-     * is limited to the organizations they hold an org_members row in.
+     * Super admins and owners see every organization, active or not;
+     * everyone else is limited to active organizations they hold an
+     * org_members row in — a deactivated organization disappears from
+     * their visibility entirely, same as losing membership.
      *
      * @return array<int, int>
      */
@@ -141,6 +144,9 @@ class User extends Authenticatable
             return Organization::query()->pluck('id')->all();
         }
 
-        return $this->orgMemberships()->pluck('organization_id')->all();
+        return $this->orgMemberships()
+            ->whereHas('organization', fn ($query) => $query->where('is_active', true))
+            ->pluck('organization_id')
+            ->all();
     }
 }

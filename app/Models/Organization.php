@@ -7,9 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'accent_color'])]
+#[Fillable(['name', 'slug', 'accent_color', 'is_active'])]
 class Organization extends Model
 {
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
+
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'org_members')

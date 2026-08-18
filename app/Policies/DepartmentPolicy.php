@@ -26,9 +26,4 @@ class DepartmentPolicy
     {
         return $user->isSuperAdmin() || $user->isOwner();
     }
-
-    public function delete(User $user, Department $department): bool
-    {
-        return $user->isSuperAdmin() || $user->isOwner();
-    }
 }

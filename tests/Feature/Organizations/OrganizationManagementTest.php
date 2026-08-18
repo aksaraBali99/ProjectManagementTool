@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Role;
@@ -34,7 +33,7 @@ test('an owner can create a company', function () {
     ]);
 
     $response->assertRedirect('/organizations');
-    $this->assertDatabaseHas('organizations', ['slug' => 'new-co']);
+    $this->assertDatabaseHas('organizations', ['slug' => 'new-co', 'is_active' => true]);
 });
 
 test('creating a company requires a valid hex accent color', function () {
@@ -61,29 +60,44 @@ test('an owner can update a company', function () {
     expect($organization->fresh()->name)->toBe('Org A Renamed');
 });
 
-test('deleting a company requires typing its exact name', function () {
+test('there is no route to delete a company', function () {
     $organization = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
 
-    $wrong = $this->actingAs($this->owner)->delete("/organizations/{$organization->id}", [
-        'confirm_name' => 'Wrong Name',
-    ]);
-    $wrong->assertSessionHasErrors('confirm_name');
-    $this->assertDatabaseHas('organizations', ['id' => $organization->id]);
-
-    $right = $this->actingAs($this->owner)->delete("/organizations/{$organization->id}", [
-        'confirm_name' => 'Org A',
-    ]);
-    $right->assertRedirect('/organizations');
-    $this->assertDatabaseMissing('organizations', ['id' => $organization->id]);
+    $this->actingAs($this->owner)->delete("/organizations/{$organization->id}")->assertStatus(405);
 });
 
-test('deleting a company cascades to its departments', function () {
+test('an owner can deactivate and reactivate a company without deleting it', function () {
     $organization = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
-    $department = Department::create(['organization_id' => $organization->id, 'name' => 'Marketing', 'color' => '#000000']);
 
-    $this->actingAs($this->owner)->delete("/organizations/{$organization->id}", [
-        'confirm_name' => 'Org A',
+    $this->actingAs($this->owner)->patch("/organizations/{$organization->id}/toggle-active");
+    expect($organization->fresh()->is_active)->toBeFalse();
+    $this->assertDatabaseHas('organizations', ['id' => $organization->id]);
+
+    $this->actingAs($this->owner)->patch("/organizations/{$organization->id}/toggle-active");
+    expect($organization->fresh()->is_active)->toBeTrue();
+});
+
+test('deactivating a company hides it from a non-admin member immediately', function () {
+    $organization = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
+    $manager = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $organization->id,
+        'user_id' => $manager->id,
+        'role_id' => Role::where('slug', 'management')->first()->id,
     ]);
 
-    $this->assertDatabaseMissing('departments', ['id' => $department->id]);
+    expect($manager->visibleOrganizationIds())->toContain($organization->id);
+
+    $this->actingAs($this->owner)->patch("/organizations/{$organization->id}/toggle-active");
+
+    expect($manager->visibleOrganizationIds())->not->toContain($organization->id);
+});
+
+test('an owner still sees an inactive company in the admin list', function () {
+    $organization = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75', 'is_active' => false]);
+
+    $response = $this->actingAs($this->owner)->get('/organizations');
+
+    $response->assertOk();
+    $response->assertSee('Org A');
 });

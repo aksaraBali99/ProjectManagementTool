@@ -30,7 +30,7 @@
                class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50">
                 <span>
                     <span class="block text-sm font-medium text-gray-900">Manage companies</span>
-                    <span class="block text-xs text-gray-500">Add, edit, and delete companies</span>
+                    <span class="block text-xs text-gray-500">Add, edit, and activate/deactivate companies</span>
                 </span>
                 <i class="ti ti-chevron-right text-gray-400"></i>
             </a>
@@ -41,7 +41,7 @@
                class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50">
                 <span>
                     <span class="block text-sm font-medium text-gray-900">Manage departments</span>
-                    <span class="block text-xs text-gray-500">Add, edit, and delete task-type departments per company</span>
+                    <span class="block text-xs text-gray-500">Add, edit, and activate/deactivate task-type departments per company</span>
                 </span>
                 <i class="ti ti-chevron-right text-gray-400"></i>
             </a>
