@@ -1,16 +1,16 @@
-# Graph Report - ProjectManagementTool  (2026-08-17)
+# Graph Report - ProjectManagementTool  (2026-08-18)
 
 ## Corpus Check
-- 39 files · ~10,359 words
+- 87 files · ~10,625 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 174 nodes · 152 edges · 37 communities (32 shown, 5 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
+- 381 nodes · 523 edges · 54 communities (48 shown, 6 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c3c43b0e`
+- Built from commit: `65daf63e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,101 +18,108 @@
 - scripts
 - composer.json
 - Mermaid AI Skills
-- User.php
-- devDependencies
-- require-dev
+- Illuminate\Database\Eloquent\Relations\HasMany
 - package.json
+- User
+- Illuminate\Database\Eloquent\Relations\BelongsTo
 - LARAVEL_README.md
-- config
 - AppServiceProvider
-- UserFactory
-- psr-4
+- User.php
 - Pest.php
-- Controller.php
+- AuthenticatedSessionController.php
 - CLAUDE.md
 - copilot-instructions.md
+- README.md
+- deploy.sh
 
 ## God Nodes (most connected - your core abstractions)
-1. `require-dev` - 10 edges
-2. `scripts` - 9 edges
-3. `Mermaid AI Skills` - 7 edges
-4. `setup` - 7 edges
-5. `VS Code Commands` - 6 edges
-6. `User` - 6 edges
-7. `config` - 5 edges
-8. `AppServiceProvider` - 4 edges
-9. `require` - 4 edges
-10. `psr-4` - 4 edges
+1. `User` - 43 edges
+2. `Organization` - 21 edges
+3. `Task` - 16 edges
+4. `Project` - 11 edges
+5. `Role` - 11 edges
+6. `OrgMember` - 10 edges
+7. `require-dev` - 10 edges
+8. `LoginRequest` - 9 edges
+9. `Comment` - 9 edges
+10. `scripts` - 9 edges
 
 ## Surprising Connections (you probably didn't know these)
-- None detected - all connections are within the same source files.
+- `joinOrg()` --references--> `User`  [EXTRACTED]
+  tests/Feature/RoleBasedAccessTest.php → app/Models/User.php
+- `joinOrg()` --references--> `Organization`  [EXTRACTED]
+  tests/Feature/RoleBasedAccessTest.php → app/Models/Organization.php
+- `joinOrg()` --references--> `OrgMember`  [EXTRACTED]
+  tests/Feature/RoleBasedAccessTest.php → app/Models/OrgMember.php
+- `joinOrg()` --references--> `Role`  [EXTRACTED]
+  tests/Feature/RoleBasedAccessTest.php → app/Models/Role.php
+- `AuthenticatedSessionController` --inherits--> `Controller`  [EXTRACTED]
+  app/Http/Controllers/Auth/AuthenticatedSessionController.php → app/Http/Controllers/Controller.php
 
 ## Import Cycles
 - None detected.
 
-## Communities (37 total, 5 thin omitted)
+## Communities (54 total, 6 thin omitted)
 
 ### Community 0 - "scripts"
 Cohesion: 0.08
 Nodes (26): scripts, dev, post-autoload-dump, post-create-project-cmd, post-root-package-install, post-update-cmd, pre-package-uninstall, setup (+18 more)
 
 ### Community 1 - "composer.json"
-Cohesion: 0.10
-Nodes (20): autoload-dev, psr-4, description, extra, laravel, keywords, dont-discover, license (+12 more)
+Cohesion: 0.05
+Nodes (42): pestphp/pest-plugin, php-http/discovery, autoload, autoload-dev, psr-4, psr-4, config, allow-plugins (+34 more)
 
 ### Community 2 - "Mermaid AI Skills"
 Cohesion: 0.15
 Nodes (12): Diagram editing & preview, Docs, Generate diagrams (GitHub Copilot required), Install / update this pack, LM Tools — call these for every diagram interaction, Mermaid AI Skills, Mermaid Chart cloud, @mermaid-chart slash commands (+4 more)
 
-### Community 3 - "User.php"
-Cohesion: 0.24
-Nodes (7): User, DatabaseSeeder, Illuminate\Database\Console\Seeds\WithoutModelEvents, Illuminate\Database\Eloquent\Factories\HasFactory, Illuminate\Database\Seeder, Illuminate\Foundation\Auth\User, Illuminate\Notifications\Notifiable
+### Community 3 - "Illuminate\Database\Eloquent\Relations\HasMany"
+Cohesion: 0.11
+Nodes (7): Organization, DatabaseSeeder, DepartmentSeeder, OrganizationSeeder, RoleSeeder, Illuminate\Database\Eloquent\Relations\HasMany, Illuminate\Database\Seeder
 
-### Community 4 - "devDependencies"
-Cohesion: 0.18
-Nodes (11): concurrently, laravel-vite-plugin, devDependencies, concurrently, laravel-vite-plugin, tailwindcss, @tailwindcss/vite, vite (+3 more)
+### Community 4 - "package.json"
+Cohesion: 0.10
+Nodes (20): concurrently, @laravel/multiplex, laravel-vite-plugin, devDependencies, concurrently, laravel-vite-plugin, tailwindcss, @tailwindcss/vite (+12 more)
 
-### Community 5 - "require-dev"
-Cohesion: 0.20
-Nodes (10): require-dev, fakerphp/faker, laravel/pail, laravel/pao, laravel/pint, mockery/mockery, nunomaduro/collision, pestphp/pest (+2 more)
+### Community 5 - "User"
+Cohesion: 0.09
+Nodes (6): Comment, User, CommentPolicy, ProjectPolicy, TaskPolicy, Illuminate\Foundation\Auth\User
 
-### Community 6 - "package.json"
-Cohesion: 0.20
-Nodes (9): @laravel/multiplex, optionalDependencies, @laravel/multiplex, private, $schema, scripts, build, dev (+1 more)
+### Community 6 - "Illuminate\Database\Eloquent\Relations\BelongsTo"
+Cohesion: 0.06
+Nodes (17): AccessPermission, AuditLog, organization(), Department, Document, NotificationSetting, OrgMember, Project (+9 more)
 
 ### Community 7 - "LARAVEL_README.md"
 Cohesion: 0.25
 Nodes (7): About Laravel, Agentic Development, Code of Conduct, Contributing, Learning Laravel, License, Security Vulnerabilities
 
-### Community 8 - "config"
-Cohesion: 0.29
-Nodes (7): pestphp/pest-plugin, php-http/discovery, config, allow-plugins, optimize-autoloader, preferred-install, sort-packages
+### Community 10 - "User.php"
+Cohesion: 0.13
+Nodes (8): LoginRequest, bootBelongsToOrganization(), UserFactory, Illuminate\Database\Eloquent\Factories\Factory, Illuminate\Database\Eloquent\Factories\HasFactory, Illuminate\Foundation\Http\FormRequest, Illuminate\Notifications\Notifiable, static
 
-### Community 10 - "UserFactory"
-Cohesion: 0.47
-Nodes (3): UserFactory, Illuminate\Database\Eloquent\Factories\Factory, static
-
-### Community 11 - "psr-4"
-Cohesion: 0.40
-Nodes (5): autoload, psr-4, App\\, Database\\Factories\\, Database\\Seeders\\
+### Community 16 - "AuthenticatedSessionController.php"
+Cohesion: 0.15
+Nodes (10): AuthenticatedSessionController, Controller, DashboardController, EnsureBelongsToOrganization, EnsureUserIsActive, Closure, Illuminate\Http\RedirectResponse, Illuminate\Http\Request (+2 more)
 
 ## Knowledge Gaps
-- **78 isolated node(s):** `Mermaid Diagrams`, `Workflow`, `LM Tools — call these for every diagram interaction`, `Diagram editing & preview`, `Generate diagrams (GitHub Copilot required)` (+73 more)
+- **79 isolated node(s):** `Composer\\Config::disableProcessTimeout`, `composer install`, `Illuminate\\Foundation\\ComposerScripts::postAutoloadDump`, `Illuminate\\Foundation\\ComposerScripts::prePackageUninstall`, `npm install --ignore-scripts` (+74 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `scripts` connect `scripts` to `composer.json`?**
-  _High betweenness centrality (0.090) - this node is a cross-community bridge._
-- **Why does `require-dev` connect `require-dev` to `composer.json`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
-- **Why does `config` connect `config` to `composer.json`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **What connects `Mermaid Diagrams`, `Workflow`, `LM Tools — call these for every diagram interaction` to the rest of the system?**
-  _78 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `User` connect `User` to `User.php`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\Database\Eloquent\Relations\BelongsTo`?**
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
+- **Why does `Organization` connect `Illuminate\Database\Eloquent\Relations\HasMany` to `AuthenticatedSessionController.php`, `User.php`, `User`, `Illuminate\Database\Eloquent\Relations\BelongsTo`?**
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
+- **Why does `LoginRequest` connect `User.php` to `AuthenticatedSessionController.php`?**
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **Are the 2 inferred relationships involving `User` (e.g. with `.authenticate()` and `.run()`) actually correct?**
+  _`User` has 2 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `Composer\\Config::disableProcessTimeout`, `composer install`, `Illuminate\\Foundation\\ComposerScripts::postAutoloadDump` to the rest of the system?**
+  _79 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `scripts` be split into smaller, more focused modules?**
   _Cohesion score 0.08 - nodes in this community are weakly interconnected._
 - **Should `composer.json` be split into smaller, more focused modules?**
-  _Cohesion score 0.09523809523809523 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.046511627906976744 - nodes in this community are weakly interconnected._

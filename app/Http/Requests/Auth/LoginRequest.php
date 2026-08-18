@@ -33,7 +33,7 @@ class LoginRequest extends FormRequest
             ->orWhere('email', $this->string('identifier'))
             ->first();
 
-        if (! $user || ! Auth::attempt(['email' => $user->email, 'password' => $this->string('password')])) {
+        if (! $user || ! $user->password || ! Auth::attempt(['email' => $user->email, 'password' => $this->string('password')])) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
