@@ -14,5 +14,11 @@
     <p class="mt-4 text-sm text-gray-500">
         This is a placeholder — the real dashboard (per-company tabs, priority split, kanban) is built in Phase 5.
     </p>
+
+    @can('viewAny', App\Models\User::class)
+        <a href="{{ route('users.index') }}" class="mt-6 inline-block text-sm text-[#1D9E75] hover:underline">
+            Manage users →
+        </a>
+    @endcan
 </div>
 @endsection
