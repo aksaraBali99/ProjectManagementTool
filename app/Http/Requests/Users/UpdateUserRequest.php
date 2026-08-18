@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Users;
 
 use App\Models\Organization;
+use App\Rules\ValidPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -22,8 +23,8 @@ class UpdateUserRequest extends FormRequest
             'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($userId)],
             'name' => ['required', 'string', 'max:255'],
             'employee_id' => ['required', 'string', 'max:255', Rule::unique('users', 'employee_id')->ignore($userId)],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'phone' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email:rfc,filter', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
+            'phone' => ['required', 'string', 'max:30', new ValidPhoneNumber],
         ];
 
         if (! $this->route('user')->hasGlobalRole()) {
