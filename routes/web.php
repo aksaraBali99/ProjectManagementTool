@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\DashboardController;
@@ -50,4 +51,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/roles', [RoleManagementController::class, 'index'])->name('roles.index');
     Route::get('/roles/{role}/edit', [RoleManagementController::class, 'edit'])->name('roles.edit');
     Route::put('/roles/{role}', [RoleManagementController::class, 'update'])->name('roles.update');
+
+    Route::get('/access-control/{organization?}', [AccessControlController::class, 'index'])->name('access-control.index');
+    Route::post('/access-control/toggle', [AccessControlController::class, 'toggle'])->name('access-control.toggle');
 });

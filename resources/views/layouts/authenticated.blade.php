@@ -13,7 +13,7 @@
             ['label' => 'Dashboard', 'icon' => 'ti-layout-dashboard', 'route' => 'dashboard', 'matches' => ['dashboard']],
             ['label' => 'Projects', 'icon' => 'ti-folder', 'route' => null, 'matches' => []],
             ['label' => 'Documents', 'icon' => 'ti-files', 'route' => null, 'matches' => []],
-            ['label' => 'Access control', 'icon' => 'ti-shield-lock', 'route' => null, 'matches' => []],
+            ['label' => 'Access control', 'icon' => 'ti-shield-lock', 'route' => 'access-control.index', 'matches' => ['access-control.*'], 'can' => ['access-control.view']],
             ['label' => 'Staff', 'icon' => 'ti-users', 'route' => null, 'matches' => []],
             [
                 'label' => 'Settings',
@@ -39,12 +39,13 @@
                 @foreach ($navItems as $item)
                     @php
                         $active = collect($item['matches'])->contains(fn ($pattern) => request()->routeIs($pattern));
+                        $itemAllowed = ! isset($item['can']) || auth()->user()->can(...$item['can']);
                         $children = collect($item['children'] ?? [])->filter(
                             fn ($child) => ! isset($child['can']) || auth()->user()->can(...$child['can'])
                         );
                     @endphp
 
-                    @if ($item['route'])
+                    @if ($item['route'] && $itemAllowed)
                         <a href="{{ route($item['route']) }}"
                            class="flex items-center gap-2 border-r-2 px-4 py-2 text-xs {{ $active ? 'border-[#1D9E75] bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
                             <i class="ti {{ $item['icon'] }}"></i>
