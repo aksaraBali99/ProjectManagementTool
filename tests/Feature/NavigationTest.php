@@ -5,7 +5,7 @@ use App\Models\OrgMember;
 use App\Models\Role;
 use App\Models\User;
 
-test('an owner sees Users as a submenu under Settings in the sidebar', function () {
+test('an owner sees all entity pages as submenus under Settings in the sidebar', function () {
     $role = Role::create(['name' => 'Owner', 'slug' => 'owner', 'is_system' => true]);
     $owner = User::factory()->create();
     $owner->roles()->attach($role->id);
@@ -15,6 +15,9 @@ test('an owner sees Users as a submenu under Settings in the sidebar', function 
     $response->assertOk();
     $response->assertSee('Settings');
     $response->assertSee('Users');
+    $response->assertSee('Companies');
+    $response->assertSee('Departments');
+    $response->assertSee('Roles');
 });
 
 test('a non-admin sees Settings but not the Users submenu', function () {
