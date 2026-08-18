@@ -1,10 +1,12 @@
-@extends('layouts.app')
+@extends('layouts.authenticated')
 
 @section('title', 'Users — FounderOS')
 
 @section('content')
-<div class="mx-auto max-w-5xl px-4 py-8">
-    <div class="flex items-center justify-between">
+<div class="mx-auto max-w-5xl">
+    <a href="{{ route('settings.index') }}" class="text-xs text-gray-500 hover:underline">← Settings</a>
+
+    <div class="mt-2 flex items-center justify-between">
         <h1 class="text-xl font-semibold text-gray-900">Users</h1>
         <a
             href="{{ route('users.create') }}"
