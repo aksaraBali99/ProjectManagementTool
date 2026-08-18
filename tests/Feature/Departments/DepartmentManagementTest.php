@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AccessPermission;
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
@@ -58,7 +59,13 @@ test('department names must be unique within the same company but not across com
     $this->assertDatabaseHas('departments', ['name' => 'Marketing', 'organization_id' => $otherOrg->id]);
 });
 
-test('a department with tasks cannot be deleted', function () {
+test('there is no route to delete a department', function () {
+    $department = Department::create(['organization_id' => $this->organization->id, 'name' => 'Marketing', 'color' => '#000000']);
+
+    $this->actingAs($this->owner)->delete("/departments/{$department->id}")->assertStatus(405);
+});
+
+test('an owner can deactivate and reactivate a department without deleting it, even with tasks assigned', function () {
     $department = Department::create(['organization_id' => $this->organization->id, 'name' => 'Marketing', 'color' => '#000000']);
     $project = Project::create([
         'organization_id' => $this->organization->id,
@@ -73,17 +80,38 @@ test('a department with tasks cannot be deleted', function () {
         'title' => 'A task',
     ]);
 
-    $response = $this->actingAs($this->owner)->delete("/departments/{$department->id}");
-
-    $response->assertSessionHasErrors('department');
+    $this->actingAs($this->owner)->patch("/departments/{$department->id}/toggle-active");
+    expect($department->fresh()->is_active)->toBeFalse();
     $this->assertDatabaseHas('departments', ['id' => $department->id]);
+
+    $this->actingAs($this->owner)->patch("/departments/{$department->id}/toggle-active");
+    expect($department->fresh()->is_active)->toBeTrue();
 });
 
-test('a department with no tasks can be deleted', function () {
+test('deactivating a department removes a staff member\'s access to it immediately', function () {
+    $role = Role::create(['name' => 'Staff', 'slug' => 'staff', 'is_system' => true]);
     $department = Department::create(['organization_id' => $this->organization->id, 'name' => 'Marketing', 'color' => '#000000']);
+    $staff = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->organization->id, 'user_id' => $staff->id, 'role_id' => $role->id]);
+    AccessPermission::create([
+        'user_id' => $staff->id,
+        'organization_id' => $this->organization->id,
+        'department_id' => $department->id,
+        'allowed' => true,
+    ]);
 
-    $response = $this->actingAs($this->owner)->delete("/departments/{$department->id}");
+    expect($staff->hasDepartmentAccess($this->organization->id, $department->id))->toBeTrue();
 
-    $response->assertRedirect('/departments');
-    $this->assertDatabaseMissing('departments', ['id' => $department->id]);
+    $this->actingAs($this->owner)->patch("/departments/{$department->id}/toggle-active");
+
+    expect($staff->hasDepartmentAccess($this->organization->id, $department->id))->toBeFalse();
+});
+
+test('an owner still sees an inactive department in the admin list', function () {
+    Department::create(['organization_id' => $this->organization->id, 'name' => 'Marketing', 'color' => '#000000', 'is_active' => false]);
+
+    $response = $this->actingAs($this->owner)->get('/departments');
+
+    $response->assertOk();
+    $response->assertSee('Marketing');
 });

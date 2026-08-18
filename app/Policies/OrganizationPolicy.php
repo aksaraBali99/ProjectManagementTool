@@ -26,9 +26,4 @@ class OrganizationPolicy
     {
         return $user->isSuperAdmin() || $user->isOwner();
     }
-
-    public function delete(User $user, Organization $organization): bool
-    {
-        return $user->isSuperAdmin() || $user->isOwner();
-    }
 }

@@ -27,6 +27,7 @@
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Accent</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Departments</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Projects</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Status</th>
                     <th class="px-4 py-2 text-right font-medium text-gray-500">Actions</th>
                 </tr>
             </thead>
@@ -41,8 +42,22 @@
                         </td>
                         <td class="px-4 py-3 text-gray-600">{{ $organization->departments_count }}</td>
                         <td class="px-4 py-3 text-gray-600">{{ $organization->projects_count }}</td>
+                        <td class="px-4 py-3">
+                            @if ($organization->is_active)
+                                <span class="rounded-full bg-[#EAF3DE] px-2 py-0.5 text-xs text-[#3B6D11]">Active</span>
+                            @else
+                                <span class="rounded-full bg-[#FCEBEB] px-2 py-0.5 text-xs text-[#A32D2D]">Inactive</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-right">
                             <a href="{{ route('organizations.edit', $organization) }}" class="text-[#1D9E75] hover:underline">Edit</a>
+                            <form method="POST" action="{{ route('organizations.toggle-active', $organization) }}" class="inline">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="ml-3 text-gray-500 hover:underline">
+                                    {{ $organization->is_active ? 'Deactivate' : 'Activate' }}
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 @endforeach

@@ -6,7 +6,6 @@ use App\Http\Requests\Organizations\StoreOrganizationRequest;
 use App\Http\Requests\Organizations\UpdateOrganizationRequest;
 use App\Models\Organization;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -53,16 +52,13 @@ class OrganizationManagementController extends Controller
         return redirect()->route('organizations.index')->with('status', 'Company updated.');
     }
 
-    public function destroy(Request $request, Organization $organization): RedirectResponse
+    public function toggleActive(Organization $organization): RedirectResponse
     {
-        Gate::authorize('delete', $organization);
+        Gate::authorize('update', $organization);
 
-        if ($request->string('confirm_name')->toString() !== $organization->name) {
-            return back()->withErrors(['confirm_name' => 'Type the company name exactly to confirm deletion.']);
-        }
+        $organization->update(['is_active' => ! $organization->is_active]);
 
-        $organization->delete();
-
-        return redirect()->route('organizations.index')->with('status', 'Company deleted.');
+        return redirect()->route('organizations.index')
+            ->with('status', $organization->is_active ? 'Company activated.' : 'Company deactivated.');
     }
 }

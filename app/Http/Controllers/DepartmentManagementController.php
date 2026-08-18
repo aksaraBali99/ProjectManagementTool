@@ -6,7 +6,6 @@ use App\Http\Requests\Departments\StoreDepartmentRequest;
 use App\Http\Requests\Departments\UpdateDepartmentRequest;
 use App\Models\Department;
 use App\Models\Organization;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -57,22 +56,13 @@ class DepartmentManagementController extends Controller
         return redirect()->route('departments.index')->with('status', 'Department updated.');
     }
 
-    public function destroy(Department $department): RedirectResponse
+    public function toggleActive(Department $department): RedirectResponse
     {
-        Gate::authorize('delete', $department);
+        Gate::authorize('update', $department);
 
-        try {
-            $department->delete();
-        } catch (QueryException $exception) {
-            if ($exception->getCode() === '23000') {
-                return back()->withErrors([
-                    'department' => 'This department still has tasks assigned to it. Reassign or remove them before deleting.',
-                ]);
-            }
+        $department->update(['is_active' => ! $department->is_active]);
 
-            throw $exception;
-        }
-
-        return redirect()->route('departments.index')->with('status', 'Department deleted.');
+        return redirect()->route('departments.index')
+            ->with('status', $department->is_active ? 'Department activated.' : 'Department deactivated.');
     }
 }

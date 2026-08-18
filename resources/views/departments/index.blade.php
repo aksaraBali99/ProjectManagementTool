@@ -18,10 +18,6 @@
         <div class="mt-4 rounded-md bg-[#E1F5EE] p-3 text-sm text-[#085041]">{{ session('status') }}</div>
     @endif
 
-    @if ($errors->has('department'))
-        <div class="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{{ $errors->first('department') }}</div>
-    @endif
-
     <div class="mt-6 overflow-hidden rounded-lg border border-gray-200">
         <table class="min-w-full divide-y divide-gray-200 text-sm">
             <thead class="bg-gray-50">
@@ -30,6 +26,7 @@
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Company</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Color</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Tasks</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Status</th>
                     <th class="px-4 py-2 text-right font-medium text-gray-500">Actions</th>
                 </tr>
             </thead>
@@ -42,13 +39,21 @@
                             <span class="inline-block h-4 w-4 rounded-full align-middle" style="background-color: {{ $department->color }}"></span>
                         </td>
                         <td class="px-4 py-3 text-gray-600">{{ $department->tasks_count }}</td>
+                        <td class="px-4 py-3">
+                            @if ($department->is_active)
+                                <span class="rounded-full bg-[#EAF3DE] px-2 py-0.5 text-xs text-[#3B6D11]">Active</span>
+                            @else
+                                <span class="rounded-full bg-[#FCEBEB] px-2 py-0.5 text-xs text-[#A32D2D]">Inactive</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-right">
                             <a href="{{ route('departments.edit', $department) }}" class="text-[#1D9E75] hover:underline">Edit</a>
-                            <form method="POST" action="{{ route('departments.destroy', $department) }}" class="inline"
-                                  onsubmit="return confirm('Delete {{ $department->name }}? This cannot be undone.');">
+                            <form method="POST" action="{{ route('departments.toggle-active', $department) }}" class="inline">
                                 @csrf
-                                @method('DELETE')
-                                <button type="submit" class="ml-3 text-red-600 hover:underline">Delete</button>
+                                @method('PATCH')
+                                <button type="submit" class="ml-3 text-gray-500 hover:underline">
+                                    {{ $department->is_active ? 'Deactivate' : 'Activate' }}
+                                </button>
                             </form>
                         </td>
                     </tr>
