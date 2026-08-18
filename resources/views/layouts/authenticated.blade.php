@@ -15,7 +15,15 @@
             ['label' => 'Documents', 'icon' => 'ti-files', 'route' => null, 'matches' => []],
             ['label' => 'Access control', 'icon' => 'ti-shield-lock', 'route' => null, 'matches' => []],
             ['label' => 'Staff', 'icon' => 'ti-users', 'route' => null, 'matches' => []],
-            ['label' => 'Settings', 'icon' => 'ti-settings', 'route' => 'settings.index', 'matches' => ['settings.*', 'users.*']],
+            [
+                'label' => 'Settings',
+                'icon' => 'ti-settings',
+                'route' => 'settings.index',
+                'matches' => ['settings.index'],
+                'children' => [
+                    ['label' => 'Users', 'route' => 'users.index', 'matches' => ['users.*'], 'can' => ['viewAny', \App\Models\User::class]],
+                ],
+            ],
         ];
     @endphp
 
@@ -26,7 +34,13 @@
             </div>
             <nav class="flex-1 py-2">
                 @foreach ($navItems as $item)
-                    @php $active = collect($item['matches'])->contains(fn ($pattern) => request()->routeIs($pattern)) @endphp
+                    @php
+                        $active = collect($item['matches'])->contains(fn ($pattern) => request()->routeIs($pattern));
+                        $children = collect($item['children'] ?? [])->filter(
+                            fn ($child) => ! isset($child['can']) || auth()->user()->can(...$child['can'])
+                        );
+                    @endphp
+
                     @if ($item['route'])
                         <a href="{{ route($item['route']) }}"
                            class="flex items-center gap-2 border-r-2 px-4 py-2 text-xs {{ $active ? 'border-[#1D9E75] bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
@@ -39,6 +53,14 @@
                             {{ $item['label'] }}
                         </span>
                     @endif
+
+                    @foreach ($children as $child)
+                        @php $childActive = collect($child['matches'])->contains(fn ($pattern) => request()->routeIs($pattern)) @endphp
+                        <a href="{{ route($child['route']) }}"
+                           class="flex items-center border-r-2 py-2 pl-10 pr-4 text-xs {{ $childActive ? 'border-[#1D9E75] bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
+                            {{ $child['label'] }}
+                        </a>
+                    @endforeach
                 @endforeach
             </nav>
         </aside>
