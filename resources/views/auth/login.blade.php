@@ -55,6 +55,19 @@
                 Log in
             </button>
         </form>
+
+        <div class="my-4 flex items-center gap-3">
+            <div class="h-px flex-1 bg-gray-200"></div>
+            <span class="text-xs text-gray-400">or</span>
+            <div class="h-px flex-1 bg-gray-200"></div>
+        </div>
+
+        <a
+            href="{{ route('google.redirect') }}"
+            class="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+            Sign in with Google
+        </a>
     </div>
 </div>
 @endsection

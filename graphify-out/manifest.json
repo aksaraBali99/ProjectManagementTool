@@ -5,7 +5,7 @@
     "semantic_hash": ""
   },
   "app/Models/User.php": {
-    "mtime": 1787034012.8277857,
+    "mtime": 1787037430.6733587,
     "ast_hash": "2dcfa73abe7e5feb8cc72fb31afd9ad7",
     "semantic_hash": ""
   },
@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -215,7 +215,7 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Auth/LoginRequest.php": {
-    "mtime": 1787034022.8495927,
+    "mtime": 1787037430.6733587,
     "ast_hash": "1d6820e8c7665154cf4e43dd45985efb",
     "semantic_hash": ""
   },
@@ -400,7 +400,7 @@
     "semantic_hash": ""
   },
   "resources/views/auth/login.blade.php": {
-    "mtime": 1787034061.7222316,
+    "mtime": 1787037430.7074778,
     "ast_hash": "05399ec4e4e42755699bfdcffb9af489",
     "semantic_hash": ""
   },
@@ -415,7 +415,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Auth/LoginTest.php": {
-    "mtime": 1787034230.9064898,
+    "mtime": 1787037430.7091184,
     "ast_hash": "3ec19cbfc3f9d60026e6047ec1995b8a",
     "semantic_hash": ""
   },
@@ -440,8 +440,13 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_08_18_000100_add_auth_provider_to_users_table.php": {
-    "mtime": 1787033974.3208313,
+    "mtime": 1787037430.6733587,
     "ast_hash": "2000c467a6698e5f813d4ab0dd0f10e4",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Auth/LoginSecurityTest.php": {
+    "mtime": 1787037430.7091184,
+    "ast_hash": "49c3c9ea1c98a66baeac420e1fa190c0",
     "semantic_hash": ""
   }
 }
