@@ -7,7 +7,7 @@
   "5": "User",
   "6": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
   "7": "LARAVEL_README.md",
-  "8": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
+  "8": "2026_08_18_000100_add_auth_provider_to_users_table.php",
   "9": "AppServiceProvider",
   "10": "User.php",
   "11": "2026_08_17_000100_create_organizations_table.php",

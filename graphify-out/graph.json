@@ -11,10 +11,10 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
+      "id": "app_http_requests_auth_loginrequest_loginrequest",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": "loginrequest",
-      "id": "app_http_requests_auth_loginrequest_loginrequest"
+      "norm_label": "loginrequest"
     },
     {
       "label": "UserFactory",
@@ -108,19 +108,6 @@
       "id": "app_http_middleware_ensureuserisactive_ensureuserisactive"
     },
     {
-      "label": "Department",
-      "file_type": "code",
-      "source_file": "app/Models/Department.php",
-      "source_location": "L10",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
-      "norm_label": "department",
-      "id": "app_models_department_department"
-    },
-    {
       "label": "Organization",
       "file_type": "code",
       "source_file": "app/Models/Organization.php",
@@ -173,17 +160,17 @@
       "id": "database_seeders_organizationseeder_organizationseeder"
     },
     {
-      "label": "UserSeeder",
+      "label": "RoleSeeder",
       "file_type": "code",
-      "source_file": "database/seeders/UserSeeder.php",
-      "source_location": "L13",
+      "source_file": "database/seeders/RoleSeeder.php",
+      "source_location": "L8",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 3,
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
-      "norm_label": "userseeder",
-      "id": "database_seeders_userseeder_userseeder"
+      "norm_label": "roleseeder",
+      "id": "database_seeders_roleseeder_roleseeder"
     },
     {
       "label": "Comment",
@@ -206,10 +193,10 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
+      "id": "app_models_user_user",
       "community": 5,
       "community_name": "User",
-      "norm_label": "user",
-      "id": "app_models_user_user"
+      "norm_label": "user"
     },
     {
       "label": "CommentPolicy",
@@ -277,6 +264,19 @@
       "id": "app_models_auditlog_auditlog"
     },
     {
+      "label": "Department",
+      "file_type": "code",
+      "source_file": "app/Models/Department.php",
+      "source_location": "L10",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "department",
+      "id": "app_models_department_department"
+    },
+    {
       "label": "Document",
       "file_type": "code",
       "source_file": "app/Models/Document.php",
@@ -316,6 +316,32 @@
       "id": "app_models_orgmember_orgmember"
     },
     {
+      "label": "Project",
+      "file_type": "code",
+      "source_file": "app/Models/Project.php",
+      "source_location": "L11",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "project",
+      "id": "app_models_project_project"
+    },
+    {
+      "label": "Role",
+      "file_type": "code",
+      "source_file": "app/Models/Role.php",
+      "source_location": "L9",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "role",
+      "id": "app_models_role_role"
+    },
+    {
       "label": "Subtask",
       "file_type": "code",
       "source_file": "app/Models/Subtask.php",
@@ -342,43 +368,17 @@
       "id": "app_models_task_task"
     },
     {
-      "label": "Project",
+      "label": "UserSeeder",
       "file_type": "code",
-      "source_file": "app/Models/Project.php",
-      "source_location": "L11",
+      "source_file": "database/seeders/UserSeeder.php",
+      "source_location": "L13",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": "project",
-      "id": "app_models_project_project"
-    },
-    {
-      "label": "Role",
-      "file_type": "code",
-      "source_file": "app/Models/Role.php",
-      "source_location": "L9",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": "role",
-      "id": "app_models_role_role"
-    },
-    {
-      "label": "RoleSeeder",
-      "file_type": "code",
-      "source_file": "database/seeders/RoleSeeder.php",
-      "source_location": "L8",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": "roleseeder",
-      "id": "database_seeders_roleseeder_roleseeder"
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "userseeder",
+      "id": "database_seeders_userseeder_userseeder"
     },
     {
       "label": "AppServiceProvider",
@@ -400,10 +400,10 @@
       "source_location": "L28",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_http_requests_auth_loginrequest_loginrequest_authenticate",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": ".authenticate()",
-      "id": "app_http_requests_auth_loginrequest_loginrequest_authenticate"
+      "norm_label": ".authenticate()"
     },
     {
       "label": ".authorize()",
@@ -412,10 +412,10 @@
       "source_location": "L15",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_http_requests_auth_loginrequest_loginrequest_authorize",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": ".authorize()",
-      "id": "app_http_requests_auth_loginrequest_loginrequest_authorize"
+      "norm_label": ".authorize()"
     },
     {
       "label": ".ensureIsNotRateLimited()",
@@ -424,10 +424,10 @@
       "source_location": "L55",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_http_requests_auth_loginrequest_loginrequest_ensureisnotratelimited",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": ".ensureisnotratelimited()",
-      "id": "app_http_requests_auth_loginrequest_loginrequest_ensureisnotratelimited"
+      "norm_label": ".ensureisnotratelimited()"
     },
     {
       "label": ".rules()",
@@ -436,10 +436,10 @@
       "source_location": "L20",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_http_requests_auth_loginrequest_loginrequest_rules",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": ".rules()",
-      "id": "app_http_requests_auth_loginrequest_loginrequest_rules"
+      "norm_label": ".rules()"
     },
     {
       "label": ".throttleKey()",
@@ -448,10 +448,10 @@
       "source_location": "L70",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_http_requests_auth_loginrequest_loginrequest_throttlekey",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": ".throttlekey()",
-      "id": "app_http_requests_auth_loginrequest_loginrequest_throttlekey"
+      "norm_label": ".throttlekey()"
     },
     {
       "label": "bootBelongsToOrganization()",
@@ -796,10 +796,22 @@
       "source_location": "L46",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_assignedtasks",
       "community": 3,
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
-      "norm_label": ".assignedtasks()",
-      "id": "app_models_user_user_assignedtasks"
+      "norm_label": ".assignedtasks()"
+    },
+    {
+      "label": ".comments()",
+      "file_type": "code",
+      "source_file": "app/Models/User.php",
+      "source_location": "L66",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_user_user_comments",
+      "community": 3,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
+      "norm_label": ".comments()"
     },
     {
       "label": ".notificationSettings()",
@@ -808,10 +820,10 @@
       "source_location": "L76",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_notificationsettings",
       "community": 3,
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
-      "norm_label": ".notificationsettings()",
-      "id": "app_models_user_user_notificationsettings"
+      "norm_label": ".notificationsettings()"
     },
     {
       "label": ".uploadedDocuments()",
@@ -820,10 +832,10 @@
       "source_location": "L71",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_uploadeddocuments",
       "community": 3,
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
-      "norm_label": ".uploadeddocuments()",
-      "id": "app_models_user_user_uploadeddocuments"
+      "norm_label": ".uploadeddocuments()"
     },
     {
       "label": ".run()",
@@ -864,14 +876,14 @@
     {
       "label": ".run()",
       "file_type": "code",
-      "source_file": "database/seeders/UserSeeder.php",
-      "source_location": "L15",
+      "source_file": "database/seeders/RoleSeeder.php",
+      "source_location": "L10",
       "_callable": true,
       "_origin": "ast",
       "community": 3,
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
       "norm_label": ".run()",
-      "id": "database_seeders_userseeder_userseeder_run"
+      "id": "database_seeders_roleseeder_roleseeder_run"
     },
     {
       "label": "down()",
@@ -1240,10 +1252,10 @@
       "source_location": "L51",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_accesspermissions",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".accesspermissions()",
-      "id": "app_models_user_user_accesspermissions"
+      "norm_label": ".accesspermissions()"
     },
     {
       "label": ".casts()",
@@ -1252,22 +1264,10 @@
       "source_location": "L21",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_casts",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".casts()",
-      "id": "app_models_user_user_casts"
-    },
-    {
-      "label": ".comments()",
-      "file_type": "code",
-      "source_file": "app/Models/User.php",
-      "source_location": "L66",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "User",
-      "norm_label": ".comments()",
-      "id": "app_models_user_user_comments"
+      "norm_label": ".casts()"
     },
     {
       "label": ".hasDepartmentAccess()",
@@ -1276,10 +1276,10 @@
       "source_location": "L107",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_hasdepartmentaccess",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".hasdepartmentaccess()",
-      "id": "app_models_user_user_hasdepartmentaccess"
+      "norm_label": ".hasdepartmentaccess()"
     },
     {
       "label": ".isClientOnProject()",
@@ -1288,10 +1288,10 @@
       "source_location": "L116",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_isclientonproject",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".isclientonproject()",
-      "id": "app_models_user_user_isclientonproject"
+      "norm_label": ".isclientonproject()"
     },
     {
       "label": ".isManagementInOrg()",
@@ -1300,10 +1300,10 @@
       "source_location": "L91",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_ismanagementinorg",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".ismanagementinorg()",
-      "id": "app_models_user_user_ismanagementinorg"
+      "norm_label": ".ismanagementinorg()"
     },
     {
       "label": ".isOwner()",
@@ -1312,10 +1312,10 @@
       "source_location": "L86",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_isowner",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".isowner()",
-      "id": "app_models_user_user_isowner"
+      "norm_label": ".isowner()"
     },
     {
       "label": ".isStaffInOrg()",
@@ -1324,10 +1324,10 @@
       "source_location": "L99",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_isstaffinorg",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".isstaffinorg()",
-      "id": "app_models_user_user_isstaffinorg"
+      "norm_label": ".isstaffinorg()"
     },
     {
       "label": ".isSuperAdmin()",
@@ -1336,10 +1336,10 @@
       "source_location": "L81",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_issuperadmin",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".issuperadmin()",
-      "id": "app_models_user_user_issuperadmin"
+      "norm_label": ".issuperadmin()"
     },
     {
       "label": ".orgMemberships()",
@@ -1348,10 +1348,10 @@
       "source_location": "L34",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_orgmemberships",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".orgmemberships()",
-      "id": "app_models_user_user_orgmemberships"
+      "norm_label": ".orgmemberships()"
     },
     {
       "label": ".projectsAsClient()",
@@ -1360,10 +1360,10 @@
       "source_location": "L61",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_projectsasclient",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".projectsasclient()",
-      "id": "app_models_user_user_projectsasclient"
+      "norm_label": ".projectsasclient()"
     },
     {
       "label": ".roles()",
@@ -1372,10 +1372,10 @@
       "source_location": "L29",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_roles",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".roles()",
-      "id": "app_models_user_user_roles"
+      "norm_label": ".roles()"
     },
     {
       "label": ".visibleOrganizationIds()",
@@ -1384,10 +1384,10 @@
       "source_location": "L128",
       "_callable": true,
       "_origin": "ast",
+      "id": "app_models_user_user_visibleorganizationids",
       "community": 5,
       "community_name": "User",
-      "norm_label": ".visibleorganizationids()",
-      "id": "app_models_user_user_visibleorganizationids"
+      "norm_label": ".visibleorganizationids()"
     },
     {
       "label": ".create()",
@@ -1642,6 +1642,18 @@
       "id": "app_models_concerns_belongstoorganization_organization"
     },
     {
+      "label": ".tasks()",
+      "file_type": "code",
+      "source_file": "app/Models/Document.php",
+      "source_location": "L21",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".tasks()",
+      "id": "app_models_document_document_tasks"
+    },
+    {
       "label": ".uploader()",
       "file_type": "code",
       "source_file": "app/Models/Document.php",
@@ -1678,6 +1690,18 @@
       "id": "app_models_notificationsetting_notificationsetting_owner"
     },
     {
+      "label": ".members()",
+      "file_type": "code",
+      "source_file": "app/Models/Organization.php",
+      "source_location": "L13",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".members()",
+      "id": "app_models_organization_organization_members"
+    },
+    {
       "label": ".organization()",
       "file_type": "code",
       "source_file": "app/Models/OrgMember.php",
@@ -1712,6 +1736,78 @@
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
       "norm_label": ".user()",
       "id": "app_models_orgmember_orgmember_user"
+    },
+    {
+      "label": ".casts()",
+      "file_type": "code",
+      "source_file": "app/Models/Project.php",
+      "source_location": "L16",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".casts()",
+      "id": "app_models_project_project_casts"
+    },
+    {
+      "label": ".clients()",
+      "file_type": "code",
+      "source_file": "app/Models/Project.php",
+      "source_location": "L28",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".clients()",
+      "id": "app_models_project_project_clients"
+    },
+    {
+      "label": ".staff()",
+      "file_type": "code",
+      "source_file": "app/Models/Project.php",
+      "source_location": "L23",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".staff()",
+      "id": "app_models_project_project_staff"
+    },
+    {
+      "label": ".tasks()",
+      "file_type": "code",
+      "source_file": "app/Models/Project.php",
+      "source_location": "L33",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".tasks()",
+      "id": "app_models_project_project_tasks"
+    },
+    {
+      "label": ".casts()",
+      "file_type": "code",
+      "source_file": "app/Models/Role.php",
+      "source_location": "L22",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".casts()",
+      "id": "app_models_role_role_casts"
+    },
+    {
+      "label": ".users()",
+      "file_type": "code",
+      "source_file": "app/Models/Role.php",
+      "source_location": "L29",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".users()",
+      "id": "app_models_role_role_users"
     },
     {
       "label": ".casts()",
@@ -1786,6 +1882,18 @@
       "id": "app_models_task_task_department"
     },
     {
+      "label": ".documents()",
+      "file_type": "code",
+      "source_file": "app/Models/Task.php",
+      "source_location": "L50",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".documents()",
+      "id": "app_models_task_task_documents"
+    },
+    {
       "label": ".project()",
       "file_type": "code",
       "source_file": "app/Models/Task.php",
@@ -1810,6 +1918,42 @@
       "id": "app_models_task_task_subtasks"
     },
     {
+      "label": ".organizations()",
+      "file_type": "code",
+      "source_file": "app/Models/User.php",
+      "source_location": "L39",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_user_user_organizations",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".organizations()"
+    },
+    {
+      "label": ".projectsAsStaff()",
+      "file_type": "code",
+      "source_file": "app/Models/User.php",
+      "source_location": "L56",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_user_user_projectsasstaff",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".projectsasstaff()"
+    },
+    {
+      "label": ".run()",
+      "file_type": "code",
+      "source_file": "database/seeders/UserSeeder.php",
+      "source_location": "L15",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": ".run()",
+      "id": "database_seeders_userseeder_userseeder_run"
+    },
+    {
       "label": "joinOrg()",
       "file_type": "code",
       "source_file": "tests/Feature/RoleBasedAccessTest.php",
@@ -1822,148 +1966,28 @@
       "id": "tests_feature_rolebasedaccesstest_joinorg"
     },
     {
-      "label": ".tasks()",
+      "label": "down()",
       "file_type": "code",
-      "source_file": "app/Models/Document.php",
-      "source_location": "L21",
+      "source_file": "database/migrations/2026_08_18_000100_add_auth_provider_to_users_table.php",
+      "source_location": "L18",
       "_callable": true,
       "_origin": "ast",
+      "id": "database_migrations_2026_08_18_000100_add_auth_provider_to_users_table_down",
       "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".tasks()",
-      "id": "app_models_document_document_tasks"
+      "community_name": "2026_08_18_000100_add_auth_provider_to_users_table.php",
+      "norm_label": "down()"
     },
     {
-      "label": ".members()",
+      "label": "up()",
       "file_type": "code",
-      "source_file": "app/Models/Organization.php",
-      "source_location": "L13",
+      "source_file": "database/migrations/2026_08_18_000100_add_auth_provider_to_users_table.php",
+      "source_location": "L9",
       "_callable": true,
       "_origin": "ast",
+      "id": "database_migrations_2026_08_18_000100_add_auth_provider_to_users_table_up",
       "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".members()",
-      "id": "app_models_organization_organization_members"
-    },
-    {
-      "label": ".casts()",
-      "file_type": "code",
-      "source_file": "app/Models/Project.php",
-      "source_location": "L16",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".casts()",
-      "id": "app_models_project_project_casts"
-    },
-    {
-      "label": ".clients()",
-      "file_type": "code",
-      "source_file": "app/Models/Project.php",
-      "source_location": "L28",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".clients()",
-      "id": "app_models_project_project_clients"
-    },
-    {
-      "label": ".staff()",
-      "file_type": "code",
-      "source_file": "app/Models/Project.php",
-      "source_location": "L23",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".staff()",
-      "id": "app_models_project_project_staff"
-    },
-    {
-      "label": ".tasks()",
-      "file_type": "code",
-      "source_file": "app/Models/Project.php",
-      "source_location": "L33",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".tasks()",
-      "id": "app_models_project_project_tasks"
-    },
-    {
-      "label": ".casts()",
-      "file_type": "code",
-      "source_file": "app/Models/Role.php",
-      "source_location": "L22",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".casts()",
-      "id": "app_models_role_role_casts"
-    },
-    {
-      "label": ".users()",
-      "file_type": "code",
-      "source_file": "app/Models/Role.php",
-      "source_location": "L29",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".users()",
-      "id": "app_models_role_role_users"
-    },
-    {
-      "label": ".documents()",
-      "file_type": "code",
-      "source_file": "app/Models/Task.php",
-      "source_location": "L50",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".documents()",
-      "id": "app_models_task_task_documents"
-    },
-    {
-      "label": ".organizations()",
-      "file_type": "code",
-      "source_file": "app/Models/User.php",
-      "source_location": "L39",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".organizations()",
-      "id": "app_models_user_user_organizations"
-    },
-    {
-      "label": ".projectsAsStaff()",
-      "file_type": "code",
-      "source_file": "app/Models/User.php",
-      "source_location": "L56",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".projectsasstaff()",
-      "id": "app_models_user_user_projectsasstaff"
-    },
-    {
-      "label": ".run()",
-      "file_type": "code",
-      "source_file": "database/seeders/RoleSeeder.php",
-      "source_location": "L10",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": ".run()",
-      "id": "database_seeders_roleseeder_roleseeder_run"
+      "community_name": "2026_08_18_000100_add_auth_provider_to_users_table.php",
+      "norm_label": "up()"
     },
     {
       "label": ".boot()",
@@ -2754,10 +2778,10 @@
       "source_file": "app/Http/Requests/Auth/LoginRequest.php",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "app_http_requests_auth_loginrequest",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": "loginrequest.php",
-      "id": "app_http_requests_auth_loginrequest"
+      "norm_label": "loginrequest.php"
     },
     {
       "label": "User.php",
@@ -2765,10 +2789,10 @@
       "source_file": "app/Models/User.php",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "app_models_user",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": "user.php",
-      "id": "app_models_user"
+      "norm_label": "user.php"
     },
     {
       "label": "auth.php",
@@ -2809,10 +2833,10 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
+      "id": "illuminate_database_eloquent_factories_hasfactory",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": "illuminate\\database\\eloquent\\factories\\hasfactory",
-      "id": "illuminate_database_eloquent_factories_hasfactory"
+      "norm_label": "illuminate\\database\\eloquent\\factories\\hasfactory"
     },
     {
       "label": "Illuminate\\Foundation\\Http\\FormRequest",
@@ -2820,10 +2844,10 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
+      "id": "illuminate_foundation_http_formrequest",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": "illuminate\\foundation\\http\\formrequest",
-      "id": "illuminate_foundation_http_formrequest"
+      "norm_label": "illuminate\\foundation\\http\\formrequest"
     },
     {
       "label": "Illuminate\\Notifications\\Notifiable",
@@ -2831,10 +2855,10 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
+      "id": "illuminate_notifications_notifiable",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": "illuminate\\notifications\\notifiable",
-      "id": "illuminate_notifications_notifiable"
+      "norm_label": "illuminate\\notifications\\notifiable"
     },
     {
       "label": "static",
@@ -2853,10 +2877,10 @@
       "source_file": "tests/Feature/Auth/LoginTest.php",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "tests_feature_auth_logintest",
       "community": 10,
       "community_name": "User.php",
-      "norm_label": "logintest.php",
-      "id": "tests_feature_auth_logintest"
+      "norm_label": "logintest.php"
     },
     {
       "label": "OrganizationScopeMiddlewareTest.php",
@@ -3398,28 +3422,6 @@
       "id": "config_session"
     },
     {
-      "label": "Department.php",
-      "file_type": "code",
-      "source_file": "app/Models/Department.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
-      "norm_label": "department.php",
-      "id": "app_models_department"
-    },
-    {
-      "label": "Organization.php",
-      "file_type": "code",
-      "source_file": "app/Models/Organization.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
-      "norm_label": "organization.php",
-      "id": "app_models_organization"
-    },
-    {
       "label": "DatabaseSeeder.php",
       "file_type": "code",
       "source_file": "database/seeders/DatabaseSeeder.php",
@@ -3453,15 +3455,15 @@
       "id": "database_seeders_organizationseeder"
     },
     {
-      "label": "UserSeeder.php",
+      "label": "RoleSeeder.php",
       "file_type": "code",
-      "source_file": "database/seeders/UserSeeder.php",
+      "source_file": "database/seeders/RoleSeeder.php",
       "source_location": "L1",
       "_origin": "ast",
       "community": 3,
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
-      "norm_label": "userseeder.php",
-      "id": "database_seeders_userseeder"
+      "norm_label": "roleseeder.php",
+      "id": "database_seeders_roleseeder"
     },
     {
       "label": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
@@ -3469,10 +3471,10 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
+      "id": "illuminate_database_eloquent_relations_hasmany",
       "community": 3,
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\HasMany",
-      "norm_label": "illuminate\\database\\eloquent\\relations\\hasmany",
-      "id": "illuminate_database_eloquent_relations_hasmany"
+      "norm_label": "illuminate\\database\\eloquent\\relations\\hasmany"
     },
     {
       "label": "Illuminate\\Database\\Seeder",
@@ -3948,17 +3950,6 @@
       "id": "readme_projectmanagementtool"
     },
     {
-      "label": "Comment.php",
-      "file_type": "code",
-      "source_file": "app/Models/Comment.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "User",
-      "norm_label": "comment.php",
-      "id": "app_models_comment"
-    },
-    {
       "label": "CommentPolicy.php",
       "file_type": "code",
       "source_file": "app/Policies/CommentPolicy.php",
@@ -3997,10 +3988,10 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
+      "id": "illuminate_foundation_auth_user",
       "community": 5,
       "community_name": "User",
-      "norm_label": "illuminate\\foundation\\auth\\user",
-      "id": "illuminate_foundation_auth_user"
+      "norm_label": "illuminate\\foundation\\auth\\user"
     },
     {
       "label": "login.blade.php",
@@ -4008,10 +3999,10 @@
       "source_file": "resources/views/auth/login.blade.php",
       "source_location": null,
       "_origin": "ast",
+      "id": "resources_views_auth_login_blade",
       "community": 50,
       "community_name": "login.blade.php",
-      "norm_label": "login.blade.php",
-      "id": "resources_views_auth_login_blade"
+      "norm_label": "login.blade.php"
     },
     {
       "label": "dashboard.blade.php",
@@ -4045,10 +4036,10 @@
         "kind": "file"
       },
       "_origin": "ast",
-      "id": "deploy",
       "community": 53,
       "community_name": "deploy.sh",
-      "norm_label": "deploy.sh"
+      "norm_label": "deploy.sh",
+      "id": "deploy"
     },
     {
       "label": "deploy.sh script",
@@ -4060,10 +4051,10 @@
         "kind": "bash_entrypoint"
       },
       "_origin": "ast",
-      "id": "deploy_sh__entry",
       "community": 53,
       "community_name": "deploy.sh",
-      "norm_label": "deploy.sh script"
+      "norm_label": "deploy.sh script",
+      "id": "deploy_sh__entry"
     },
     {
       "label": "AccessPermission.php",
@@ -4088,6 +4079,17 @@
       "id": "app_models_auditlog"
     },
     {
+      "label": "Comment.php",
+      "file_type": "code",
+      "source_file": "app/Models/Comment.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "comment.php",
+      "id": "app_models_comment"
+    },
+    {
       "label": "BelongsToOrganization.php",
       "file_type": "code",
       "source_file": "app/Models/Concerns/BelongsToOrganization.php",
@@ -4097,6 +4099,17 @@
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
       "norm_label": "belongstoorganization.php",
       "id": "app_models_concerns_belongstoorganization"
+    },
+    {
+      "label": "Department.php",
+      "file_type": "code",
+      "source_file": "app/Models/Department.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "department.php",
+      "id": "app_models_department"
     },
     {
       "label": "Document.php",
@@ -4121,6 +4134,17 @@
       "id": "app_models_notificationsetting"
     },
     {
+      "label": "Organization.php",
+      "file_type": "code",
+      "source_file": "app/Models/Organization.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "organization.php",
+      "id": "app_models_organization"
+    },
+    {
       "label": "OrgMember.php",
       "file_type": "code",
       "source_file": "app/Models/OrgMember.php",
@@ -4130,6 +4154,28 @@
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
       "norm_label": "orgmember.php",
       "id": "app_models_orgmember"
+    },
+    {
+      "label": "Project.php",
+      "file_type": "code",
+      "source_file": "app/Models/Project.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "project.php",
+      "id": "app_models_project"
+    },
+    {
+      "label": "Role.php",
+      "file_type": "code",
+      "source_file": "app/Models/Role.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "role.php",
+      "id": "app_models_role"
     },
     {
       "label": "Subtask.php",
@@ -4154,6 +4200,17 @@
       "id": "app_models_task"
     },
     {
+      "label": "UserSeeder.php",
+      "file_type": "code",
+      "source_file": "database/seeders/UserSeeder.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "userseeder.php",
+      "id": "database_seeders_userseeder"
+    },
+    {
       "label": "Illuminate\\Database\\Eloquent\\Model",
       "file_type": "code",
       "source_file": "",
@@ -4174,6 +4231,17 @@
       "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
       "norm_label": "illuminate\\database\\eloquent\\relations\\belongsto",
       "id": "illuminate_database_eloquent_relations_belongsto"
+    },
+    {
+      "label": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "illuminate_database_eloquent_relations_belongstomany",
+      "community": 6,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsTo",
+      "norm_label": "illuminate\\database\\eloquent\\relations\\belongstomany"
     },
     {
       "label": "Illuminate\\Database\\Eloquent\\SoftDeletes",
@@ -4286,48 +4354,15 @@
       "id": "laravel_readme_security_vulnerabilities"
     },
     {
-      "label": "Project.php",
+      "label": "2026_08_18_000100_add_auth_provider_to_users_table.php",
       "file_type": "code",
-      "source_file": "app/Models/Project.php",
+      "source_file": "database/migrations/2026_08_18_000100_add_auth_provider_to_users_table.php",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "database_migrations_2026_08_18_000100_add_auth_provider_to_users_table",
       "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": "project.php",
-      "id": "app_models_project"
-    },
-    {
-      "label": "Role.php",
-      "file_type": "code",
-      "source_file": "app/Models/Role.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": "role.php",
-      "id": "app_models_role"
-    },
-    {
-      "label": "RoleSeeder.php",
-      "file_type": "code",
-      "source_file": "database/seeders/RoleSeeder.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": "roleseeder.php",
-      "id": "database_seeders_roleseeder"
-    },
-    {
-      "label": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "file_type": "code",
-      "source_file": "",
-      "source_location": "",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
-      "norm_label": "illuminate\\database\\eloquent\\relations\\belongstomany",
-      "id": "illuminate_database_eloquent_relations_belongstomany"
+      "community_name": "2026_08_18_000100_add_auth_provider_to_users_table.php",
+      "norm_label": "2026_08_18_000100_add_auth_provider_to_users_table.php"
     },
     {
       "label": "AppServiceProvider.php",
@@ -4372,9 +4407,9 @@
       "source_location": "L30",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest_loginrequest_authenticate",
-      "target": "app_http_requests_auth_loginrequest_loginrequest_ensureisnotratelimited"
+      "target": "app_http_requests_auth_loginrequest_loginrequest_ensureisnotratelimited",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4384,9 +4419,9 @@
       "source_location": "L37",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest_loginrequest_authenticate",
-      "target": "app_http_requests_auth_loginrequest_loginrequest_throttlekey"
+      "target": "app_http_requests_auth_loginrequest_loginrequest_throttlekey",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4396,9 +4431,9 @@
       "source_location": "L57",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest_loginrequest_ensureisnotratelimited",
-      "target": "app_http_requests_auth_loginrequest_loginrequest_throttlekey"
+      "target": "app_http_requests_auth_loginrequest_loginrequest_throttlekey",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4408,9 +4443,9 @@
       "source_location": "L109",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_hasdepartmentaccess",
-      "target": "app_models_user_user_accesspermissions"
+      "target": "app_models_user_user_accesspermissions",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4420,9 +4455,9 @@
       "source_location": "L118",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_isclientonproject",
-      "target": "app_models_user_user_projectsasclient"
+      "target": "app_models_user_user_projectsasclient",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4432,9 +4467,9 @@
       "source_location": "L93",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_ismanagementinorg",
-      "target": "app_models_user_user_orgmemberships"
+      "target": "app_models_user_user_orgmemberships",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4444,9 +4479,9 @@
       "source_location": "L88",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_isowner",
-      "target": "app_models_user_user_roles"
+      "target": "app_models_user_user_roles",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4456,9 +4491,9 @@
       "source_location": "L101",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_isstaffinorg",
-      "target": "app_models_user_user_orgmemberships"
+      "target": "app_models_user_user_orgmemberships",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4468,9 +4503,9 @@
       "source_location": "L83",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_issuperadmin",
-      "target": "app_models_user_user_roles"
+      "target": "app_models_user_user_roles",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4480,9 +4515,9 @@
       "source_location": "L130",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_visibleorganizationids",
-      "target": "app_models_user_user_isowner"
+      "target": "app_models_user_user_isowner",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4492,9 +4527,9 @@
       "source_location": "L130",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_visibleorganizationids",
-      "target": "app_models_user_user_issuperadmin"
+      "target": "app_models_user_user_issuperadmin",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -4504,9 +4539,9 @@
       "source_location": "L134",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_visibleorganizationids",
-      "target": "app_models_user_user_orgmemberships"
+      "target": "app_models_user_user_orgmemberships",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -5008,9 +5043,9 @@
       "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest",
-      "target": "app_models_user"
+      "target": "app_models_user",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -5020,9 +5055,9 @@
       "source_location": "L7",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest",
-      "target": "illuminate_foundation_http_formrequest"
+      "target": "illuminate_foundation_http_formrequest",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -5032,9 +5067,9 @@
       "source_location": "L8",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest",
-      "target": "config_auth"
+      "target": "config_auth",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -5500,9 +5535,9 @@
       "source_location": "L10",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user",
-      "target": "illuminate_database_eloquent_relations_hasmany"
+      "target": "illuminate_database_eloquent_relations_hasmany",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -5512,9 +5547,9 @@
       "source_location": "L12",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user",
-      "target": "illuminate_notifications_notifiable"
+      "target": "illuminate_notifications_notifiable",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -5524,9 +5559,9 @@
       "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user",
-      "target": "database_factories_userfactory"
+      "target": "database_factories_userfactory",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -5536,9 +5571,9 @@
       "source_location": "L8",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user",
-      "target": "illuminate_database_eloquent_factories_hasfactory"
+      "target": "illuminate_database_eloquent_factories_hasfactory",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -5548,9 +5583,9 @@
       "source_location": "L9",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user",
-      "target": "illuminate_database_eloquent_relations_belongstomany"
+      "target": "illuminate_database_eloquent_relations_belongstomany",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -5992,9 +6027,9 @@
       "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "tests_feature_auth_logintest",
-      "target": "app_models_user"
+      "target": "app_models_user",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -7012,9 +7047,9 @@
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_accesspermissions",
-      "target": "illuminate_database_eloquent_relations_hasmany"
+      "target": "illuminate_database_eloquent_relations_hasmany",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -7024,9 +7059,9 @@
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_assignedtasks",
-      "target": "illuminate_database_eloquent_relations_hasmany"
+      "target": "illuminate_database_eloquent_relations_hasmany",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -7036,9 +7071,9 @@
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_comments",
-      "target": "illuminate_database_eloquent_relations_hasmany"
+      "target": "illuminate_database_eloquent_relations_hasmany",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -7048,9 +7083,9 @@
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_notificationsettings",
-      "target": "illuminate_database_eloquent_relations_hasmany"
+      "target": "illuminate_database_eloquent_relations_hasmany",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -7060,9 +7095,9 @@
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_organizations",
-      "target": "illuminate_database_eloquent_relations_belongstomany"
+      "target": "illuminate_database_eloquent_relations_belongstomany",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -7072,9 +7107,9 @@
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_orgmemberships",
-      "target": "illuminate_database_eloquent_relations_hasmany"
+      "target": "illuminate_database_eloquent_relations_hasmany",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -7084,9 +7119,9 @@
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_projectsasclient",
-      "target": "illuminate_database_eloquent_relations_belongstomany"
+      "target": "illuminate_database_eloquent_relations_belongstomany",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -7096,9 +7131,9 @@
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_projectsasstaff",
-      "target": "illuminate_database_eloquent_relations_belongstomany"
+      "target": "illuminate_database_eloquent_relations_belongstomany",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -7108,9 +7143,9 @@
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_roles",
-      "target": "illuminate_database_eloquent_relations_belongstomany"
+      "target": "illuminate_database_eloquent_relations_belongstomany",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -7120,9 +7155,9 @@
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user_uploadeddocuments",
-      "target": "illuminate_database_eloquent_relations_hasmany"
+      "target": "illuminate_database_eloquent_relations_hasmany",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -7210,9 +7245,9 @@
       "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest",
-      "target": "app_http_requests_auth_loginrequest_loginrequest"
+      "target": "app_http_requests_auth_loginrequest_loginrequest",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -7375,9 +7410,9 @@
       "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user",
-      "target": "app_models_user_user"
+      "target": "app_models_user_user",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -8405,6 +8440,28 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "database/migrations/2026_08_18_000100_add_auth_provider_to_users_table.php",
+      "source_location": "L18",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "database_migrations_2026_08_18_000100_add_auth_provider_to_users_table",
+      "target": "database_migrations_2026_08_18_000100_add_auth_provider_to_users_table_down",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "database/migrations/2026_08_18_000100_add_auth_provider_to_users_table.php",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "database_migrations_2026_08_18_000100_add_auth_provider_to_users_table",
+      "target": "database_migrations_2026_08_18_000100_add_auth_provider_to_users_table_up",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "database/seeders/DatabaseSeeder.php",
       "source_location": "L7",
       "weight": 1.0,
@@ -8464,9 +8521,9 @@
       "source_location": "L1",
       "weight": 1.0,
       "_origin": "ast",
+      "confidence_score": 1.0,
       "source": "deploy",
-      "target": "deploy_sh__entry",
-      "confidence_score": 1.0
+      "target": "deploy_sh__entry"
     },
     {
       "relation": "contains",
@@ -8915,9 +8972,9 @@
       "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest_loginrequest",
-      "target": "illuminate_foundation_http_formrequest"
+      "target": "illuminate_foundation_http_formrequest",
+      "confidence_score": 1.0
     },
     {
       "relation": "inherits",
@@ -9058,9 +9115,9 @@
       "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "illuminate_foundation_auth_user"
+      "target": "illuminate_foundation_auth_user",
+      "confidence_score": 1.0
     },
     {
       "relation": "inherits",
@@ -9223,9 +9280,9 @@
       "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest_loginrequest",
-      "target": "app_http_requests_auth_loginrequest_loginrequest_authorize"
+      "target": "app_http_requests_auth_loginrequest_loginrequest_authorize",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9234,9 +9291,9 @@
       "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest_loginrequest",
-      "target": "app_http_requests_auth_loginrequest_loginrequest_rules"
+      "target": "app_http_requests_auth_loginrequest_loginrequest_rules",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9245,9 +9302,9 @@
       "source_location": "L28",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest_loginrequest",
-      "target": "app_http_requests_auth_loginrequest_loginrequest_authenticate"
+      "target": "app_http_requests_auth_loginrequest_loginrequest_authenticate",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9256,9 +9313,9 @@
       "source_location": "L55",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest_loginrequest",
-      "target": "app_http_requests_auth_loginrequest_loginrequest_ensureisnotratelimited"
+      "target": "app_http_requests_auth_loginrequest_loginrequest_ensureisnotratelimited",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9267,9 +9324,9 @@
       "source_location": "L70",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_http_requests_auth_loginrequest_loginrequest",
-      "target": "app_http_requests_auth_loginrequest_loginrequest_throttlekey"
+      "target": "app_http_requests_auth_loginrequest_loginrequest_throttlekey",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9707,9 +9764,9 @@
       "source_location": "L107",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_hasdepartmentaccess"
+      "target": "app_models_user_user_hasdepartmentaccess",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9718,9 +9775,9 @@
       "source_location": "L116",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_isclientonproject"
+      "target": "app_models_user_user_isclientonproject",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9729,9 +9786,9 @@
       "source_location": "L128",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_visibleorganizationids"
+      "target": "app_models_user_user_visibleorganizationids",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9740,9 +9797,9 @@
       "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_casts"
+      "target": "app_models_user_user_casts",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9751,9 +9808,9 @@
       "source_location": "L29",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_roles"
+      "target": "app_models_user_user_roles",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9762,9 +9819,9 @@
       "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_orgmemberships"
+      "target": "app_models_user_user_orgmemberships",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9773,9 +9830,9 @@
       "source_location": "L39",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_organizations"
+      "target": "app_models_user_user_organizations",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9784,9 +9841,9 @@
       "source_location": "L46",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_assignedtasks"
+      "target": "app_models_user_user_assignedtasks",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9795,9 +9852,9 @@
       "source_location": "L51",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_accesspermissions"
+      "target": "app_models_user_user_accesspermissions",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9806,9 +9863,9 @@
       "source_location": "L56",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_projectsasstaff"
+      "target": "app_models_user_user_projectsasstaff",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9817,9 +9874,9 @@
       "source_location": "L61",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_projectsasclient"
+      "target": "app_models_user_user_projectsasclient",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9828,9 +9885,9 @@
       "source_location": "L66",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_comments"
+      "target": "app_models_user_user_comments",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9839,9 +9896,9 @@
       "source_location": "L71",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_uploadeddocuments"
+      "target": "app_models_user_user_uploadeddocuments",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9850,9 +9907,9 @@
       "source_location": "L76",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_notificationsettings"
+      "target": "app_models_user_user_notificationsettings",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9861,9 +9918,9 @@
       "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_issuperadmin"
+      "target": "app_models_user_user_issuperadmin",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9872,9 +9929,9 @@
       "source_location": "L86",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_isowner"
+      "target": "app_models_user_user_isowner",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9883,9 +9940,9 @@
       "source_location": "L91",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_ismanagementinorg"
+      "target": "app_models_user_user_ismanagementinorg",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -9894,9 +9951,9 @@
       "source_location": "L99",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "app_models_user_user_isstaffinorg"
+      "target": "app_models_user_user_isstaffinorg",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -10224,9 +10281,9 @@
       "source_location": "L19",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "illuminate_database_eloquent_factories_hasfactory"
+      "target": "illuminate_database_eloquent_factories_hasfactory",
+      "confidence_score": 1.0
     },
     {
       "relation": "mixes_in",
@@ -10235,9 +10292,9 @@
       "source_location": "L19",
       "weight": 1.0,
       "_origin": "ast",
-      "confidence_score": 1.0,
       "source": "app_models_user_user",
-      "target": "illuminate_notifications_notifiable"
+      "target": "illuminate_notifications_notifiable",
+      "confidence_score": 1.0
     },
     {
       "relation": "uses_static_prop",
@@ -10336,5 +10393,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "6f1188ad470e794dea641f56f52479fcde5e3dd1"
+  "built_at_commit": "65daf63e691ae8d766dbe9d2369f67945af7d2f4"
 }
