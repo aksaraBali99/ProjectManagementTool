@@ -9,6 +9,8 @@ use App\Http\Controllers\OrganizationManagementController;
 use App\Http\Controllers\ProjectManagementController;
 use App\Http\Controllers\RoleManagementController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SubtaskController;
+use App\Http\Controllers\TaskManagementController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -62,4 +64,15 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::put('/projects/{project}', [ProjectManagementController::class, 'update'])->name('projects.update');
     Route::get('/projects/{project}/template', [ProjectManagementController::class, 'template'])->name('projects.template');
     Route::get('/projects/{organization?}', [ProjectManagementController::class, 'index'])->name('projects.index');
+
+    Route::get('/tasks/create/{project?}', [TaskManagementController::class, 'create'])->name('tasks.create');
+    Route::post('/tasks', [TaskManagementController::class, 'store'])->name('tasks.store');
+    Route::get('/tasks/{task}/edit', [TaskManagementController::class, 'edit'])->name('tasks.edit')->withTrashed();
+    Route::put('/tasks/{task}', [TaskManagementController::class, 'update'])->name('tasks.update')->withTrashed();
+    Route::patch('/tasks/{task}/toggle-active', [TaskManagementController::class, 'toggleActive'])->name('tasks.toggle-active')->withTrashed();
+
+    Route::post('/tasks/{task}/subtasks', [SubtaskController::class, 'store'])->name('subtasks.store');
+    Route::patch('/subtasks/{subtask}/toggle', [SubtaskController::class, 'toggle'])->name('subtasks.toggle');
+    Route::put('/subtasks/{subtask}', [SubtaskController::class, 'update'])->name('subtasks.update');
+    Route::delete('/subtasks/{subtask}', [SubtaskController::class, 'destroy'])->name('subtasks.destroy');
 });
