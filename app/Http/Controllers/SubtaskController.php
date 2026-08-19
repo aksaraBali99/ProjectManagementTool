@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OrgMember;
+use App\Models\Role;
 use App\Models\Subtask;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +18,13 @@ class SubtaskController extends Controller
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+            'due_date' => ['nullable', 'date'],
         ]);
+
+        if (! empty($data['assignee_id']) && ! $this->assigneeBelongsToOrganization($data['assignee_id'], $task->organization_id)) {
+            abort(422, 'Assignee must belong to the task\'s company.');
+        }
 
         $subtask = $task->subtasks()->create($data);
 
@@ -37,8 +45,14 @@ class SubtaskController extends Controller
         Gate::authorize('update', $subtask);
 
         $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
+            'title' => ['sometimes', 'string', 'max:255'],
+            'assignee_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            'due_date' => ['sometimes', 'nullable', 'date'],
         ]);
+
+        if (! empty($data['assignee_id']) && ! $this->assigneeBelongsToOrganization($data['assignee_id'], $subtask->task->organization_id)) {
+            abort(422, 'Assignee must belong to the task\'s company.');
+        }
 
         $subtask->update($data);
 
@@ -52,5 +66,13 @@ class SubtaskController extends Controller
         $subtask->delete();
 
         return response()->json(['deleted' => true]);
+    }
+
+    private function assigneeBelongsToOrganization(int $userId, int $organizationId): bool
+    {
+        return OrgMember::where('organization_id', $organizationId)
+            ->where('user_id', $userId)
+            ->whereHas('role', fn ($query) => $query->where('slug', Role::STAFF))
+            ->exists();
     }
 }

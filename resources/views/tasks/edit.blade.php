@@ -173,7 +173,7 @@
     <div class="mt-6">
         <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Subtasks</span>
         <div class="mt-2">
-            @include('tasks._subtasks', ['task' => $task, 'canEdit' => $canEdit])
+            @include('tasks._subtasks', ['task' => $task, 'canEdit' => $canEdit, 'staffOptions' => $staffByOrganization[$task->organization_id] ?? []])
         </div>
     </div>
 </div>

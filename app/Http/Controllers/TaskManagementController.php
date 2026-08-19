@@ -71,6 +71,7 @@ class TaskManagementController extends Controller
             'tasks' => $tasks,
             'showInactive' => $showInactive,
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
+            'staffOptions' => $this->staffOptionsForOrganization($organization->id),
         ]);
     }
 
@@ -119,8 +120,12 @@ class TaskManagementController extends Controller
                 'due_date' => $request->input('due_date') ?: null,
             ]);
 
-            foreach ($request->input('subtasks', []) as $title) {
-                $task->subtasks()->create(['title' => $title]);
+            foreach ($request->input('subtasks', []) as $subtask) {
+                $task->subtasks()->create([
+                    'title' => $subtask['title'],
+                    'assignee_id' => $subtask['assignee_id'] ?? null,
+                    'due_date' => $subtask['due_date'] ?? null,
+                ]);
             }
 
             return $task;
@@ -215,5 +220,19 @@ class TaskManagementController extends Controller
             'departmentsByOrganization' => $departmentsByOrganization,
             'staffByOrganization' => $staffByOrganization,
         ];
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string}>
+     */
+    private function staffOptionsForOrganization(int $organizationId): array
+    {
+        return OrgMember::where('organization_id', $organizationId)
+            ->whereHas('role', fn ($query) => $query->where('slug', Role::STAFF))
+            ->with('user')
+            ->get()
+            ->map(fn ($m) => ['id' => $m->user->id, 'name' => $m->user->name])
+            ->values()
+            ->all();
     }
 }

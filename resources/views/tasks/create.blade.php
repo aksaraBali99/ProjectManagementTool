@@ -100,18 +100,22 @@
 
             <div>
                 <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Subtasks</span>
-                <p class="mt-1 text-[11px] text-gray-500">Added once you save this task.</p>
+                <p class="mt-1 text-[11px] text-gray-500">Added once you save this task. Assignee and due date default to this task's — change either per subtask as needed.</p>
 
                 <div id="subtask-rows" class="mt-2 space-y-2">
-                    @forelse (old('subtasks', []) as $subtaskTitle)
-                        <div class="flex items-center gap-2">
+                    @foreach (old('subtasks', []) as $index => $staged)
+                        <div class="flex items-center gap-2" data-subtask-row>
                             <input type="checkbox" disabled class="rounded border-gray-300 text-gray-300">
-                            <input type="text" name="subtasks[]" value="{{ $subtaskTitle }}" placeholder="Subtask title"
+                            <input type="text" name="subtasks[{{ $index }}][title]" value="{{ $staged['title'] ?? '' }}" placeholder="Subtask title"
                                 class="subtask-title-input flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                            <select name="subtasks[{{ $index }}][assignee_id]" class="subtask-assignee-select w-28 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                                <option value="">Unassigned</option>
+                            </select>
+                            <input type="date" name="subtasks[{{ $index }}][due_date]" value="{{ $staged['due_date'] ?? '' }}"
+                                class="subtask-due-date w-32 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                             <button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Remove</button>
                         </div>
-                    @empty
-                    @endforelse
+                    @endforeach
                 </div>
 
                 <button type="button" id="add-subtask-btn" class="mt-2 text-[11px] font-medium text-[#1D9E75] hover:underline">
@@ -138,6 +142,20 @@
                 const projectSelect = document.getElementById('project_id');
                 const departmentSelect = document.getElementById('department_id');
                 const assigneeSelect = document.getElementById('assignee_id');
+                const dueDateInput = document.getElementById('due_date');
+                const subtaskRows = document.getElementById('subtask-rows');
+                let subtaskIndex = subtaskRows.querySelectorAll('[data-subtask-row]').length;
+
+                function populateAssigneeSelect(select, orgId, selectedId) {
+                    select.innerHTML = '<option value="">Unassigned</option>';
+                    (staffByOrg[orgId] || []).forEach(function (member) {
+                        const option = document.createElement('option');
+                        option.value = member.id;
+                        option.textContent = member.name;
+                        if (String(member.id) === String(selectedId)) option.selected = true;
+                        select.appendChild(option);
+                    });
+                }
 
                 function refreshDependents() {
                     const orgId = projectOrganizations[projectSelect.value];
@@ -151,29 +169,41 @@
                         departmentSelect.appendChild(option);
                     });
 
-                    assigneeSelect.innerHTML = '<option value="">Unassigned</option>';
-                    (staffByOrg[orgId] || []).forEach(function (member) {
-                        const option = document.createElement('option');
-                        option.value = member.id;
-                        option.textContent = member.name;
-                        if (String(member.id) === String(oldAssignee)) option.selected = true;
-                        assigneeSelect.appendChild(option);
+                    populateAssigneeSelect(assigneeSelect, orgId, oldAssignee);
+
+                    // Staged subtask rows' assignee options depend on the same
+                    // company as the parent task, so they need refreshing too —
+                    // clearing the selection, since a previously chosen assignee
+                    // may not belong to the newly selected project's company.
+                    subtaskRows.querySelectorAll('.subtask-assignee-select').forEach(function (select) {
+                        populateAssigneeSelect(select, orgId, null);
                     });
                 }
 
                 projectSelect.addEventListener('change', refreshDependents);
                 refreshDependents();
 
-                const subtaskRows = document.getElementById('subtask-rows');
                 const addSubtaskBtn = document.getElementById('add-subtask-btn');
 
                 function addSubtaskRow() {
+                    const index = subtaskIndex++;
+                    const orgId = projectOrganizations[projectSelect.value];
+
                     const row = document.createElement('div');
                     row.className = 'flex items-center gap-2';
+                    row.dataset.subtaskRow = '';
                     row.innerHTML = '<input type="checkbox" disabled class="rounded border-gray-300 text-gray-300">'
-                        + '<input type="text" name="subtasks[]" placeholder="Subtask title" class="subtask-title-input flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
+                        + '<input type="text" name="subtasks[' + index + '][title]" placeholder="Subtask title" class="subtask-title-input flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
+                        + '<select name="subtasks[' + index + '][assignee_id]" class="subtask-assignee-select w-28 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"></select>'
+                        + '<input type="date" name="subtasks[' + index + '][due_date]" class="subtask-due-date w-32 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
                         + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Remove</button>';
                     subtaskRows.appendChild(row);
+
+                    // Pre-fill from the parent task's current values — a
+                    // starting point only, fully editable right away.
+                    populateAssigneeSelect(row.querySelector('.subtask-assignee-select'), orgId, assigneeSelect.value);
+                    row.querySelector('.subtask-due-date').value = dueDateInput.value;
+
                     row.querySelector('.subtask-title-input').focus();
                 }
 

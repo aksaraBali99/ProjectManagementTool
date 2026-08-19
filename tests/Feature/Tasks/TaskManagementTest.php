@@ -68,7 +68,11 @@ test('a management user can create a task with staged subtasks bulk-created agai
         'description' => 'Draft the campaign brief',
         'priority' => 'high',
         'status' => 'pending',
-        'subtasks' => ['Outline sections', 'Send for review', ''],
+        'subtasks' => [
+            ['title' => 'Outline sections', 'assignee_id' => null, 'due_date' => null],
+            ['title' => 'Send for review', 'assignee_id' => null, 'due_date' => null],
+            ['title' => '', 'assignee_id' => null, 'due_date' => null],
+        ],
     ]);
 
     $task = Task::where('title', 'Write the brief')->firstOrFail();
@@ -311,4 +315,114 @@ test('posting a comment from the drilldown respects CommentPolicy view scoping',
     $response = $this->actingAs($this->management)->post("/tasks/{$task->id}/comments", ['body' => 'Legit comment']);
     $response->assertCreated();
     $this->assertDatabaseHas('comments', ['body' => 'Legit comment', 'task_id' => $task->id, 'user_id' => $this->management->id]);
+});
+
+test('a newly created subtask defaults to the parent task\'s current assignee and due date when neither is explicitly overridden', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'due_date' => '2026-09-15',
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    // Simulates the form's pre-fill: the request carries the parent's own
+    // current values unchanged, exactly as the client-side default would.
+    $response = $this->actingAs($this->management)->post("/tasks/{$task->id}/subtasks", [
+        'title' => 'Inherits parent defaults',
+        'assignee_id' => $staff->id,
+        'due_date' => '2026-09-15',
+    ]);
+
+    $response->assertCreated();
+    $subtask = Subtask::where('title', 'Inherits parent defaults')->firstOrFail();
+    expect($subtask->assignee_id)->toBe($staff->id);
+    expect($subtask->due_date->toDateString())->toBe('2026-09-15');
+});
+
+test('a subtask created with an explicitly different assignee and due date saves those values, not the parent\'s', function () {
+    $parentAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $subtaskAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $parentAssignee->id,
+        'due_date' => '2026-09-15',
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->post("/tasks/{$task->id}/subtasks", [
+        'title' => 'Overridden values',
+        'assignee_id' => $subtaskAssignee->id,
+        'due_date' => '2026-10-01',
+    ]);
+
+    $response->assertCreated();
+    $subtask = Subtask::where('title', 'Overridden values')->firstOrFail();
+    expect($subtask->assignee_id)->toBe($subtaskAssignee->id);
+    expect($subtask->due_date->toDateString())->toBe('2026-10-01');
+});
+
+test('changing the parent task\'s assignee or due date after a subtask already exists does not change the existing subtask', function () {
+    $originalAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $newAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $originalAssignee->id,
+        'due_date' => '2026-09-15',
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $subtask = $task->subtasks()->create([
+        'title' => 'Existing subtask',
+        'assignee_id' => $originalAssignee->id,
+        'due_date' => '2026-09-15',
+    ]);
+
+    $this->actingAs($this->management)->put("/tasks/{$task->id}", [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $newAssignee->id,
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => '2026-11-01',
+    ]);
+
+    expect($task->fresh()->assignee_id)->toBe($newAssignee->id);
+    expect($task->fresh()->due_date->toDateString())->toBe('2026-11-01');
+
+    expect($subtask->fresh()->assignee_id)->toBe($originalAssignee->id);
+    expect($subtask->fresh()->due_date->toDateString())->toBe('2026-09-15');
+});
+
+test('a staff user who can toggle a subtask done state but is not its assignee or management cannot change its assignee or due date', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Not assigned to staff',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $subtask = $task->subtasks()->create(['title' => 'A subtask']);
+
+    $this->actingAs($staff)->patch("/subtasks/{$subtask->id}/toggle")->assertOk();
+
+    $this->actingAs($staff)->put("/subtasks/{$subtask->id}", ['assignee_id' => $staff->id])->assertForbidden();
+    $this->actingAs($staff)->put("/subtasks/{$subtask->id}", ['due_date' => '2026-12-01'])->assertForbidden();
+
+    expect($subtask->fresh()->assignee_id)->toBeNull();
+    expect($subtask->fresh()->due_date)->toBeNull();
 });

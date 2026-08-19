@@ -1,7 +1,12 @@
-{{-- Live subtask list: every add/toggle/title-edit/delete saves immediately
-     via AJAX. Self-contained per inclusion (uses document.currentScript
-     rather than a global id) so it can be included many times on one page —
-     once per drilldown row on the task list, or once on the Edit Task page. --}}
+{{-- Live subtask list: every add/toggle/title-edit/delete/assignee/due-date
+     change saves immediately via AJAX. Self-contained per inclusion (uses
+     document.currentScript rather than a global id) so it can be included
+     many times on one page — once per drilldown row on the task list, or
+     once on the Edit Task page.
+
+     Assignee/due date default to the parent task's current values as a
+     one-time starting point at creation — not an ongoing sync, so editing
+     the parent afterward never touches already-created subtasks. --}}
 <div class="subtask-container" data-task-id="{{ $task->id }}" data-can-edit="{{ $canEdit ? '1' : '0' }}">
     <div class="subtask-rows space-y-2">
         @foreach ($task->subtasks as $subtask)
@@ -9,6 +14,14 @@
                 <input type="checkbox" class="subtask-toggle rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]" {{ $subtask->is_done ? 'checked' : '' }}>
                 <input type="text" value="{{ $subtask->title }}" {{ $canEdit ? '' : 'disabled' }}
                     class="subtask-title-input flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent disabled:px-0">
+                <select class="subtask-assignee-select w-28 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent" {{ $canEdit ? '' : 'disabled' }}>
+                    <option value="">Unassigned</option>
+                    @foreach ($staffOptions as $staff)
+                        <option value="{{ $staff['id'] }}" {{ (int) $subtask->assignee_id === $staff['id'] ? 'selected' : '' }}>{{ $staff['name'] }}</option>
+                    @endforeach
+                </select>
+                <input type="date" value="{{ $subtask->due_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }}
+                    class="subtask-due-date w-32 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent">
                 @if ($canEdit)
                     <button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>
                 @endif
@@ -23,10 +36,18 @@
     @if ($canEdit)
         <div class="mt-2 flex items-center gap-2">
             <input type="text" class="new-subtask-title flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" placeholder="New subtask title">
+            <select class="new-subtask-assignee w-28 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                <option value="">Unassigned</option>
+                @foreach ($staffOptions as $staff)
+                    <option value="{{ $staff['id'] }}" {{ (int) $task->assignee_id === $staff['id'] ? 'selected' : '' }}>{{ $staff['name'] }}</option>
+                @endforeach
+            </select>
+            <input type="date" class="new-subtask-due-date w-32 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" value="{{ $task->due_date?->toDateString() }}">
             <button type="button" class="add-subtask-btn rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
                 Add
             </button>
         </div>
+        <p class="mt-1 text-[10px] text-gray-400">Assignee and due date default to this task's current values — change them per subtask as needed.</p>
     @endif
 </div>
 <script>
@@ -66,6 +87,8 @@
         function wireRow(row) {
             const toggle = row.querySelector('.subtask-toggle');
             const titleInput = row.querySelector('.subtask-title-input');
+            const assigneeSelect = row.querySelector('.subtask-assignee-select');
+            const dueDateInput = row.querySelector('.subtask-due-date');
             const removeBtn = row.querySelector('.remove-subtask-row');
 
             toggle.addEventListener('change', function () {
@@ -101,6 +124,42 @@
                 });
             }
 
+            if (canEdit && assigneeSelect) {
+                let originalAssignee = assigneeSelect.value;
+                assigneeSelect.addEventListener('change', function () {
+                    const newAssignee = assigneeSelect.value;
+                    const subtaskId = row.dataset.subtaskId;
+                    request('/subtasks/' + subtaskId, 'PUT', { assignee_id: newAssignee === '' ? null : Number(newAssignee) })
+                        .then(function (response) {
+                            if (! response.ok) throw new Error();
+                            originalAssignee = newAssignee;
+                            showFeedback(row, 'Saved');
+                        })
+                        .catch(function () {
+                            assigneeSelect.value = originalAssignee;
+                            showFeedback(row, 'Failed to save', true);
+                        });
+                });
+            }
+
+            if (canEdit && dueDateInput) {
+                let originalDueDate = dueDateInput.value;
+                dueDateInput.addEventListener('change', function () {
+                    const newDueDate = dueDateInput.value;
+                    const subtaskId = row.dataset.subtaskId;
+                    request('/subtasks/' + subtaskId, 'PUT', { due_date: newDueDate === '' ? null : newDueDate })
+                        .then(function (response) {
+                            if (! response.ok) throw new Error();
+                            originalDueDate = newDueDate;
+                            showFeedback(row, 'Saved');
+                        })
+                        .catch(function () {
+                            dueDateInput.value = originalDueDate;
+                            showFeedback(row, 'Failed to save', true);
+                        });
+                });
+            }
+
             if (removeBtn) {
                 removeBtn.addEventListener('click', function () {
                     const subtaskId = row.dataset.subtaskId;
@@ -124,14 +183,32 @@
 
         rowsEl.querySelectorAll('[data-subtask-id]').forEach(wireRow);
 
+        const staffOptions = @json($staffOptions);
+
+        function buildAssigneeSelectHtml(selectedId) {
+            let html = '<select class="subtask-assignee-select w-28 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"><option value="">Unassigned</option>';
+            staffOptions.forEach(function (staff) {
+                html += '<option value="' + staff.id + '"' + (String(staff.id) === String(selectedId) ? ' selected' : '') + '>' + staff.name + '</option>';
+            });
+            return html + '</select>';
+        }
+
         const addBtn = container.querySelector('.add-subtask-btn');
         const newTitleInput = container.querySelector('.new-subtask-title');
+        const newAssigneeSelect = container.querySelector('.new-subtask-assignee');
+        const newDueDateInput = container.querySelector('.new-subtask-due-date');
         if (addBtn) {
             addBtn.addEventListener('click', function () {
                 const title = newTitleInput.value.trim();
                 if (title === '') return;
 
-                request('/tasks/' + taskId + '/subtasks', 'POST', { title: title })
+                const payload = {
+                    title: title,
+                    assignee_id: newAssigneeSelect.value === '' ? null : Number(newAssigneeSelect.value),
+                    due_date: newDueDateInput.value === '' ? null : newDueDateInput.value,
+                };
+
+                request('/tasks/' + taskId + '/subtasks', 'POST', payload)
                     .then(function (response) {
                         if (! response.ok) throw new Error();
                         return response.json();
@@ -141,13 +218,17 @@
                         const row = document.createElement('div');
                         row.className = 'flex items-center gap-2';
                         row.dataset.subtaskId = data.subtask.id;
-                        row.innerHTML = '<input type="checkbox" class="subtask-toggle rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]">'
+                        row.innerHTML = '<input type="checkbox" class="subtask-toggle rounded border-gray-300 text-[#1D9E75] focus:ring-1 focus:ring-[#1D9E75]">'
                             + '<input type="text" value="' + data.subtask.title.replace(/"/g, '&quot;') + '" class="subtask-title-input flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
+                            + buildAssigneeSelectHtml(data.subtask.assignee_id)
+                            + '<input type="date" value="' + (data.subtask.due_date || '') + '" class="subtask-due-date w-32 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
                             + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>'
                             + '<span class="subtask-feedback text-[10px] text-gray-400"></span>';
                         rowsEl.appendChild(row);
                         wireRow(row);
                         newTitleInput.value = '';
+                        // Assignee/due date inputs stay at the parent task's
+                        // defaults for the next add, per spec — not reset.
                     })
                     .catch(function () {
                         alert('Failed to add subtask.');

@@ -18,12 +18,18 @@ class StoreTaskRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'subtasks' => array_values(array_filter(
-                array_map('trim', $this->input('subtasks', [])),
-                fn ($title) => $title !== ''
-            )),
-        ]);
+        $subtasks = collect($this->input('subtasks', []))
+            ->map(fn ($row) => is_array($row) ? $row : [])
+            ->map(fn ($row) => [
+                'title' => trim((string) ($row['title'] ?? '')),
+                'assignee_id' => $row['assignee_id'] ?: null,
+                'due_date' => $row['due_date'] ?: null,
+            ])
+            ->filter(fn ($row) => $row['title'] !== '')
+            ->values()
+            ->all();
+
+        $this->merge(['subtasks' => $subtasks]);
     }
 
     public function rules(): array
@@ -38,7 +44,9 @@ class StoreTaskRequest extends FormRequest
             'status' => ['required', 'in:pending,in_progress,in_review,completed'],
             'due_date' => ['nullable', 'date'],
             'subtasks' => ['array'],
-            'subtasks.*' => ['string', 'max:255'],
+            'subtasks.*.title' => ['required', 'string', 'max:255'],
+            'subtasks.*.assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+            'subtasks.*.due_date' => ['nullable', 'date'],
         ];
     }
 
@@ -68,6 +76,16 @@ class StoreTaskRequest extends FormRequest
                 ->whereHas('role', fn ($query) => $query->where('slug', Role::STAFF))
                 ->exists()) {
                 $validator->errors()->add('assignee_id', 'Select a staff member who belongs to the chosen project\'s company.');
+            }
+
+            foreach ($this->input('subtasks', []) as $index => $subtask) {
+                $subtaskAssigneeId = $subtask['assignee_id'] ?? null;
+                if ($subtaskAssigneeId && ! OrgMember::where('organization_id', $project->organization_id)
+                    ->where('user_id', $subtaskAssigneeId)
+                    ->whereHas('role', fn ($query) => $query->where('slug', Role::STAFF))
+                    ->exists()) {
+                    $validator->errors()->add("subtasks.{$index}.assignee_id", 'Subtask assignee must belong to the chosen project\'s company.');
+                }
             }
         });
     }
