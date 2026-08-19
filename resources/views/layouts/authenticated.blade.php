@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Solava')</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -12,6 +13,7 @@
         $navItems = [
             ['label' => 'Dashboard', 'icon' => 'ti-layout-dashboard', 'route' => 'dashboard', 'matches' => ['dashboard']],
             ['label' => 'Projects', 'icon' => 'ti-folder', 'route' => 'projects.index', 'matches' => ['projects.*']],
+            ['label' => 'Tasks', 'icon' => 'ti-checklist', 'route' => 'tasks.index', 'matches' => ['tasks.*', 'subtasks.*', 'comments.*'], 'can' => ['viewAny', \App\Models\Task::class]],
             ['label' => 'Documents', 'icon' => 'ti-files', 'route' => null, 'matches' => []],
             ['label' => 'Access control', 'icon' => 'ti-shield-lock', 'route' => 'access-control.index', 'matches' => ['access-control.*'], 'can' => ['access-control.view']],
             ['label' => 'Staff', 'icon' => 'ti-users', 'route' => null, 'matches' => []],

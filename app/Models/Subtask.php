@@ -6,18 +6,28 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['task_id', 'title', 'is_done'])]
+#[Fillable(['task_id', 'title', 'assignee_id', 'is_done', 'due_date'])]
 class Subtask extends Model
 {
     protected function casts(): array
     {
         return [
             'is_done' => 'boolean',
+            // Explicit Y-m-d format (not just 'date') so JSON responses from
+            // SubtaskController serialize a bare date the <input type="date">
+            // rows can consume directly — the plain 'date' cast emits full
+            // ISO8601 with a time component, which those inputs reject.
+            'due_date' => 'date:Y-m-d',
         ];
     }
 
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
+    }
+
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assignee_id');
     }
 }
