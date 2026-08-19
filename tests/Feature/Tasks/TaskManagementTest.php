@@ -222,6 +222,38 @@ test('deactivating a task is restricted to management and above', function () {
     expect($task->fresh()->trashed())->toBeTrue();
 });
 
+test('deactivating a task preserves its subtasks, comments, and document links', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task with relations',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $subtask = $task->subtasks()->create(['title' => 'A subtask']);
+    $comment = $task->comments()->create(['user_id' => $this->management->id, 'body' => 'A comment']);
+    $document = Document::create([
+        'organization_id' => $this->orgA->id,
+        'uploaded_by' => $this->management->id,
+        'name' => 'Brief.pdf',
+        'link' => 'https://example.com/brief.pdf',
+        'access_level' => 'internal',
+    ]);
+    $task->documents()->attach($document->id);
+
+    $this->actingAs($this->management)->patch("/tasks/{$task->id}/toggle-active");
+    $task->refresh();
+
+    expect($task->trashed())->toBeTrue();
+    $this->assertDatabaseHas('subtasks', ['id' => $subtask->id, 'task_id' => $task->id]);
+    $this->assertDatabaseHas('comments', ['id' => $comment->id, 'task_id' => $task->id]);
+    $this->assertDatabaseHas('task_documents', ['task_id' => $task->id, 'document_id' => $document->id]);
+    expect($task->subtasks()->count())->toBe(1);
+    expect($task->comments()->count())->toBe(1);
+    expect($task->documents()->count())->toBe(1);
+});
+
 test('the task list only shows a staff member tasks in departments they are granted', function () {
     $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
     $visibleTask = Task::create([
