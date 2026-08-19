@@ -60,6 +60,8 @@
         <div>
             <label for="email" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Email <span class="text-red-600">*</span></label>
             <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" required
+                pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+                title="Must include a domain with an extension, e.g. name@example.com"
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('email')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>

@@ -22,7 +22,7 @@ class StoreUserRequest extends FormRequest
             'password' => ['required', 'string', Password::min(8)->mixedCase()->numbers()->symbols()],
             'name' => ['required', 'string', 'max:255'],
             'employee_id' => ['required', 'string', 'max:255', 'unique:users,employee_id'],
-            'email' => ['required', 'email:rfc,filter', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email:rfc,filter', 'regex:/^[^\s@]+@[^\s@]+\.[^\s@]+$/', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:30', new ValidPhoneNumber],
             'roles' => ['required', 'array'],
             'roles.*' => ['required', 'in:none,staff,management'],
@@ -33,6 +33,7 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'email.email' => 'Please enter valid email address',
+            'email.regex' => 'Please enter valid email address',
         ];
     }
 
