@@ -130,6 +130,27 @@ class User extends Authenticatable
     }
 
     /**
+     * The organization IDs this user can manage projects/tasks in —
+     * super admins and owners can manage any active company; management
+     * users are limited to active companies where they hold the
+     * management role via org_members.
+     *
+     * @return array<int, int>
+     */
+    public function manageableOrganizationIds(): array
+    {
+        if ($this->isSuperAdmin() || $this->isOwner()) {
+            return Organization::where('is_active', true)->pluck('id')->all();
+        }
+
+        return $this->orgMemberships()
+            ->whereHas('organization', fn ($query) => $query->where('is_active', true))
+            ->whereHas('role', fn ($query) => $query->where('slug', Role::MANAGEMENT))
+            ->pluck('organization_id')
+            ->all();
+    }
+
+    /**
      * The organization IDs this user's queries are allowed to see.
      * Super admins and owners see every organization, active or not;
      * everyone else is limited to active organizations they hold an
