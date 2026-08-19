@@ -29,6 +29,13 @@ class StoreUserRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'email.email' => 'Please enter valid email address',
+        ];
+    }
+
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {

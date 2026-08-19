@@ -35,6 +35,13 @@ class UpdateUserRequest extends FormRequest
         return $rules;
     }
 
+    public function messages(): array
+    {
+        return [
+            'email.email' => 'Please enter valid email address',
+        ];
+    }
+
     public function withValidator(Validator $validator): void
     {
         if ($this->route('user')->hasGlobalRole()) {
