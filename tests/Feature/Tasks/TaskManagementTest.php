@@ -216,3 +216,99 @@ test('deactivating a task is restricted to management and above', function () {
     $this->actingAs($this->management)->patch("/tasks/{$task->id}/toggle-active");
     expect($task->fresh()->trashed())->toBeTrue();
 });
+
+test('the task list only shows a staff member tasks in departments they are granted', function () {
+    $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
+    $visibleTask = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Visible task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $hiddenTask = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $otherDept->id,
+        'title' => 'Hidden task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+
+    $response = $this->actingAs($staff)->get('/tasks/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertSee('Visible task');
+    $response->assertDontSee('Hidden task');
+});
+
+test('management sees every task in their company regardless of department', function () {
+    $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task in dept A',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $otherDept->id,
+        'title' => 'Task in dept Ops',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->get('/tasks/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertSee('Task in dept A');
+    $response->assertSee('Task in dept Ops');
+});
+
+test('inactive tasks are hidden from the list by default and shown when toggled on', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Soon deactivated',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $task->delete();
+
+    $default = $this->actingAs($this->management)->get('/tasks/'.$this->orgA->id);
+    $default->assertOk();
+    $default->assertDontSee('Soon deactivated');
+
+    $withInactive = $this->actingAs($this->management)->get('/tasks/'.$this->orgA->id.'?show_inactive=1');
+    $withInactive->assertOk();
+    $withInactive->assertSee('Soon deactivated');
+});
+
+test('posting a comment from the drilldown respects CommentPolicy view scoping', function () {
+    $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $otherDept->id,
+        'title' => 'Not staff\'s department',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+
+    $this->actingAs($staff)->post("/tasks/{$task->id}/comments", ['body' => 'Sneaky comment'])
+        ->assertForbidden();
+    $this->assertDatabaseMissing('comments', ['body' => 'Sneaky comment']);
+
+    $response = $this->actingAs($this->management)->post("/tasks/{$task->id}/comments", ['body' => 'Legit comment']);
+    $response->assertCreated();
+    $this->assertDatabaseHas('comments', ['body' => 'Legit comment', 'task_id' => $task->id, 'user_id' => $this->management->id]);
+});

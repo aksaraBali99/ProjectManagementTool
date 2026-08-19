@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentManagementController;
 use App\Http\Controllers\OrganizationManagementController;
@@ -75,4 +76,12 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::patch('/subtasks/{subtask}/toggle', [SubtaskController::class, 'toggle'])->name('subtasks.toggle');
     Route::put('/subtasks/{subtask}', [SubtaskController::class, 'update'])->name('subtasks.update');
     Route::delete('/subtasks/{subtask}', [SubtaskController::class, 'destroy'])->name('subtasks.destroy');
+
+    Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
+
+    // Must stay registered after /tasks/create/{project?} above — both are
+    // single-optional-segment GET routes, and Laravel matches in
+    // registration order, so /tasks/create would otherwise be swallowed by
+    // {organization?} here (same ordering Departments/Projects rely on).
+    Route::get('/tasks/{organization?}', [TaskManagementController::class, 'index'])->name('tasks.index');
 });

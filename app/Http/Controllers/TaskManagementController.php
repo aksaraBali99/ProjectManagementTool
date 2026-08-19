@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Tasks\StoreTaskRequest;
 use App\Http\Requests\Tasks\UpdateTaskRequest;
+use App\Models\AccessPermission;
 use App\Models\Department;
+use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Project;
 use App\Models\Role;
@@ -17,6 +19,61 @@ use Illuminate\View\View;
 
 class TaskManagementController extends Controller
 {
+    public function index(?Organization $organization = null): View
+    {
+        Gate::authorize('viewAny', Task::class);
+
+        $user = auth()->user();
+        $organizations = Organization::whereIn('id', $user->visibleOrganizationIds())
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        if ($organizations->isEmpty()) {
+            return view('tasks.index', [
+                'organizations' => $organizations,
+                'organization' => null,
+                'tasks' => collect(),
+                'showInactive' => false,
+                'canCreate' => false,
+            ]);
+        }
+
+        if (! $organization || ! $organizations->contains('id', $organization->id)) {
+            $organization = $organizations->first();
+        }
+
+        $showInactive = request()->boolean('show_inactive');
+
+        $query = Task::where('organization_id', $organization->id)
+            ->with(['project', 'department', 'assignee', 'subtasks', 'comments.user']);
+
+        if ($showInactive) {
+            $query->withTrashed();
+        }
+
+        $isManagerHere = $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organization->id);
+
+        if (! $isManagerHere) {
+            $allowedDepartmentIds = AccessPermission::where('user_id', $user->id)
+                ->where('organization_id', $organization->id)
+                ->where('allowed', true)
+                ->pluck('department_id');
+
+            $query->whereIn('department_id', $allowedDepartmentIds);
+        }
+
+        $tasks = $query->orderBy('due_date')->orderBy('title')->get();
+
+        return view('tasks.index', [
+            'organizations' => $organizations,
+            'organization' => $organization,
+            'tasks' => $tasks,
+            'showInactive' => $showInactive,
+            'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
+        ]);
+    }
+
     public function create(?Project $project = null): View
     {
         $manageableOrgIds = auth()->user()->manageableOrganizationIds();
