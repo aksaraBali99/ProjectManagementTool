@@ -19,6 +19,18 @@ beforeEach(function () {
     $this->superAdmin->roles()->attach($this->roles['super_admin']->id);
 });
 
+function validUserPayload(array $overrides = []): array
+{
+    return array_merge([
+        'username' => 'newperson',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'New Person',
+        'employee_id' => 'EMP-9001',
+        'emails' => [['label' => '', 'value' => 'newperson@example.com']],
+        'phones' => [['label' => '', 'value' => '+1 202 555 0100']],
+    ], $overrides);
+}
+
 test('a non-owner/non-super-admin cannot access the user management pages', function () {
     $manager = User::factory()->create();
     OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $manager->id, 'role_id' => $this->roles['management']->id]);
@@ -36,58 +48,98 @@ test('a super admin can view the user management page', function () {
 });
 
 test('an owner can create a user with management in one company and staff in another', function () {
-    $response = $this->actingAs($this->owner)->post('/users', [
-        'username' => 'newperson',
-        'password' => 'Str0ng!Passw0rd',
-        'name' => 'New Person',
-        'employee_id' => 'EMP-9001',
-        'email' => 'newperson@example.com',
-        'phone' => '+1 555 0100',
+    $response = $this->actingAs($this->owner)->post('/users', validUserPayload([
         'roles' => [
             $this->orgA->id => 'management',
             $this->orgB->id => 'staff',
         ],
-    ]);
+    ]));
 
     $response->assertRedirect('/users');
 
     $user = User::where('username', 'newperson')->firstOrFail();
     expect($user->isManagementInOrg($this->orgA->id))->toBeTrue()
         ->and($user->isStaffInOrg($this->orgB->id))->toBeTrue()
-        ->and($user->isManagementInOrg($this->orgB->id))->toBeFalse();
+        ->and($user->isManagementInOrg($this->orgB->id))->toBeFalse()
+        ->and($user->primaryEmail())->toBe('newperson@example.com')
+        ->and($user->primaryPhone())->toBe('+1 202 555 0100');
 });
 
 test('creating a user requires at least one company role', function () {
-    $response = $this->actingAs($this->owner)->post('/users', [
+    $response = $this->actingAs($this->owner)->post('/users', validUserPayload([
         'username' => 'noaccess',
-        'password' => 'Str0ng!Passw0rd',
-        'name' => 'No Access',
         'employee_id' => 'EMP-9002',
-        'email' => 'noaccess@example.com',
-        'phone' => '+1 555 0101',
+        'emails' => [['label' => '', 'value' => 'noaccess@example.com']],
         'roles' => [
             $this->orgA->id => 'none',
             $this->orgB->id => 'none',
         ],
-    ]);
+    ]));
 
     $response->assertSessionHasErrors('roles');
     $this->assertDatabaseMissing('users', ['username' => 'noaccess']);
 });
 
 test('creating a user requires a safe password', function () {
-    $response = $this->actingAs($this->owner)->post('/users', [
+    $response = $this->actingAs($this->owner)->post('/users', validUserPayload([
         'username' => 'weakpass',
         'password' => 'password',
-        'name' => 'Weak Pass',
         'employee_id' => 'EMP-9003',
-        'email' => 'weakpass@example.com',
-        'phone' => '+1 555 0102',
         'roles' => [$this->orgA->id => 'staff'],
-    ]);
+    ]));
 
     $response->assertSessionHasErrors('password');
     $this->assertDatabaseMissing('users', ['username' => 'weakpass']);
+});
+
+test('creating a user requires at least one email and one phone', function () {
+    $response = $this->actingAs($this->owner)->post('/users', validUserPayload([
+        'username' => 'nocontact',
+        'employee_id' => 'EMP-9004',
+        'emails' => [],
+        'phones' => [],
+        'roles' => [$this->orgA->id => 'staff'],
+    ]));
+
+    $response->assertSessionHasErrors(['emails', 'phones']);
+    $this->assertDatabaseMissing('users', ['username' => 'nocontact']);
+});
+
+test('an owner can create a user with multiple emails and phones, auto-numbering blank labels', function () {
+    $response = $this->actingAs($this->owner)->post('/users', validUserPayload([
+        'username' => 'multicontact',
+        'employee_id' => 'EMP-9005',
+        'emails' => [
+            ['label' => 'Work email', 'value' => 'multicontact.work@example.com'],
+            ['label' => '', 'value' => 'multicontact.other@example.com'],
+            ['label' => '', 'value' => 'multicontact.third@example.com'],
+        ],
+        'phones' => [
+            ['label' => 'Mobile phone number', 'value' => '+1 202 555 0111'],
+            ['label' => '', 'value' => '+1 202 555 0112'],
+        ],
+        'roles' => [$this->orgA->id => 'staff'],
+    ]));
+
+    $response->assertRedirect('/users');
+
+    $user = User::where('username', 'multicontact')->firstOrFail();
+    expect($user->emails->pluck('label')->all())->toBe(['Work email', 'Email 1', 'Email 2'])
+        ->and($user->phones->pluck('label')->all())->toBe(['Mobile phone number', 'Phone number 1']);
+});
+
+test('creating a user rejects an email already used by another user', function () {
+    $existing = User::factory()->withEmail('taken@example.com')->create();
+
+    $response = $this->actingAs($this->owner)->post('/users', validUserPayload([
+        'username' => 'dupeemail',
+        'employee_id' => 'EMP-9006',
+        'emails' => [['label' => '', 'value' => 'taken@example.com']],
+        'roles' => [$this->orgA->id => 'staff'],
+    ]));
+
+    $response->assertSessionHasErrors('emails.0.value');
+    $this->assertDatabaseMissing('users', ['username' => 'dupeemail']);
 });
 
 test('an owner can edit a user and change their role from management in one company to staff, while adding a second company', function () {
@@ -98,8 +150,8 @@ test('an owner can edit a user and change their role from management in one comp
         'username' => $target->username,
         'name' => $target->name,
         'employee_id' => $target->employee_id,
-        'email' => $target->email,
-        'phone' => $target->phone,
+        'emails' => [['label' => '', 'value' => $target->primaryEmail()]],
+        'phones' => [['label' => '', 'value' => $target->primaryPhone()]],
         'roles' => [
             $this->orgA->id => 'staff',
             $this->orgB->id => 'management',
@@ -114,6 +166,42 @@ test('an owner can edit a user and change their role from management in one comp
         ->and($target->isManagementInOrg($this->orgB->id))->toBeTrue();
 });
 
+test('editing a user replaces their emails and phones with the submitted set', function () {
+    $target = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['staff']->id]);
+
+    $this->actingAs($this->owner)->put("/users/{$target->id}", [
+        'username' => $target->username,
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'emails' => [['label' => 'New email', 'value' => 'brandnew@example.com']],
+        'phones' => [['label' => 'New phone', 'value' => '+1 202 555 0199']],
+        'roles' => [$this->orgA->id => 'staff'],
+    ]);
+
+    $target->refresh();
+    expect($target->emails)->toHaveCount(1)
+        ->and($target->primaryEmail())->toBe('brandnew@example.com')
+        ->and($target->phones)->toHaveCount(1)
+        ->and($target->primaryPhone())->toBe('+1 202 555 0199');
+});
+
+test('editing a user does not reject their own existing email as a duplicate', function () {
+    $target = User::factory()->withEmail('keep-mine@example.com')->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['staff']->id]);
+
+    $response = $this->actingAs($this->owner)->put("/users/{$target->id}", [
+        'username' => $target->username,
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'emails' => [['label' => '', 'value' => 'keep-mine@example.com']],
+        'phones' => [['label' => '', 'value' => $target->primaryPhone()]],
+        'roles' => [$this->orgA->id => 'staff'],
+    ]);
+
+    $response->assertSessionDoesntHaveErrors('emails.0.value');
+});
+
 test('setting a company role to none removes the org_members row', function () {
     $target = User::factory()->create();
     OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['staff']->id]);
@@ -122,8 +210,8 @@ test('setting a company role to none removes the org_members row', function () {
         'username' => $target->username,
         'name' => $target->name,
         'employee_id' => $target->employee_id,
-        'email' => $target->email,
-        'phone' => $target->phone,
+        'emails' => [['label' => '', 'value' => $target->primaryEmail()]],
+        'phones' => [['label' => '', 'value' => $target->primaryPhone()]],
         'roles' => [
             $this->orgA->id => 'none',
             $this->orgB->id => 'management',
@@ -142,8 +230,8 @@ test('a non-owner/non-super-admin cannot update another user', function () {
         'username' => $target->username,
         'name' => $target->name,
         'employee_id' => $target->employee_id,
-        'email' => $target->email,
-        'phone' => $target->phone,
+        'emails' => [['label' => '', 'value' => $target->primaryEmail()]],
+        'phones' => [['label' => '', 'value' => $target->primaryPhone()]],
         'roles' => [$this->orgA->id => 'staff'],
     ]);
 
@@ -208,8 +296,8 @@ test('a global-role user can be updated without submitting any company roles', f
         'username' => $this->superAdmin->username,
         'name' => 'Updated Name',
         'employee_id' => $this->superAdmin->employee_id,
-        'email' => $this->superAdmin->email,
-        'phone' => $this->superAdmin->phone,
+        'emails' => [['label' => '', 'value' => $this->superAdmin->primaryEmail()]],
+        'phones' => [['label' => '', 'value' => $this->superAdmin->primaryPhone()]],
     ]);
 
     $response->assertRedirect('/users');
@@ -222,8 +310,8 @@ test('submitting company roles for a global-role user does not create org_member
         'username' => $this->superAdmin->username,
         'name' => $this->superAdmin->name,
         'employee_id' => $this->superAdmin->employee_id,
-        'email' => $this->superAdmin->email,
-        'phone' => $this->superAdmin->phone,
+        'emails' => [['label' => '', 'value' => $this->superAdmin->primaryEmail()]],
+        'phones' => [['label' => '', 'value' => $this->superAdmin->primaryPhone()]],
         'roles' => [$this->orgA->id => 'management'],
     ]);
 
@@ -248,17 +336,14 @@ dataset('invalidEmails', [
 ]);
 
 test('creating a user rejects an invalid email format', function (string $email) {
-    $response = $this->actingAs($this->owner)->post('/users', [
+    $response = $this->actingAs($this->owner)->post('/users', validUserPayload([
         'username' => 'emailtest',
-        'password' => 'Str0ng!Passw0rd',
-        'name' => 'Email Test',
         'employee_id' => 'EMP-9010',
-        'email' => $email,
-        'phone' => '+1 555 0100',
+        'emails' => [['label' => '', 'value' => $email]],
         'roles' => [$this->orgA->id => 'staff'],
-    ]);
+    ]));
 
-    $response->assertSessionHasErrors('email');
+    $response->assertSessionHasErrors('emails.0.value');
     $this->assertDatabaseMissing('users', ['username' => 'emailtest']);
 })->with('invalidEmails');
 
@@ -271,38 +356,32 @@ dataset('invalidPhones', [
 ]);
 
 test('creating a user rejects an invalid phone format', function (string $phone) {
-    $response = $this->actingAs($this->owner)->post('/users', [
+    $response = $this->actingAs($this->owner)->post('/users', validUserPayload([
         'username' => 'phonetest',
-        'password' => 'Str0ng!Passw0rd',
-        'name' => 'Phone Test',
         'employee_id' => 'EMP-9011',
-        'email' => 'phonetest@example.com',
-        'phone' => $phone,
+        'phones' => [['label' => '', 'value' => $phone]],
         'roles' => [$this->orgA->id => 'staff'],
-    ]);
+    ]));
 
-    $response->assertSessionHasErrors('phone');
+    $response->assertSessionHasErrors('phones.0.value');
     $this->assertDatabaseMissing('users', ['username' => 'phonetest']);
 })->with('invalidPhones');
 
 dataset('validPhones', [
-    '+1 555 0100',
+    '+1 202 555 0175',
     '+62 811-0000-0001',
     '08123456789',
-    '(555) 123-4567',
+    '0812 3456 7890',
 ]);
 
 test('creating a user accepts a valid phone format', function (string $phone) {
-    $response = $this->actingAs($this->owner)->post('/users', [
+    $response = $this->actingAs($this->owner)->post('/users', validUserPayload([
         'username' => 'validphone',
-        'password' => 'Str0ng!Passw0rd',
-        'name' => 'Valid Phone',
         'employee_id' => 'EMP-9012',
-        'email' => 'validphone@example.com',
-        'phone' => $phone,
+        'phones' => [['label' => '', 'value' => $phone]],
         'roles' => [$this->orgA->id => 'staff'],
-    ]);
+    ]));
 
-    $response->assertSessionDoesntHaveErrors('phone');
+    $response->assertSessionDoesntHaveErrors('phones.0.value');
     $this->assertDatabaseHas('users', ['username' => 'validphone']);
 })->with('validPhones');

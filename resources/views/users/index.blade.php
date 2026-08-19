@@ -39,7 +39,12 @@
                     <tr>
                         <td class="px-3 py-2.5 text-[12px] font-medium text-[#1F2937]">{{ $user->name }}</td>
                         <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $user->username }}</td>
-                        <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $user->email }}</td>
+                        <td class="px-3 py-2.5 text-[11px] text-gray-500">
+                            {{ $user->primaryEmail() }}
+                            @if ($user->emails->count() > 1)
+                                <span class="text-gray-400">+{{ $user->emails->count() - 1 }} more</span>
+                            @endif
+                        </td>
                         <td class="px-3 py-2.5">
                             @php $globalRoles = $user->roles->whereIn('slug', [\App\Models\Role::SUPER_ADMIN, \App\Models\Role::OWNER]) @endphp
                             @forelse ($globalRoles as $role)

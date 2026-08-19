@@ -26,7 +26,7 @@ class GoogleAuthController extends Controller
             ]);
         }
 
-        $user = User::where('email', $googleUser->getEmail())->first();
+        $user = User::whereHas('emails', fn ($query) => $query->where('email', $googleUser->getEmail()))->first();
 
         if (! $user) {
             return redirect()->route('login')->withErrors([

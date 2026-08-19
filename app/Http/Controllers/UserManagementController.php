@@ -9,7 +9,10 @@ use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -20,7 +23,7 @@ class UserManagementController extends Controller
         Gate::authorize('viewAny', User::class);
 
         $users = User::query()
-            ->with('orgMemberships.organization', 'orgMemberships.role', 'roles')
+            ->with('orgMemberships.organization', 'orgMemberships.role', 'roles', 'emails')
             ->orderBy('name')
             ->get();
 
@@ -43,11 +46,11 @@ class UserManagementController extends Controller
             'password' => $request->string('password'),
             'name' => $request->string('name'),
             'employee_id' => $request->string('employee_id'),
-            'email' => $request->string('email'),
-            'phone' => $request->string('phone'),
             'is_active' => true,
         ]);
 
+        $this->syncContactRows($user->emails(), $request->input('emails', []), 'email', 'Email');
+        $this->syncContactRows($user->phones(), $request->input('phones', []), 'phone', 'Phone number');
         $this->syncCompanyRoles($user, $request->input('roles', []));
 
         return redirect()->route('users.index')->with('status', 'User created.');
@@ -80,9 +83,10 @@ class UserManagementController extends Controller
             'username' => $request->string('username'),
             'name' => $request->string('name'),
             'employee_id' => $request->string('employee_id'),
-            'email' => $request->string('email'),
-            'phone' => $request->string('phone'),
         ]);
+
+        $this->syncContactRows($user->emails(), $request->input('emails', []), 'email', 'Email');
+        $this->syncContactRows($user->phones(), $request->input('phones', []), 'phone', 'Phone number');
 
         if (! $user->hasGlobalRole()) {
             $this->syncCompanyRoles($user, $request->input('roles', []));
@@ -131,5 +135,43 @@ class UserManagementController extends Controller
                 ['role_id' => $roleIds[$slug]],
             );
         }
+    }
+
+    /**
+     * Fully replaces a user's emails or phones with the submitted rows. A
+     * blank caption gets a default label ("Email 1", "Phone number 2", ...)
+     * that increments per base label within this save.
+     *
+     * @param  HasMany<Model, User>  $relation
+     * @param  array<int, array{label?: string, value?: string}>  $rows
+     */
+    private function syncContactRows(HasMany $relation, array $rows, string $valueField, string $defaultBase): void
+    {
+        $relation->delete();
+
+        $assignedLabels = collect();
+
+        foreach ($rows as $row) {
+            $label = trim((string) ($row['label'] ?? ''));
+
+            if ($label === '') {
+                $label = $this->nextDefaultLabel($assignedLabels, $defaultBase);
+            }
+
+            $assignedLabels->push($label);
+
+            $relation->create([$valueField => $row['value'], 'label' => $label]);
+        }
+    }
+
+    private function nextDefaultLabel(Collection $existingLabels, string $base): string
+    {
+        $pattern = '/^'.preg_quote($base, '/').' (\d+)$/';
+
+        $max = $existingLabels->reduce(function (int $carry, string $label) use ($pattern) {
+            return preg_match($pattern, $label, $matches) ? max($carry, (int) $matches[1]) : $carry;
+        }, 0);
+
+        return $base.' '.($max + 1);
     }
 }
