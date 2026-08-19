@@ -1,5 +1,5 @@
 @php $guardId = 'unsaved-changes-'.$formId; @endphp
-<dialog id="{{ $guardId }}-dialog" class="w-full max-w-sm rounded-[12px] border border-gray-200 p-6 shadow-lg backdrop:bg-black/30">
+<dialog id="{{ $guardId }}-dialog" class="fixed inset-0 m-auto w-full max-w-sm rounded-[12px] border border-gray-200 p-6 shadow-lg backdrop:bg-black/30">
     <h2 class="text-[14px] font-medium text-[#1F2937]">Unsaved changes</h2>
     <p class="mt-2 text-[12px] text-gray-600">You have unsaved changes. It will be lost if you leave this page. Continue?</p>
     <div class="mt-4 flex items-center justify-end gap-3">
