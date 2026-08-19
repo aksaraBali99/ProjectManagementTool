@@ -22,14 +22,16 @@
         @csrf
 
         <div>
-            <label for="username" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Username</label>
+            <label for="username" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Username <span class="text-red-600">*</span></label>
             <input id="username" name="username" type="text" value="{{ old('username') }}" required
+                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
         </div>
 
         <div>
-            <label for="password" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Password</label>
+            <label for="password" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Password <span class="text-red-600">*</span></label>
             <input id="password" name="password" type="password" required
+                autocomplete="new-password"
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             <p class="mt-1 text-[11px] text-gray-500">At least 8 characters, with upper &amp; lower case, a number, and a symbol.</p>
         </div>
