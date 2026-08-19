@@ -26,7 +26,7 @@
                 if (input.validity.valueMissing) {
                     return input.validationMessage;
                 }
-                if (input.type === 'email' && input.validity.typeMismatch) {
+                if (input.type === 'email' && (input.validity.typeMismatch || input.validity.patternMismatch)) {
                     return 'Please enter valid email address';
                 }
                 if (input.type === 'tel' && input.validity.patternMismatch) {

@@ -114,6 +114,23 @@ test('an owner can edit a user and change their role from management in one comp
         ->and($target->isManagementInOrg($this->orgB->id))->toBeTrue();
 });
 
+test('editing a user rejects an email with no TLD on the domain', function () {
+    $target = User::factory()->create(['email' => 'alex.management@founderos.test']);
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['management']->id]);
+
+    $response = $this->actingAs($this->owner)->put("/users/{$target->id}", [
+        'username' => '',
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'email' => 'alex.management@founderos',
+        'phone' => $target->phone,
+        'roles' => [$this->orgA->id => 'management'],
+    ]);
+
+    $response->assertSessionHasErrors(['username', 'email']);
+    expect($target->fresh()->email)->toBe('alex.management@founderos.test');
+});
+
 test('setting a company role to none removes the org_members row', function () {
     $target = User::factory()->create();
     OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['staff']->id]);
@@ -245,6 +262,7 @@ dataset('invalidEmails', [
     'no-at-sign.example.com',
     'spaces in@email.com',
     'double@@example.com',
+    'no-tld@example',
 ]);
 
 test('creating a user rejects an invalid email format', function (string $email) {
