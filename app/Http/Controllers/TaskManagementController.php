@@ -6,6 +6,7 @@ use App\Http\Requests\Tasks\StoreTaskRequest;
 use App\Http\Requests\Tasks\UpdateTaskRequest;
 use App\Models\AccessPermission;
 use App\Models\Department;
+use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Project;
@@ -36,6 +37,7 @@ class TaskManagementController extends Controller
                 'tasks' => collect(),
                 'showInactive' => false,
                 'canCreate' => false,
+                'canAddDocuments' => false,
             ]);
         }
 
@@ -71,6 +73,7 @@ class TaskManagementController extends Controller
             'tasks' => $tasks,
             'showInactive' => $showInactive,
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
+            'canAddDocuments' => Gate::allows('create', [Document::class, $organization->id]),
             'staffOptions' => $this->staffOptionsForOrganization($organization->id),
         ]);
     }
@@ -146,12 +149,23 @@ class TaskManagementController extends Controller
             $projects->push($project);
         }
 
+        $attachedDocuments = $task->documents()->orderBy('name')->get();
+
+        $availableDocuments = Document::where('organization_id', $task->organization_id)
+            ->whereNotIn('id', $attachedDocuments->pluck('id'))
+            ->get()
+            ->filter(fn (Document $document) => Gate::allows('view', $document))
+            ->sortBy('name')
+            ->values();
+
         return view('tasks.edit', array_merge([
             'task' => $task->load('subtasks'),
             'project' => $project,
             'projects' => $projects,
             'canEdit' => auth()->user()->can('update', $task),
             'canDeactivate' => auth()->user()->can('delete', $task),
+            'attachedDocuments' => $attachedDocuments,
+            'availableDocuments' => $availableDocuments,
         ], $this->cascadingOptions($projects)));
     }
 

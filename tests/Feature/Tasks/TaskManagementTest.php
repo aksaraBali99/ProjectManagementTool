@@ -2,6 +2,7 @@
 
 use App\Models\AccessPermission;
 use App\Models\Department;
+use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Project;
@@ -425,4 +426,138 @@ test('a staff user who can toggle a subtask done state but is not its assignee o
 
     expect($subtask->fresh()->assignee_id)->toBeNull();
     expect($subtask->fresh()->due_date)->toBeNull();
+});
+
+test('attaching a document to a task creates a task_documents row, and attaching it again does not duplicate it', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $document = Document::create([
+        'organization_id' => $this->orgA->id,
+        'uploaded_by' => $this->management->id,
+        'name' => 'Brief.pdf',
+        'link' => 'https://example.com/brief.pdf',
+        'access_level' => 'internal',
+    ]);
+
+    $this->actingAs($this->management)->post("/tasks/{$task->id}/documents", ['document_id' => $document->id])->assertOk();
+    expect($task->documents()->count())->toBe(1);
+
+    $this->actingAs($this->management)->post("/tasks/{$task->id}/documents", ['document_id' => $document->id])->assertOk();
+    expect($task->fresh()->documents()->count())->toBe(1);
+});
+
+test('detaching a document removes the task_documents link without deleting the document itself', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $document = Document::create([
+        'organization_id' => $this->orgA->id,
+        'uploaded_by' => $this->management->id,
+        'name' => 'Brief.pdf',
+        'link' => 'https://example.com/brief.pdf',
+        'access_level' => 'internal',
+    ]);
+    $task->documents()->attach($document->id);
+
+    $this->actingAs($this->management)->delete("/tasks/{$task->id}/documents/{$document->id}")->assertOk();
+
+    expect($task->fresh()->documents()->count())->toBe(0);
+    $this->assertDatabaseHas('documents', ['id' => $document->id]);
+});
+
+test('a staff user cannot attach a private document they do not own and are not management for', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $privateDocument = Document::create([
+        'organization_id' => $this->orgA->id,
+        'uploaded_by' => $this->management->id,
+        'name' => 'Confidential.pdf',
+        'link' => 'https://example.com/confidential.pdf',
+        'access_level' => 'private',
+    ]);
+
+    $this->actingAs($staff)->post("/tasks/{$task->id}/documents", ['document_id' => $privateDocument->id])
+        ->assertForbidden();
+    expect($task->documents()->count())->toBe(0);
+});
+
+test('a user without task edit permission cannot attach or detach documents', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Not assigned to staff',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $document = Document::create([
+        'organization_id' => $this->orgA->id,
+        'uploaded_by' => $this->management->id,
+        'name' => 'Brief.pdf',
+        'link' => 'https://example.com/brief.pdf',
+        'access_level' => 'internal',
+    ]);
+    $task->documents()->attach($document->id);
+
+    $this->actingAs($staff)->post("/tasks/{$task->id}/documents", ['document_id' => $document->id])->assertForbidden();
+    $this->actingAs($staff)->delete("/tasks/{$task->id}/documents/{$document->id}")->assertForbidden();
+});
+
+test('creating a new document from the task edit page attaches it to that task in the same request', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    // postJson (not post) so expectsJson() is true, matching the real
+    // inline "create & attach" fetch() call's Accept header — plain post()
+    // would take DocumentController's redirect-back branch instead.
+    $response = $this->actingAs($this->management)->postJson('/documents', [
+        'organization_id' => $this->orgA->id,
+        'name' => 'New brief',
+        'link' => 'https://example.com/new-brief.pdf',
+        'access_level' => 'internal',
+        'task_id' => $task->id,
+    ]);
+
+    $response->assertCreated();
+    $document = Document::where('name', 'New brief')->firstOrFail();
+    expect($task->fresh()->documents()->pluck('documents.id')->all())->toBe([$document->id]);
+});
+
+test('adding a document from the task list does not attach it to any task', function () {
+    $response = $this->actingAs($this->management)->post('/documents', [
+        'organization_id' => $this->orgA->id,
+        'name' => 'Library doc',
+        'link' => 'https://example.com/library-doc.pdf',
+        'access_level' => 'internal',
+    ]);
+
+    $response->assertRedirect();
+    $document = Document::where('name', 'Library doc')->firstOrFail();
+    expect($document->tasks()->count())->toBe(0);
 });

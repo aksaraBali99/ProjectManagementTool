@@ -6,11 +6,13 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentManagementController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\OrganizationManagementController;
 use App\Http\Controllers\ProjectManagementController;
 use App\Http\Controllers\RoleManagementController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SubtaskController;
+use App\Http\Controllers\TaskDocumentController;
 use App\Http\Controllers\TaskManagementController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
@@ -78,6 +80,10 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::delete('/subtasks/{subtask}', [SubtaskController::class, 'destroy'])->name('subtasks.destroy');
 
     Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
+
+    Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
+    Route::post('/tasks/{task}/documents', [TaskDocumentController::class, 'attach'])->name('task-documents.attach');
+    Route::delete('/tasks/{task}/documents/{document}', [TaskDocumentController::class, 'detach'])->name('task-documents.detach');
 
     // Must stay registered after /tasks/create/{project?} above — both are
     // single-optional-segment GET routes, and Laravel matches in

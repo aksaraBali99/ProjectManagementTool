@@ -6,12 +6,20 @@
 <div>
     <div class="flex items-center justify-between">
         <h1 class="text-[14px] font-medium text-[#1F2937]">Tasks</h1>
-        @if ($organization && $canCreate)
-            <a href="{{ route('tasks.create', $organization->projects()->orderBy('name')->first()) }}"
-               class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
-                + Add task
-            </a>
-        @endif
+        <div class="flex items-center gap-3">
+            @if ($organization && $canAddDocuments)
+                <button type="button" onclick="document.getElementById('add-document-modal').showModal()"
+                    class="rounded-[8px] border border-gray-300 px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
+                    + Add new document
+                </button>
+            @endif
+            @if ($organization && $canCreate)
+                <a href="{{ route('tasks.create', $organization->projects()->orderBy('name')->first()) }}"
+                   class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                    + Add task
+                </a>
+            @endif
+        </div>
     </div>
 
     @if (session('status'))
@@ -136,6 +144,64 @@
         </div>
     @endif
 </div>
+
+@if ($organization && $canAddDocuments)
+    <dialog id="add-document-modal" class="w-full max-w-sm rounded-[12px] border border-gray-200 p-6 shadow-lg backdrop:bg-black/30">
+        <h2 class="text-[14px] font-medium text-[#1F2937]">Add document</h2>
+        <p class="mt-1 text-[11px] text-gray-500">Adds to {{ $organization->name }}'s document library — not attached to any task yet.</p>
+
+        @if ($errors->any())
+            <div class="mt-3 rounded-[8px] bg-red-50 p-3 text-[12px] text-red-700">
+                <ul class="list-disc pl-4">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('documents.store') }}" class="mt-4 space-y-4">
+            @csrf
+            <input type="hidden" name="organization_id" value="{{ $organization->id }}">
+
+            <div>
+                <label for="document-name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</label>
+                <input id="document-name" name="name" type="text" required
+                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            </div>
+
+            <div>
+                <label for="document-link" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Link</label>
+                <input id="document-link" name="link" type="url" required placeholder="https://…"
+                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            </div>
+
+            <div>
+                <label for="document-access" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Access level</label>
+                <select id="document-access" name="access_level" required
+                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    <option value="private">Private</option>
+                    <option value="internal" selected>Internal</option>
+                    <option value="public">Public</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onclick="document.getElementById('add-document-modal').close()"
+                    class="text-[12px] text-gray-600 hover:underline">
+                    Cancel
+                </button>
+                <button type="submit" class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                    Add document
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    @if ($errors->any())
+        <script>document.getElementById('add-document-modal').showModal();</script>
+    @endif
+@endif
 
 <script>
     (function () {

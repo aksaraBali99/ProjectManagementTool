@@ -176,5 +176,12 @@
             @include('tasks._subtasks', ['task' => $task, 'canEdit' => $canEdit, 'staffOptions' => $staffByOrganization[$task->organization_id] ?? []])
         </div>
     </div>
+
+    <div class="mt-6">
+        <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Documents</span>
+        <div class="mt-2">
+            @include('tasks._documents', ['task' => $task, 'canEdit' => $canEdit, 'attachedDocuments' => $attachedDocuments, 'availableDocuments' => $availableDocuments])
+        </div>
+    </div>
 </div>
 @endsection
