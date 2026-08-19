@@ -10,7 +10,7 @@ class ValidPhoneNumber implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (! is_string($value) || ! preg_match('/^\+?[0-9\s\-\(\)]+$/', $value)) {
-            $fail('The :attribute may only contain digits, spaces, hyphens, parentheses, and an optional leading +.');
+            $fail('Please enter valid phone number');
 
             return;
         }
@@ -18,7 +18,7 @@ class ValidPhoneNumber implements ValidationRule
         $digits = preg_replace('/\D/', '', $value);
 
         if (strlen($digits) < 7 || strlen($digits) > 15) {
-            $fail('The :attribute must contain between 7 and 15 digits.');
+            $fail('Please enter valid phone number');
         }
     }
 }

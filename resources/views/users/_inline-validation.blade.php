@@ -22,11 +22,24 @@
                 input.classList.remove('border-red-400');
             }
 
+            function messageFor(input) {
+                if (input.validity.valueMissing) {
+                    return input.validationMessage;
+                }
+                if (input.type === 'email' && input.validity.typeMismatch) {
+                    return 'Please enter valid email address';
+                }
+                if (input.type === 'tel' && input.validity.patternMismatch) {
+                    return 'Please enter valid phone number';
+                }
+                return input.validationMessage;
+            }
+
             function validate(input) {
                 if (input.checkValidity()) {
                     clearError(input);
                 } else {
-                    showError(input, input.validationMessage);
+                    showError(input, messageFor(input));
                 }
             }
 
