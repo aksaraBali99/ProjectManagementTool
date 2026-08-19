@@ -47,7 +47,7 @@
             // display (country-aware, via the library), so they're excluded
             // here to avoid two mechanisms fighting over the same message.
             function isValidatable(el) {
-                return el.matches('input[required]:not([data-phone-input]), input[type="email"], select[required]');
+                return el.matches('input[required]:not([data-phone-input]), input[type="email"], select[required], textarea[required]');
             }
 
             document.addEventListener('blur', function (event) {
@@ -70,7 +70,7 @@
 
             document.querySelectorAll('form').forEach(function (form) {
                 form.addEventListener('submit', function (event) {
-                    form.querySelectorAll('input[required]:not([data-phone-input]), input[type="email"], select[required]').forEach(validate);
+                    form.querySelectorAll('input[required]:not([data-phone-input]), input[type="email"], select[required], textarea[required]').forEach(validate);
 
                     if (! form.checkValidity()) {
                         event.preventDefault();
