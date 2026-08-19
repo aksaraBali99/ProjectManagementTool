@@ -108,4 +108,6 @@
         validate();
     })();
 </script>
+
+@include('users._unsaved-changes-guard', ['formId' => 'create-user-form'])
 @endsection
