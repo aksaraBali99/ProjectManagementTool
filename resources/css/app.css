@@ -12,14 +12,17 @@
 .iti {
     --iti-border-color: #d1d5db; /* gray-300, matches other inputs */
     --iti-hover-color: #f3f4f6; /* gray-100 */
-    --iti-country-selector-bg: transparent;
+    --iti-country-selector-bg: #ffffff;
     --iti-spacer-horizontal: 8px;
     width: 100%;
 }
 
-.iti input {
-    padding-left: 84px !important;
-}
+/* No padding-left rule here: the library measures the rendered flag+dial-code
+   button and sets the input's padding-left inline itself (kept in sync via a
+   ResizeObserver as the dial code changes length, e.g. +1 vs +353 vs +971) —
+   an !important override here previously froze it at a fixed width and
+   caused the selector to overlap the typed number for any country whose
+   button didn't happen to match that width. */
 
 .iti .iti__country-container {
     padding-inline-start: 4px;
@@ -29,9 +32,18 @@
     border-radius: 8px 0 0 8px;
 }
 
-.iti .iti__dropdown-content {
+/* The open dropdown panel is rendered as a detached element (appended to
+   <body>, not nested under the input's .iti wrapper) but reuses the .iti
+   class, so these rules still reach it. font-size is set explicitly since
+   .iti__country-selector/.iti__country-list/.iti__country/.iti__search-input
+   don't inherit it from the input — the library's own CSS never declares
+   one, so it falls back to the browser's default control font otherwise. */
+.iti .iti__country-selector {
     border-radius: 8px;
-    border-color: #d1d5db;
+    font-size: 12px;
+}
+
+.iti .iti__search-input {
     font-size: 12px;
 }
 
