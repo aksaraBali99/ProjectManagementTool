@@ -1,6 +1,6 @@
 @extends('layouts.authenticated')
 
-@section('title', 'Edit department — Solva')
+@section('title', 'Edit department — Solava')
 
 @section('content')
 <div class="mx-auto max-w-2xl">

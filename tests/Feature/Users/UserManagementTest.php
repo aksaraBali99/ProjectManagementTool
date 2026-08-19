@@ -115,20 +115,20 @@ test('an owner can edit a user and change their role from management in one comp
 });
 
 test('editing a user rejects an email with no TLD on the domain', function () {
-    $target = User::factory()->create(['email' => 'alex.management@solva.test']);
+    $target = User::factory()->create(['email' => 'alex.management@solava.test']);
     OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['management']->id]);
 
     $response = $this->actingAs($this->owner)->put("/users/{$target->id}", [
         'username' => '',
         'name' => $target->name,
         'employee_id' => $target->employee_id,
-        'email' => 'alex.management@solva',
+        'email' => 'alex.management@solava',
         'phone' => $target->phone,
         'roles' => [$this->orgA->id => 'management'],
     ]);
 
     $response->assertSessionHasErrors(['username', 'email']);
-    expect($target->fresh()->email)->toBe('alex.management@solva.test');
+    expect($target->fresh()->email)->toBe('alex.management@solava.test');
 });
 
 test('setting a company role to none removes the org_members row', function () {

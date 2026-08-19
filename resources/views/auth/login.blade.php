@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Log in — Solva')
+@section('title', 'Log in — Solava')
 
 @section('content')
 <div class="flex min-h-screen items-center justify-center px-4">
     <div class="w-full max-w-sm rounded-[12px] border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 class="mb-6 text-[14px] font-medium text-[#1F2937]">Solva</h1>
+        <h1 class="mb-6 text-[14px] font-medium text-[#1F2937]">Solava</h1>
 
         @if ($errors->any())
             <div class="mb-4 rounded-[8px] bg-red-50 p-3 text-[12px] text-red-700">
