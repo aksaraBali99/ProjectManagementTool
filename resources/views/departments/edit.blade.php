@@ -23,6 +23,12 @@
         @method('PUT')
 
         <div>
+            <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</label>
+            <input id="name" name="name" type="text" value="{{ old('name', $department->name) }}" required
+                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+        </div>
+
+        <div>
             <label for="organization_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Company</label>
             <select id="organization_id" name="organization_id" required
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
@@ -32,12 +38,6 @@
                     </option>
                 @endforeach
             </select>
-        </div>
-
-        <div>
-            <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</label>
-            <input id="name" name="name" type="text" value="{{ old('name', $department->name) }}" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
         </div>
 
         <div>
