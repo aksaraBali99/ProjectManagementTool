@@ -8,30 +8,23 @@
 
     <h1 class="mt-2 text-[14px] font-medium text-[#1F2937]">Edit user</h1>
 
-    @if ($errors->any() && ! $errors->has('password'))
-        <div class="mt-4 rounded-[8px] bg-red-50 p-3 text-[12px] text-red-700">
-            <ul class="list-disc pl-4">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     @if (session('status'))
         <div class="mt-4 rounded-[8px] bg-[#E1F5EE] p-3 text-[12px] text-[#085041]">
             {{ session('status') }}
         </div>
     @endif
 
-    <form method="POST" action="{{ route('users.update', $user) }}" class="mt-6 space-y-4" id="edit-user-form">
+    <form method="POST" action="{{ route('users.update', $user) }}" class="mt-6 space-y-4" id="edit-user-form" novalidate>
         @csrf
         @method('PUT')
 
         <div>
-            <label for="username" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Username</label>
+            <label for="username" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Username <span class="text-red-600">*</span></label>
             <input id="username" name="username" type="text" value="{{ old('username', $user->username) }}" required
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            @error('username')
+                <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
         </div>
 
         <div>
@@ -47,29 +40,41 @@
         </div>
 
         <div>
-            <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Full name</label>
+            <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Full name <span class="text-red-600">*</span></label>
             <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" required
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            @error('name')
+                <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
         </div>
 
         <div>
-            <label for="employee_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Employee ID</label>
+            <label for="employee_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Employee ID <span class="text-red-600">*</span></label>
             <input id="employee_id" name="employee_id" type="text" value="{{ old('employee_id', $user->employee_id) }}" required
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            @error('employee_id')
+                <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
         </div>
 
         <div>
-            <label for="email" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Email</label>
+            <label for="email" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Email <span class="text-red-600">*</span></label>
             <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" required
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            @error('email')
+                <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
         </div>
 
         <div>
-            <label for="phone" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Phone</label>
+            <label for="phone" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Phone <span class="text-red-600">*</span></label>
             <input id="phone" name="phone" type="tel" value="{{ old('phone', $user->phone) }}" required
                 pattern="^\+?[0-9\s\-\(\)]{7,20}$"
                 title="7–15 digits, may include +, spaces, hyphens, and parentheses"
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            @error('phone')
+                <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
         </div>
 
         @if ($globalRoles->isNotEmpty())
@@ -83,14 +88,14 @@
             </div>
         @else
             <div>
-                <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Company roles</span>
+                <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Company roles <span class="text-red-600">*</span></span>
                 <p class="mt-1 text-[11px] text-gray-500">Assign this user a role in at least one company.</p>
                 <div class="mt-2 space-y-2">
                     @foreach ($organizations as $organization)
                         @php $current = old('roles.'.$organization->id, $currentRoles[$organization->id] ?? 'none') @endphp
                         <div class="flex items-center justify-between rounded-[8px] border border-gray-200 px-3 py-2">
                             <span class="text-[12px] font-medium text-[#1F2937]">{{ $organization->name }}</span>
-                            <select name="roles[{{ $organization->id }}]" class="rounded-[8px] border border-gray-300 px-2 py-1 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                            <select name="roles[{{ $organization->id }}]" class="role-select rounded-[8px] border border-gray-300 px-2 py-1 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                                 <option value="none" {{ $current === 'none' ? 'selected' : '' }}>No access</option>
                                 <option value="staff" {{ $current === 'staff' ? 'selected' : '' }}>Staff</option>
                                 <option value="management" {{ $current === 'management' ? 'selected' : '' }}>Management</option>
@@ -98,6 +103,10 @@
                         </div>
                     @endforeach
                 </div>
+                <p id="roles-error" class="field-error mt-1 text-[11px] text-red-600" style="display: none;"></p>
+                @error('roles')
+                    <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+                @enderror
             </div>
         @endif
 
@@ -151,6 +160,8 @@
     </dialog>
 </div>
 
+@include('users._inline-validation')
+
 <script>
     (function () {
         const password = document.getElementById('new-password');
@@ -176,6 +187,32 @@
         @if ($errors->has('password'))
             modal.showModal();
         @endif
+
+        const roleSelects = document.querySelectorAll('.role-select');
+        const rolesError = document.getElementById('roles-error');
+
+        function validateRoles(force) {
+            if (! roleSelects.length || ! rolesError) return;
+            const hasAccess = Array.from(roleSelects).some(function (select) { return select.value !== 'none'; });
+            if (! hasAccess && force) {
+                rolesError.textContent = 'Assign this user a role in at least one company.';
+                rolesError.style.display = '';
+            } else if (hasAccess) {
+                rolesError.style.display = 'none';
+            }
+        }
+
+        roleSelects.forEach(function (select) {
+            select.addEventListener('change', function () { validateRoles(true); });
+        });
+
+        document.getElementById('edit-user-form').addEventListener('submit', function (event) {
+            validateRoles(true);
+
+            if (rolesError && rolesError.style.display !== 'none') {
+                event.preventDefault();
+            }
+        });
     })();
 </script>
 
