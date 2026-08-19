@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-# FounderOS deploy script — run this on the SERVER (via SSH), from inside
-# the project root (the "founderos" folder, not public_html).
+# Solava deploy script — run this on the SERVER (via SSH), from inside
+# the project root (the "solava" folder, not public_html).
 #
 # Usage:
-#   cd ~/domains/<your-domain>/founderos
+#   cd ~/domains/<your-domain>/solava
 #   bash deploy.sh
 #
 # IMPORTANT: this does NOT build frontend assets. Vite/npm can't run on

@@ -1,6 +1,6 @@
 @extends('layouts.authenticated')
 
-@section('title', 'Access control — FounderOS')
+@section('title', 'Access control — Solava')
 
 @section('content')
 <div>
