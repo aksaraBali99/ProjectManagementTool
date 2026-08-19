@@ -11,7 +11,7 @@
     @php
         $navItems = [
             ['label' => 'Dashboard', 'icon' => 'ti-layout-dashboard', 'route' => 'dashboard', 'matches' => ['dashboard']],
-            ['label' => 'Projects', 'icon' => 'ti-folder', 'route' => null, 'matches' => []],
+            ['label' => 'Projects', 'icon' => 'ti-folder', 'route' => 'projects.index', 'matches' => ['projects.*']],
             ['label' => 'Documents', 'icon' => 'ti-files', 'route' => null, 'matches' => []],
             ['label' => 'Access control', 'icon' => 'ti-shield-lock', 'route' => 'access-control.index', 'matches' => ['access-control.*'], 'can' => ['access-control.view']],
             ['label' => 'Staff', 'icon' => 'ti-users', 'route' => null, 'matches' => []],

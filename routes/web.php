@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentManagementController;
 use App\Http\Controllers\OrganizationManagementController;
+use App\Http\Controllers\ProjectManagementController;
 use App\Http\Controllers\RoleManagementController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserManagementController;
@@ -54,4 +55,11 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/access-control/{organization?}', [AccessControlController::class, 'index'])->name('access-control.index');
     Route::post('/access-control/toggle', [AccessControlController::class, 'toggle'])->name('access-control.toggle');
+
+    Route::get('/projects/create/{organization?}', [ProjectManagementController::class, 'create'])->name('projects.create');
+    Route::post('/projects', [ProjectManagementController::class, 'store'])->name('projects.store');
+    Route::get('/projects/{project}/edit', [ProjectManagementController::class, 'edit'])->name('projects.edit');
+    Route::put('/projects/{project}', [ProjectManagementController::class, 'update'])->name('projects.update');
+    Route::get('/projects/{project}/template', [ProjectManagementController::class, 'template'])->name('projects.template');
+    Route::get('/projects/{organization?}', [ProjectManagementController::class, 'index'])->name('projects.index');
 });
