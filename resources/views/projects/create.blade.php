@@ -14,17 +14,7 @@
         </p>
     @endisset
 
-    @if ($errors->any())
-        <div class="mt-4 rounded-[8px] bg-red-50 p-3 text-[12px] text-red-700">
-            <ul class="list-disc pl-4">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    <form method="POST" action="{{ route('projects.store') }}" class="mt-6 space-y-4">
+    <form method="POST" action="{{ route('projects.store') }}" class="mt-6 space-y-4" id="create-project-form" novalidate>
         @csrf
 
         <div>
@@ -37,25 +27,37 @@
                     </option>
                 @endforeach
             </select>
+            @error('organization_id')
+                <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
         </div>
 
         <div>
-            <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project name</label>
+            <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project name <span class="text-red-600">*</span></label>
             <input id="name" name="name" type="text" value="{{ old('name', $templateName ?? '') }}" required
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            @error('name')
+                <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
         </div>
 
         <div>
-            <label for="description" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</label>
+            <label for="description" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description <span class="text-red-600">*</span></label>
             <textarea id="description" name="description" rows="3" required
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">{{ old('description', $templateDescription ?? '') }}</textarea>
+            @error('description')
+                <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
         </div>
 
         <div>
-            <label for="client" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Client</label>
+            <label for="client" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Client <span class="text-red-600">*</span></label>
             <input id="client" name="client" type="text" value="{{ old('client') }}" required
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             <p class="mt-1 text-[11px] text-gray-500">Enter the client's name, or "internal" if this is an internal project.</p>
+            @error('client')
+                <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
         </div>
 
         <div class="grid grid-cols-2 gap-4">
@@ -66,6 +68,9 @@
                     <option value="open" {{ old('status', 'open') === 'open' ? 'selected' : '' }}>Open</option>
                     <option value="closed" {{ old('status') === 'closed' ? 'selected' : '' }}>Closed</option>
                 </select>
+                @error('status')
+                    <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+                @enderror
             </div>
 
             <div>
@@ -77,6 +82,9 @@
                     <option value="medium" {{ $priorityValue === 'medium' ? 'selected' : '' }}>Medium</option>
                     <option value="low" {{ $priorityValue === 'low' ? 'selected' : '' }}>Low</option>
                 </select>
+                @error('priority')
+                    <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+                @enderror
             </div>
         </div>
 
@@ -101,6 +109,9 @@
             <button type="button" id="add-staff-btn" class="mt-2 text-[11px] font-medium text-[#1D9E75] hover:underline">
                 + Add staff
             </button>
+            @if ($errors->has('staff.*'))
+                <p class="field-error mt-1 text-[11px] text-red-600">{{ $errors->first('staff.*') }}</p>
+            @endif
         </div>
 
         <div class="flex items-center gap-3 pt-2">
@@ -111,6 +122,8 @@
         </div>
     </form>
 </div>
+
+@include('users._inline-validation')
 
 <script>
     (function () {
@@ -175,4 +188,6 @@
         });
     })();
 </script>
+
+@include('users._unsaved-changes-guard', ['formId' => 'create-project-form'])
 @endsection
