@@ -30,12 +30,12 @@ test('a non-owner/non-super-admin cannot access department management', function
 
 test('an owner can create a department for a company', function () {
     $response = $this->actingAs($this->owner)->post('/departments', [
-        'organization_id' => $this->organization->id,
+        'organization_ids' => [$this->organization->id],
         'name' => 'Marketing',
         'color' => '#EEEDFE',
     ]);
 
-    $response->assertRedirect('/departments');
+    $response->assertRedirect('/departments/'.$this->organization->id);
     $this->assertDatabaseHas('departments', ['name' => 'Marketing', 'organization_id' => $this->organization->id]);
 });
 
@@ -44,19 +44,59 @@ test('department names must be unique within the same company but not across com
     Department::create(['organization_id' => $this->organization->id, 'name' => 'Marketing', 'color' => '#000000']);
 
     $duplicate = $this->actingAs($this->owner)->post('/departments', [
-        'organization_id' => $this->organization->id,
+        'organization_ids' => [$this->organization->id],
         'name' => 'Marketing',
         'color' => '#EEEDFE',
     ]);
     $duplicate->assertSessionHasErrors('name');
 
     $differentOrg = $this->actingAs($this->owner)->post('/departments', [
-        'organization_id' => $otherOrg->id,
+        'organization_ids' => [$otherOrg->id],
         'name' => 'Marketing',
         'color' => '#EEEDFE',
     ]);
     $differentOrg->assertSessionHasNoErrors();
     $this->assertDatabaseHas('departments', ['name' => 'Marketing', 'organization_id' => $otherOrg->id]);
+});
+
+test('selecting multiple companies creates one department record per company', function () {
+    $otherOrg = Organization::create(['name' => 'Org B', 'slug' => 'org-b', 'accent_color' => '#534AB7']);
+
+    $response = $this->actingAs($this->owner)->post('/departments', [
+        'organization_ids' => [$this->organization->id, $otherOrg->id],
+        'name' => 'Freelance',
+        'color' => '#EEEDFE',
+    ]);
+
+    $response->assertRedirect('/departments/'.$this->organization->id);
+    $this->assertDatabaseHas('departments', ['name' => 'Freelance', 'organization_id' => $this->organization->id]);
+    $this->assertDatabaseHas('departments', ['name' => 'Freelance', 'organization_id' => $otherOrg->id]);
+    expect(Department::where('name', 'Freelance')->count())->toBe(2);
+});
+
+test('creating a department requires at least one selected company', function () {
+    $response = $this->actingAs($this->owner)->post('/departments', [
+        'organization_ids' => [],
+        'name' => 'Freelance',
+        'color' => '#EEEDFE',
+    ]);
+
+    $response->assertSessionHasErrors('organization_ids');
+    $this->assertDatabaseMissing('departments', ['name' => 'Freelance']);
+});
+
+test('creating a department across multiple companies is rejected if the name conflicts in any one of them', function () {
+    $otherOrg = Organization::create(['name' => 'Org B', 'slug' => 'org-b', 'accent_color' => '#534AB7']);
+    Department::create(['organization_id' => $otherOrg->id, 'name' => 'Freelance', 'color' => '#000000']);
+
+    $response = $this->actingAs($this->owner)->post('/departments', [
+        'organization_ids' => [$this->organization->id, $otherOrg->id],
+        'name' => 'Freelance',
+        'color' => '#EEEDFE',
+    ]);
+
+    $response->assertSessionHasErrors('name');
+    $this->assertDatabaseMissing('departments', ['name' => 'Freelance', 'organization_id' => $this->organization->id]);
 });
 
 test('there is no route to delete a department', function () {
