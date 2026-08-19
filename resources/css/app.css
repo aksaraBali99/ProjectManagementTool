@@ -7,3 +7,34 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* intl-tel-input: match the app's UIX styling (teal accent, gray-300 borders, 8px radius). */
+.iti {
+    --iti-border-color: #d1d5db; /* gray-300, matches other inputs */
+    --iti-hover-color: #f3f4f6; /* gray-100 */
+    --iti-country-selector-bg: transparent;
+    --iti-spacer-horizontal: 8px;
+    width: 100%;
+}
+
+.iti input {
+    padding-left: 84px !important;
+}
+
+.iti .iti__country-container {
+    padding-inline-start: 4px;
+}
+
+.iti .iti__selected-country {
+    border-radius: 8px 0 0 8px;
+}
+
+.iti .iti__dropdown-content {
+    border-radius: 8px;
+    border-color: #d1d5db;
+    font-size: 12px;
+}
+
+.iti--invalid input {
+    border-color: #f87171 !important; /* red-400, matches .field-error state elsewhere */
+}
