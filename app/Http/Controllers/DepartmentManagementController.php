@@ -53,9 +53,21 @@ class DepartmentManagementController extends Controller
     {
         Gate::authorize('create', Department::class);
 
-        $department = Department::create($request->only('organization_id', 'name', 'color'));
+        $organizationIds = $request->input('organization_ids');
 
-        return redirect()->route('departments.index', $department->organization_id)->with('status', 'Department created.');
+        foreach ($organizationIds as $organizationId) {
+            Department::create([
+                'organization_id' => $organizationId,
+                'name' => $request->string('name'),
+                'color' => $request->string('color'),
+            ]);
+        }
+
+        $status = count($organizationIds) > 1
+            ? 'Department created for '.count($organizationIds).' companies.'
+            : 'Department created.';
+
+        return redirect()->route('departments.index', $organizationIds[0])->with('status', $status);
     }
 
     public function edit(Department $department): View
