@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "app/Models/User.php": {
-    "mtime": 1787066167.540559,
-    "ast_hash": "fff6f9b85d6976b76ae68b765d3b0e0c",
+    "mtime": 1787104195.314371,
+    "ast_hash": "29dce48e92f6d00b2f533f94a266a943",
     "semantic_hash": ""
   },
   "app/Providers/AppServiceProvider.php": {
@@ -30,8 +30,8 @@
     "semantic_hash": ""
   },
   "composer.json": {
-    "mtime": 1787045291.7244294,
-    "ast_hash": "fcf3f36142d7e2c3c9e0688d5594429c",
+    "mtime": 1787104195.3173704,
+    "ast_hash": "8de696f41d75a4d6c2fa2dc53999dbe6",
     "semantic_hash": ""
   },
   "config/app.php": {
@@ -85,8 +85,8 @@
     "semantic_hash": ""
   },
   "database/factories/UserFactory.php": {
-    "mtime": 1787055015.300228,
-    "ast_hash": "75462e9524f87dae1d2ca920cb52abe6",
+    "mtime": 1787104195.3263707,
+    "ast_hash": "104a13672b0d9c563831b700cbc1ccba",
     "semantic_hash": ""
   },
   "database/migrations/0001_01_01_000000_create_users_table.php": {
@@ -130,7 +130,7 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1787099777.3884013,
+    "mtime": 1787104185.142519,
     "ast_hash": "5d9a2b99734a52bb326c2ebb525264dc",
     "semantic_hash": ""
   },
@@ -215,8 +215,8 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Auth/LoginRequest.php": {
-    "mtime": 1787037430.6733587,
-    "ast_hash": "1d6820e8c7665154cf4e43dd45985efb",
+    "mtime": 1787104195.305067,
+    "ast_hash": "df534c27bfaedbccaec08061f7daa500",
     "semantic_hash": ""
   },
   "app/Models/AccessPermission.php": {
@@ -395,8 +395,8 @@
     "semantic_hash": ""
   },
   "database/seeders/UserSeeder.php": {
-    "mtime": 1786959454.6870885,
-    "ast_hash": "45743c4879e377ac0526c36a1026d806",
+    "mtime": 1787104195.3290272,
+    "ast_hash": "f90a5c8c06d82af457c5bdcfd09b0276",
     "semantic_hash": ""
   },
   "resources/views/auth/login.blade.php": {
@@ -415,8 +415,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Auth/LoginTest.php": {
-    "mtime": 1787037430.7091184,
-    "ast_hash": "3ec19cbfc3f9d60026e6047ec1995b8a",
+    "mtime": 1787104195.377554,
+    "ast_hash": "dd7e2a0addc7015993b2f27a254a925c",
     "semantic_hash": ""
   },
   "tests/Feature/OrganizationScopeMiddlewareTest.php": {
@@ -445,8 +445,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/GoogleAuthController.php": {
-    "mtime": 1787045291.7217913,
-    "ast_hash": "f69f6965bde2568166f08c33481f957a",
+    "mtime": 1787104195.2990606,
+    "ast_hash": "db745f18ef7e20472ba97ec3e1eb265d",
     "semantic_hash": ""
   },
   "app/Http/Controllers/DepartmentManagementController.php": {
@@ -470,8 +470,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/UserManagementController.php": {
-    "mtime": 1787053968.712529,
-    "ast_hash": "8ba2ca54fcbebfb0d087a784a3fdf596",
+    "mtime": 1787104195.3020601,
+    "ast_hash": "d24dcdc44058fd9fd009e717eab51dab",
     "semantic_hash": ""
   },
   "app/Http/Requests/Departments/StoreDepartmentRequest.php": {
@@ -500,8 +500,8 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/StoreUserRequest.php": {
-    "mtime": 1787055015.2942274,
-    "ast_hash": "83d9f8726fcd7175676a8a429b47a4d6",
+    "mtime": 1787104195.3090613,
+    "ast_hash": "25b2d810518a7754f270553706521d93",
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/UpdateUserPasswordRequest.php": {
@@ -510,8 +510,8 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/UpdateUserRequest.php": {
-    "mtime": 1787055015.2962284,
-    "ast_hash": "a7480619d14d96c9e5a708d717adc5b9",
+    "mtime": 1787104195.3113582,
+    "ast_hash": "9214d454e78d7f17481fec91833f4881",
     "semantic_hash": ""
   },
   "app/Policies/DepartmentPolicy.php": {
@@ -534,11 +534,6 @@
     "ast_hash": "86587987fe17ab9a6ae8dc9f2ce849c6",
     "semantic_hash": ""
   },
-  "app/Rules/ValidPhoneNumber.php": {
-    "mtime": 1787055015.297227,
-    "ast_hash": "4929e250a79b7fe44a896316e58ec28c",
-    "semantic_hash": ""
-  },
   "resources/views/departments/create.blade.php": {
     "mtime": 1787065223.358061,
     "ast_hash": "d921970c4b6f7cf54bca566efb16d15a",
@@ -555,7 +550,7 @@
     "semantic_hash": ""
   },
   "resources/views/layouts/authenticated.blade.php": {
-    "mtime": 1787066202.7490945,
+    "mtime": 1787104185.1334968,
     "ast_hash": "42b5c7d2628ce9794a2e14b62fd9c78d",
     "semantic_hash": ""
   },
@@ -590,23 +585,23 @@
     "semantic_hash": ""
   },
   "resources/views/users/create.blade.php": {
-    "mtime": 1787065223.37713,
-    "ast_hash": "a61ec0f85e465554aad68bdeb2586e85",
+    "mtime": 1787104195.363802,
+    "ast_hash": "2c39486e7c670bb2423ec0975becdc38",
     "semantic_hash": ""
   },
   "resources/views/users/edit.blade.php": {
-    "mtime": 1787065223.3786373,
-    "ast_hash": "d3b9034909403c426ad6a0c2f1ae32a3",
+    "mtime": 1787104195.3674521,
+    "ast_hash": "269a4bc206fd8823de748f2ec6abd581",
     "semantic_hash": ""
   },
   "resources/views/users/index.blade.php": {
-    "mtime": 1787065223.3806562,
-    "ast_hash": "df457cc1d6b3649074237e7f3c3fb6dd",
+    "mtime": 1787104195.3699732,
+    "ast_hash": "0a6cebca9c3e52128bbc030ea7632ade",
     "semantic_hash": ""
   },
   "tests/Feature/Auth/GoogleLoginTest.php": {
-    "mtime": 1787045291.7569187,
-    "ast_hash": "17a9f1daf7806ef3cce97e77865ae9e2",
+    "mtime": 1787104195.371984,
+    "ast_hash": "1ec40a1414c912d3916ca6790ac3f277",
     "semantic_hash": ""
   },
   "tests/Feature/Departments/DepartmentManagementTest.php": {
@@ -635,8 +630,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Users/UserManagementTest.php": {
-    "mtime": 1787055015.3067467,
-    "ast_hash": "d342d96b91da44b22a1bafa74355200e",
+    "mtime": 1787104195.381076,
+    "ast_hash": "8a47dd682a67242ccf906516f0dff9d6",
     "semantic_hash": ""
   },
   "app/Models/Concerns/HidesInactiveFromNonAdmins.php": {
@@ -655,17 +650,17 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/ProjectManagementController.php": {
-    "mtime": 1787099769.3579333,
+    "mtime": 1787104185.1080801,
     "ast_hash": "a2dc28737342bf27acbfb852898440dc",
     "semantic_hash": ""
   },
   "app/Http/Requests/Projects/StoreProjectRequest.php": {
-    "mtime": 1787066797.3410935,
+    "mtime": 1787104185.109083,
     "ast_hash": "ecd1943b18cb628afa30931359e53f09",
     "semantic_hash": ""
   },
   "app/Http/Requests/Projects/UpdateProjectRequest.php": {
-    "mtime": 1787066806.5343826,
+    "mtime": 1787104185.1100774,
     "ast_hash": "0f6afe02f5f8beef2351f46c36979016",
     "semantic_hash": ""
   },
@@ -675,17 +670,17 @@
     "semantic_hash": ""
   },
   "resources/views/projects/create.blade.php": {
-    "mtime": 1787099809.6751125,
+    "mtime": 1787104185.1392727,
     "ast_hash": "092e6b9a71074c930ce9818ef8f15c82",
     "semantic_hash": ""
   },
   "resources/views/projects/edit.blade.php": {
-    "mtime": 1787099831.1531608,
+    "mtime": 1787104185.1392727,
     "ast_hash": "5605811c654ce384a586e4fe0a9e3e5b",
     "semantic_hash": ""
   },
   "resources/views/projects/index.blade.php": {
-    "mtime": 1787099821.9453857,
+    "mtime": 1787104185.1392727,
     "ast_hash": "396ff2e541d96af45c22cb25ab40d097",
     "semantic_hash": ""
   },
@@ -695,8 +690,43 @@
     "semantic_hash": ""
   },
   "tests/Feature/Projects/ProjectManagementTest.php": {
-    "mtime": 1787099883.511308,
+    "mtime": 1787104185.142519,
     "ast_hash": "964351a579d9b20c4ff0c972461f97d1",
+    "semantic_hash": ""
+  },
+  "app/Models/UserEmail.php": {
+    "mtime": 1787104195.549432,
+    "ast_hash": "305196f10313ba35cfc4ed0d60235d07",
+    "semantic_hash": ""
+  },
+  "app/Models/UserPhone.php": {
+    "mtime": 1787104195.5504308,
+    "ast_hash": "673584687a9316fe165d3ea2678c9f9b",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_19_000100_create_user_emails_table.php": {
+    "mtime": 1787104195.552429,
+    "ast_hash": "12228a1dd72a3e0aa0f10e76a5e4465d",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_19_000200_create_user_phones_table.php": {
+    "mtime": 1787104195.5534322,
+    "ast_hash": "71894b2f80051c704ddab7eb157a379a",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_19_000300_migrate_users_email_phone_to_related_tables.php": {
+    "mtime": 1787104195.5554333,
+    "ast_hash": "57a8ef478d217d8dea95932f7a66d0af",
+    "semantic_hash": ""
+  },
+  "resources/views/users/_contact-rows.blade.php": {
+    "mtime": 1787104195.5603492,
+    "ast_hash": "6487401a5d606f14efa04b8cecfaecdc",
+    "semantic_hash": ""
+  },
+  "resources/views/users/_inline-validation.blade.php": {
+    "mtime": 1787104195.5624678,
+    "ast_hash": "e2124dd926f3da20095a536406cf3044",
     "semantic_hash": ""
   }
 }

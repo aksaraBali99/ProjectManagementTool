@@ -25,8 +25,7 @@ test('the google redirect route sends the user to Google', function () {
 });
 
 test('an existing active user can log in via Google with a matching email', function () {
-    $user = User::factory()->create([
-        'email' => 'alex@example.com',
+    $user = User::factory()->withEmail('alex@example.com')->create([
         'auth_provider' => 'password',
         'provider_id' => null,
     ]);
@@ -51,7 +50,7 @@ test('google login is rejected when no account matches the email', function () {
 });
 
 test('google login is rejected for a deactivated user', function () {
-    User::factory()->inactive()->create(['email' => 'inactive@example.com']);
+    User::factory()->inactive()->withEmail('inactive@example.com')->create();
     mockGoogleUser('inactive@example.com');
 
     $response = $this->get('/auth/google/callback');
@@ -62,8 +61,7 @@ test('google login is rejected for a deactivated user', function () {
 });
 
 test('google login does not overwrite an already-linked provider id', function () {
-    $user = User::factory()->create([
-        'email' => 'linked@example.com',
+    $user = User::factory()->withEmail('linked@example.com')->create([
         'auth_provider' => 'google',
         'provider_id' => 'original-id',
     ]);

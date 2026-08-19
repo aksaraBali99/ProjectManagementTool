@@ -29,11 +29,17 @@ class UserFactory extends Factory
             'username' => fake()->unique()->userName(),
             'name' => $name,
             'employee_id' => fake()->unique()->numerify('EMP-#####'),
-            'email' => fake()->unique()->safeEmail(),
-            'phone' => fake()->e164PhoneNumber(),
             'password' => static::$password ??= Hash::make('password'),
             'is_active' => true,
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user) {
+            $user->emails()->firstOrCreate([], ['email' => fake()->unique()->safeEmail(), 'label' => 'Email']);
+            $user->phones()->firstOrCreate([], ['phone' => fake()->e164PhoneNumber(), 'label' => 'Phone number']);
+        });
     }
 
     /**
@@ -44,5 +50,28 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'is_active' => false,
         ]);
+    }
+
+    /**
+     * Give the user a specific email instead of a random one, replacing any
+     * email the base factory configuration would otherwise generate.
+     */
+    public function withEmail(string $email): static
+    {
+        return $this->afterCreating(function (User $user) use ($email) {
+            $user->emails()->delete();
+            $user->emails()->create(['email' => $email, 'label' => 'Email']);
+        });
+    }
+
+    /**
+     * Give the user a specific phone number instead of a random one.
+     */
+    public function withPhone(string $phone): static
+    {
+        return $this->afterCreating(function (User $user) use ($phone) {
+            $user->phones()->delete();
+            $user->phones()->create(['phone' => $phone, 'label' => 'Phone number']);
+        });
     }
 }

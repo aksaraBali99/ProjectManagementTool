@@ -23,7 +23,7 @@ test('a user can log in with their email', function () {
     $user = User::factory()->create(['password' => Hash::make('correct-password')]);
 
     $response = $this->post('/login', [
-        'identifier' => $user->email,
+        'identifier' => $user->primaryEmail(),
         'password' => 'correct-password',
     ]);
 

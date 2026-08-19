@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['username', 'name', 'employee_id', 'email', 'phone', 'password', 'is_active', 'auth_provider', 'provider_id'])]
+#[Fillable(['username', 'name', 'employee_id', 'password', 'is_active', 'auth_provider', 'provider_id'])]
 #[Hidden(['password'])]
 class User extends Authenticatable
 {
@@ -34,6 +34,31 @@ class User extends Authenticatable
     public function orgMemberships(): HasMany
     {
         return $this->hasMany(OrgMember::class);
+    }
+
+    public function emails(): HasMany
+    {
+        return $this->hasMany(UserEmail::class)->orderBy('id');
+    }
+
+    public function phones(): HasMany
+    {
+        return $this->hasMany(UserPhone::class)->orderBy('id');
+    }
+
+    /**
+     * The user's first-added email — used for display and as the default
+     * identity when a single representative address is needed. Login and
+     * Google-account matching check every linked email, not just this one.
+     */
+    public function primaryEmail(): ?string
+    {
+        return $this->emails->first()?->email;
+    }
+
+    public function primaryPhone(): ?string
+    {
+        return $this->phones->first()?->phone;
     }
 
     public function organizations(): BelongsToMany

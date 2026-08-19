@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -29,11 +30,13 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $user = User::where('username', $this->string('identifier'))
-            ->orWhere('email', $this->string('identifier'))
+        $identifier = $this->string('identifier');
+
+        $user = User::where('username', $identifier)
+            ->orWhereHas('emails', fn ($query) => $query->where('email', $identifier))
             ->first();
 
-        if (! $user || ! $user->password || ! Auth::attempt(['email' => $user->email, 'password' => $this->string('password')])) {
+        if (! $user || ! $user->password || ! Hash::check($this->string('password'), $user->password)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -42,12 +45,12 @@ class LoginRequest extends FormRequest
         }
 
         if (! $user->is_active) {
-            Auth::logout();
-
             throw ValidationException::withMessages([
                 'identifier' => 'Your account has been deactivated. Contact your administrator.',
             ]);
         }
+
+        Auth::login($user);
 
         RateLimiter::clear($this->throttleKey());
     }

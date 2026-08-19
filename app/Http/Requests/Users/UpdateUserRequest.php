@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Users;
 
 use App\Models\Organization;
-use App\Rules\ValidPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -15,6 +14,14 @@ class UpdateUserRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'emails' => $this->dropBlankRows($this->input('emails', [])),
+            'phones' => $this->dropBlankRows($this->input('phones', [])),
+        ]);
+    }
+
     public function rules(): array
     {
         $userId = $this->route('user')->id;
@@ -23,8 +30,15 @@ class UpdateUserRequest extends FormRequest
             'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($userId)],
             'name' => ['required', 'string', 'max:255'],
             'employee_id' => ['required', 'string', 'max:255', Rule::unique('users', 'employee_id')->ignore($userId)],
-            'email' => ['required', 'email:rfc,filter', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'phone' => ['required', 'string', 'max:30', new ValidPhoneNumber],
+            'emails' => ['required', 'array', 'min:1'],
+            'emails.*.label' => ['nullable', 'string', 'max:255'],
+            'emails.*.value' => [
+                'required', 'string', 'email:rfc,filter', 'max:255', 'distinct:ignore_case',
+                Rule::unique('user_emails', 'email')->where(fn ($query) => $query->where('user_id', '!=', $userId)),
+            ],
+            'phones' => ['required', 'array', 'min:1'],
+            'phones.*.label' => ['nullable', 'string', 'max:255'],
+            'phones.*.value' => ['required', 'string', 'max:30', 'distinct', 'phone:ID,international'],
         ];
 
         if (! $this->route('user')->hasGlobalRole()) {
@@ -57,5 +71,17 @@ class UpdateUserRequest extends FormRequest
                 $validator->errors()->add('roles', 'Assign this user a role in at least one company.');
             }
         });
+    }
+
+    /**
+     * @param  array<int, array{label?: string, value?: string}>  $rows
+     * @return array<int, array{label?: string, value?: string}>
+     */
+    private function dropBlankRows(array $rows): array
+    {
+        return array_values(array_filter(
+            $rows,
+            fn ($row) => trim((string) ($row['value'] ?? '')) !== ''
+        ));
     }
 }

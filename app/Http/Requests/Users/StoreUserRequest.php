@@ -3,8 +3,8 @@
 namespace App\Http\Requests\Users;
 
 use App\Models\Organization;
-use App\Rules\ValidPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Validator;
 
@@ -15,6 +15,14 @@ class StoreUserRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'emails' => $this->dropBlankRows($this->input('emails', [])),
+            'phones' => $this->dropBlankRows($this->input('phones', [])),
+        ]);
+    }
+
     public function rules(): array
     {
         return [
@@ -22,8 +30,12 @@ class StoreUserRequest extends FormRequest
             'password' => ['required', 'string', Password::min(8)->mixedCase()->numbers()->symbols()],
             'name' => ['required', 'string', 'max:255'],
             'employee_id' => ['required', 'string', 'max:255', 'unique:users,employee_id'],
-            'email' => ['required', 'email:rfc,filter', 'max:255', 'unique:users,email'],
-            'phone' => ['required', 'string', 'max:30', new ValidPhoneNumber],
+            'emails' => ['required', 'array', 'min:1'],
+            'emails.*.label' => ['nullable', 'string', 'max:255'],
+            'emails.*.value' => ['required', 'string', 'email:rfc,filter', 'max:255', 'distinct:ignore_case', Rule::unique('user_emails', 'email')],
+            'phones' => ['required', 'array', 'min:1'],
+            'phones.*.label' => ['nullable', 'string', 'max:255'],
+            'phones.*.value' => ['required', 'string', 'max:30', 'distinct', 'phone:ID,international'],
             'roles' => ['required', 'array'],
             'roles.*' => ['required', 'in:none,staff,management'],
         ];
@@ -47,5 +59,20 @@ class StoreUserRequest extends FormRequest
                 $validator->errors()->add('roles', 'Assign this user a role in at least one company.');
             }
         });
+    }
+
+    /**
+     * Drops rows the admin added but never filled in (e.g. clicked "+ Add"
+     * then changed their mind) so they don't trip "required" validation.
+     *
+     * @param  array<int, array{label?: string, value?: string}>  $rows
+     * @return array<int, array{label?: string, value?: string}>
+     */
+    private function dropBlankRows(array $rows): array
+    {
+        return array_values(array_filter(
+            $rows,
+            fn ($row) => trim((string) ($row['value'] ?? '')) !== ''
+        ));
     }
 }
