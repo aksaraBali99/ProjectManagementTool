@@ -61,16 +61,7 @@
             @enderror
         </div>
 
-        <div>
-            <label for="phone" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Phone <span class="text-red-600">*</span></label>
-            <input id="phone" name="phone" type="tel" value="{{ old('phone') }}" required
-                pattern="^\+?[0-9\s\-\(\)]{7,20}$"
-                title="7–15 digits, may include +, spaces, hyphens, and parentheses"
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-            @error('phone')
-                <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
-            @enderror
-        </div>
+        @include('users._phone-input', ['phoneValue' => old('phone')])
 
         <div>
             <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Company roles <span class="text-red-600">*</span></span>

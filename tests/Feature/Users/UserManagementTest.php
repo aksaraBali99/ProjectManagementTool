@@ -42,7 +42,7 @@ test('an owner can create a user with management in one company and staff in ano
         'name' => 'New Person',
         'employee_id' => 'EMP-9001',
         'email' => 'newperson@example.com',
-        'phone' => '+1 555 0100',
+        'phone' => '+1 202 555 0100',
         'roles' => [
             $this->orgA->id => 'management',
             $this->orgB->id => 'staff',
@@ -64,7 +64,7 @@ test('creating a user requires at least one company role', function () {
         'name' => 'No Access',
         'employee_id' => 'EMP-9002',
         'email' => 'noaccess@example.com',
-        'phone' => '+1 555 0101',
+        'phone' => '+1 202 555 0101',
         'roles' => [
             $this->orgA->id => 'none',
             $this->orgB->id => 'none',
@@ -82,7 +82,7 @@ test('creating a user requires a safe password', function () {
         'name' => 'Weak Pass',
         'employee_id' => 'EMP-9003',
         'email' => 'weakpass@example.com',
-        'phone' => '+1 555 0102',
+        'phone' => '+1 202 555 0102',
         'roles' => [$this->orgA->id => 'staff'],
     ]);
 
@@ -272,7 +272,7 @@ test('creating a user rejects an invalid email format', function (string $email)
         'name' => 'Email Test',
         'employee_id' => 'EMP-9010',
         'email' => $email,
-        'phone' => '+1 555 0100',
+        'phone' => '+1 202 555 0100',
         'roles' => [$this->orgA->id => 'staff'],
     ]);
 
@@ -304,10 +304,10 @@ test('creating a user rejects an invalid phone format', function (string $phone)
 })->with('invalidPhones');
 
 dataset('validPhones', [
-    '+1 555 0100',
+    '+1 202 555 0100',
+    '+44 20 7946 0958',
     '+62 811-0000-0001',
     '08123456789',
-    '(555) 123-4567',
 ]);
 
 test('creating a user accepts a valid phone format', function (string $phone) {
@@ -324,3 +324,43 @@ test('creating a user accepts a valid phone format', function (string $phone) {
     $response->assertSessionDoesntHaveErrors('phone');
     $this->assertDatabaseHas('users', ['username' => 'validphone']);
 })->with('validPhones');
+
+test('a valid E.164 phone number saves and round-trips into the edit form correctly', function () {
+    $this->actingAs($this->owner)->post('/users', [
+        'username' => 'roundtripphone',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'Round Trip Phone',
+        'employee_id' => 'EMP-9013',
+        'email' => 'roundtripphone@example.com',
+        'phone' => '+6281234567890',
+        'roles' => [$this->orgA->id => 'staff'],
+    ]);
+
+    $user = User::where('username', 'roundtripphone')->firstOrFail();
+    expect($user->phone)->toBe('+6281234567890');
+
+    $response = $this->actingAs($this->owner)->get("/users/{$user->id}/edit");
+
+    $response->assertOk();
+    // The server hands the picker the raw stored E.164 value; the picker
+    // itself (JS, verified live in-browser) then renders the flag + national
+    // format from it — this asserts the server side of that contract.
+    $response->assertSee('value="+6281234567890"', false);
+});
+
+test('updating a user rejects an invalid phone format', function (string $phone) {
+    $target = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['staff']->id]);
+
+    $response = $this->actingAs($this->owner)->put("/users/{$target->id}", [
+        'username' => $target->username,
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'email' => $target->email,
+        'phone' => $phone,
+        'roles' => [$this->orgA->id => 'staff'],
+    ]);
+
+    $response->assertSessionHasErrors('phone');
+    expect($target->fresh()->phone)->not->toBe($phone);
+})->with('invalidPhones');
