@@ -21,7 +21,7 @@ class UserSeeder extends Seeder
 
         // The founder: full cross-company access via both global roles.
         $founder = User::updateOrCreate(
-            ['email' => 'founder@founderos.test'],
+            ['email' => 'founder@solva.test'],
             [
                 'username' => 'founder',
                 'name' => 'Founder',
@@ -35,7 +35,7 @@ class UserSeeder extends Seeder
 
         // Management in two companies, staff (department-scoped) in the third.
         $alex = User::updateOrCreate(
-            ['email' => 'alex.management@founderos.test'],
+            ['email' => 'alex.management@solva.test'],
             [
                 'username' => 'alex.management',
                 'name' => 'Alex Wibowo',
@@ -67,7 +67,7 @@ class UserSeeder extends Seeder
 
         // Single-company staff, with access to only some departments (partial access, by design).
         $sam = User::updateOrCreate(
-            ['email' => 'sam.staff@founderos.test'],
+            ['email' => 'sam.staff@solva.test'],
             [
                 'username' => 'sam.staff',
                 'name' => 'Sam Prasetyo',
@@ -91,7 +91,7 @@ class UserSeeder extends Seeder
 
         // Single-company management (contrast with Alex's multi-company spread).
         $maya = User::updateOrCreate(
-            ['email' => 'maya.manager@founderos.test'],
+            ['email' => 'maya.manager@solva.test'],
             [
                 'username' => 'maya.manager',
                 'name' => 'Maya Santoso',

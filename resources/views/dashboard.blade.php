@@ -1,6 +1,6 @@
 @extends('layouts.authenticated')
 
-@section('title', 'Dashboard — FounderOS')
+@section('title', 'Dashboard — Solva')
 
 @section('content')
 <div>
