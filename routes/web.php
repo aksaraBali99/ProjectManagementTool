@@ -42,12 +42,12 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::put('/organizations/{organization}', [OrganizationManagementController::class, 'update'])->name('organizations.update');
     Route::patch('/organizations/{organization}/toggle-active', [OrganizationManagementController::class, 'toggleActive'])->name('organizations.toggle-active');
 
-    Route::get('/departments', [DepartmentManagementController::class, 'index'])->name('departments.index');
     Route::get('/departments/create', [DepartmentManagementController::class, 'create'])->name('departments.create');
     Route::post('/departments', [DepartmentManagementController::class, 'store'])->name('departments.store');
     Route::get('/departments/{department}/edit', [DepartmentManagementController::class, 'edit'])->name('departments.edit');
     Route::put('/departments/{department}', [DepartmentManagementController::class, 'update'])->name('departments.update');
     Route::patch('/departments/{department}/toggle-active', [DepartmentManagementController::class, 'toggleActive'])->name('departments.toggle-active');
+    Route::get('/departments/{organization?}', [DepartmentManagementController::class, 'index'])->name('departments.index');
 
     Route::get('/roles', [RoleManagementController::class, 'index'])->name('roles.index');
     Route::get('/roles/{role}/edit', [RoleManagementController::class, 'edit'])->name('roles.edit');

@@ -12,12 +12,33 @@ use Illuminate\View\View;
 
 class DepartmentManagementController extends Controller
 {
-    public function index(): View
+    public function index(?Organization $organization = null): View
     {
         Gate::authorize('viewAny', Department::class);
 
+        $organizations = Organization::where('is_active', true)->orderBy('name')->get();
+
+        if ($organizations->isEmpty()) {
+            return view('departments.index', [
+                'organizations' => $organizations,
+                'organization' => null,
+                'departments' => collect(),
+            ]);
+        }
+
+        if (! $organization || ! $organizations->contains('id', $organization->id)) {
+            $organization = $organizations->first();
+        }
+
+        $departments = Department::where('organization_id', $organization->id)
+            ->withCount('tasks')
+            ->orderBy('name')
+            ->get();
+
         return view('departments.index', [
-            'departments' => Department::with('organization')->withCount('tasks')->orderBy('name')->get(),
+            'organizations' => $organizations,
+            'organization' => $organization,
+            'departments' => $departments,
         ]);
     }
 
@@ -32,9 +53,9 @@ class DepartmentManagementController extends Controller
     {
         Gate::authorize('create', Department::class);
 
-        Department::create($request->only('organization_id', 'name', 'color'));
+        $department = Department::create($request->only('organization_id', 'name', 'color'));
 
-        return redirect()->route('departments.index')->with('status', 'Department created.');
+        return redirect()->route('departments.index', $department->organization_id)->with('status', 'Department created.');
     }
 
     public function edit(Department $department): View
@@ -53,7 +74,7 @@ class DepartmentManagementController extends Controller
 
         $department->update($request->only('organization_id', 'name', 'color'));
 
-        return redirect()->route('departments.index')->with('status', 'Department updated.');
+        return redirect()->route('departments.index', $department->organization_id)->with('status', 'Department updated.');
     }
 
     public function toggleActive(Department $department): RedirectResponse
@@ -62,7 +83,7 @@ class DepartmentManagementController extends Controller
 
         $department->update(['is_active' => ! $department->is_active]);
 
-        return redirect()->route('departments.index')
+        return redirect()->route('departments.index', $department->organization_id)
             ->with('status', $department->is_active ? 'Department activated.' : 'Department deactivated.');
     }
 }

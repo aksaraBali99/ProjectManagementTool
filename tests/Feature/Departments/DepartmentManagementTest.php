@@ -35,7 +35,7 @@ test('an owner can create a department for a company', function () {
         'color' => '#EEEDFE',
     ]);
 
-    $response->assertRedirect('/departments');
+    $response->assertRedirect('/departments/'.$this->organization->id);
     $this->assertDatabaseHas('departments', ['name' => 'Marketing', 'organization_id' => $this->organization->id]);
 });
 
