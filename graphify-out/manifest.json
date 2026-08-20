@@ -597,6 +597,13 @@
   "resources/views/users/edit.blade.php": {
     "mtime": 1787234973.2831106,
     "ast_hash": "130f2442b8d4ded92f701bffd0bd983f",
+    "mtime": 1787233796.4059823,
+    "ast_hash": "e003150c61ef7867624f96e24b0d81aa",
+    "semantic_hash": ""
+  },
+  "resources/views/users/edit.blade.php": {
+    "mtime": 1787233814.3093016,
+    "ast_hash": "5bbf26ac7a2cacc4247d309bf77ab979",
     "semantic_hash": ""
   },
   "resources/views/users/index.blade.php": {
@@ -637,6 +644,8 @@
   "tests/Feature/Users/UserManagementTest.php": {
     "mtime": 1787234973.2868216,
     "ast_hash": "0e0216f98f42c2e2f0584c0be2d910bd",
+    "mtime": 1787233939.3166769,
+    "ast_hash": "2f9207aade37e043649792bbf35ca17a",
     "semantic_hash": ""
   },
   "app/Models/Concerns/HidesInactiveFromNonAdmins.php": {
@@ -877,6 +886,11 @@
   "database/migrations/2026_08_20_170951_drop_client_name_from_projects_table.php": {
     "mtime": 1787232831.938584,
     "ast_hash": "cf68d48ab0607956f8acb0299985e9dd",
+    "semantic_hash": ""
+  },
+  "resources/views/users/_password-input.blade.php": {
+    "mtime": 1787234244.7545512,
+    "ast_hash": "f09728654fef113f64913bdaf975f7e6",
     "semantic_hash": ""
   }
 }

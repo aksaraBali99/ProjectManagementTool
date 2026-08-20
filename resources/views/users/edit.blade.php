@@ -146,14 +146,12 @@
 
             <div>
                 <label for="new-password" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">New password</label>
-                <input id="new-password" name="password" type="password" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                @include('users._password-input', ['id' => 'new-password', 'name' => 'password'])
             </div>
 
             <div>
                 <label for="new-password-confirmation" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Confirm new password</label>
-                <input id="new-password-confirmation" name="password_confirmation" type="password" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                @include('users._password-input', ['id' => 'new-password-confirmation', 'name' => 'password_confirmation'])
             </div>
 
             <p class="text-[11px] text-gray-500">At least 8 characters, with upper &amp; lower case, a number, and a symbol.</p>
