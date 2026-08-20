@@ -45,4 +45,25 @@ trait ValidatesCompanyRoles
             $validator->errors()->add('roles', 'Assign this user a role in at least one company.');
         }
     }
+
+    /**
+     * Granting Super Admin is only offered to users who hold Management in
+     * at least one company — reserving the promotion path for managers
+     * rather than jumping straight from staff/client. A target who already
+     * holds Super Admin is exempt, so an unrelated edit (or a plain
+     * uncheck-to-revoke) never gets blocked just because their Management
+     * role was since removed.
+     *
+     * @param  array<int|string, string>  $roles  organization_id => 'none' or a company-assignable role slug
+     */
+    protected function validateSuperAdminGrant(Validator $validator, array $roles, bool $grantingSuperAdmin, bool $targetAlreadySuperAdmin): void
+    {
+        if (! $grantingSuperAdmin || $targetAlreadySuperAdmin) {
+            return;
+        }
+
+        if (! collect($roles)->contains(fn ($role) => $role === Role::MANAGEMENT)) {
+            $validator->errors()->add('grant_super_admin', 'Grant Super Admin requires assigning this user the Management role in at least one company.');
+        }
+    }
 }

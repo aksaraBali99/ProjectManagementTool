@@ -47,11 +47,14 @@ class StoreUserRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            $roles = $this->input('roles', []);
+
             // Skipped if granting Super Admin — global access makes a
             // per-company role optional, same as an already-global user.
             $grantingSuperAdmin = $this->user()?->isOwner() && $this->boolean('grant_super_admin');
 
-            $this->validateCompanyRoles($validator, $this->input('roles', []), $grantingSuperAdmin);
+            $this->validateCompanyRoles($validator, $roles, $grantingSuperAdmin);
+            $this->validateSuperAdminGrant($validator, $roles, $grantingSuperAdmin, targetAlreadySuperAdmin: false);
         });
     }
 }

@@ -86,16 +86,20 @@
         </div>
 
         @if ($canGrantSuperAdmin)
-            <div class="rounded-[8px] border border-gray-200 px-3 py-3">
+            <div id="super-admin-section" class="rounded-[8px] border border-gray-200 px-3 py-3">
                 <label class="flex items-center gap-2">
                     <input type="checkbox" name="grant_super_admin" value="1" {{ old('grant_super_admin') ? 'checked' : '' }}
                         class="rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]">
                     <span class="text-[12px] font-medium text-[#1F2937]">Grant Super Admin</span>
                 </label>
                 <p class="mt-1 text-[11px] text-gray-500">
-                    Full access to every company, everything — bypasses per-company roles entirely. Only an Owner can
-                    grant this.
+                    Full access to every company, everything — bypasses per-company roles entirely. Requires
+                    assigning this user the Management role in at least one company. Only an Owner can grant this.
                 </p>
+                <p id="grant-super-admin-error" class="field-error mt-1 text-[11px] text-red-600" style="display: none;"></p>
+                @error('grant_super_admin')
+                    <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+                @enderror
             </div>
         @endif
 
@@ -143,6 +147,9 @@
         const roleSelects = document.querySelectorAll('.role-select');
         const rolesError = document.getElementById('roles-error');
         const grantSuperAdmin = document.querySelector('input[name="grant_super_admin"]');
+        const superAdminSection = document.getElementById('super-admin-section');
+        const superAdminError = document.getElementById('grant-super-admin-error');
+        const hasSuperAdminServerError = {{ $errors->has('grant_super_admin') ? 'true' : 'false' }};
 
         function validateRoles(force) {
             const values = Array.from(roleSelects).map(function (select) { return select.value; });
@@ -167,19 +174,46 @@
             }
         }
 
+        function updateSuperAdminSection(force) {
+            if (! superAdminSection) return;
+
+            const hasManagement = Array.from(roleSelects).some(function (select) { return select.value === 'management'; });
+            const checked = grantSuperAdmin && grantSuperAdmin.checked;
+            const show = hasManagement || checked || hasSuperAdminServerError;
+            superAdminSection.style.display = show ? '' : 'none';
+
+            if (! superAdminError) return;
+            const invalid = checked && ! hasManagement;
+            if (invalid && force) {
+                superAdminError.textContent = 'Grant Super Admin requires assigning this user the Management role in at least one company.';
+                superAdminError.style.display = '';
+            } else if (! invalid) {
+                superAdminError.style.display = 'none';
+            }
+        }
+
         roleSelects.forEach(function (select) {
-            select.addEventListener('change', function () { validateRoles(true); });
+            select.addEventListener('change', function () {
+                validateRoles(true);
+                updateSuperAdminSection(true);
+            });
         });
 
         if (grantSuperAdmin) {
-            grantSuperAdmin.addEventListener('change', function () { validateRoles(true); });
+            grantSuperAdmin.addEventListener('change', function () {
+                validateRoles(true);
+                updateSuperAdminSection(true);
+            });
         }
+
+        updateSuperAdminSection(false);
 
         document.getElementById('create-user-form').addEventListener('submit', function (event) {
             validatePassword(true);
             validateRoles(true);
+            updateSuperAdminSection(true);
 
-            if (! isStrong(password.value) || rolesError.style.display !== 'none') {
+            if (! isStrong(password.value) || rolesError.style.display !== 'none' || (superAdminError && superAdminError.style.display !== 'none')) {
                 event.preventDefault();
             }
         });

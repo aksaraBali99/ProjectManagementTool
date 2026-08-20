@@ -29,6 +29,11 @@ class UpdateUserRequest extends FormRequest
         return $this->route('user')->roles()->where('slug', Role::OWNER)->exists();
     }
 
+    private function targetIsSuperAdmin(): bool
+    {
+        return $this->route('user')->roles()->where('slug', Role::SUPER_ADMIN)->exists();
+    }
+
     public function rules(): array
     {
         $userId = $this->route('user')->id;
@@ -67,9 +72,11 @@ class UpdateUserRequest extends FormRequest
         }
 
         $validator->after(function (Validator $validator) {
+            $roles = $this->input('roles', []);
             $grantingSuperAdmin = $this->user()?->isOwner() && $this->boolean('grant_super_admin');
 
-            $this->validateCompanyRoles($validator, $this->input('roles', []), $grantingSuperAdmin);
+            $this->validateCompanyRoles($validator, $roles, $grantingSuperAdmin);
+            $this->validateSuperAdminGrant($validator, $roles, $grantingSuperAdmin, $this->targetIsSuperAdmin());
         });
     }
 }
