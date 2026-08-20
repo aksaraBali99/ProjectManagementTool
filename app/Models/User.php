@@ -130,6 +130,35 @@ class User extends Authenticatable
     }
 
     /**
+     * Whether ANY role this user holds grants the given permission — their
+     * global roles (user_roles, always checked) plus their per-organization
+     * role (org_members) if $organizationId is given. This is a capability
+     * check only ("can this role-type do this action at all") — it's layered
+     * on top of, not a replacement for, the existing per-company/department
+     * scoping helpers like isManagementInOrg()/hasDepartmentAccess(), which
+     * answer "specifically in THIS company/department".
+     */
+    public function hasPermission(string $slug, ?int $organizationId = null): bool
+    {
+        $roleIds = $this->roles()->pluck('roles.id');
+
+        if ($organizationId !== null) {
+            $orgRoleId = $this->orgMemberships()->where('organization_id', $organizationId)->value('role_id');
+            if ($orgRoleId) {
+                $roleIds->push($orgRoleId);
+            }
+        }
+
+        if ($roleIds->isEmpty()) {
+            return false;
+        }
+
+        return Permission::where('slug', $slug)
+            ->whereHas('roles', fn ($query) => $query->whereIn('roles.id', $roleIds->unique()))
+            ->exists();
+    }
+
+    /**
      * The organization IDs this user can manage projects/tasks in —
      * super admins and owners can manage any active company; management
      * users are limited to active companies where they hold the
