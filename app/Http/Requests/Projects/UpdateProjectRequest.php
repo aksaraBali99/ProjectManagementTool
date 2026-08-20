@@ -4,6 +4,8 @@ namespace App\Http\Requests\Projects;
 
 use App\Enums\Priority;
 use App\Enums\ProjectStatus;
+use App\Models\Role;
+use App\Rules\ValidClientUser;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,6 +20,7 @@ class UpdateProjectRequest extends FormRequest
     {
         $this->merge([
             'staff' => array_values(array_filter($this->input('staff', []), fn ($id) => $id !== null && $id !== '')),
+            'client' => $this->input('client') !== '' ? $this->input('client') : null,
         ]);
     }
 
@@ -28,13 +31,15 @@ class UpdateProjectRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'client' => ['required', 'string', 'max:255'],
+            'client' => ['nullable', 'integer', new ValidClientUser],
             'status' => ['required', Rule::enum(ProjectStatus::class)],
             'priority' => ['required', Rule::enum(Priority::class)],
             'staff' => ['array'],
             'staff.*' => [
                 'integer',
-                Rule::exists('org_members', 'user_id')->where('organization_id', $organizationId),
+                Rule::exists('org_members', 'user_id')
+                    ->where('organization_id', $organizationId)
+                    ->whereNot('role_id', Role::where('slug', Role::CLIENT)->value('id')),
             ],
         ];
     }

@@ -51,10 +51,16 @@
         </div>
 
         <div>
-            <label for="client" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Client <span class="text-red-600">*</span></label>
-            <input id="client" name="client" type="text" value="{{ old('client') }}" required
+            <label for="client" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Client</label>
+            @php $clientValue = old('client'); @endphp
+            <select id="client" name="client"
                 class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-            <p class="mt-1 text-[11px] text-gray-500">Enter the client's name, or "internal" if this is an internal project.</p>
+                <option value="" {{ ! $clientValue ? 'selected' : '' }}>Internal</option>
+                @foreach ($clientOptions as $clientUser)
+                    <option value="{{ $clientUser->id }}" {{ (string) $clientValue === (string) $clientUser->id ? 'selected' : '' }}>{{ $clientUser->name }}</option>
+                @endforeach
+            </select>
+            <p class="mt-1 text-[11px] text-gray-500">Select the client this project is for, or leave as Internal.</p>
             @error('client')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror

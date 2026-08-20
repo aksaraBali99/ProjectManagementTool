@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\OrgMember;
-use App\Models\Role;
+use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Models\Subtask;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +11,8 @@ use Illuminate\Support\Facades\Gate;
 
 class SubtaskController extends Controller
 {
+    use ValidatesTaskAssignment;
+
     public function store(Request $request, Task $task): JsonResponse
     {
         Gate::authorize('create', [Subtask::class, $task]);
@@ -22,8 +23,8 @@ class SubtaskController extends Controller
             'due_date' => ['nullable', 'date'],
         ]);
 
-        if (! empty($data['assignee_id']) && ! $this->assigneeBelongsToOrganization($data['assignee_id'], $task->organization_id)) {
-            abort(422, 'Assignee must belong to the task\'s company.');
+        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($task->project, $data['assignee_id'])) {
+            abort(422, 'Assignee must be assigned to this project.');
         }
 
         $subtask = $task->subtasks()->create($data);
@@ -50,8 +51,8 @@ class SubtaskController extends Controller
             'due_date' => ['sometimes', 'nullable', 'date'],
         ]);
 
-        if (! empty($data['assignee_id']) && ! $this->assigneeBelongsToOrganization($data['assignee_id'], $subtask->task->organization_id)) {
-            abort(422, 'Assignee must belong to the task\'s company.');
+        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($subtask->task->project, $data['assignee_id'])) {
+            abort(422, 'Assignee must be assigned to this project.');
         }
 
         $subtask->update($data);
@@ -66,13 +67,5 @@ class SubtaskController extends Controller
         $subtask->delete();
 
         return response()->json(['deleted' => true]);
-    }
-
-    private function assigneeBelongsToOrganization(int $userId, int $organizationId): bool
-    {
-        return OrgMember::where('organization_id', $organizationId)
-            ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->where('slug', Role::STAFF))
-            ->exists();
     }
 }

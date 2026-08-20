@@ -125,7 +125,7 @@
 
                                 <div class="mt-3 text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Subtasks</div>
                                 <div class="mt-1">
-                                    @include('tasks._subtasks', ['task' => $task, 'canEdit' => $canEditTask, 'staffOptions' => $staffOptions])
+                                    @include('tasks._subtasks', ['task' => $task, 'canEdit' => $canEditTask, 'staffOptions' => $staffByProject[$task->project_id] ?? []])
                                 </div>
 
                                 <div class="mt-3 text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Comments</div>

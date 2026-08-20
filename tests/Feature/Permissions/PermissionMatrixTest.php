@@ -44,7 +44,6 @@ test('unchecking a permission for a role in the matrix removes that capability i
         'organization_id' => $this->orgA->id,
         'name' => 'Project A',
         'description' => 'd',
-        'client_name' => 'internal',
     ]);
     $department = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);
 

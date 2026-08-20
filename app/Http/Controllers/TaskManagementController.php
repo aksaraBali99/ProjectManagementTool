@@ -8,9 +8,7 @@ use App\Models\AccessPermission;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
-use App\Models\OrgMember;
 use App\Models\Project;
-use App\Models\Role;
 use App\Models\Task;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -57,15 +55,23 @@ class TaskManagementController extends Controller
         $isManagerHere = $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organization->id);
 
         if (! $isManagerHere) {
-            $allowedDepartmentIds = AccessPermission::where('user_id', $user->id)
-                ->where('organization_id', $organization->id)
-                ->where('allowed', true)
-                ->pluck('department_id');
+            if ($user->isClientInOrg($organization->id)) {
+                $clientProjectIds = $user->projectsAsClient()->where('organization_id', $organization->id)->pluck('projects.id');
 
-            $query->whereIn('department_id', $allowedDepartmentIds);
+                $query->whereIn('project_id', $clientProjectIds);
+            } else {
+                $allowedDepartmentIds = AccessPermission::where('user_id', $user->id)
+                    ->where('organization_id', $organization->id)
+                    ->where('allowed', true)
+                    ->pluck('department_id');
+
+                $query->whereIn('department_id', $allowedDepartmentIds);
+            }
         }
 
         $tasks = $query->orderBy('due_date')->orderBy('title')->get();
+
+        $projectsInList = $tasks->pluck('project')->filter()->unique('id')->values();
 
         return view('tasks.index', [
             'organizations' => $organizations,
@@ -74,7 +80,7 @@ class TaskManagementController extends Controller
             'showInactive' => $showInactive,
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
             'canAddDocuments' => Gate::allows('create', [Document::class, $organization->id]),
-            'staffOptions' => $this->staffOptionsForOrganization($organization->id),
+            'staffByProject' => $this->staffOptionsByProject($projectsInList),
         ]);
     }
 
@@ -159,7 +165,7 @@ class TaskManagementController extends Controller
             ->values();
 
         return view('tasks.edit', array_merge([
-            'task' => $task->load('subtasks'),
+            'task' => $task->load('subtasks', 'comments.user'),
             'project' => $project,
             'projects' => $projects,
             'canEdit' => auth()->user()->can('update', $task),
@@ -207,7 +213,7 @@ class TaskManagementController extends Controller
 
     /**
      * @param  Collection<int, Project>  $projects
-     * @return array{projectOrganizations: array<int, int>, departmentsByOrganization: array<int, array<int, array{id: int, name: string}>>, staffByOrganization: array<int, array<int, array{id: int, name: string}>>}
+     * @return array{projectOrganizations: array<int, int>, departmentsByOrganization: array<int, array<int, array{id: int, name: string}>>, staffByProject: array<int, array<int, array{id: int, name: string}>>}
      */
     private function cascadingOptions(Collection $projects): array
     {
@@ -221,32 +227,53 @@ class TaskManagementController extends Controller
             ->map(fn ($departments) => $departments->map(fn ($d) => ['id' => $d->id, 'name' => $d->name])->values())
             ->all();
 
-        $staffByOrganization = OrgMember::whereIn('organization_id', $organizationIds)
-            ->whereHas('role', fn ($query) => $query->where('slug', Role::STAFF))
-            ->with('user')
-            ->get()
-            ->groupBy('organization_id')
-            ->map(fn ($members) => $members->map(fn ($m) => ['id' => $m->user->id, 'name' => $m->user->name])->values())
-            ->all();
-
         return [
             'projectOrganizations' => $projects->pluck('organization_id', 'id')->all(),
             'departmentsByOrganization' => $departmentsByOrganization,
-            'staffByOrganization' => $staffByOrganization,
+            'staffByProject' => $this->staffOptionsByProject($projects),
         ];
     }
 
     /**
-     * @return array<int, array{id: int, name: string}>
+     * Assignee options for a task/subtask are anyone attached to the
+     * project — via project_staff (any role: management, staff, ...) or
+     * project_clients (the project's client) — not scoped to a "Staff"
+     * role, and not every company member company-wide. Joins the pivots
+     * directly rather than relying on eager-loaded relations, so this
+     * works whether $projects is an Eloquent or a plain Support
+     * collection (e.g. Task::with('project')->get()->pluck('project')).
+     *
+     * @param  Collection<int, Project>  $projects
+     * @return array<int, array<int, array{id: int, name: string}>> keyed by project id
      */
-    private function staffOptionsForOrganization(int $organizationId): array
+    private function staffOptionsByProject(Collection $projects): array
     {
-        return OrgMember::where('organization_id', $organizationId)
-            ->whereHas('role', fn ($query) => $query->where('slug', Role::STAFF))
-            ->with('user')
-            ->get()
-            ->map(fn ($m) => ['id' => $m->user->id, 'name' => $m->user->name])
-            ->values()
-            ->all();
+        if ($projects->isEmpty()) {
+            return [];
+        }
+
+        $projectIds = $projects->pluck('id');
+
+        $staffRows = DB::table('project_staff')
+            ->join('users', 'users.id', '=', 'project_staff.user_id')
+            ->whereIn('project_staff.project_id', $projectIds)
+            ->get(['project_staff.project_id', 'users.id', 'users.name']);
+
+        $clientRows = DB::table('project_clients')
+            ->join('users', 'users.id', '=', 'project_clients.user_id')
+            ->whereIn('project_clients.project_id', $projectIds)
+            ->get(['project_clients.project_id', 'users.id', 'users.name']);
+
+        $membersByProject = $staffRows->concat($clientRows)->groupBy('project_id');
+
+        return $projects->mapWithKeys(function (Project $project) use ($membersByProject) {
+            $members = ($membersByProject->get($project->id) ?? collect())
+                ->unique('id')
+                ->sortBy('name')
+                ->map(fn ($row) => ['id' => $row->id, 'name' => $row->name])
+                ->values();
+
+            return [$project->id => $members];
+        })->all();
     }
 }

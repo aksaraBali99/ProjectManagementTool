@@ -114,6 +114,14 @@ class User extends Authenticatable
             ->exists();
     }
 
+    public function isClientInOrg(int $organizationId): bool
+    {
+        return $this->orgMemberships()
+            ->where('organization_id', $organizationId)
+            ->whereHas('role', fn ($query) => $query->where('slug', Role::CLIENT))
+            ->exists();
+    }
+
     public function hasDepartmentAccess(int $organizationId, int $departmentId): bool
     {
         return $this->accessPermissions()

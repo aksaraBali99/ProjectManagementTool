@@ -33,7 +33,6 @@ beforeEach(function () {
         'organization_id' => $this->orgA->id,
         'name' => 'Project A',
         'description' => 'd',
-        'client_name' => 'internal',
     ]);
 
     $this->management = User::factory()->create();
@@ -60,6 +59,19 @@ function makeStaffWithDepartmentAccess(Organization $org, Department $department
     ]);
 
     return $staff;
+}
+
+function makeClientOnProject(Organization $org, Project $project): User
+{
+    $client = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $org->id,
+        'user_id' => $client->id,
+        'role_id' => Role::where('slug', 'client')->first()->id,
+    ]);
+    $project->clients()->attach($client->id);
+
+    return $client;
 }
 
 test('a management user can create a task with staged subtasks bulk-created against the new task only after saving', function () {
@@ -112,6 +124,107 @@ test('submitting a department that does not belong to the selected project compa
     $this->assertDatabaseMissing('tasks', ['title' => 'Mismatched department']);
 });
 
+test('assigning a task to a staff member not assigned to the project is rejected', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Unassignable',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasErrors('assignee_id');
+    $this->assertDatabaseMissing('tasks', ['title' => 'Unassignable']);
+});
+
+test('assigning a task to a staff member added to the project succeeds', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Assignable',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('tasks', ['title' => 'Assignable', 'assignee_id' => $staff->id]);
+});
+
+test('a management user added to the project can be assigned to a task', function () {
+    $this->projectA->staff()->attach($this->management->id);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $this->management->id,
+        'title' => 'Assigned to management',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('tasks', ['title' => 'Assigned to management', 'assignee_id' => $this->management->id]);
+});
+
+test('the project\'s client can be assigned to a task', function () {
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $client->id,
+        'title' => 'Assigned to client',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('tasks', ['title' => 'Assigned to client', 'assignee_id' => $client->id]);
+});
+
+test('a client not attached to the project cannot be assigned to a task', function () {
+    $client = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $client->id, 'role_id' => Role::where('slug', 'client')->first()->id]);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $client->id,
+        'title' => 'Unattached client',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasErrors('assignee_id');
+    $this->assertDatabaseMissing('tasks', ['title' => 'Unattached client']);
+});
+
+test('assigning a subtask to a staff member not assigned to the project is rejected', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->post("/tasks/{$task->id}/subtasks", [
+        'title' => 'Unassignable subtask',
+        'assignee_id' => $staff->id,
+    ]);
+
+    $response->assertStatus(422);
+});
+
 test('a staff user cannot see a task outside their granted departments', function () {
     $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
     $task = Task::create([
@@ -150,6 +263,89 @@ test('a staff user can view but not edit a task they are not the assignee of', f
     ])->assertForbidden();
 });
 
+test('a client user can view but not edit a task on the project they are attached to', function () {
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Client-visible task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($client)->get("/tasks/{$task->id}/edit")->assertOk();
+
+    $this->actingAs($client)->put("/tasks/{$task->id}", [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Renamed',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertForbidden();
+});
+
+test('a client user cannot view a task on a project they are not attached to', function () {
+    $otherProject = Project::create([
+        'organization_id' => $this->orgA->id,
+        'name' => 'Other Project',
+        'description' => 'd',
+    ]);
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $otherProject->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Not their task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($client)->get("/tasks/{$task->id}/edit")->assertForbidden();
+});
+
+test('the task list for a client only shows tasks from the project they are attached to', function () {
+    $otherProject = Project::create([
+        'organization_id' => $this->orgA->id,
+        'name' => 'Other Project',
+        'description' => 'd',
+    ]);
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Their task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $otherProject->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Not their task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($client)->get("/tasks/{$this->orgA->id}");
+
+    $response->assertOk()->assertSee('Their task')->assertDontSee('Not their task');
+});
+
+test('a client user cannot create a task', function () {
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+
+    $this->actingAs($client)->get('/tasks/create')->assertForbidden();
+    $this->actingAs($client)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Nope',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertForbidden();
+});
+
 test('a staff user who can view but not edit a task can toggle a subtask done state, but cannot edit its title, delete it, or edit the parent task', function () {
     $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
     $task = Task::create([
@@ -182,6 +378,7 @@ test('a staff user who can view but not edit a task can toggle a subtask done st
 
 test('the assignee of a task can edit it and its subtasks even though they are not management', function () {
     $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,
@@ -353,8 +550,90 @@ test('posting a comment from the drilldown respects CommentPolicy view scoping',
     $this->assertDatabaseHas('comments', ['body' => 'Legit comment', 'task_id' => $task->id, 'user_id' => $this->management->id]);
 });
 
+test('the task edit page shows the comments section', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $task->comments()->create(['user_id' => $this->management->id, 'body' => 'Visible comment']);
+
+    $response = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit");
+
+    $response->assertOk();
+    $response->assertSee('Comments');
+    $response->assertSee('Visible comment');
+});
+
+test('a user can edit and delete their own comment', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $comment = $task->comments()->create(['user_id' => $this->management->id, 'body' => 'Original']);
+
+    $update = $this->actingAs($this->management)->put("/comments/{$comment->id}", ['body' => 'Edited']);
+    $update->assertOk();
+    expect($comment->fresh()->body)->toBe('Edited');
+
+    $this->actingAs($this->management)->delete("/comments/{$comment->id}")->assertOk();
+    $this->assertDatabaseMissing('comments', ['id' => $comment->id]);
+});
+
+test('a user cannot edit or delete another user\'s comment', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $comment = $task->comments()->create(['user_id' => $this->management->id, 'body' => 'Original']);
+    $otherManager = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $otherManager->id, 'role_id' => Role::where('slug', 'management')->first()->id]);
+
+    $this->actingAs($otherManager)->put("/comments/{$comment->id}", ['body' => 'Hijacked'])->assertForbidden();
+    $this->actingAs($otherManager)->delete("/comments/{$comment->id}")->assertForbidden();
+    expect($comment->fresh()->body)->toBe('Original');
+    $this->assertDatabaseHas('comments', ['id' => $comment->id]);
+});
+
+test('the edit/delete controls are hidden on the task page for another user\'s comment', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $comment = $task->comments()->create(['user_id' => $this->management->id, 'body' => 'Not editable by viewer']);
+    $otherManager = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $otherManager->id, 'role_id' => Role::where('slug', 'management')->first()->id]);
+
+    $response = $this->actingAs($otherManager)->get("/tasks/{$task->id}/edit");
+
+    $response->assertOk();
+    // data-can-edit is the authoritative, server-rendered signal the JS
+    // itself keys off — checking for the literal Edit button markup isn't
+    // reliable here, since the same class name also appears inside this
+    // partial's own <script> (the template string used to build a newly
+    // *posted* comment's controls), which would false-match on any page
+    // that includes this partial at all.
+    $response->assertSee('data-comment-id="'.$comment->id.'" data-can-edit="0"', false);
+});
+
 test('a newly created subtask defaults to the parent task\'s current assignee and due date when neither is explicitly overridden', function () {
     $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,
@@ -383,6 +662,7 @@ test('a newly created subtask defaults to the parent task\'s current assignee an
 test('a subtask created with an explicitly different assignee and due date saves those values, not the parent\'s', function () {
     $parentAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
     $subtaskAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($subtaskAssignee->id);
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,
@@ -409,6 +689,7 @@ test('a subtask created with an explicitly different assignee and due date saves
 test('changing the parent task\'s assignee or due date after a subtask already exists does not change the existing subtask', function () {
     $originalAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
     $newAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($newAssignee->id);
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,

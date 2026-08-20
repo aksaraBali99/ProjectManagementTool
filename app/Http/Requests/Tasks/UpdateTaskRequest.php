@@ -4,16 +4,17 @@ namespace App\Http\Requests\Tasks;
 
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
+use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Models\Department;
-use App\Models\OrgMember;
 use App\Models\Project;
-use App\Models\Role;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateTaskRequest extends FormRequest
 {
+    use ValidatesTaskAssignment;
+
     public function authorize(): bool
     {
         return true;
@@ -48,11 +49,8 @@ class UpdateTaskRequest extends FormRequest
             }
 
             $assigneeId = $this->input('assignee_id');
-            if ($assigneeId && ! OrgMember::where('organization_id', $project->organization_id)
-                ->where('user_id', $assigneeId)
-                ->whereHas('role', fn ($query) => $query->where('slug', Role::STAFF))
-                ->exists()) {
-                $validator->errors()->add('assignee_id', 'Select a staff member who belongs to the chosen project\'s company.');
+            if ($assigneeId && ! $this->isAssignableStaffForProject($project, $assigneeId)) {
+                $validator->errors()->add('assignee_id', 'Select a user assigned to this project.');
             }
         });
     }
