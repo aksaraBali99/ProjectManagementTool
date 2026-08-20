@@ -295,8 +295,8 @@
     "semantic_hash": ""
   },
   "app/Policies/TaskPolicy.php": {
-    "mtime": 1787217913.9482334,
-    "ast_hash": "d37317154e7f95dea37b1ac261e298b9",
+    "mtime": 1787231003.514277,
+    "ast_hash": "d91384fc3fe29044bde210054abe4d40",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_17_000100_create_organizations_table.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1787230224.0749989,
-    "ast_hash": "dee558c9c9ee88ef2a141dd663e3ef88",
+    "mtime": 1787231016.9421656,
+    "ast_hash": "e7cd4196cb092e874251512949ef0b7e",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -835,8 +835,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskManagementTest.php": {
-    "mtime": 1787230536.9802039,
-    "ast_hash": "c05a6d9bef35d515a614335d5e442e52",
+    "mtime": 1787231041.1916068,
+    "ast_hash": "b71e0187cd0f0616bfa9dd0954ce3c1f",
     "semantic_hash": ""
   },
   "app/Enums/DocumentAccessLevel.php": {
