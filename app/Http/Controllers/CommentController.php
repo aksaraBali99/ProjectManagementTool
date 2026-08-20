@@ -36,4 +36,26 @@ class CommentController extends Controller
             ],
         ], 201);
     }
+
+    public function update(Request $request, Comment $comment): JsonResponse
+    {
+        Gate::authorize('update', $comment);
+
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $comment->update($data);
+
+        return response()->json(['comment' => ['id' => $comment->id, 'body' => $comment->body]]);
+    }
+
+    public function destroy(Comment $comment): JsonResponse
+    {
+        Gate::authorize('delete', $comment);
+
+        $comment->delete();
+
+        return response()->json(['deleted' => true]);
+    }
 }

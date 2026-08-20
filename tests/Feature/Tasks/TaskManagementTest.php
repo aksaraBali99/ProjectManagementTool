@@ -550,6 +550,87 @@ test('posting a comment from the drilldown respects CommentPolicy view scoping',
     $this->assertDatabaseHas('comments', ['body' => 'Legit comment', 'task_id' => $task->id, 'user_id' => $this->management->id]);
 });
 
+test('the task edit page shows the comments section', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $task->comments()->create(['user_id' => $this->management->id, 'body' => 'Visible comment']);
+
+    $response = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit");
+
+    $response->assertOk();
+    $response->assertSee('Comments');
+    $response->assertSee('Visible comment');
+});
+
+test('a user can edit and delete their own comment', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $comment = $task->comments()->create(['user_id' => $this->management->id, 'body' => 'Original']);
+
+    $update = $this->actingAs($this->management)->put("/comments/{$comment->id}", ['body' => 'Edited']);
+    $update->assertOk();
+    expect($comment->fresh()->body)->toBe('Edited');
+
+    $this->actingAs($this->management)->delete("/comments/{$comment->id}")->assertOk();
+    $this->assertDatabaseMissing('comments', ['id' => $comment->id]);
+});
+
+test('a user cannot edit or delete another user\'s comment', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $comment = $task->comments()->create(['user_id' => $this->management->id, 'body' => 'Original']);
+    $otherManager = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $otherManager->id, 'role_id' => Role::where('slug', 'management')->first()->id]);
+
+    $this->actingAs($otherManager)->put("/comments/{$comment->id}", ['body' => 'Hijacked'])->assertForbidden();
+    $this->actingAs($otherManager)->delete("/comments/{$comment->id}")->assertForbidden();
+    expect($comment->fresh()->body)->toBe('Original');
+    $this->assertDatabaseHas('comments', ['id' => $comment->id]);
+});
+
+test('the edit/delete controls are hidden on the task page for another user\'s comment', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $comment = $task->comments()->create(['user_id' => $this->management->id, 'body' => 'Not editable by viewer']);
+    $otherManager = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $otherManager->id, 'role_id' => Role::where('slug', 'management')->first()->id]);
+
+    $response = $this->actingAs($otherManager)->get("/tasks/{$task->id}/edit");
+
+    $response->assertOk();
+    // data-can-edit is the authoritative, server-rendered signal the JS
+    // itself keys off — checking for the literal Edit button markup isn't
+    // reliable here, since the same class name also appears inside this
+    // partial's own <script> (the template string used to build a newly
+    // *posted* comment's controls), which would false-match on any page
+    // that includes this partial at all.
+    $response->assertSee('data-comment-id="'.$comment->id.'" data-can-edit="0"', false);
+});
+
 test('a newly created subtask defaults to the parent task\'s current assignee and due date when neither is explicitly overridden', function () {
     $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
     $this->projectA->staff()->attach($staff->id);

@@ -165,7 +165,7 @@ class TaskManagementController extends Controller
             ->values();
 
         return view('tasks.edit', array_merge([
-            'task' => $task->load('subtasks'),
+            'task' => $task->load('subtasks', 'comments.user'),
             'project' => $project,
             'projects' => $projects,
             'canEdit' => auth()->user()->can('update', $task),

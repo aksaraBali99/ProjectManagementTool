@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1787209693.7177465,
-    "ast_hash": "03ff1d90098a1b027e216c40fbec2d19",
+    "mtime": 1787230151.1609986,
+    "ast_hash": "4469040c2519207e3cc664fed08f06bd",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -700,8 +700,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/CommentController.php": {
-    "mtime": 1787129913.3237941,
-    "ast_hash": "3def3a52298cbbdd78256c037032e332",
+    "mtime": 1787230159.4048035,
+    "ast_hash": "4706bdf009fc93e7d6600c0f583e5ed2",
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1787228752.3041167,
-    "ast_hash": "895521fe479925d3ab14d1a1605cbd1c",
+    "mtime": 1787230224.0749989,
+    "ast_hash": "dee558c9c9ee88ef2a141dd663e3ef88",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -780,8 +780,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
-    "mtime": 1787129913.3388503,
-    "ast_hash": "316d84809d526127385b355692e9cb49",
+    "mtime": 1787230197.0383573,
+    "ast_hash": "1d62800efccb3d6d12dd904cb0dc3447",
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
@@ -800,8 +800,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1787221688.7419298,
-    "ast_hash": "31930c98a0d94f5a2f0f3d11dd58854c",
+    "mtime": 1787230211.1227796,
+    "ast_hash": "8f91f2af4d05c58eef403776587562ba",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
@@ -835,8 +835,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskManagementTest.php": {
-    "mtime": 1787228819.3908806,
-    "ast_hash": "d6fa40a93e84f382e73ffbf058a70811",
+    "mtime": 1787230536.9802039,
+    "ast_hash": "c05a6d9bef35d515a614335d5e442e52",
     "semantic_hash": ""
   },
   "app/Enums/DocumentAccessLevel.php": {
