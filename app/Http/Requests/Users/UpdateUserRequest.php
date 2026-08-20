@@ -2,7 +2,8 @@
 
 namespace App\Http\Requests\Users;
 
-use App\Models\Organization;
+use App\Http\Requests\Users\Concerns\ValidatesCompanyRoles;
+use App\Models\Role;
 use App\Rules\ValidPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -10,9 +11,27 @@ use Illuminate\Validation\Validator;
 
 class UpdateUserRequest extends FormRequest
 {
+    use ValidatesCompanyRoles;
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Owner itself stays fully locked (unmanageable via this form,
+     * regardless of who's editing) — but a target who only holds Super
+     * Admin, or no global role at all, gets the normal editable fields,
+     * since an Owner viewer can now grant/revoke Super Admin here too.
+     */
+    private function targetIsOwner(): bool
+    {
+        return $this->route('user')->roles()->where('slug', Role::OWNER)->exists();
+    }
+
+    private function targetIsSuperAdmin(): bool
+    {
+        return $this->route('user')->roles()->where('slug', Role::SUPER_ADMIN)->exists();
     }
 
     public function rules(): array
@@ -27,9 +46,12 @@ class UpdateUserRequest extends FormRequest
             'phone' => ['required', 'string', 'max:30', new ValidPhoneNumber],
         ];
 
-        if (! $this->route('user')->hasGlobalRole()) {
+        if (! $this->targetIsOwner()) {
+            $assignableSlugs = Role::assignableInCompany()->pluck('slug')->all();
+
             $rules['roles'] = ['required', 'array'];
-            $rules['roles.*'] = ['required', 'in:none,staff,management'];
+            $rules['roles.*'] = ['required', Rule::in(array_merge(['none'], $assignableSlugs))];
+            $rules['grant_super_admin'] = ['sometimes', 'boolean'];
         }
 
         return $rules;
@@ -45,25 +67,16 @@ class UpdateUserRequest extends FormRequest
 
     public function withValidator(Validator $validator): void
     {
-        if ($this->route('user')->hasGlobalRole()) {
+        if ($this->targetIsOwner()) {
             return;
         }
 
         $validator->after(function (Validator $validator) {
             $roles = $this->input('roles', []);
+            $grantingSuperAdmin = $this->user()?->isOwner() && $this->boolean('grant_super_admin');
 
-            $validOrgIds = Organization::query()->pluck('id')->map(fn ($id) => (string) $id)->all();
-            foreach (array_keys($roles) as $organizationId) {
-                if (! in_array((string) $organizationId, $validOrgIds, true)) {
-                    $validator->errors()->add('roles', 'One of the selected companies is invalid.');
-
-                    return;
-                }
-            }
-
-            if (! collect($roles)->contains(fn ($role) => $role !== 'none')) {
-                $validator->errors()->add('roles', 'Assign this user a role in at least one company.');
-            }
+            $this->validateCompanyRoles($validator, $roles, $grantingSuperAdmin);
+            $this->validateSuperAdminGrant($validator, $roles, $grantingSuperAdmin, $this->targetIsSuperAdmin());
         });
     }
 }

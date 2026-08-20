@@ -83,15 +83,15 @@
                             <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $task->department->name }}</td>
                             <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $task->assignee->name ?? 'Unassigned' }}</td>
                             <td class="px-3 py-2.5">
-                                @if ($task->priority === 'high')
-                                    <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">High</span>
-                                @elseif ($task->priority === 'medium')
-                                    <span class="rounded-[5px] bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">Medium</span>
+                                @if ($task->priority === \App\Enums\Priority::High)
+                                    <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $task->priority->label() }}</span>
+                                @elseif ($task->priority === \App\Enums\Priority::Medium)
+                                    <span class="rounded-[5px] bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">{{ $task->priority->label() }}</span>
                                 @else
-                                    <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">Low</span>
+                                    <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">{{ $task->priority->label() }}</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ ucfirst(str_replace('_', ' ', $task->status)) }}</td>
+                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $task->status->label() }}</td>
                             <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $task->due_date?->format('M j') ?? '—' }}</td>
                             @if ($showInactive)
                                 <td class="px-3 py-2.5">
@@ -180,9 +180,9 @@
                 <label for="document-access" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Access level</label>
                 <select id="document-access" name="access_level" required
                     class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-                    <option value="private">Private</option>
-                    <option value="internal" selected>Internal</option>
-                    <option value="public">Public</option>
+                    @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
+                        <option value="{{ $accessCase->value }}" {{ $accessCase === \App\Enums\DocumentAccessLevel::Internal ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
+                    @endforeach
                 </select>
             </div>
 

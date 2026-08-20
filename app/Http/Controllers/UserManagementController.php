@@ -31,7 +31,11 @@ class UserManagementController extends Controller
     {
         Gate::authorize('create', User::class);
 
-        return view('users.create', ['organizations' => Organization::orderBy('name')->get()]);
+        return view('users.create', [
+            'organizations' => Organization::orderBy('name')->get(),
+            'assignableRoles' => Role::assignableInCompany()->orderBy('name')->get(),
+            'canGrantSuperAdmin' => auth()->user()->isOwner(),
+        ]);
     }
 
     public function store(StoreUserRequest $request): RedirectResponse
@@ -49,6 +53,7 @@ class UserManagementController extends Controller
         ]);
 
         $this->syncCompanyRoles($user, $request->input('roles', []));
+        $this->syncSuperAdminGrant($user, $request);
 
         return redirect()->route('users.index')->with('status', 'User created.');
     }
@@ -64,11 +69,21 @@ class UserManagementController extends Controller
             ->get()
             ->mapWithKeys(fn (OrgMember $membership) => [$membership->organization_id => $membership->role->slug]);
 
+        // Owner itself stays fully locked (unmanageable via this form); a
+        // target holding only Super Admin, or no global role, still gets
+        // the editable Company roles section — and, for an Owner viewer,
+        // the Grant Super Admin toggle.
+        $isTargetOwner = $user->roles()->where('slug', Role::OWNER)->exists();
+
         return view('users.edit', [
             'user' => $user,
             'organizations' => $organizations,
+            'assignableRoles' => Role::assignableInCompany()->orderBy('name')->get(),
             'currentRoles' => $currentRoles,
-            'globalRoles' => $user->roles()->whereIn('slug', [Role::SUPER_ADMIN, Role::OWNER])->pluck('name'),
+            'isTargetOwner' => $isTargetOwner,
+            'isTargetSuperAdmin' => $user->roles()->where('slug', Role::SUPER_ADMIN)->exists(),
+            'canGrantSuperAdmin' => auth()->user()->isOwner(),
+            'globalRoles' => $user->roles()->whereIn('slug', Role::GLOBAL_SLUGS)->pluck('name'),
         ]);
     }
 
@@ -84,8 +99,11 @@ class UserManagementController extends Controller
             'phone' => $request->string('phone'),
         ]);
 
-        if (! $user->hasGlobalRole()) {
+        $isTargetOwner = $user->roles()->where('slug', Role::OWNER)->exists();
+
+        if (! $isTargetOwner) {
             $this->syncCompanyRoles($user, $request->input('roles', []));
+            $this->syncSuperAdminGrant($user, $request);
         }
 
         return redirect()->route('users.index')->with('status', 'User updated.');
@@ -110,12 +128,11 @@ class UserManagementController extends Controller
     }
 
     /**
-     * @param  array<int|string, string>  $roles  organization_id => 'none'|'staff'|'management'
+     * @param  array<int|string, string>  $roles  organization_id => 'none' or a company-assignable role slug
      */
     private function syncCompanyRoles(User $user, array $roles): void
     {
-        $roleIds = Role::whereIn('slug', [Role::STAFF, Role::MANAGEMENT])
-            ->pluck('id', 'slug');
+        $roleIds = Role::assignableInCompany()->pluck('id', 'slug');
 
         foreach ($roles as $organizationId => $slug) {
             if ($slug === 'none') {
@@ -130,6 +147,27 @@ class UserManagementController extends Controller
                 ['organization_id' => $organizationId, 'user_id' => $user->id],
                 ['role_id' => $roleIds[$slug]],
             );
+        }
+    }
+
+    /**
+     * Only an Owner can grant or revoke Super Admin, and only via this
+     * explicit toggle — checked/unchecked regardless of who's submitting,
+     * since a tampered request from a non-Owner must still be ignored here
+     * even if it somehow passed validation.
+     */
+    private function syncSuperAdminGrant(User $user, StoreUserRequest|UpdateUserRequest $request): void
+    {
+        if (! auth()->user()->isOwner()) {
+            return;
+        }
+
+        $superAdminId = Role::where('slug', Role::SUPER_ADMIN)->value('id');
+
+        if ($request->boolean('grant_super_admin')) {
+            $user->roles()->syncWithoutDetaching([$superAdminId]);
+        } else {
+            $user->roles()->detach($superAdminId);
         }
     }
 }

@@ -9,7 +9,7 @@
             <div class="flex items-center justify-between rounded-[8px] border border-gray-200 px-3 py-2" data-document-id="{{ $document->id }}">
                 <div>
                     <a href="{{ $document->link }}" target="_blank" rel="noopener" class="text-[12px] font-medium text-[#1D9E75] hover:underline">{{ $document->name }}</a>
-                    <span class="ml-2 rounded-[5px] bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">{{ ucfirst($document->access_level) }}</span>
+                    <span class="ml-2 rounded-[5px] bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">{{ $document->access_level->label() }}</span>
                 </div>
                 @if ($canEdit)
                     <button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>
@@ -26,7 +26,7 @@
             <select class="attach-document-select flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                 <option value="">Select a document…</option>
                 @foreach ($availableDocuments as $document)
-                    <option value="{{ $document->id }}">{{ $document->name }} ({{ ucfirst($document->access_level) }})</option>
+                    <option value="{{ $document->id }}">{{ $document->name }} ({{ $document->access_level->label() }})</option>
                 @endforeach
             </select>
             <button type="button" class="attach-document-btn rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">Attach</button>
@@ -37,9 +37,9 @@
             <input type="text" class="new-document-name w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" placeholder="Document name">
             <input type="url" class="new-document-link w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" placeholder="https://…">
             <select class="new-document-access w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-                <option value="private">Private</option>
-                <option value="internal" selected>Internal</option>
-                <option value="public">Public</option>
+                @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
+                    <option value="{{ $accessCase->value }}" {{ $accessCase === \App\Enums\DocumentAccessLevel::Internal ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
+                @endforeach
             </select>
             <button type="button" class="create-and-attach-btn rounded-[8px] bg-[#1D9E75] px-3 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">Create &amp; attach</button>
             <p class="new-document-error text-[11px] text-red-600" style="display: none;"></p>

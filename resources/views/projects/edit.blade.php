@@ -54,8 +54,10 @@
                 <label for="status" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</label>
                 <select id="status" name="status" required
                     class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-                    <option value="open" {{ old('status', $project->status) === 'open' ? 'selected' : '' }}>Open</option>
-                    <option value="closed" {{ old('status', $project->status) === 'closed' ? 'selected' : '' }}>Closed</option>
+                    @php $statusValue = old('status', $project->status->value); @endphp
+                    @foreach (\App\Enums\ProjectStatus::cases() as $statusCase)
+                        <option value="{{ $statusCase->value }}" {{ $statusValue === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
+                    @endforeach
                 </select>
                 @error('status')
                     <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
@@ -64,11 +66,12 @@
 
             <div>
                 <label for="priority" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority</label>
+                @php $priorityValue = old('priority', $project->priority->value); @endphp
                 <select id="priority" name="priority" required
                     class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-                    <option value="high" {{ old('priority', $project->priority) === 'high' ? 'selected' : '' }}>High</option>
-                    <option value="medium" {{ old('priority', $project->priority) === 'medium' ? 'selected' : '' }}>Medium</option>
-                    <option value="low" {{ old('priority', $project->priority) === 'low' ? 'selected' : '' }}>Low</option>
+                    @foreach (\App\Enums\Priority::cases() as $priorityCase)
+                        <option value="{{ $priorityCase->value }}" {{ $priorityValue === $priorityCase->value ? 'selected' : '' }}>{{ $priorityCase->label() }}</option>
+                    @endforeach
                 </select>
                 @error('priority')
                     <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>

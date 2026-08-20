@@ -118,8 +118,8 @@ class TaskManagementController extends Controller
                 'assignee_id' => $request->input('assignee_id') ?: null,
                 'title' => $request->string('title'),
                 'description' => $request->string('description'),
-                'priority' => $request->string('priority'),
-                'status' => $request->string('status'),
+                'priority' => $request->input('priority'),
+                'status' => $request->input('status'),
                 'due_date' => $request->input('due_date') ?: null,
             ]);
 
@@ -182,8 +182,8 @@ class TaskManagementController extends Controller
             'assignee_id' => $request->input('assignee_id') ?: null,
             'title' => $request->string('title'),
             'description' => $request->string('description'),
-            'priority' => $request->string('priority'),
-            'status' => $request->string('status'),
+            'priority' => $request->input('priority'),
+            'status' => $request->input('status'),
             'due_date' => $request->input('due_date') ?: null,
         ]);
 

@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\DocumentAccessLevel;
 use App\Models\Document;
 use App\Models\User;
 
@@ -20,10 +21,8 @@ class DocumentPolicy
         }
 
         return match ($document->access_level) {
-            'public' => in_array($document->organization_id, $user->visibleOrganizationIds(), true),
-            'internal' => in_array($document->organization_id, $user->visibleOrganizationIds(), true),
-            'private' => $document->uploaded_by === $user->id || $user->isManagementInOrg($document->organization_id),
-            default => false,
+            DocumentAccessLevel::Public, DocumentAccessLevel::Internal => in_array($document->organization_id, $user->visibleOrganizationIds(), true),
+            DocumentAccessLevel::Private => $document->uploaded_by === $user->id || $user->isManagementInOrg($document->organization_id),
         };
     }
 

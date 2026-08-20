@@ -72,8 +72,9 @@
                         <span class="text-[12px] font-medium text-[#1F2937]">{{ $organization->name }}</span>
                         <select name="roles[{{ $organization->id }}]" class="role-select rounded-[8px] border border-gray-300 px-2 py-1 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                             <option value="none" {{ old('roles.'.$organization->id, 'none') === 'none' ? 'selected' : '' }}>No access</option>
-                            <option value="staff" {{ old('roles.'.$organization->id) === 'staff' ? 'selected' : '' }}>Staff</option>
-                            <option value="management" {{ old('roles.'.$organization->id) === 'management' ? 'selected' : '' }}>Management</option>
+                            @foreach ($assignableRoles as $role)
+                                <option value="{{ $role->slug }}" {{ old('roles.'.$organization->id) === $role->slug ? 'selected' : '' }}>{{ $role->name }}</option>
+                            @endforeach
                         </select>
                     </div>
                 @endforeach
@@ -83,6 +84,24 @@
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
         </div>
+
+        @if ($canGrantSuperAdmin)
+            <div id="super-admin-section" class="rounded-[8px] border border-gray-200 px-3 py-3">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" name="grant_super_admin" value="1" {{ old('grant_super_admin') ? 'checked' : '' }}
+                        class="rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]">
+                    <span class="text-[12px] font-medium text-[#1F2937]">Grant Super Admin</span>
+                </label>
+                <p class="mt-1 text-[11px] text-gray-500">
+                    Full access to every company, everything — bypasses per-company roles entirely. Requires
+                    assigning this user the Management role in at least one company. Only an Owner can grant this.
+                </p>
+                <p id="grant-super-admin-error" class="field-error mt-1 text-[11px] text-red-600" style="display: none;"></p>
+                @error('grant_super_admin')
+                    <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+        @endif
 
         <div class="flex items-center gap-3 pt-2">
             <button type="submit" id="submit-btn"
@@ -127,26 +146,74 @@
 
         const roleSelects = document.querySelectorAll('.role-select');
         const rolesError = document.getElementById('roles-error');
+        const grantSuperAdmin = document.querySelector('input[name="grant_super_admin"]');
+        const superAdminSection = document.getElementById('super-admin-section');
+        const superAdminError = document.getElementById('grant-super-admin-error');
+        const hasSuperAdminServerError = {{ $errors->has('grant_super_admin') ? 'true' : 'false' }};
 
         function validateRoles(force) {
-            const hasAccess = Array.from(roleSelects).some(function (select) { return select.value !== 'none'; });
-            if (! hasAccess && force) {
-                rolesError.textContent = 'Assign this user a role in at least one company.';
+            const values = Array.from(roleSelects).map(function (select) { return select.value; });
+            const clientCount = values.filter(function (value) { return value === 'client'; }).length;
+            const hasAccess = values.some(function (value) { return value !== 'none'; })
+                || (grantSuperAdmin && grantSuperAdmin.checked);
+
+            let message = null;
+            if (clientCount > 1) {
+                message = 'A user can only be assigned the Client role in one company.';
+            } else if (clientCount === 1 && values.some(function (value) { return value !== 'none' && value !== 'client'; })) {
+                message = 'A user assigned the Client role in one company cannot hold another role in a different company.';
+            } else if (! hasAccess && force) {
+                message = 'Assign this user a role in at least one company.';
+            }
+
+            if (message) {
+                rolesError.textContent = message;
                 rolesError.style.display = '';
-            } else if (hasAccess) {
+            } else {
                 rolesError.style.display = 'none';
             }
         }
 
+        function updateSuperAdminSection(force) {
+            if (! superAdminSection) return;
+
+            const hasManagement = Array.from(roleSelects).some(function (select) { return select.value === 'management'; });
+            const checked = grantSuperAdmin && grantSuperAdmin.checked;
+            const show = hasManagement || checked || hasSuperAdminServerError;
+            superAdminSection.style.display = show ? '' : 'none';
+
+            if (! superAdminError) return;
+            const invalid = checked && ! hasManagement;
+            if (invalid && force) {
+                superAdminError.textContent = 'Grant Super Admin requires assigning this user the Management role in at least one company.';
+                superAdminError.style.display = '';
+            } else if (! invalid) {
+                superAdminError.style.display = 'none';
+            }
+        }
+
         roleSelects.forEach(function (select) {
-            select.addEventListener('change', function () { validateRoles(true); });
+            select.addEventListener('change', function () {
+                validateRoles(true);
+                updateSuperAdminSection(true);
+            });
         });
+
+        if (grantSuperAdmin) {
+            grantSuperAdmin.addEventListener('change', function () {
+                validateRoles(true);
+                updateSuperAdminSection(true);
+            });
+        }
+
+        updateSuperAdminSection(false);
 
         document.getElementById('create-user-form').addEventListener('submit', function (event) {
             validatePassword(true);
             validateRoles(true);
+            updateSuperAdminSection(true);
 
-            if (! isStrong(password.value) || rolesError.style.display !== 'none') {
+            if (! isStrong(password.value) || rolesError.style.display !== 'none' || (superAdminError && superAdminError.style.display !== 'none')) {
                 event.preventDefault();
             }
         });

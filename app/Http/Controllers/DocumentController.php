@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\DocumentAccessLevel;
 use App\Models\Document;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class DocumentController extends Controller
 {
@@ -24,7 +26,7 @@ class DocumentController extends Controller
             'organization_id' => ['required', 'integer', 'exists:organizations,id'],
             'name' => ['required', 'string', 'max:255'],
             'link' => ['required', 'string', 'max:2048', 'url'],
-            'access_level' => ['required', 'in:private,internal,public'],
+            'access_level' => ['required', Rule::enum(DocumentAccessLevel::class)],
             'task_id' => ['nullable', 'integer', 'exists:tasks,id'],
         ]);
 

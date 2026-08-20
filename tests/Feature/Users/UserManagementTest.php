@@ -17,6 +17,9 @@ beforeEach(function () {
 
     $this->superAdmin = User::factory()->create();
     $this->superAdmin->roles()->attach($this->roles['super_admin']->id);
+
+    $this->targetOwner = User::factory()->create();
+    $this->targetOwner->roles()->attach($this->roles['owner']->id);
 });
 
 test('a non-owner/non-super-admin cannot access the user management pages', function () {
@@ -212,39 +215,284 @@ test('a valid password change succeeds and the new password works for login', fu
     $login->assertRedirect('/dashboard');
 });
 
-test('editing a user with a global role does not require or show company roles', function () {
-    $response = $this->actingAs($this->owner)->get("/users/{$this->superAdmin->id}/edit");
+test('editing an owner does not require or show company roles', function () {
+    $response = $this->actingAs($this->owner)->get("/users/{$this->targetOwner->id}/edit");
 
     $response->assertOk();
-    $response->assertSee('Super_admin');
+    $response->assertSee('Owner');
     $response->assertDontSee('name="roles[', false);
 });
 
-test('a global-role user can be updated without submitting any company roles', function () {
-    $response = $this->actingAs($this->owner)->put("/users/{$this->superAdmin->id}", [
-        'username' => $this->superAdmin->username,
+test('an owner target can be updated without submitting any company roles', function () {
+    $response = $this->actingAs($this->owner)->put("/users/{$this->targetOwner->id}", [
+        'username' => $this->targetOwner->username,
         'name' => 'Updated Name',
-        'employee_id' => $this->superAdmin->employee_id,
-        'email' => $this->superAdmin->email,
-        'phone' => $this->superAdmin->phone,
+        'employee_id' => $this->targetOwner->employee_id,
+        'email' => $this->targetOwner->email,
+        'phone' => $this->targetOwner->phone,
     ]);
 
     $response->assertRedirect('/users');
     $response->assertSessionHasNoErrors();
-    expect($this->superAdmin->fresh()->name)->toBe('Updated Name');
+    expect($this->targetOwner->fresh()->name)->toBe('Updated Name');
 });
 
-test('submitting company roles for a global-role user does not create org_members rows', function () {
+test('submitting company roles for an owner target does not create org_members rows', function () {
+    $this->actingAs($this->owner)->put("/users/{$this->targetOwner->id}", [
+        'username' => $this->targetOwner->username,
+        'name' => $this->targetOwner->name,
+        'employee_id' => $this->targetOwner->employee_id,
+        'email' => $this->targetOwner->email,
+        'phone' => $this->targetOwner->phone,
+        'roles' => [$this->orgA->id => 'management'],
+    ]);
+
+    expect(OrgMember::where('user_id', $this->targetOwner->id)->exists())->toBeFalse();
+});
+
+test('a super-admin-only target now shows editable company roles and a pre-checked super admin toggle', function () {
+    $response = $this->actingAs($this->owner)->get("/users/{$this->superAdmin->id}/edit");
+
+    $response->assertOk();
+    $response->assertSee('name="roles[', false);
+    $response->assertSee('name="grant_super_admin" value="1" checked', false);
+});
+
+test('an owner can assign the client role to a company', function () {
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'clientuser',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'Client User',
+        'employee_id' => 'EMP-9020',
+        'email' => 'clientuser@example.com',
+        'phone' => '+1 202 555 0100',
+        'roles' => [$this->orgA->id => 'client'],
+    ]);
+
+    $response->assertRedirect('/users');
+
+    $user = User::where('username', 'clientuser')->firstOrFail();
+    $membership = OrgMember::where('user_id', $user->id)->where('organization_id', $this->orgA->id)->firstOrFail();
+    expect($membership->role_id)->toBe($this->roles['client']->id);
+});
+
+test('assigning the client role in two companies is rejected', function () {
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'multiclient',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'Multi Client',
+        'employee_id' => 'EMP-9023',
+        'email' => 'multiclient@example.com',
+        'phone' => '+1 202 555 0100',
+        'roles' => [
+            $this->orgA->id => 'client',
+            $this->orgB->id => 'client',
+        ],
+    ]);
+
+    $response->assertSessionHasErrors('roles');
+    $this->assertDatabaseMissing('users', ['username' => 'multiclient']);
+});
+
+test('assigning the client role in one company and another role in a different company is rejected', function () {
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'clientplusstaff',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'Client Plus Staff',
+        'employee_id' => 'EMP-9024',
+        'email' => 'clientplusstaff@example.com',
+        'phone' => '+1 202 555 0100',
+        'roles' => [
+            $this->orgA->id => 'client',
+            $this->orgB->id => 'staff',
+        ],
+    ]);
+
+    $response->assertSessionHasErrors('roles');
+    $this->assertDatabaseMissing('users', ['username' => 'clientplusstaff']);
+});
+
+test('updating a user to hold the client role alongside another company role is rejected', function () {
+    $target = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['staff']->id]);
+
+    $response = $this->actingAs($this->owner)->put("/users/{$target->id}", [
+        'username' => $target->username,
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'email' => $target->email,
+        'phone' => $target->phone,
+        'roles' => [
+            $this->orgA->id => 'staff',
+            $this->orgB->id => 'client',
+        ],
+    ]);
+
+    $response->assertSessionHasErrors('roles');
+    expect(OrgMember::where('user_id', $target->id)->where('organization_id', $this->orgB->id)->exists())->toBeFalse();
+});
+
+test('changing a user\'s only company role from client to staff is allowed', function () {
+    $target = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['client']->id]);
+
+    $response = $this->actingAs($this->owner)->put("/users/{$target->id}", [
+        'username' => $target->username,
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'email' => $target->email,
+        'phone' => $target->phone,
+        'roles' => [$this->orgA->id => 'staff'],
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    expect($target->fresh()->isStaffInOrg($this->orgA->id))->toBeTrue();
+});
+
+test('an owner can grant super admin to a new user who is also assigned management', function () {
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'newsuperadmin',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'New Super Admin',
+        'employee_id' => 'EMP-9021',
+        'email' => 'newsuperadmin@example.com',
+        'phone' => '+1 202 555 0100',
+        'roles' => [$this->orgA->id => 'management'],
+        'grant_super_admin' => '1',
+    ]);
+
+    $response->assertRedirect('/users');
+
+    $user = User::where('username', 'newsuperadmin')->firstOrFail();
+    expect($user->roles()->where('slug', 'super_admin')->exists())->toBeTrue()
+        ->and($user->isManagementInOrg($this->orgA->id))->toBeTrue();
+});
+
+test('granting super admin to a new user without assigning management is rejected', function () {
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'nomanagement',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'No Management',
+        'employee_id' => 'EMP-9025',
+        'email' => 'nomanagement@example.com',
+        'phone' => '+1 202 555 0100',
+        'roles' => [$this->orgA->id => 'staff'],
+        'grant_super_admin' => '1',
+    ]);
+
+    $response->assertSessionHasErrors('grant_super_admin');
+    $this->assertDatabaseMissing('users', ['username' => 'nomanagement']);
+});
+
+test('an owner can grant super admin to an existing user by assigning management', function () {
+    $target = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['staff']->id]);
+
+    $response = $this->actingAs($this->owner)->put("/users/{$target->id}", [
+        'username' => $target->username,
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'email' => $target->email,
+        'phone' => $target->phone,
+        'roles' => [$this->orgA->id => 'management'],
+        'grant_super_admin' => '1',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    expect($target->fresh()->roles()->where('slug', 'super_admin')->exists())->toBeTrue()
+        ->and($target->fresh()->isManagementInOrg($this->orgA->id))->toBeTrue();
+});
+
+test('granting super admin to an existing staff member without management is rejected', function () {
+    $target = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['staff']->id]);
+
+    $response = $this->actingAs($this->owner)->put("/users/{$target->id}", [
+        'username' => $target->username,
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'email' => $target->email,
+        'phone' => $target->phone,
+        'roles' => [$this->orgA->id => 'staff'],
+        'grant_super_admin' => '1',
+    ]);
+
+    $response->assertSessionHasErrors('grant_super_admin');
+    expect($target->fresh()->roles()->where('slug', 'super_admin')->exists())->toBeFalse();
+});
+
+test('an already super-admin user keeps their grant on an unrelated edit even without management', function () {
+    // The Management requirement only gates a *new* grant — a target who
+    // already holds Super Admin (e.g. $this->superAdmin, who has no
+    // company roles at all) shouldn't lose it just because the form was
+    // resubmitted with the checkbox still checked.
+    $response = $this->actingAs($this->owner)->put("/users/{$this->superAdmin->id}", [
+        'username' => $this->superAdmin->username,
+        'name' => 'Renamed Super Admin',
+        'employee_id' => $this->superAdmin->employee_id,
+        'email' => $this->superAdmin->email,
+        'phone' => $this->superAdmin->phone,
+        'roles' => [$this->orgA->id => 'none'],
+        'grant_super_admin' => '1',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    expect($this->superAdmin->fresh()->roles()->where('slug', 'super_admin')->exists())->toBeTrue();
+});
+
+test('an owner can revoke super admin by unchecking the checkbox', function () {
+    // Revoking the global grant still requires the user to land on at
+    // least one company role — same "one access path or another" rule
+    // enforced for any other user.
     $this->actingAs($this->owner)->put("/users/{$this->superAdmin->id}", [
         'username' => $this->superAdmin->username,
         'name' => $this->superAdmin->name,
         'employee_id' => $this->superAdmin->employee_id,
         'email' => $this->superAdmin->email,
         'phone' => $this->superAdmin->phone,
-        'roles' => [$this->orgA->id => 'management'],
+        'roles' => [$this->orgA->id => 'staff'],
     ]);
 
-    expect(OrgMember::where('user_id', $this->superAdmin->id)->exists())->toBeFalse();
+    expect($this->superAdmin->fresh()->roles()->where('slug', 'super_admin')->exists())->toBeFalse();
+});
+
+test('a super admin who is not owner cannot grant super admin via a tampered request', function () {
+    $target = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['staff']->id]);
+
+    $this->actingAs($this->superAdmin)->put("/users/{$target->id}", [
+        'username' => $target->username,
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'email' => $target->email,
+        'phone' => $target->phone,
+        'roles' => [$this->orgA->id => 'staff'],
+        'grant_super_admin' => '1',
+    ]);
+
+    expect($target->fresh()->roles()->where('slug', 'super_admin')->exists())->toBeFalse();
+});
+
+test('granting super admin alongside management does not also require another company role', function () {
+    // Management already satisfies "at least one company role" on its
+    // own — the grant doesn't additionally require a *second*, separate
+    // company assignment.
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'globalonly',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'Global Only',
+        'employee_id' => 'EMP-9022',
+        'email' => 'globalonly@example.com',
+        'phone' => '+1 202 555 0100',
+        'roles' => [
+            $this->orgA->id => 'management',
+            $this->orgB->id => 'none',
+        ],
+        'grant_super_admin' => '1',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect('/users');
 });
 
 test('the user index shows a global role badge instead of "no company access"', function () {

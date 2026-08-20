@@ -61,24 +61,23 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label for="priority" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority</label>
-                    @php $priorityValue = old('priority', 'medium'); @endphp
+                    @php $priorityValue = old('priority', \App\Enums\Priority::Medium->value); @endphp
                     <select id="priority" name="priority" required
                         class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-                        <option value="high" {{ $priorityValue === 'high' ? 'selected' : '' }}>High</option>
-                        <option value="medium" {{ $priorityValue === 'medium' ? 'selected' : '' }}>Medium</option>
-                        <option value="low" {{ $priorityValue === 'low' ? 'selected' : '' }}>Low</option>
+                        @foreach (\App\Enums\Priority::cases() as $priorityCase)
+                            <option value="{{ $priorityCase->value }}" {{ $priorityValue === $priorityCase->value ? 'selected' : '' }}>{{ $priorityCase->label() }}</option>
+                        @endforeach
                     </select>
                 </div>
 
                 <div>
                     <label for="status" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</label>
-                    @php $statusValue = old('status', 'pending'); @endphp
+                    @php $statusValue = old('status', \App\Enums\TaskStatus::Pending->value); @endphp
                     <select id="status" name="status" required
                         class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-                        <option value="pending" {{ $statusValue === 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="in_progress" {{ $statusValue === 'in_progress' ? 'selected' : '' }}>In progress</option>
-                        <option value="in_review" {{ $statusValue === 'in_review' ? 'selected' : '' }}>In review</option>
-                        <option value="completed" {{ $statusValue === 'completed' ? 'selected' : '' }}>Completed</option>
+                        @foreach (\App\Enums\TaskStatus::cases() as $statusCase)
+                            <option value="{{ $statusCase->value }}" {{ $statusValue === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
+                        @endforeach
                     </select>
                 </div>
             </div>

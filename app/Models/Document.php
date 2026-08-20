@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DocumentAccessLevel;
 use App\Models\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +13,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Document extends Model
 {
     use BelongsToOrganization;
+
+    protected function casts(): array
+    {
+        return [
+            'access_level' => DocumentAccessLevel::class,
+        ];
+    }
 
     public function uploader(): BelongsTo
     {

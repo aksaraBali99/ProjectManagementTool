@@ -91,7 +91,7 @@ class ProjectManagementController extends Controller
         return $this->renderCreateForm($manageableOrgs, $organization, [
             'templateName' => $project->name.' (Copy)',
             'templateDescription' => $project->description,
-            'templatePriority' => $project->priority,
+            'templatePriority' => $project->priority->value,
         ]);
     }
 
@@ -105,8 +105,8 @@ class ProjectManagementController extends Controller
             'description' => $request->string('description'),
             'client_name' => $request->string('client'),
             'is_external' => $this->isExternalClient($request->string('client')),
-            'status' => $request->string('status'),
-            'priority' => $request->string('priority'),
+            'status' => $request->input('status'),
+            'priority' => $request->input('priority'),
         ]);
 
         $project->staff()->sync($request->input('staff', []));
@@ -137,8 +137,8 @@ class ProjectManagementController extends Controller
             'description' => $request->string('description'),
             'client_name' => $request->string('client'),
             'is_external' => $this->isExternalClient($request->string('client')),
-            'status' => $request->string('status'),
-            'priority' => $request->string('priority'),
+            'status' => $request->input('status'),
+            'priority' => $request->input('priority'),
         ]);
 
         $project->staff()->sync($request->input('staff', []));

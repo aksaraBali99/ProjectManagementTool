@@ -66,24 +66,23 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label for="priority" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority</label>
-                    @php $priorityValue = old('priority', $task->priority); @endphp
+                    @php $priorityValue = old('priority', $task->priority->value); @endphp
                     <select id="priority" name="priority" required
                         class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-                        <option value="high" {{ $priorityValue === 'high' ? 'selected' : '' }}>High</option>
-                        <option value="medium" {{ $priorityValue === 'medium' ? 'selected' : '' }}>Medium</option>
-                        <option value="low" {{ $priorityValue === 'low' ? 'selected' : '' }}>Low</option>
+                        @foreach (\App\Enums\Priority::cases() as $priorityCase)
+                            <option value="{{ $priorityCase->value }}" {{ $priorityValue === $priorityCase->value ? 'selected' : '' }}>{{ $priorityCase->label() }}</option>
+                        @endforeach
                     </select>
                 </div>
 
                 <div>
                     <label for="status" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</label>
-                    @php $statusValue = old('status', $task->status); @endphp
+                    @php $statusValue = old('status', $task->status->value); @endphp
                     <select id="status" name="status" required
                         class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-                        <option value="pending" {{ $statusValue === 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="in_progress" {{ $statusValue === 'in_progress' ? 'selected' : '' }}>In progress</option>
-                        <option value="in_review" {{ $statusValue === 'in_review' ? 'selected' : '' }}>In review</option>
-                        <option value="completed" {{ $statusValue === 'completed' ? 'selected' : '' }}>Completed</option>
+                        @foreach (\App\Enums\TaskStatus::cases() as $statusCase)
+                            <option value="{{ $statusCase->value }}" {{ $statusValue === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
+                        @endforeach
                     </select>
                 </div>
             </div>
@@ -163,8 +162,8 @@
         <div class="mt-6 space-y-3 rounded-[10px] border border-gray-200 p-4 text-[12px]">
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Title</span><p class="mt-0.5 font-medium text-[#1F2937]">{{ $task->title }}</p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Description</span><p class="mt-0.5 text-gray-700">{{ $task->description ?: '—' }}</p></div>
-            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Priority</span><p class="mt-0.5 text-gray-700">{{ ucfirst($task->priority) }}</p></div>
-            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Status</span><p class="mt-0.5 text-gray-700">{{ ucfirst(str_replace('_', ' ', $task->status)) }}</p></div>
+            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Priority</span><p class="mt-0.5 text-gray-700">{{ $task->priority->label() }}</p></div>
+            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Status</span><p class="mt-0.5 text-gray-700">{{ $task->status->label() }}</p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Due date</span><p class="mt-0.5 text-gray-700">{{ $task->due_date?->format('M j, Y') ?? '—' }}</p></div>
         </div>
         <p class="mt-3 text-[11px] text-gray-500">You can view this task and toggle its subtasks, but only its assignee or a manager can edit it.</p>
