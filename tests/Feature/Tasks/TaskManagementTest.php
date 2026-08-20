@@ -285,6 +285,50 @@ test('the task list includes a task assigned to the viewer even outside their gr
         ->assertDontSee('Unrelated task outside department');
 });
 
+test('a staff user can view a task if they are assigned to one of its subtasks, even outside their granted departments', function () {
+    $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $otherDept->id,
+        'title' => 'Parent task with subtask assignment',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $task->subtasks()->create(['title' => 'Subtask assigned to staff', 'assignee_id' => $staff->id]);
+
+    $this->actingAs($staff)->get("/tasks/{$task->id}/edit")->assertOk();
+});
+
+test('the task list includes a task whose subtask is assigned to the viewer, even outside their granted departments', function () {
+    $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $otherDept->id,
+        'title' => 'Task with assigned subtask',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $task->subtasks()->create(['title' => 'Subtask assigned to staff', 'assignee_id' => $staff->id]);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $otherDept->id,
+        'title' => 'Unrelated task outside department',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($staff)->get("/tasks/{$this->orgA->id}");
+
+    $response->assertOk()
+        ->assertSee('Task with assigned subtask')
+        ->assertDontSee('Unrelated task outside department');
+});
+
 test('a staff user can view but not edit a task they are not the assignee of', function () {
     $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
     $task = Task::create([
