@@ -31,7 +31,11 @@ class OrganizationManagementController extends Controller
     {
         Gate::authorize('create', Organization::class);
 
-        Organization::create($request->only('name', 'slug', 'accent_color'));
+        Organization::create([
+            'name' => $request->string('name'),
+            'slug' => Organization::generateUniqueSlug($request->string('name')),
+            'accent_color' => $request->string('accent_color'),
+        ]);
 
         return redirect()->route('organizations.index')->with('status', 'Company created.');
     }
@@ -47,7 +51,9 @@ class OrganizationManagementController extends Controller
     {
         Gate::authorize('update', $organization);
 
-        $organization->update($request->only('name', 'slug', 'accent_color'));
+        // slug is intentionally excluded — fixed once created, never
+        // regenerated on rename (see Organization::generateUniqueSlug).
+        $organization->update($request->only('name', 'accent_color'));
 
         return redirect()->route('organizations.index')->with('status', 'Company updated.');
     }
