@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Users;
 
-use App\Models\Organization;
+use App\Http\Requests\Users\Concerns\ValidatesCompanyRoles;
 use App\Models\Role;
 use App\Rules\ValidPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
@@ -12,6 +12,8 @@ use Illuminate\Validation\Validator;
 
 class StoreUserRequest extends FormRequest
 {
+    use ValidatesCompanyRoles;
+
     public function authorize(): bool
     {
         return true;
@@ -45,24 +47,11 @@ class StoreUserRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $roles = $this->input('roles', []);
-
-            $validOrgIds = Organization::query()->pluck('id')->map(fn ($id) => (string) $id)->all();
-            foreach (array_keys($roles) as $organizationId) {
-                if (! in_array((string) $organizationId, $validOrgIds, true)) {
-                    $validator->errors()->add('roles', 'One of the selected companies is invalid.');
-
-                    return;
-                }
-            }
-
             // Skipped if granting Super Admin — global access makes a
             // per-company role optional, same as an already-global user.
             $grantingSuperAdmin = $this->user()?->isOwner() && $this->boolean('grant_super_admin');
 
-            if (! $grantingSuperAdmin && ! collect($roles)->contains(fn ($role) => $role !== 'none')) {
-                $validator->errors()->add('roles', 'Assign this user a role in at least one company.');
-            }
+            $this->validateCompanyRoles($validator, $this->input('roles', []), $grantingSuperAdmin);
         });
     }
 }

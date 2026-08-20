@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Users;
 
-use App\Models\Organization;
+use App\Http\Requests\Users\Concerns\ValidatesCompanyRoles;
 use App\Models\Role;
 use App\Rules\ValidPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,6 +11,8 @@ use Illuminate\Validation\Validator;
 
 class UpdateUserRequest extends FormRequest
 {
+    use ValidatesCompanyRoles;
+
     public function authorize(): bool
     {
         return true;
@@ -65,22 +67,9 @@ class UpdateUserRequest extends FormRequest
         }
 
         $validator->after(function (Validator $validator) {
-            $roles = $this->input('roles', []);
-
-            $validOrgIds = Organization::query()->pluck('id')->map(fn ($id) => (string) $id)->all();
-            foreach (array_keys($roles) as $organizationId) {
-                if (! in_array((string) $organizationId, $validOrgIds, true)) {
-                    $validator->errors()->add('roles', 'One of the selected companies is invalid.');
-
-                    return;
-                }
-            }
-
             $grantingSuperAdmin = $this->user()?->isOwner() && $this->boolean('grant_super_admin');
 
-            if (! $grantingSuperAdmin && ! collect($roles)->contains(fn ($role) => $role !== 'none')) {
-                $validator->errors()->add('roles', 'Assign this user a role in at least one company.');
-            }
+            $this->validateCompanyRoles($validator, $this->input('roles', []), $grantingSuperAdmin);
         });
     }
 }

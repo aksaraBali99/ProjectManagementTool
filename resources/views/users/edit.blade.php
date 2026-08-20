@@ -202,12 +202,24 @@
 
         function validateRoles(force) {
             if (! roleSelects.length || ! rolesError) return;
-            const hasAccess = Array.from(roleSelects).some(function (select) { return select.value !== 'none'; })
+            const values = Array.from(roleSelects).map(function (select) { return select.value; });
+            const clientCount = values.filter(function (value) { return value === 'client'; }).length;
+            const hasAccess = values.some(function (value) { return value !== 'none'; })
                 || (grantSuperAdmin && grantSuperAdmin.checked);
-            if (! hasAccess && force) {
-                rolesError.textContent = 'Assign this user a role in at least one company.';
+
+            let message = null;
+            if (clientCount > 1) {
+                message = 'A user can only be assigned the Client role in one company.';
+            } else if (clientCount === 1 && values.some(function (value) { return value !== 'none' && value !== 'client'; })) {
+                message = 'A user assigned the Client role in one company cannot hold another role in a different company.';
+            } else if (! hasAccess && force) {
+                message = 'Assign this user a role in at least one company.';
+            }
+
+            if (message) {
+                rolesError.textContent = message;
                 rolesError.style.display = '';
-            } else if (hasAccess) {
+            } else {
                 rolesError.style.display = 'none';
             }
         }

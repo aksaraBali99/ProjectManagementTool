@@ -276,6 +276,79 @@ test('an owner can assign the client role to a company', function () {
     expect($membership->role_id)->toBe($this->roles['client']->id);
 });
 
+test('assigning the client role in two companies is rejected', function () {
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'multiclient',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'Multi Client',
+        'employee_id' => 'EMP-9023',
+        'email' => 'multiclient@example.com',
+        'phone' => '+1 202 555 0100',
+        'roles' => [
+            $this->orgA->id => 'client',
+            $this->orgB->id => 'client',
+        ],
+    ]);
+
+    $response->assertSessionHasErrors('roles');
+    $this->assertDatabaseMissing('users', ['username' => 'multiclient']);
+});
+
+test('assigning the client role in one company and another role in a different company is rejected', function () {
+    $response = $this->actingAs($this->owner)->post('/users', [
+        'username' => 'clientplusstaff',
+        'password' => 'Str0ng!Passw0rd',
+        'name' => 'Client Plus Staff',
+        'employee_id' => 'EMP-9024',
+        'email' => 'clientplusstaff@example.com',
+        'phone' => '+1 202 555 0100',
+        'roles' => [
+            $this->orgA->id => 'client',
+            $this->orgB->id => 'staff',
+        ],
+    ]);
+
+    $response->assertSessionHasErrors('roles');
+    $this->assertDatabaseMissing('users', ['username' => 'clientplusstaff']);
+});
+
+test('updating a user to hold the client role alongside another company role is rejected', function () {
+    $target = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['staff']->id]);
+
+    $response = $this->actingAs($this->owner)->put("/users/{$target->id}", [
+        'username' => $target->username,
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'email' => $target->email,
+        'phone' => $target->phone,
+        'roles' => [
+            $this->orgA->id => 'staff',
+            $this->orgB->id => 'client',
+        ],
+    ]);
+
+    $response->assertSessionHasErrors('roles');
+    expect(OrgMember::where('user_id', $target->id)->where('organization_id', $this->orgB->id)->exists())->toBeFalse();
+});
+
+test('changing a user\'s only company role from client to staff is allowed', function () {
+    $target = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $target->id, 'role_id' => $this->roles['client']->id]);
+
+    $response = $this->actingAs($this->owner)->put("/users/{$target->id}", [
+        'username' => $target->username,
+        'name' => $target->name,
+        'employee_id' => $target->employee_id,
+        'email' => $target->email,
+        'phone' => $target->phone,
+        'roles' => [$this->orgA->id => 'staff'],
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    expect($target->fresh()->isStaffInOrg($this->orgA->id))->toBeTrue();
+});
+
 test('an owner can grant super admin to a new user via the checkbox', function () {
     $response = $this->actingAs($this->owner)->post('/users', [
         'username' => 'newsuperadmin',
