@@ -124,6 +124,58 @@ test('submitting a department that does not belong to the selected project compa
     $this->assertDatabaseMissing('tasks', ['title' => 'Mismatched department']);
 });
 
+test('assigning a task to a staff member not assigned to the project is rejected', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Unassignable',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasErrors('assignee_id');
+    $this->assertDatabaseMissing('tasks', ['title' => 'Unassignable']);
+});
+
+test('assigning a task to a staff member added to the project succeeds', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Assignable',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('tasks', ['title' => 'Assignable', 'assignee_id' => $staff->id]);
+});
+
+test('assigning a subtask to a staff member not assigned to the project is rejected', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->post("/tasks/{$task->id}/subtasks", [
+        'title' => 'Unassignable subtask',
+        'assignee_id' => $staff->id,
+    ]);
+
+    $response->assertStatus(422);
+});
+
 test('a staff user cannot see a task outside their granted departments', function () {
     $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
     $task = Task::create([
@@ -277,6 +329,7 @@ test('a staff user who can view but not edit a task can toggle a subtask done st
 
 test('the assignee of a task can edit it and its subtasks even though they are not management', function () {
     $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,
@@ -450,6 +503,7 @@ test('posting a comment from the drilldown respects CommentPolicy view scoping',
 
 test('a newly created subtask defaults to the parent task\'s current assignee and due date when neither is explicitly overridden', function () {
     $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,
@@ -478,6 +532,7 @@ test('a newly created subtask defaults to the parent task\'s current assignee an
 test('a subtask created with an explicitly different assignee and due date saves those values, not the parent\'s', function () {
     $parentAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
     $subtaskAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($subtaskAssignee->id);
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,
@@ -504,6 +559,7 @@ test('a subtask created with an explicitly different assignee and due date saves
 test('changing the parent task\'s assignee or due date after a subtask already exists does not change the existing subtask', function () {
     $originalAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
     $newAssignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($newAssignee->id);
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,
