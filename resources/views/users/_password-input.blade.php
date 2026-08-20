@@ -1,0 +1,31 @@
+{{-- Password field with a show/hide toggle button. Usage:
+     @include('users._password-input', ['id' => 'password', 'name' => 'password', 'autocomplete' => 'new-password']) --}}
+<div class="relative">
+    <input id="{{ $id }}" name="{{ $name }}" type="password" required
+        @isset($autocomplete) autocomplete="{{ $autocomplete }}" @endisset
+        class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 pr-9 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+    <button type="button" class="password-toggle-btn absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center text-gray-400 hover:text-gray-600" tabindex="-1" aria-label="Show password">
+        <i class="ti ti-eye text-[14px]"></i>
+    </button>
+</div>
+
+@once
+    <script>
+        (function () {
+            document.addEventListener('click', function (event) {
+                const btn = event.target.closest('.password-toggle-btn');
+                if (! btn) return;
+
+                const input = btn.previousElementSibling;
+                if (! input || input.tagName !== 'INPUT') return;
+
+                const nowShowing = input.type === 'password';
+                input.type = nowShowing ? 'text' : 'password';
+
+                const icon = btn.querySelector('i');
+                icon.className = nowShowing ? 'ti ti-eye-off text-[14px]' : 'ti ti-eye text-[14px]';
+                btn.setAttribute('aria-label', nowShowing ? 'Hide password' : 'Show password');
+            });
+        })();
+    </script>
+@endonce
