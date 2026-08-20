@@ -4,6 +4,7 @@ namespace App\Http\Requests\Projects;
 
 use App\Enums\Priority;
 use App\Enums\ProjectStatus;
+use App\Models\Role;
 use App\Rules\ValidClientUser;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -35,7 +36,9 @@ class StoreProjectRequest extends FormRequest
             'staff' => ['array'],
             'staff.*' => [
                 'integer',
-                Rule::exists('org_members', 'user_id')->where('organization_id', $this->input('organization_id')),
+                Rule::exists('org_members', 'user_id')
+                    ->where('organization_id', $this->input('organization_id'))
+                    ->whereNot('role_id', Role::where('slug', Role::CLIENT)->value('id')),
             ],
         ];
     }

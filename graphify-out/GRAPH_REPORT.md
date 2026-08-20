@@ -1,16 +1,16 @@
 # Graph Report - ProjectManagementTool  (2026-08-20)
 
 ## Corpus Check
-- 173 files · ~38,806 words
+- 173 files · ~38,997 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 685 nodes · 1322 edges · 86 communities (77 shown, 9 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 71 edges (avg confidence: 0.8)
+- 686 nodes · 1332 edges · 91 communities (78 shown, 13 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 74 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f0de56a7`
+- Built from commit: `ae4c1586`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,35 +18,40 @@
 - scripts
 - composer.json
 - Mermaid AI Skills
-- LoginRequest
+- Closure
 - package.json
-- Illuminate\Database\Eloquent\Model
+- UserPolicy
+- CommentPolicy
 - LARAVEL_README.md
 - AppServiceProvider
 - Illuminate\Foundation\Http\FormRequest
 - Pest.php
-- Illuminate\Http\RedirectResponse
+- Organization
 - CLAUDE.md
 - copilot-instructions.md
 - OrgMember
+- Project
+- Role
 - ProjectManagementTool
-- Organization
+- Illuminate\Database\Eloquent\Relations\HasMany
 - Task
 - projects/create.blade.php
 - users/create.blade.php
 - users/edit.blade.php
 - projects/edit.blade.php
+- UserFactory
+- Document
 - User
+- .orgMemberships
 - tasks/edit.blade.php
 - tasks/index.blade.php
-- Illuminate\View\View
 
 ## God Nodes (most connected - your core abstractions)
 1. `User` - 93 edges
-2. `Organization` - 47 edges
+2. `Organization` - 48 edges
 3. `OrgMember` - 38 edges
-4. `Task` - 32 edges
-5. `Role` - 29 edges
+4. `Role` - 32 edges
+5. `Task` - 32 edges
 6. `Project` - 27 edges
 7. `Department` - 25 edges
 8. `Controller` - 19 edges
@@ -62,13 +67,13 @@
   tests/Feature/Tasks/TaskManagementTest.php → app/Models/AccessPermission.php
 - `makeStaffWithDepartmentAccess()` --references--> `Department`  [EXTRACTED]
   tests/Feature/Tasks/TaskManagementTest.php → app/Models/Department.php
-- `makeStaffWithDepartmentAccess()` --calls--> `OrgMember`  [EXTRACTED]
-  tests/Feature/Tasks/TaskManagementTest.php → app/Models/OrgMember.php
+- `joinOrg()` --references--> `Organization`  [EXTRACTED]
+  tests/Feature/RoleBasedAccessTest.php → app/Models/Organization.php
 
 ## Import Cycles
 - None detected.
 
-## Communities (86 total, 9 thin omitted)
+## Communities (91 total, 13 thin omitted)
 
 ### Community 0 - "scripts"
 Cohesion: 0.08
@@ -82,41 +87,41 @@ Nodes (44): pestphp/pest-plugin, php-http/discovery, autoload, autoload-dev, psr
 Cohesion: 0.15
 Nodes (12): Diagram editing & preview, Docs, Generate diagrams (GitHub Copilot required), Install / update this pack, LM Tools — call these for every diagram interaction, Mermaid AI Skills, Mermaid Chart cloud, @mermaid-chart slash commands (+4 more)
 
-### Community 3 - "LoginRequest"
-Cohesion: 0.10
-Nodes (11): EnsureBelongsToOrganization, EnsureUserIsActive, LoginRequest, bootBelongsToOrganization(), bootHidesInactiveFromNonAdmins(), Closure, UserFactory, Illuminate\Database\Eloquent\Builder (+3 more)
+### Community 3 - "Closure"
+Cohesion: 0.22
+Nodes (7): EnsureBelongsToOrganization, EnsureUserIsActive, ValidClientUser, ValidPhoneNumber, Closure, Illuminate\Contracts\Validation\ValidationRule, Symfony\Component\HttpFoundation\Response
 
 ### Community 4 - "package.json"
 Cohesion: 0.08
 Nodes (23): concurrently, intl-tel-input, @laravel/multiplex, laravel-vite-plugin, dependencies, intl-tel-input, devDependencies, concurrently (+15 more)
-
-### Community 6 - "Illuminate\Database\Eloquent\Model"
-Cohesion: 0.09
-Nodes (9): AccessPermission, AuditLog, Comment, organization(), NotificationSetting, Illuminate\Database\Eloquent\Model, Illuminate\Database\Eloquent\Relations\BelongsTo, Illuminate\Database\Eloquent\SoftDeletes (+1 more)
 
 ### Community 7 - "LARAVEL_README.md"
 Cohesion: 0.25
 Nodes (7): About Laravel, Agentic Development, Code of Conduct, Contributing, Learning Laravel, License, Security Vulnerabilities
 
 ### Community 10 - "Illuminate\Foundation\Http\FormRequest"
-Cohesion: 0.06
-Nodes (14): UpdateDepartmentRequest, StoreOrganizationRequest, UpdateOrganizationRequest, UpdateRoleRequest, UpdateTaskRequest, validateCompanyRoles(), validateSuperAdminGrant(), StoreUserRequest (+6 more)
+Cohesion: 0.05
+Nodes (15): LoginRequest, UpdateDepartmentRequest, StoreOrganizationRequest, UpdateOrganizationRequest, UpdateProjectRequest, UpdateRoleRequest, StoreTaskRequest, UpdateTaskRequest (+7 more)
 
-### Community 16 - "Illuminate\Http\RedirectResponse"
-Cohesion: 0.09
-Nodes (9): AccessControlController, AuthenticatedSessionController, GoogleAuthController, DepartmentManagementController, RoleManagementController, UserManagementController, Role, RolePolicy (+1 more)
+### Community 16 - "Organization"
+Cohesion: 0.06
+Nodes (20): AccessControlController, AuthenticatedSessionController, GoogleAuthController, Controller, DashboardController, DepartmentManagementController, OrganizationManagementController, PermissionManagementController (+12 more)
 
 ### Community 39 - "OrgMember"
-Cohesion: 0.07
-Nodes (12): OrgMember, ValidClientUser, DatabaseSeeder, DepartmentSeeder, OrganizationSeeder, PermissionSeeder, RoleSeeder, UserSeeder (+4 more)
+Cohesion: 0.05
+Nodes (13): AccessPermission, AuditLog, Comment, organization(), NotificationSetting, OrgMember, Illuminate\Contracts\Validation\Validator, Illuminate\Database\Eloquent\Builder (+5 more)
 
-### Community 53 - "Organization"
-Cohesion: 0.07
-Nodes (6): OrganizationManagementController, StoreDepartmentRequest, Department, Organization, DepartmentPolicy, Illuminate\Database\Eloquent\Relations\HasMany
+### Community 42 - "Project"
+Cohesion: 0.12
+Nodes (3): Project, ProjectPolicy, Illuminate\Database\Eloquent\Relations\BelongsToMany
+
+### Community 44 - "Role"
+Cohesion: 0.09
+Nodes (10): StoreProjectRequest, Role, RolePolicy, DatabaseSeeder, DepartmentSeeder, OrganizationSeeder, PermissionSeeder, RoleSeeder (+2 more)
 
 ### Community 54 - "Task"
-Cohesion: 0.08
-Nodes (13): CommentController, Controller, DocumentController, PermissionManagementController, SubtaskController, TaskDocumentController, Document, Subtask (+5 more)
+Cohesion: 0.12
+Nodes (9): CommentController, SubtaskController, TaskDocumentController, Subtask, Task, SubtaskPolicy, TaskPolicy, Illuminate\Database\Eloquent\SoftDeletes (+1 more)
 
 ### Community 67 - "users/create.blade.php"
 Cohesion: 0.50
@@ -126,28 +131,32 @@ Nodes (3): users._inline-validation, users._phone-input, users._unsaved-changes-
 Cohesion: 0.50
 Nodes (3): users._inline-validation, users._phone-input, users._unsaved-changes-guard
 
-### Community 78 - "User"
-Cohesion: 0.05
-Nodes (11): Permission, User, CommentPolicy, OrganizationPolicy, ProjectPolicy, TaskPolicy, UserPolicy, Illuminate\Database\Eloquent\Factories\HasFactory (+3 more)
+### Community 72 - "UserFactory"
+Cohesion: 0.32
+Nodes (5): bootBelongsToOrganization(), bootHidesInactiveFromNonAdmins(), UserFactory, Illuminate\Database\Eloquent\Factories\Factory, static
 
-### Community 95 - "Illuminate\View\View"
-Cohesion: 0.09
-Nodes (10): DashboardController, ProjectManagementController, SettingsController, TaskManagementController, StoreProjectRequest, UpdateProjectRequest, StoreTaskRequest, Project (+2 more)
+### Community 73 - "Document"
+Cohesion: 0.14
+Nodes (3): DocumentController, Document, DocumentPolicy
+
+### Community 74 - "User"
+Cohesion: 0.16
+Nodes (6): User, DepartmentPolicy, OrganizationPolicy, Illuminate\Database\Eloquent\Factories\HasFactory, Illuminate\Foundation\Auth\User, Illuminate\Notifications\Notifiable
 
 ## Knowledge Gaps
 - **95 isolated node(s):** `$schema`, `name`, `type`, `description`, `laravel` (+90 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **13 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `LoginRequest`, `Illuminate\Database\Eloquent\Model`, `OrgMember`, `Illuminate\Http\RedirectResponse`, `Organization`, `Task`, `Illuminate\View\View`?**
+- **Why does `User` connect `User` to `UserPolicy`, `CommentPolicy`, `OrgMember`, `Document`, `Illuminate\Foundation\Http\FormRequest`, `Project`, `Role`, `.orgMemberships`, `Organization`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Task`?**
   _High betweenness centrality (0.111) - this node is a cross-community bridge._
-- **Why does `Organization` connect `Organization` to `Illuminate\Database\Eloquent\Model`, `OrgMember`, `Illuminate\Foundation\Http\FormRequest`, `User`, `Illuminate\Http\RedirectResponse`, `Illuminate\View\View`?**
-  _High betweenness centrality (0.042) - this node is a cross-community bridge._
-- **Why does `OrgMember` connect `OrgMember` to `Illuminate\Http\RedirectResponse`, `Illuminate\Database\Eloquent\Model`, `Task`, `Illuminate\View\View`?**
-  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **Why does `Organization` connect `Organization` to `OrgMember`, `Illuminate\Foundation\Http\FormRequest`, `Project`, `User`, `Role`, `.orgMemberships`, `Illuminate\Database\Eloquent\Relations\HasMany`?**
+  _High betweenness centrality (0.043) - this node is a cross-community bridge._
+- **Why does `Role` connect `Role` to `Organization`, `Illuminate\Foundation\Http\FormRequest`, `Project`, `OrgMember`?**
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `User` (e.g. with `.index()` and `.callback()`) actually correct?**
   _`User` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 9 inferred relationships involving `Organization` (e.g. with `.create()` and `.edit()`) actually correct?**

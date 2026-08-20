@@ -126,7 +126,7 @@ class ProjectManagementController extends Controller
         return view('projects.edit', [
             'project' => $project,
             'organization' => $organization,
-            'members' => $organization->members()->orderBy('name')->get(['users.id', 'users.name']),
+            'members' => $this->assignableStaff($organization),
             'assignedStaffIds' => $project->staff()->pluck('users.id')->all(),
             'clientOptions' => $this->clientOptions(),
             'assignedClientId' => $project->clients()->value('users.id'),
@@ -184,9 +184,27 @@ class ProjectManagementController extends Controller
     private function membersByOrganization(Collection $organizations): array
     {
         return $organizations->mapWithKeys(fn (Organization $org) => [
-            $org->id => $org->members()->orderBy('name')->get(['users.id', 'users.name'])
+            $org->id => $this->assignableStaff($org)
                 ->map(fn ($member) => ['id' => $member->id, 'name' => $member->name])
                 ->values(),
         ])->all();
+    }
+
+    /**
+     * Company members eligible for the Project "Assigned staff" picker —
+     * every org_member except those holding the Client role there. Client
+     * visibility on a project is granted separately via the Client field
+     * (project_clients), not by being added as staff.
+     *
+     * @return Collection<int, User>
+     */
+    private function assignableStaff(Organization $organization): Collection
+    {
+        $clientRoleId = Role::where('slug', Role::CLIENT)->value('id');
+
+        return $organization->members()
+            ->wherePivot('role_id', '!=', $clientRoleId)
+            ->orderBy('name')
+            ->get(['users.id', 'users.name']);
     }
 }

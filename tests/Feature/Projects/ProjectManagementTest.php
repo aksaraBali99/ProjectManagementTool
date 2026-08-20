@@ -177,6 +177,37 @@ test('assigning a staff member who does not belong to the project company is rej
     $this->assertDatabaseMissing('projects', ['organization_id' => $this->orgA->id, 'name' => 'Website revamp']);
 });
 
+test('the assigned staff dropdown does not offer users who hold the Client role in that company', function () {
+    $client = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $client->id, 'role_id' => $this->roles['client']->id]);
+
+    $createResponse = $this->actingAs($this->owner)->get("/projects/create/{$this->orgA->id}");
+    $createResponse->assertOk();
+    $createMembers = collect($createResponse->viewData('organizationMembers')[$this->orgA->id])->pluck('id')->all();
+    expect($createMembers)->toContain($this->staffInA->id)
+        ->not->toContain($client->id);
+
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'P', 'description' => 'd']);
+    $editResponse = $this->actingAs($this->owner)->get("/projects/{$project->id}/edit");
+    $editResponse->assertOk();
+    $editMembers = $editResponse->viewData('members')->pluck('id')->all();
+    expect($editMembers)->toContain($this->staffInA->id)
+        ->not->toContain($client->id);
+});
+
+test('assigning a user who holds the Client role in the project company as staff is rejected', function () {
+    $client = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $client->id, 'role_id' => $this->roles['client']->id]);
+
+    $response = $this->actingAs($this->owner)->post('/projects', validProjectPayload([
+        'organization_id' => $this->orgA->id,
+        'staff' => [$client->id],
+    ]));
+
+    $response->assertSessionHasErrors('staff.0');
+    $this->assertDatabaseMissing('projects', ['organization_id' => $this->orgA->id, 'name' => 'Website revamp']);
+});
+
 test('a management user can create a project in their own company', function () {
     $response = $this->actingAs($this->manager)->post('/projects', validProjectPayload([
         'organization_id' => $this->orgA->id,
