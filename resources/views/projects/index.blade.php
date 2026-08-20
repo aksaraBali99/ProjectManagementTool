@@ -49,7 +49,7 @@
                     @forelse ($projects as $project)
                         <tr>
                             <td class="px-3 py-2.5 text-[12px] font-medium text-[#1F2937]">{{ $project->name }}</td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $project->client_name }}</td>
+                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $project->primaryClient()->name ?? 'Internal' }}</td>
                             <td class="px-3 py-2.5">
                                 @if ($project->status === \App\Enums\ProjectStatus::Open)
                                     <span class="rounded-[5px] bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">{{ $project->status->label() }}</span>

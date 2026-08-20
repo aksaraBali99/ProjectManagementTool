@@ -33,7 +33,6 @@ beforeEach(function () {
         'organization_id' => $this->orgA->id,
         'name' => 'Project A',
         'description' => 'd',
-        'client_name' => 'internal',
     ]);
 
     $this->management = User::factory()->create();

@@ -245,7 +245,7 @@
     "semantic_hash": ""
   },
   "app/Models/Document.php": {
-    "mtime": 1787213630.7084599,
+    "mtime": 1787216778.6883707,
     "ast_hash": "daf4c58c3efba4254a92f41029c04975",
     "semantic_hash": ""
   },
@@ -265,12 +265,12 @@
     "semantic_hash": ""
   },
   "app/Models/Project.php": {
-    "mtime": 1787213623.2498415,
-    "ast_hash": "9423d65f60c4f3c71122dc637123cfdb",
+    "mtime": 1787217012.1446178,
+    "ast_hash": "44336fa6d2bac8171fb7096633f864fd",
     "semantic_hash": ""
   },
   "app/Models/Role.php": {
-    "mtime": 1787213462.9611523,
+    "mtime": 1787216778.6913705,
     "ast_hash": "7eb4cce26d0c0cb19a83624bd581493c",
     "semantic_hash": ""
   },
@@ -280,7 +280,7 @@
     "semantic_hash": ""
   },
   "app/Models/Task.php": {
-    "mtime": 1787213616.211037,
+    "mtime": 1787216778.692877,
     "ast_hash": "e470de0be73452d10a9df989d87f6872",
     "semantic_hash": ""
   },
@@ -330,7 +330,7 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_08_17_000700_create_projects_table.php": {
-    "mtime": 1787213651.8074095,
+    "mtime": 1787216778.6969643,
     "ast_hash": "14a625e761b2622ead9d7eeaaa340d1a",
     "semantic_hash": ""
   },
@@ -345,7 +345,7 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_08_17_001000_create_tasks_table.php": {
-    "mtime": 1787213640.1033597,
+    "mtime": 1787216778.6979806,
     "ast_hash": "ec5fee978407c47ee41624ccf2367a4c",
     "semantic_hash": ""
   },
@@ -355,7 +355,7 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_08_17_001200_create_documents_table.php": {
-    "mtime": 1787213663.9094758,
+    "mtime": 1787216778.6999726,
     "ast_hash": "5bef7ca6fdf30c9c98747bf7312e5017",
     "semantic_hash": ""
   },
@@ -425,8 +425,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/RoleBasedAccessTest.php": {
-    "mtime": 1787209693.7277486,
-    "ast_hash": "b64e457d046e9600d8b0657dec024d8e",
+    "mtime": 1787217234.6289005,
+    "ast_hash": "cab73ea7564fcba41633d16f1716529e",
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
@@ -470,7 +470,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/UserManagementController.php": {
-    "mtime": 1787213481.8148155,
+    "mtime": 1787216778.6729429,
     "ast_hash": "ef241fcb82abdc26b8eb18ddcd1955c6",
     "semantic_hash": ""
   },
@@ -500,7 +500,7 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/StoreUserRequest.php": {
-    "mtime": 1787215693.1377244,
+    "mtime": 1787216778.6838417,
     "ast_hash": "e4ec649239c3944849e2667d5766591f",
     "semantic_hash": ""
   },
@@ -510,7 +510,7 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/UpdateUserRequest.php": {
-    "mtime": 1787215704.0442383,
+    "mtime": 1787216778.685352,
     "ast_hash": "df043f0a59f253d691362c8e92252925",
     "semantic_hash": ""
   },
@@ -590,12 +590,12 @@
     "semantic_hash": ""
   },
   "resources/views/users/create.blade.php": {
-    "mtime": 1787215643.6866107,
+    "mtime": 1787216778.7394671,
     "ast_hash": "83a5b8b49dc1d177e38e8deff3929064",
     "semantic_hash": ""
   },
   "resources/views/users/edit.blade.php": {
-    "mtime": 1787215671.3426654,
+    "mtime": 1787216778.7414675,
     "ast_hash": "130f2442b8d4ded92f701bffd0bd983f",
     "semantic_hash": ""
   },
@@ -610,8 +610,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Departments/DepartmentManagementTest.php": {
-    "mtime": 1787125667.2111838,
-    "ast_hash": "93b37c2a9a0289f3e39ec926cf1212c5",
+    "mtime": 1787217260.0566926,
+    "ast_hash": "e13d8a6c863c0d8bea383616a8c061a8",
     "semantic_hash": ""
   },
   "tests/Feature/NavigationTest.php": {
@@ -635,7 +635,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Users/UserManagementTest.php": {
-    "mtime": 1787215772.9278717,
+    "mtime": 1787216778.7457452,
     "ast_hash": "0e0216f98f42c2e2f0584c0be2d910bd",
     "semantic_hash": ""
   },
@@ -655,18 +655,18 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/ProjectManagementController.php": {
-    "mtime": 1787213758.8891778,
-    "ast_hash": "35c82cd4f41cce5e4bd8f63c325327f9",
+    "mtime": 1787217059.9645288,
+    "ast_hash": "3cf6bf1fea00af99651d5e0c42aa6223",
     "semantic_hash": ""
   },
   "app/Http/Requests/Projects/StoreProjectRequest.php": {
-    "mtime": 1787213695.0495057,
-    "ast_hash": "e44cb32749e6743fde9ef67f99c2d7a5",
+    "mtime": 1787217022.0643804,
+    "ast_hash": "2a217747c987940a69ebdccebbe0f9d4",
     "semantic_hash": ""
   },
   "app/Http/Requests/Projects/UpdateProjectRequest.php": {
-    "mtime": 1787213704.8184752,
-    "ast_hash": "96b82484e40308c82fcb2a8a84c6ec7c",
+    "mtime": 1787217033.4629865,
+    "ast_hash": "26a6f3cb1c216f5ee1e7695bde6f51bf",
     "semantic_hash": ""
   },
   "resources/views/access-control/index.blade.php": {
@@ -675,18 +675,18 @@
     "semantic_hash": ""
   },
   "resources/views/projects/create.blade.php": {
-    "mtime": 1787213881.0089536,
-    "ast_hash": "69eecde8027f9ca9e1239ffa38066eec",
+    "mtime": 1787217068.7329817,
+    "ast_hash": "ac87a702734f36676282a8379b3b0ec7",
     "semantic_hash": ""
   },
   "resources/views/projects/edit.blade.php": {
-    "mtime": 1787213892.2584796,
-    "ast_hash": "3115ddfc95870e56acc7d38346f9edd8",
+    "mtime": 1787217080.3362205,
+    "ast_hash": "310a2ed6ed28c5cde61a86f9c6a7cfab",
     "semantic_hash": ""
   },
   "resources/views/projects/index.blade.php": {
-    "mtime": 1787213901.7840233,
-    "ast_hash": "9693d6d8381ea4050d9015cf3c90e31f",
+    "mtime": 1787217088.5244985,
+    "ast_hash": "e821375f4efdf09b1e0d752348ca4d6e",
     "semantic_hash": ""
   },
   "tests/Feature/AccessControl/AccessControlTest.php": {
@@ -695,8 +695,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Projects/ProjectManagementTest.php": {
-    "mtime": 1787213961.7675872,
-    "ast_hash": "d51e7537d2909302c4541e5e58e4ed4e",
+    "mtime": 1787217205.378872,
+    "ast_hash": "34b916f59d6cad373ab8af2fdcdbfb56",
     "semantic_hash": ""
   },
   "app/Http/Controllers/CommentController.php": {
@@ -705,7 +705,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1787213714.016745,
+    "mtime": 1787216778.6649473,
     "ast_hash": "f207f01f7d429a3299e60f556add2371",
     "semantic_hash": ""
   },
@@ -725,17 +725,17 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1787213740.3393576,
+    "mtime": 1787216778.6719427,
     "ast_hash": "1cfc45979809681e750813ffd7d130a7",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
-    "mtime": 1787213674.5650854,
+    "mtime": 1787216778.6788447,
     "ast_hash": "159ed536314e1b0c566c1a8b56121d75",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/UpdateTaskRequest.php": {
-    "mtime": 1787213683.250239,
+    "mtime": 1787216778.680843,
     "ast_hash": "572c0dfff176d5fef5788c8e85304eff",
     "semantic_hash": ""
   },
@@ -745,7 +745,7 @@
     "semantic_hash": ""
   },
   "app/Policies/DocumentPolicy.php": {
-    "mtime": 1787213725.3167622,
+    "mtime": 1787216778.6949542,
     "ast_hash": "1e65293cb87421371df0f2ed6b378738",
     "semantic_hash": ""
   },
@@ -785,7 +785,7 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
-    "mtime": 1787213865.5215602,
+    "mtime": 1787216778.7283375,
     "ast_hash": "70be9d430b4c4e675f4ae267beb071a9",
     "semantic_hash": ""
   },
@@ -795,17 +795,17 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/create.blade.php": {
-    "mtime": 1787213776.5158374,
+    "mtime": 1787216778.7333963,
     "ast_hash": "6146bca058a73ae95dc956c6151a248d",
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1787213799.7521694,
+    "mtime": 1787216778.7354062,
     "ast_hash": "e26d69e52748e3a2bac45729540ede7c",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
-    "mtime": 1787213815.4967651,
+    "mtime": 1787216778.7374847,
     "ast_hash": "2ec8d331e0aec3e63488776a62aa533e",
     "semantic_hash": ""
   },
@@ -830,38 +830,48 @@
     "semantic_hash": ""
   },
   "tests/Feature/Permissions/PermissionMatrixTest.php": {
-    "mtime": 1787209693.7227633,
-    "ast_hash": "dcc159785d8cf39be92c1f2f1cb310c1",
+    "mtime": 1787217246.6305811,
+    "ast_hash": "f850028cdb0600f3207c35d6a0f32867",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskManagementTest.php": {
-    "mtime": 1787209693.7307577,
-    "ast_hash": "ae7933ea297a6111f4ac19849e1c7a79",
+    "mtime": 1787217225.0228994,
+    "ast_hash": "0440b4e9ac7997c2a8d9e7c777af77f9",
     "semantic_hash": ""
   },
   "app/Enums/DocumentAccessLevel.php": {
-    "mtime": 1787213608.8899279,
+    "mtime": 1787216778.6599016,
     "ast_hash": "06b95ad2bf0ebf32cc025fd74f735622",
     "semantic_hash": ""
   },
   "app/Enums/Priority.php": {
-    "mtime": 1787213596.0724654,
+    "mtime": 1787216778.6619253,
     "ast_hash": "89c7c4b0673435eaed2c98571c605281",
     "semantic_hash": ""
   },
   "app/Enums/ProjectStatus.php": {
-    "mtime": 1787213603.921885,
+    "mtime": 1787216778.6619253,
     "ast_hash": "b1f42d756b5229a452c1a5d475a2036b",
     "semantic_hash": ""
   },
   "app/Enums/TaskStatus.php": {
-    "mtime": 1787213600.1157355,
+    "mtime": 1787216778.6649473,
     "ast_hash": "7462022e65ceb9a35d7646938cd3cbca",
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/Concerns/ValidatesCompanyRoles.php": {
-    "mtime": 1787215686.2421355,
+    "mtime": 1787216778.6828465,
     "ast_hash": "34a884ad16769be017b626ad923d6ca7",
+    "semantic_hash": ""
+  },
+  "app/Rules/ValidClientUser.php": {
+    "mtime": 1787217001.4238043,
+    "ast_hash": "92783b1e83cfdc65e0ec22cf6553aacf",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_20_170951_drop_client_name_from_projects_table.php": {
+    "mtime": 1787216996.3114343,
+    "ast_hash": "cf68d48ab0607956f8acb0299985e9dd",
     "semantic_hash": ""
   }
 }

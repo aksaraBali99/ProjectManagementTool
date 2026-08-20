@@ -43,15 +43,19 @@ function validProjectPayload(array $overrides = []): array
     return array_merge([
         'name' => 'Website revamp',
         'description' => 'Rebuild the marketing site.',
-        'client' => 'Acme Corp',
+        'client' => '',
         'status' => 'open',
         'priority' => 'medium',
     ], $overrides);
 }
 
-test('an owner can create a project end to end', function () {
+test('an owner can create a project end to end with a client user attached', function () {
+    $client = User::factory()->create(['name' => 'Acme Corp Contact']);
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $client->id, 'role_id' => $this->roles['client']->id]);
+
     $response = $this->actingAs($this->owner)->post('/projects', validProjectPayload([
         'organization_id' => $this->orgA->id,
+        'client' => $client->id,
         'staff' => [$this->staffInA->id],
     ]));
 
@@ -59,14 +63,14 @@ test('an owner can create a project end to end', function () {
     $this->assertDatabaseHas('projects', [
         'organization_id' => $this->orgA->id,
         'name' => 'Website revamp',
-        'client_name' => 'Acme Corp',
         'is_external' => true,
         'status' => 'open',
         'priority' => 'medium',
     ]);
 
     $project = Project::where('name', 'Website revamp')->firstOrFail();
-    expect($project->staff->pluck('id')->all())->toBe([$this->staffInA->id]);
+    expect($project->staff->pluck('id')->all())->toBe([$this->staffInA->id])
+        ->and($project->clients->pluck('id')->all())->toBe([$client->id]);
 });
 
 test('a project can be created and edited with an unselected (blank) staff row', function () {
@@ -87,33 +91,47 @@ test('a project can be created and edited with an unselected (blank) staff row',
     expect($project->fresh()->staff->pluck('id')->all())->toBe([$this->staffInA->id]);
 });
 
-test('entering "internal" as the client marks the project internal, case-insensitively', function () {
+test('leaving the client blank marks the project internal and attaches no client', function () {
     $this->actingAs($this->owner)->post('/projects', validProjectPayload([
         'organization_id' => $this->orgA->id,
-        'client' => 'Internal',
+        'client' => '',
     ]));
 
-    $this->assertDatabaseHas('projects', [
-        'name' => 'Website revamp',
-        'client_name' => 'Internal',
-        'is_external' => false,
-    ]);
+    $project = Project::where('name', 'Website revamp')->firstOrFail();
+    expect($project->is_external)->toBeFalse()
+        ->and($project->clients)->toBeEmpty();
 });
 
-test('a project can be edited and persists the assigned staff and field changes', function () {
+test('selecting a user who does not hold the Client role is rejected', function () {
+    $notAClient = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $notAClient->id, 'role_id' => $this->roles['staff']->id]);
+
+    $response = $this->actingAs($this->owner)->post('/projects', validProjectPayload([
+        'organization_id' => $this->orgA->id,
+        'client' => $notAClient->id,
+    ]));
+
+    $response->assertSessionHasErrors('client');
+    $this->assertDatabaseMissing('projects', ['organization_id' => $this->orgA->id, 'name' => 'Website revamp']);
+});
+
+test('a project can be edited and persists the assigned staff, client, and field changes', function () {
     $project = Project::create([
         'organization_id' => $this->orgA->id,
         'name' => 'Old name',
         'description' => 'Old description',
-        'client_name' => 'Old Client',
         'status' => 'open',
         'priority' => 'low',
     ]);
+
+    $client = User::factory()->create(['name' => 'New Client Contact']);
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $client->id, 'role_id' => $this->roles['client']->id]);
 
     $response = $this->actingAs($this->owner)->put("/projects/{$project->id}", validProjectPayload([
         'name' => 'New name',
         'status' => 'closed',
         'priority' => 'high',
+        'client' => $client->id,
         'staff' => [$this->staffInA->id],
     ]));
 
@@ -122,17 +140,20 @@ test('a project can be edited and persists the assigned staff and field changes'
     expect($project->name)->toBe('New name')
         ->and($project->status)->toBe(ProjectStatus::Closed)
         ->and($project->priority)->toBe(Priority::High)
-        ->and($project->staff->pluck('id')->all())->toBe([$this->staffInA->id]);
+        ->and($project->is_external)->toBeTrue()
+        ->and($project->staff->pluck('id')->all())->toBe([$this->staffInA->id])
+        ->and($project->clients->pluck('id')->all())->toBe([$client->id]);
 });
 
-test('name, description, and client are mandatory', function () {
+test('name and description are mandatory, but client is not (Internal is a valid default)', function () {
     $response = $this->actingAs($this->owner)->post('/projects', [
         'organization_id' => $this->orgA->id,
         'status' => 'open',
         'priority' => 'medium',
     ]);
 
-    $response->assertSessionHasErrors(['name', 'description', 'client']);
+    $response->assertSessionHasErrors(['name', 'description']);
+    $response->assertSessionDoesntHaveErrors('client');
     $this->assertDatabaseMissing('projects', ['organization_id' => $this->orgA->id]);
 });
 
@@ -186,13 +207,11 @@ test('a management user can edit a project in their own company but not another 
         'organization_id' => $this->orgA->id,
         'name' => 'Project A',
         'description' => 'd',
-        'client_name' => 'c',
     ]);
     $projectB = Project::create([
         'organization_id' => $this->orgB->id,
         'name' => 'Project B',
         'description' => 'd',
-        'client_name' => 'c',
     ]);
 
     $this->actingAs($this->manager)->get("/projects/{$projectA->id}/edit")->assertOk();
@@ -212,8 +231,8 @@ test('the project index only shows tabs for companies the user is visible in', f
 });
 
 test('the project index scopes the project list to the selected company tab', function () {
-    Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd', 'client_name' => 'c']);
-    Project::create(['organization_id' => $this->orgB->id, 'name' => 'Project B', 'description' => 'd', 'client_name' => 'c']);
+    Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+    Project::create(['organization_id' => $this->orgB->id, 'name' => 'Project B', 'description' => 'd']);
 
     $response = $this->actingAs($this->owner)->get("/projects/{$this->orgA->id}");
 
@@ -224,8 +243,8 @@ test('a client user only sees the projects they are attached to, even within a v
     $client = User::factory()->create();
     OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $client->id, 'role_id' => $this->roles['client']->id]);
 
-    $theirProject = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Their Project', 'description' => 'd', 'client_name' => 'c']);
-    $otherProject = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Other Project', 'description' => 'd', 'client_name' => 'c']);
+    $theirProject = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Their Project', 'description' => 'd']);
+    $otherProject = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Other Project', 'description' => 'd']);
     $theirProject->clients()->attach($client->id);
 
     $response = $this->actingAs($client)->get("/projects/{$this->orgA->id}");
@@ -234,7 +253,7 @@ test('a client user only sees the projects they are attached to, even within a v
 });
 
 test('the project index shows the task count per project', function () {
-    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd', 'client_name' => 'c']);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
     $department = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);
     Task::create(['organization_id' => $this->orgA->id, 'project_id' => $project->id, 'department_id' => $department->id, 'title' => 'A task']);
 
@@ -249,7 +268,6 @@ test('templating a project pre-fills name, description, and priority', function 
         'organization_id' => $this->orgA->id,
         'name' => 'Source Project',
         'description' => 'Source description',
-        'client_name' => 'Acme',
         'status' => 'closed',
         'priority' => 'high',
     ]);
@@ -266,22 +284,28 @@ test('templating a project pre-fills name, description, and priority', function 
 });
 
 test('submitting a templated project copies name, description, and priority but not status, client, or staff', function () {
+    $sourceClient = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $sourceClient->id, 'role_id' => $this->roles['client']->id]);
+
     $source = Project::create([
         'organization_id' => $this->orgA->id,
         'name' => 'Source Project',
         'description' => 'Source description',
-        'client_name' => 'Acme',
         'status' => 'closed',
         'priority' => 'high',
     ]);
     $source->staff()->attach($this->staffInA->id);
+    $source->clients()->attach($sourceClient->id);
+
+    $freshClient = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgB->id, 'user_id' => $freshClient->id, 'role_id' => $this->roles['client']->id]);
 
     $response = $this->actingAs($this->owner)->post('/projects', validProjectPayload([
         'organization_id' => $this->orgB->id,
         'name' => 'Source Project (Copy)',
         'description' => 'Source description',
         'priority' => 'high',
-        'client' => 'Fresh Client For Org B',
+        'client' => $freshClient->id,
     ]));
 
     $response->assertRedirect("/projects/{$this->orgB->id}");
@@ -290,12 +314,12 @@ test('submitting a templated project copies name, description, and priority but 
     expect($copy->description)->toBe('Source description')
         ->and($copy->priority)->toBe(Priority::High)
         ->and($copy->status)->toBe(ProjectStatus::Open) // Always starts open, even though the source was closed.
-        ->and($copy->client_name)->toBe('Fresh Client For Org B')
+        ->and($copy->clients->pluck('id')->all())->toBe([$freshClient->id]) // Not the source's client.
         ->and($copy->staff)->toBeEmpty(); // Staff is never carried over.
 });
 
 test('a super admin can template a project into any company', function () {
-    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'P', 'description' => 'd', 'client_name' => 'c']);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'P', 'description' => 'd']);
 
     $response = $this->actingAs($this->owner)->get("/projects/{$project->id}/template");
 
@@ -304,7 +328,7 @@ test('a super admin can template a project into any company', function () {
 });
 
 test('a management user cannot template a project into a company they do not manage', function () {
-    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'P', 'description' => 'd', 'client_name' => 'c']);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'P', 'description' => 'd']);
 
     $response = $this->actingAs($this->manager)->post('/projects', validProjectPayload([
         'organization_id' => $this->orgB->id,
@@ -315,7 +339,7 @@ test('a management user cannot template a project into a company they do not man
 });
 
 test('a management user cannot template a project they have no visibility into at all', function () {
-    $projectB = Project::create(['organization_id' => $this->orgB->id, 'name' => 'P', 'description' => 'd', 'client_name' => 'c']);
+    $projectB = Project::create(['organization_id' => $this->orgB->id, 'name' => 'P', 'description' => 'd']);
 
     $this->actingAs($this->manager)->get("/projects/{$projectB->id}/template")->assertNotFound();
 });
@@ -326,7 +350,6 @@ test('a management user can template a project from a company they only have sta
         'organization_id' => $this->orgB->id,
         'name' => 'Org B Project',
         'description' => 'd',
-        'client_name' => 'c',
         'priority' => 'low',
     ]);
 

@@ -111,7 +111,6 @@ test('an owner can deactivate and reactivate a department without deleting it, e
         'organization_id' => $this->organization->id,
         'name' => 'Proj',
         'description' => 'd',
-        'client_name' => 'c',
     ]);
     Task::create([
         'organization_id' => $this->organization->id,

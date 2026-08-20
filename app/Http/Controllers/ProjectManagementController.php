@@ -6,6 +6,8 @@ use App\Http\Requests\Projects\StoreProjectRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
 use App\Models\Organization;
 use App\Models\Project;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -38,6 +40,7 @@ class ProjectManagementController extends Controller
 
         $projects = Project::where('organization_id', $organization->id)
             ->withCount('tasks')
+            ->with('clients')
             ->orderBy('name')
             ->get()
             ->filter(fn (Project $project) => $user->can('view', $project))
@@ -103,13 +106,13 @@ class ProjectManagementController extends Controller
             'organization_id' => $request->integer('organization_id'),
             'name' => $request->string('name'),
             'description' => $request->string('description'),
-            'client_name' => $request->string('client'),
-            'is_external' => $this->isExternalClient($request->string('client')),
+            'is_external' => $request->filled('client'),
             'status' => $request->input('status'),
             'priority' => $request->input('priority'),
         ]);
 
         $project->staff()->sync($request->input('staff', []));
+        $project->clients()->sync($request->filled('client') ? [$request->integer('client')] : []);
 
         return redirect()->route('projects.index', $project->organization_id)->with('status', 'Project created.');
     }
@@ -125,6 +128,8 @@ class ProjectManagementController extends Controller
             'organization' => $organization,
             'members' => $organization->members()->orderBy('name')->get(['users.id', 'users.name']),
             'assignedStaffIds' => $project->staff()->pluck('users.id')->all(),
+            'clientOptions' => $this->clientOptions(),
+            'assignedClientId' => $project->clients()->value('users.id'),
         ]);
     }
 
@@ -135,20 +140,15 @@ class ProjectManagementController extends Controller
         $project->update([
             'name' => $request->string('name'),
             'description' => $request->string('description'),
-            'client_name' => $request->string('client'),
-            'is_external' => $this->isExternalClient($request->string('client')),
+            'is_external' => $request->filled('client'),
             'status' => $request->input('status'),
             'priority' => $request->input('priority'),
         ]);
 
         $project->staff()->sync($request->input('staff', []));
+        $project->clients()->sync($request->filled('client') ? [$request->integer('client')] : []);
 
         return redirect()->route('projects.index', $project->organization_id)->with('status', 'Project updated.');
-    }
-
-    private function isExternalClient(string $client): bool
-    {
-        return strtolower(trim($client)) !== 'internal';
     }
 
     /**
@@ -160,7 +160,22 @@ class ProjectManagementController extends Controller
             'organizations' => $manageableOrgs,
             'organization' => $organization,
             'organizationMembers' => $this->membersByOrganization($manageableOrgs),
+            'clientOptions' => $this->clientOptions(),
         ], $prefill));
+    }
+
+    /**
+     * Users currently holding the Client role in any company — the Project
+     * "Client" picker isn't scoped to the project's own company, so any
+     * Client-role user anywhere can be attached.
+     *
+     * @return Collection<int, User>
+     */
+    private function clientOptions(): Collection
+    {
+        return User::whereHas('orgMemberships.role', fn ($query) => $query->where('slug', Role::CLIENT))
+            ->orderBy('name')
+            ->get(['users.id', 'users.name']);
     }
 
     /**

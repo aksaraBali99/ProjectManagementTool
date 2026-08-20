@@ -29,8 +29,8 @@ beforeEach(function () {
     $this->deptATechnology = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Technology']);
     $this->deptBMarketing = Department::create(['organization_id' => $this->orgB->id, 'name' => 'Marketing']);
 
-    $this->projectA = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd', 'client_name' => 'c']);
-    $this->projectB = Project::create(['organization_id' => $this->orgB->id, 'name' => 'Project B', 'description' => 'd', 'client_name' => 'c']);
+    $this->projectA = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+    $this->projectB = Project::create(['organization_id' => $this->orgB->id, 'name' => 'Project B', 'description' => 'd']);
 
     $this->taskAMarketing = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $this->projectA->id, 'department_id' => $this->deptAMarketing->id, 'title' => 'A Marketing Task']);
     $this->taskATechnology = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $this->projectA->id, 'department_id' => $this->deptATechnology->id, 'title' => 'A Technology Task']);
