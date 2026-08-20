@@ -38,6 +38,25 @@ test('a super admin can view the user management page', function () {
     $this->actingAs($this->superAdmin)->get('/users')->assertOk();
 });
 
+test('the add user page shows a show/hide toggle on the password field', function () {
+    $response = $this->actingAs($this->owner)->get('/users/create');
+
+    $response->assertOk();
+    // "class=" prefix distinguishes the rendered <button> from the same
+    // class name appearing as a CSS selector inside the partial's own
+    // <script> tag.
+    $response->assertSee('class="password-toggle-btn', false);
+});
+
+test('the edit user page shows show/hide toggles on both password fields in the change-password modal', function () {
+    $target = User::factory()->create();
+
+    $response = $this->actingAs($this->owner)->get("/users/{$target->id}/edit");
+
+    $response->assertOk();
+    expect(substr_count($response->getContent(), 'class="password-toggle-btn'))->toBe(2);
+});
+
 test('an owner can create a user with management in one company and staff in another', function () {
     $response = $this->actingAs($this->owner)->post('/users', [
         'username' => 'newperson',
