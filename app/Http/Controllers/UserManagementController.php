@@ -33,6 +33,7 @@ class UserManagementController extends Controller
 
         return view('users.create', [
             'organizations' => Organization::orderBy('name')->get(),
+            'assignableRoles' => Role::assignableInCompany()->orderBy('name')->get(),
             'canGrantSuperAdmin' => auth()->user()->isOwner(),
         ]);
     }
@@ -77,11 +78,12 @@ class UserManagementController extends Controller
         return view('users.edit', [
             'user' => $user,
             'organizations' => $organizations,
+            'assignableRoles' => Role::assignableInCompany()->orderBy('name')->get(),
             'currentRoles' => $currentRoles,
             'isTargetOwner' => $isTargetOwner,
             'isTargetSuperAdmin' => $user->roles()->where('slug', Role::SUPER_ADMIN)->exists(),
             'canGrantSuperAdmin' => auth()->user()->isOwner(),
-            'globalRoles' => $user->roles()->whereIn('slug', [Role::SUPER_ADMIN, Role::OWNER])->pluck('name'),
+            'globalRoles' => $user->roles()->whereIn('slug', Role::GLOBAL_SLUGS)->pluck('name'),
         ]);
     }
 
@@ -126,12 +128,11 @@ class UserManagementController extends Controller
     }
 
     /**
-     * @param  array<int|string, string>  $roles  organization_id => 'none'|'staff'|'management'|'client'
+     * @param  array<int|string, string>  $roles  organization_id => 'none' or a company-assignable role slug
      */
     private function syncCompanyRoles(User $user, array $roles): void
     {
-        $roleIds = Role::whereIn('slug', [Role::STAFF, Role::MANAGEMENT, Role::CLIENT])
-            ->pluck('id', 'slug');
+        $roleIds = Role::assignableInCompany()->pluck('id', 'slug');
 
         foreach ($roles as $organizationId => $slug) {
             if ($slug === 'none') {

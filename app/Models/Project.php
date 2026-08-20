@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\Priority;
+use App\Enums\ProjectStatus;
 use App\Models\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +19,8 @@ class Project extends Model
     {
         return [
             'is_external' => 'boolean',
+            'status' => ProjectStatus::class,
+            'priority' => Priority::class,
         ];
     }
 

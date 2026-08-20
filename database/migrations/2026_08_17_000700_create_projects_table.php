@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Priority;
+use App\Enums\ProjectStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -15,8 +17,8 @@ return new class extends Migration
             $table->text('description');
             $table->string('client_name');
             $table->boolean('is_external')->default(false);
-            $table->enum('status', ['open', 'closed'])->default('open');
-            $table->enum('priority', ['high', 'medium', 'low'])->default('medium');
+            $table->enum('status', ProjectStatus::values())->default(ProjectStatus::Open->value);
+            $table->enum('priority', Priority::values())->default(Priority::Medium->value);
             $table->timestamps();
         });
     }

@@ -40,8 +40,10 @@ class UpdateUserRequest extends FormRequest
         ];
 
         if (! $this->targetIsOwner()) {
+            $assignableSlugs = Role::assignableInCompany()->pluck('slug')->all();
+
             $rules['roles'] = ['required', 'array'];
-            $rules['roles.*'] = ['required', 'in:none,staff,management,client'];
+            $rules['roles.*'] = ['required', Rule::in(array_merge(['none'], $assignableSlugs))];
             $rules['grant_super_admin'] = ['sometimes', 'boolean'];
         }
 

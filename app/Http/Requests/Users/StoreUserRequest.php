@@ -3,8 +3,10 @@
 namespace App\Http\Requests\Users;
 
 use App\Models\Organization;
+use App\Models\Role;
 use App\Rules\ValidPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Validator;
 
@@ -17,6 +19,8 @@ class StoreUserRequest extends FormRequest
 
     public function rules(): array
     {
+        $assignableSlugs = Role::assignableInCompany()->pluck('slug')->all();
+
         return [
             'username' => ['required', 'string', 'max:255', 'unique:users,username'],
             'password' => ['required', 'string', Password::min(8)->mixedCase()->numbers()->symbols()],
@@ -25,7 +29,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'email:rfc,filter', 'regex:/^[^\s@]+@[^\s@]+\.[^\s@]+$/', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:30', new ValidPhoneNumber],
             'roles' => ['required', 'array'],
-            'roles.*' => ['required', 'in:none,staff,management,client'],
+            'roles.*' => ['required', Rule::in(array_merge(['none'], $assignableSlugs))],
             'grant_super_admin' => ['sometimes', 'boolean'],
         ];
     }

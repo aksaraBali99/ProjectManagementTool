@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Tasks;
 
+use App\Enums\Priority;
+use App\Enums\TaskStatus;
 use App\Models\Department;
 use App\Models\OrgMember;
 use App\Models\Project;
 use App\Models\Role;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateTaskRequest extends FormRequest
 {
@@ -24,8 +27,8 @@ class UpdateTaskRequest extends FormRequest
             'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'priority' => ['required', 'in:high,medium,low'],
-            'status' => ['required', 'in:pending,in_progress,in_review,completed'],
+            'priority' => ['required', Rule::enum(Priority::class)],
+            'status' => ['required', Rule::enum(TaskStatus::class)],
             'due_date' => ['nullable', 'date'],
         ];
     }

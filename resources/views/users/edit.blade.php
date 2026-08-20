@@ -90,9 +90,9 @@
                             <span class="text-[12px] font-medium text-[#1F2937]">{{ $organization->name }}</span>
                             <select name="roles[{{ $organization->id }}]" class="role-select rounded-[8px] border border-gray-300 px-2 py-1 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                                 <option value="none" {{ $current === 'none' ? 'selected' : '' }}>No access</option>
-                                <option value="staff" {{ $current === 'staff' ? 'selected' : '' }}>Staff</option>
-                                <option value="management" {{ $current === 'management' ? 'selected' : '' }}>Management</option>
-                                <option value="client" {{ $current === 'client' ? 'selected' : '' }}>Client</option>
+                                @foreach ($assignableRoles as $role)
+                                    <option value="{{ $role->slug }}" {{ $current === $role->slug ? 'selected' : '' }}>{{ $role->name }}</option>
+                                @endforeach
                             </select>
                         </div>
                     @endforeach

@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Projects;
 
+use App\Enums\Priority;
+use App\Enums\ProjectStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,8 +29,8 @@ class UpdateProjectRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'client' => ['required', 'string', 'max:255'],
-            'status' => ['required', 'in:open,closed'],
-            'priority' => ['required', 'in:high,medium,low'],
+            'status' => ['required', Rule::enum(ProjectStatus::class)],
+            'priority' => ['required', Rule::enum(Priority::class)],
             'staff' => ['array'],
             'staff.*' => [
                 'integer',

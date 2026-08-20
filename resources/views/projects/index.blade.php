@@ -51,19 +51,19 @@
                             <td class="px-3 py-2.5 text-[12px] font-medium text-[#1F2937]">{{ $project->name }}</td>
                             <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $project->client_name }}</td>
                             <td class="px-3 py-2.5">
-                                @if ($project->status === 'open')
-                                    <span class="rounded-[5px] bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">Open</span>
+                                @if ($project->status === \App\Enums\ProjectStatus::Open)
+                                    <span class="rounded-[5px] bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">{{ $project->status->label() }}</span>
                                 @else
-                                    <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">Closed</span>
+                                    <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $project->status->label() }}</span>
                                 @endif
                             </td>
                             <td class="px-3 py-2.5">
-                                @if ($project->priority === 'high')
-                                    <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">High</span>
-                                @elseif ($project->priority === 'medium')
-                                    <span class="rounded-[5px] bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">Medium</span>
+                                @if ($project->priority === \App\Enums\Priority::High)
+                                    <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $project->priority->label() }}</span>
+                                @elseif ($project->priority === \App\Enums\Priority::Medium)
+                                    <span class="rounded-[5px] bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">{{ $project->priority->label() }}</span>
                                 @else
-                                    <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">Low</span>
+                                    <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">{{ $project->priority->label() }}</span>
                                 @endif
                             </td>
                             <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $project->tasks_count }}</td>

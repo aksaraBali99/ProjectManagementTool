@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Priority;
+use App\Enums\ProjectStatus;
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
@@ -118,8 +120,8 @@ test('a project can be edited and persists the assigned staff and field changes'
     $response->assertRedirect("/projects/{$this->orgA->id}");
     $project->refresh();
     expect($project->name)->toBe('New name')
-        ->and($project->status)->toBe('closed')
-        ->and($project->priority)->toBe('high')
+        ->and($project->status)->toBe(ProjectStatus::Closed)
+        ->and($project->priority)->toBe(Priority::High)
         ->and($project->staff->pluck('id')->all())->toBe([$this->staffInA->id]);
 });
 
@@ -286,8 +288,8 @@ test('submitting a templated project copies name, description, and priority but 
 
     $copy = Project::where('organization_id', $this->orgB->id)->where('name', 'Source Project (Copy)')->firstOrFail();
     expect($copy->description)->toBe('Source description')
-        ->and($copy->priority)->toBe('high')
-        ->and($copy->status)->toBe('open') // Always starts open, even though the source was closed.
+        ->and($copy->priority)->toBe(Priority::High)
+        ->and($copy->status)->toBe(ProjectStatus::Open) // Always starts open, even though the source was closed.
         ->and($copy->client_name)->toBe('Fresh Client For Org B')
         ->and($copy->staff)->toBeEmpty(); // Staff is never carried over.
 });
