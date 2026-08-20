@@ -57,12 +57,18 @@ class TaskManagementController extends Controller
         $isManagerHere = $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organization->id);
 
         if (! $isManagerHere) {
-            $allowedDepartmentIds = AccessPermission::where('user_id', $user->id)
-                ->where('organization_id', $organization->id)
-                ->where('allowed', true)
-                ->pluck('department_id');
+            if ($user->isClientInOrg($organization->id)) {
+                $clientProjectIds = $user->projectsAsClient()->where('organization_id', $organization->id)->pluck('projects.id');
 
-            $query->whereIn('department_id', $allowedDepartmentIds);
+                $query->whereIn('project_id', $clientProjectIds);
+            } else {
+                $allowedDepartmentIds = AccessPermission::where('user_id', $user->id)
+                    ->where('organization_id', $organization->id)
+                    ->where('allowed', true)
+                    ->pluck('department_id');
+
+                $query->whereIn('department_id', $allowedDepartmentIds);
+            }
         }
 
         $tasks = $query->orderBy('due_date')->orderBy('title')->get();

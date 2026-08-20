@@ -48,6 +48,7 @@ class PermissionSeeder extends Seeder
             ],
             Role::CLIENT => [
                 'view_projects',
+                'view_tasks', // narrowed to their own project's tasks in TaskPolicy, not company-wide
                 'view_comments', 'add_edit_own_comment',
             ],
         ];

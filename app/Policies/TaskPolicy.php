@@ -25,6 +25,10 @@ class TaskPolicy
             if ($user->accessPermissions()->where('organization_id', $organizationId)->where('allowed', true)->exists()) {
                 return true;
             }
+
+            if ($user->projectsAsClient()->where('organization_id', $organizationId)->exists()) {
+                return true;
+            }
         }
 
         return false;
@@ -40,7 +44,11 @@ class TaskPolicy
             return true;
         }
 
-        return $user->hasDepartmentAccess($task->organization_id, $task->department_id);
+        if ($user->hasDepartmentAccess($task->organization_id, $task->department_id)) {
+            return true;
+        }
+
+        return $user->isClientOnProject($task->project_id);
     }
 
     public function create(User $user, int $organizationId): bool

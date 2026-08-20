@@ -61,6 +61,19 @@ function makeStaffWithDepartmentAccess(Organization $org, Department $department
     return $staff;
 }
 
+function makeClientOnProject(Organization $org, Project $project): User
+{
+    $client = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $org->id,
+        'user_id' => $client->id,
+        'role_id' => Role::where('slug', 'client')->first()->id,
+    ]);
+    $project->clients()->attach($client->id);
+
+    return $client;
+}
+
 test('a management user can create a task with staged subtasks bulk-created against the new task only after saving', function () {
     expect(Subtask::count())->toBe(0);
 
@@ -144,6 +157,89 @@ test('a staff user can view but not edit a task they are not the assignee of', f
         'project_id' => $this->projectA->id,
         'department_id' => $this->deptA->id,
         'title' => 'Renamed',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertForbidden();
+});
+
+test('a client user can view but not edit a task on the project they are attached to', function () {
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Client-visible task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($client)->get("/tasks/{$task->id}/edit")->assertOk();
+
+    $this->actingAs($client)->put("/tasks/{$task->id}", [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Renamed',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertForbidden();
+});
+
+test('a client user cannot view a task on a project they are not attached to', function () {
+    $otherProject = Project::create([
+        'organization_id' => $this->orgA->id,
+        'name' => 'Other Project',
+        'description' => 'd',
+    ]);
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $otherProject->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Not their task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($client)->get("/tasks/{$task->id}/edit")->assertForbidden();
+});
+
+test('the task list for a client only shows tasks from the project they are attached to', function () {
+    $otherProject = Project::create([
+        'organization_id' => $this->orgA->id,
+        'name' => 'Other Project',
+        'description' => 'd',
+    ]);
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Their task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $otherProject->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Not their task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($client)->get("/tasks/{$this->orgA->id}");
+
+    $response->assertOk()->assertSee('Their task')->assertDontSee('Not their task');
+});
+
+test('a client user cannot create a task', function () {
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+
+    $this->actingAs($client)->get('/tasks/create')->assertForbidden();
+    $this->actingAs($client)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Nope',
         'priority' => 'medium',
         'status' => 'pending',
     ])->assertForbidden();

@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "app/Models/User.php": {
-    "mtime": 1787209693.690792,
-    "ast_hash": "739e7ed15fd980f2aa5fd8f9aa9120cf",
+    "mtime": 1787217905.5537918,
+    "ast_hash": "663946f1fb458f949ff9ff6b0b27c37b",
     "semantic_hash": ""
   },
   "app/Providers/AppServiceProvider.php": {
@@ -295,8 +295,8 @@
     "semantic_hash": ""
   },
   "app/Policies/TaskPolicy.php": {
-    "mtime": 1787209693.7008064,
-    "ast_hash": "358d97bdcdac776e796ccca0d5b2fc57",
+    "mtime": 1787217913.9482334,
+    "ast_hash": "d37317154e7f95dea37b1ac261e298b9",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_17_000100_create_organizations_table.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1787216778.6719427,
-    "ast_hash": "1cfc45979809681e750813ffd7d130a7",
+    "mtime": 1787217920.3228002,
+    "ast_hash": "46c12429dd7a31bd1b714a839f93da41",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -770,8 +770,8 @@
     "semantic_hash": ""
   },
   "database/seeders/PermissionSeeder.php": {
-    "mtime": 1787209693.709819,
-    "ast_hash": "78ffa686d430ded0a27f63268150fd7b",
+    "mtime": 1787217898.905452,
+    "ast_hash": "8e64c847263393094ed3249193aea046",
     "semantic_hash": ""
   },
   "resources/views/roles/permissions.blade.php": {
@@ -835,8 +835,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskManagementTest.php": {
-    "mtime": 1787217225.0228994,
-    "ast_hash": "0440b4e9ac7997c2a8d9e7c777af77f9",
+    "mtime": 1787217960.3764348,
+    "ast_hash": "e4cbc5e245b477db12f55461d5d2ab42",
     "semantic_hash": ""
   },
   "app/Enums/DocumentAccessLevel.php": {
