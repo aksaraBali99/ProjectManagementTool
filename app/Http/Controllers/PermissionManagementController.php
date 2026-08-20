@@ -69,7 +69,7 @@ class PermissionManagementController extends Controller
         $order = [Role::SUPER_ADMIN, Role::OWNER, Role::MANAGEMENT, Role::STAFF, Role::CLIENT];
 
         return Role::whereIn('slug', $order)->get()
-            ->sortBy(fn (Role $role) => array_search($role->slug, $order))
+            ->sortBy(fn (\App\Models\Role $role) => array_search($role->slug, $order))
             ->values();
     }
 }
