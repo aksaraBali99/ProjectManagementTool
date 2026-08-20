@@ -74,6 +74,7 @@
                             <option value="none" {{ old('roles.'.$organization->id, 'none') === 'none' ? 'selected' : '' }}>No access</option>
                             <option value="staff" {{ old('roles.'.$organization->id) === 'staff' ? 'selected' : '' }}>Staff</option>
                             <option value="management" {{ old('roles.'.$organization->id) === 'management' ? 'selected' : '' }}>Management</option>
+                            <option value="client" {{ old('roles.'.$organization->id) === 'client' ? 'selected' : '' }}>Client</option>
                         </select>
                     </div>
                 @endforeach
@@ -83,6 +84,20 @@
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
         </div>
+
+        @if ($canGrantSuperAdmin)
+            <div class="rounded-[8px] border border-gray-200 px-3 py-3">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" name="grant_super_admin" value="1" {{ old('grant_super_admin') ? 'checked' : '' }}
+                        class="rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]">
+                    <span class="text-[12px] font-medium text-[#1F2937]">Grant Super Admin</span>
+                </label>
+                <p class="mt-1 text-[11px] text-gray-500">
+                    Full access to every company, everything — bypasses per-company roles entirely. Only an Owner can
+                    grant this.
+                </p>
+            </div>
+        @endif
 
         <div class="flex items-center gap-3 pt-2">
             <button type="submit" id="submit-btn"
@@ -127,9 +142,11 @@
 
         const roleSelects = document.querySelectorAll('.role-select');
         const rolesError = document.getElementById('roles-error');
+        const grantSuperAdmin = document.querySelector('input[name="grant_super_admin"]');
 
         function validateRoles(force) {
-            const hasAccess = Array.from(roleSelects).some(function (select) { return select.value !== 'none'; });
+            const hasAccess = Array.from(roleSelects).some(function (select) { return select.value !== 'none'; })
+                || (grantSuperAdmin && grantSuperAdmin.checked);
             if (! hasAccess && force) {
                 rolesError.textContent = 'Assign this user a role in at least one company.';
                 rolesError.style.display = '';
@@ -141,6 +158,10 @@
         roleSelects.forEach(function (select) {
             select.addEventListener('change', function () { validateRoles(true); });
         });
+
+        if (grantSuperAdmin) {
+            grantSuperAdmin.addEventListener('change', function () { validateRoles(true); });
+        }
 
         document.getElementById('create-user-form').addEventListener('submit', function (event) {
             validatePassword(true);

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Users;
 
 use App\Models\Organization;
+use App\Models\Role;
 use App\Rules\ValidPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -13,6 +14,17 @@ class UpdateUserRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Owner itself stays fully locked (unmanageable via this form,
+     * regardless of who's editing) — but a target who only holds Super
+     * Admin, or no global role at all, gets the normal editable fields,
+     * since an Owner viewer can now grant/revoke Super Admin here too.
+     */
+    private function targetIsOwner(): bool
+    {
+        return $this->route('user')->roles()->where('slug', Role::OWNER)->exists();
     }
 
     public function rules(): array
@@ -27,9 +39,10 @@ class UpdateUserRequest extends FormRequest
             'phone' => ['required', 'string', 'max:30', new ValidPhoneNumber],
         ];
 
-        if (! $this->route('user')->hasGlobalRole()) {
+        if (! $this->targetIsOwner()) {
             $rules['roles'] = ['required', 'array'];
-            $rules['roles.*'] = ['required', 'in:none,staff,management'];
+            $rules['roles.*'] = ['required', 'in:none,staff,management,client'];
+            $rules['grant_super_admin'] = ['sometimes', 'boolean'];
         }
 
         return $rules;
@@ -45,7 +58,7 @@ class UpdateUserRequest extends FormRequest
 
     public function withValidator(Validator $validator): void
     {
-        if ($this->route('user')->hasGlobalRole()) {
+        if ($this->targetIsOwner()) {
             return;
         }
 
@@ -61,7 +74,9 @@ class UpdateUserRequest extends FormRequest
                 }
             }
 
-            if (! collect($roles)->contains(fn ($role) => $role !== 'none')) {
+            $grantingSuperAdmin = $this->user()?->isOwner() && $this->boolean('grant_super_admin');
+
+            if (! $grantingSuperAdmin && ! collect($roles)->contains(fn ($role) => $role !== 'none')) {
                 $validator->errors()->add('roles', 'Assign this user a role in at least one company.');
             }
         });

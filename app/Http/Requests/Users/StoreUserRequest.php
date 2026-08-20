@@ -25,7 +25,8 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'email:rfc,filter', 'regex:/^[^\s@]+@[^\s@]+\.[^\s@]+$/', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:30', new ValidPhoneNumber],
             'roles' => ['required', 'array'],
-            'roles.*' => ['required', 'in:none,staff,management'],
+            'roles.*' => ['required', 'in:none,staff,management,client'],
+            'grant_super_admin' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -51,7 +52,11 @@ class StoreUserRequest extends FormRequest
                 }
             }
 
-            if (! collect($roles)->contains(fn ($role) => $role !== 'none')) {
+            // Skipped if granting Super Admin — global access makes a
+            // per-company role optional, same as an already-global user.
+            $grantingSuperAdmin = $this->user()?->isOwner() && $this->boolean('grant_super_admin');
+
+            if (! $grantingSuperAdmin && ! collect($roles)->contains(fn ($role) => $role !== 'none')) {
                 $validator->errors()->add('roles', 'Assign this user a role in at least one company.');
             }
         });
