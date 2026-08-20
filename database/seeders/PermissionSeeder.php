@@ -1,0 +1,61 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Permission;
+use App\Models\Role;
+use Illuminate\Database\Seeder;
+
+class PermissionSeeder extends Seeder
+{
+    /**
+     * Seeds the exact permission set replicating current hardcoded-role
+     * behavior — this seed changes nothing about what any role can
+     * currently do, only how that's determined. See CLAUDE.md / the
+     * permission-system PR for the audit behind these grants.
+     */
+    public function run(): void
+    {
+        $permissions = [
+            ['slug' => 'view_projects', 'name' => 'View projects', 'group' => 'Projects'],
+            ['slug' => 'create_edit_projects', 'name' => 'Create & edit projects', 'group' => 'Projects'],
+            ['slug' => 'view_tasks', 'name' => 'View tasks', 'group' => 'Tasks'],
+            ['slug' => 'create_edit_tasks', 'name' => 'Create & edit tasks', 'group' => 'Tasks'],
+            ['slug' => 'toggle_subtask_done', 'name' => 'Toggle subtask done', 'group' => 'Tasks'],
+            ['slug' => 'view_comments', 'name' => 'View comments', 'group' => 'Comments'],
+            ['slug' => 'add_edit_own_comment', 'name' => 'Add / edit own comments', 'group' => 'Comments'],
+            ['slug' => 'manage_settings', 'name' => 'Manage settings', 'group' => 'Administration'],
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::updateOrCreate(['slug' => $permission['slug']], $permission);
+        }
+
+        $allSlugs = collect($permissions)->pluck('slug')->all();
+
+        $grants = [
+            Role::SUPER_ADMIN => $allSlugs,
+            Role::OWNER => $allSlugs,
+            Role::MANAGEMENT => [
+                'view_projects', 'create_edit_projects',
+                'view_tasks', 'create_edit_tasks', 'toggle_subtask_done',
+                'view_comments', 'add_edit_own_comment',
+            ],
+            Role::STAFF => [
+                'view_projects',
+                'view_tasks', 'toggle_subtask_done',
+                'view_comments', 'add_edit_own_comment',
+            ],
+            Role::CLIENT => [
+                'view_projects',
+                'view_comments', 'add_edit_own_comment',
+            ],
+        ];
+
+        foreach ($grants as $roleSlug => $permissionSlugs) {
+            $role = Role::where('slug', $roleSlug)->firstOrFail();
+            $permissionIds = Permission::whereIn('slug', $permissionSlugs)->pluck('id');
+            $role->permissions()->sync($permissionIds);
+        }
+    }
+}

@@ -7,10 +7,18 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 
 beforeEach(function () {
+    // Real seeders (not hand-rolled Role::create rows) so these roles carry
+    // the role_permissions grants ProjectPolicy now checks via
+    // hasPermission() — a locally-created Role with no seeded permissions
+    // fails every capability check.
+    $this->seed([RoleSeeder::class, PermissionSeeder::class]);
+
     $this->roles = collect(['super_admin', 'owner', 'management', 'staff', 'client'])
-        ->mapWithKeys(fn ($slug) => [$slug => Role::create(['name' => ucfirst($slug), 'slug' => $slug, 'is_system' => true])]);
+        ->mapWithKeys(fn ($slug) => [$slug => Role::where('slug', $slug)->firstOrFail()]);
 
     $this->orgA = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
     $this->orgB = Organization::create(['name' => 'Org B', 'slug' => 'org-b', 'accent_color' => '#534AB7']);

@@ -6,10 +6,16 @@
 <div class="mx-auto max-w-3xl">
     <a href="{{ route('settings.index') }}" class="text-xs text-gray-500 hover:underline">← Settings</a>
 
-    <h1 class="mt-2 text-xl font-semibold text-gray-900">Roles</h1>
+    <div class="mt-2 flex items-center justify-between">
+        <h1 class="text-xl font-semibold text-gray-900">Roles</h1>
+        <a href="{{ route('roles.permissions.edit') }}" class="rounded-md bg-[#1D9E75] px-4 py-2 text-sm font-medium text-white hover:bg-[#0F6E56]">
+            Manage permissions
+        </a>
+    </div>
     <p class="mt-1 text-sm text-gray-500">
         System roles power the app's access rules and can't be created or deleted here — only their name and
-        description can be edited.
+        description can be edited. What each role can actually do is configured under
+        <a href="{{ route('roles.permissions.edit') }}" class="text-[#1D9E75] hover:underline">Manage permissions</a>.
     </p>
 
     @if (session('status'))

@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentManagementController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\OrganizationManagementController;
+use App\Http\Controllers\PermissionManagementController;
 use App\Http\Controllers\ProjectManagementController;
 use App\Http\Controllers\RoleManagementController;
 use App\Http\Controllers\SettingsController;
@@ -55,6 +56,12 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/departments/{organization?}', [DepartmentManagementController::class, 'index'])->name('departments.index');
 
     Route::get('/roles', [RoleManagementController::class, 'index'])->name('roles.index');
+    // Must stay registered before /roles/{role} below — both are
+    // single-role-param-shaped, and Laravel matches in registration order,
+    // so /roles/permissions would otherwise be swallowed as an attempt to
+    // route-model-bind a Role with route key "permissions".
+    Route::get('/roles/permissions', [PermissionManagementController::class, 'edit'])->name('roles.permissions.edit');
+    Route::put('/roles/permissions', [PermissionManagementController::class, 'update'])->name('roles.permissions.update');
     Route::get('/roles/{role}/edit', [RoleManagementController::class, 'edit'])->name('roles.edit');
     Route::put('/roles/{role}', [RoleManagementController::class, 'update'])->name('roles.update');
 

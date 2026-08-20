@@ -10,12 +10,15 @@ use App\Models\Role;
 use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\User;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 
 beforeEach(function () {
-    Role::create(['name' => 'Super Admin', 'slug' => 'super_admin', 'is_system' => true]);
-    Role::create(['name' => 'Owner', 'slug' => 'owner', 'is_system' => true]);
-    Role::create(['name' => 'Management', 'slug' => 'management', 'is_system' => true]);
-    Role::create(['name' => 'Staff', 'slug' => 'staff', 'is_system' => true]);
+    // Real seeders (not hand-rolled Role::create rows) so these roles carry
+    // the role_permissions grants TaskPolicy/SubtaskPolicy now check via
+    // hasPermission() — a locally-created Role with no seeded permissions
+    // fails every capability check.
+    $this->seed([RoleSeeder::class, PermissionSeeder::class]);
 
     $this->owner = User::factory()->create();
     $this->owner->roles()->attach(Role::where('slug', 'owner')->first()->id);

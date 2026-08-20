@@ -18,11 +18,15 @@ class SubtaskPolicy
      * Deliberately more permissive than update/delete: anyone who can view
      * the parent task may toggle a subtask's done state, even a staff
      * member who isn't the task's assignee and therefore can't edit the
-     * task (or the subtask's title) at all.
+     * task (or the subtask's title) at all. Gated by its own
+     * toggle_subtask_done permission (currently granted to the same roles
+     * as view_tasks, but a distinct slug so it can diverge later) on top
+     * of the existing task-visibility scoping check.
      */
     public function toggle(User $user, Subtask $subtask): bool
     {
-        return Gate::forUser($user)->allows('view', $subtask->task);
+        return $user->hasPermission('toggle_subtask_done', $subtask->task->organization_id)
+            && Gate::forUser($user)->allows('view', $subtask->task);
     }
 
     public function update(User $user, Subtask $subtask): bool
