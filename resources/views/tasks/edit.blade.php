@@ -114,7 +114,7 @@
             (function () {
                 const projectOrganizations = @json($projectOrganizations);
                 const departmentsByOrg = @json($departmentsByOrganization);
-                const staffByOrg = @json($staffByOrganization);
+                const staffByProject = @json($staffByProject);
                 const oldDepartment = @json(old('department_id', $task->department_id));
                 const oldAssignee = @json(old('assignee_id', $task->assignee_id));
 
@@ -135,7 +135,7 @@
                     });
 
                     assigneeSelect.innerHTML = '<option value="">Unassigned</option>';
-                    (staffByOrg[orgId] || []).forEach(function (member) {
+                    (staffByProject[projectSelect.value] || []).forEach(function (member) {
                         const option = document.createElement('option');
                         option.value = member.id;
                         option.textContent = member.name;
@@ -172,7 +172,7 @@
     <div class="mt-6">
         <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Subtasks</span>
         <div class="mt-2">
-            @include('tasks._subtasks', ['task' => $task, 'canEdit' => $canEdit, 'staffOptions' => $staffByOrganization[$task->organization_id] ?? []])
+            @include('tasks._subtasks', ['task' => $task, 'canEdit' => $canEdit, 'staffOptions' => $staffByProject[$task->project_id] ?? []])
         </div>
     </div>
 

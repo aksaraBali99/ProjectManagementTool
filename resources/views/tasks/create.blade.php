@@ -134,7 +134,7 @@
             (function () {
                 const projectOrganizations = @json($projectOrganizations);
                 const departmentsByOrg = @json($departmentsByOrganization);
-                const staffByOrg = @json($staffByOrganization);
+                const staffByProject = @json($staffByProject);
                 const oldDepartment = @json(old('department_id'));
                 const oldAssignee = @json(old('assignee_id'));
 
@@ -145,9 +145,9 @@
                 const subtaskRows = document.getElementById('subtask-rows');
                 let subtaskIndex = subtaskRows.querySelectorAll('[data-subtask-row]').length;
 
-                function populateAssigneeSelect(select, orgId, selectedId) {
+                function populateAssigneeSelect(select, projectId, selectedId) {
                     select.innerHTML = '<option value="">Unassigned</option>';
-                    (staffByOrg[orgId] || []).forEach(function (member) {
+                    (staffByProject[projectId] || []).forEach(function (member) {
                         const option = document.createElement('option');
                         option.value = member.id;
                         option.textContent = member.name;
@@ -168,14 +168,14 @@
                         departmentSelect.appendChild(option);
                     });
 
-                    populateAssigneeSelect(assigneeSelect, orgId, oldAssignee);
+                    populateAssigneeSelect(assigneeSelect, projectSelect.value, oldAssignee);
 
                     // Staged subtask rows' assignee options depend on the same
-                    // company as the parent task, so they need refreshing too —
+                    // project as the parent task, so they need refreshing too —
                     // clearing the selection, since a previously chosen assignee
-                    // may not belong to the newly selected project's company.
+                    // may not be assigned to the newly selected project.
                     subtaskRows.querySelectorAll('.subtask-assignee-select').forEach(function (select) {
-                        populateAssigneeSelect(select, orgId, null);
+                        populateAssigneeSelect(select, projectSelect.value, null);
                     });
                 }
 
@@ -186,7 +186,6 @@
 
                 function addSubtaskRow() {
                     const index = subtaskIndex++;
-                    const orgId = projectOrganizations[projectSelect.value];
 
                     const row = document.createElement('div');
                     row.className = 'flex items-center gap-2';
@@ -200,7 +199,7 @@
 
                     // Pre-fill from the parent task's current values — a
                     // starting point only, fully editable right away.
-                    populateAssigneeSelect(row.querySelector('.subtask-assignee-select'), orgId, assigneeSelect.value);
+                    populateAssigneeSelect(row.querySelector('.subtask-assignee-select'), projectSelect.value, assigneeSelect.value);
                     row.querySelector('.subtask-due-date').value = dueDateInput.value;
 
                     row.querySelector('.subtask-title-input').focus();
