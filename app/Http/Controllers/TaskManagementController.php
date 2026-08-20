@@ -65,7 +65,15 @@ class TaskManagementController extends Controller
                     ->where('allowed', true)
                     ->pluck('department_id');
 
-                $query->whereIn('department_id', $allowedDepartmentIds);
+                // A task assigned directly to this user — or one of its
+                // subtasks — is visible even outside their granted
+                // departments; being an assignee at either level is its own
+                // access path, independent of department scope.
+                $query->where(function ($q) use ($allowedDepartmentIds, $user) {
+                    $q->whereIn('department_id', $allowedDepartmentIds)
+                        ->orWhere('assignee_id', $user->id)
+                        ->orWhereHas('subtasks', fn ($sq) => $sq->where('assignee_id', $user->id));
+                });
             }
         }
 

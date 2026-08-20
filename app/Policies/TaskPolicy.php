@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\User;
 
@@ -29,6 +30,16 @@ class TaskPolicy
             if ($user->projectsAsClient()->where('organization_id', $organizationId)->exists()) {
                 return true;
             }
+
+            if (Task::where('organization_id', $organizationId)->where('assignee_id', $user->id)->exists()) {
+                return true;
+            }
+
+            if (Subtask::whereHas('task', fn ($query) => $query->where('organization_id', $organizationId))
+                ->where('assignee_id', $user->id)
+                ->exists()) {
+                return true;
+            }
         }
 
         return false;
@@ -45,6 +56,14 @@ class TaskPolicy
         }
 
         if ($user->hasDepartmentAccess($task->organization_id, $task->department_id)) {
+            return true;
+        }
+
+        if ($task->assignee_id === $user->id) {
+            return true;
+        }
+
+        if ($task->subtasks()->where('assignee_id', $user->id)->exists()) {
             return true;
         }
 
