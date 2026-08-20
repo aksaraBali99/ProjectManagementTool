@@ -59,6 +59,43 @@
             });
         }
 
+        function buildCommentRow(comment) {
+            const row = document.createElement('div');
+            row.className = 'rounded-[8px] bg-white border border-gray-200 px-3 py-2';
+            row.dataset.commentId = comment.id;
+            row.dataset.canEdit = comment.can_edit ? '1' : '0';
+
+            const actionsHtml = comment.can_edit
+                ? '<div class="comment-actions mt-1 flex items-center gap-2">'
+                    + '<button type="button" class="edit-comment-btn text-[10px] text-[#1D9E75] hover:underline">Edit</button>'
+                    + '<button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>'
+                    + '</div>'
+                : '';
+
+            row.innerHTML = '<div class="flex items-center justify-between">'
+                + '<span class="text-[11px] font-medium text-[#1F2937]">' + escapeHtml(comment.user_name) + '</span>'
+                + '<span class="text-[10px] text-gray-400">' + escapeHtml(comment.created_at) + '</span>'
+                + '</div>'
+                + '<p class="comment-body-text mt-1 text-[12px] text-gray-700">' + escapeHtml(comment.body) + '</p>'
+                + actionsHtml;
+
+            return row;
+        }
+
+        function removeEmptyState() {
+            const empty = listEl.querySelector('.comment-empty');
+            if (empty) empty.remove();
+        }
+
+        function showEmptyStateIfNeeded() {
+            if (! listEl.querySelector('[data-comment-id]') && ! listEl.querySelector('.comment-empty')) {
+                const empty = document.createElement('p');
+                empty.className = 'comment-empty text-[11px] text-gray-500';
+                empty.textContent = 'No comments yet.';
+                listEl.appendChild(empty);
+            }
+        }
+
         function wireComment(row) {
             const editBtn = row.querySelector('.edit-comment-btn');
             const deleteBtn = row.querySelector('.delete-comment-btn');
@@ -121,12 +158,7 @@
                         .then(function (response) {
                             if (! response.ok) throw new Error();
                             row.remove();
-                            if (! listEl.querySelector('[data-comment-id]')) {
-                                const empty = document.createElement('p');
-                                empty.className = 'comment-empty text-[11px] text-gray-500';
-                                empty.textContent = 'No comments yet.';
-                                listEl.appendChild(empty);
-                            }
+                            showEmptyStateIfNeeded();
                         })
                         .catch(function () {
                             alert('Failed to delete comment.');
@@ -150,21 +182,9 @@
                     return response.json();
                 })
                 .then(function (data) {
-                    const empty = listEl.querySelector('.comment-empty');
-                    if (empty) empty.remove();
+                    removeEmptyState();
 
-                    const item = document.createElement('div');
-                    item.className = 'rounded-[8px] bg-white border border-gray-200 px-3 py-2';
-                    item.dataset.commentId = data.comment.id;
-                    item.innerHTML = '<div class="flex items-center justify-between">'
-                        + '<span class="text-[11px] font-medium text-[#1F2937]">' + escapeHtml(data.comment.user_name) + '</span>'
-                        + '<span class="text-[10px] text-gray-400">' + escapeHtml(data.comment.created_at) + '</span>'
-                        + '</div>'
-                        + '<p class="comment-body-text mt-1 text-[12px] text-gray-700">' + escapeHtml(data.comment.body) + '</p>'
-                        + '<div class="comment-actions mt-1 flex items-center gap-2">'
-                        + '<button type="button" class="edit-comment-btn text-[10px] text-[#1D9E75] hover:underline">Edit</button>'
-                        + '<button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>'
-                        + '</div>';
+                    const item = buildCommentRow(Object.assign({}, data.comment, { can_edit: true }));
                     listEl.appendChild(item);
                     wireComment(item);
                     bodyInput.value = '';
@@ -177,5 +197,54 @@
                     postBtn.disabled = false;
                 });
         });
+
+        // Scoped to this task's own comment list, not a full-page refetch —
+        // and only while the container is actually visible, so collapsed
+        // drilldown rows on the Task List page don't poll in the background.
+        function syncComments() {
+            if (container.offsetParent === null) return;
+
+            fetch('/tasks/' + taskId + '/comments', { headers: { Accept: 'application/json' } })
+                .then(function (response) {
+                    if (! response.ok) throw new Error();
+                    return response.json();
+                })
+                .then(function (data) {
+                    const seenIds = [];
+
+                    data.comments.forEach(function (comment) {
+                        seenIds.push(String(comment.id));
+                        const existing = listEl.querySelector('[data-comment-id="' + comment.id + '"]');
+
+                        if (! existing) {
+                            removeEmptyState();
+                            const row = buildCommentRow(comment);
+                            listEl.appendChild(row);
+                            wireComment(row);
+                            return;
+                        }
+
+                        if (existing.querySelector('.comment-edit-textarea')) return;
+
+                        const bodyText = existing.querySelector('.comment-body-text');
+                        if (bodyText && bodyText.textContent !== comment.body) {
+                            bodyText.textContent = comment.body;
+                        }
+                    });
+
+                    listEl.querySelectorAll('[data-comment-id]').forEach(function (row) {
+                        if (seenIds.indexOf(row.dataset.commentId) === -1 && ! row.querySelector('.comment-edit-textarea')) {
+                            row.remove();
+                        }
+                    });
+
+                    showEmptyStateIfNeeded();
+                })
+                .catch(function () {
+                    // Transient polling failure — stay quiet, next tick retries.
+                });
+        }
+
+        setInterval(syncComments, 7000);
     })();
 </script>
