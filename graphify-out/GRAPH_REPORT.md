@@ -1,7 +1,7 @@
 # Graph Report - ProjectManagementTool  (2026-08-20)
 
 ## Corpus Check
-- 175 files · ~40,875 words
+- 175 files · ~40,876 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `eb83fc4b`
+- Built from commit: `3705e861`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,8 +18,9 @@
 - scripts
 - composer.json
 - Mermaid AI Skills
+- Department.php
 - package.json
-- Organization
+- Department
 - Closure
 - LARAVEL_README.md
 - AppServiceProvider
@@ -29,8 +30,7 @@
 - CLAUDE.md
 - copilot-instructions.md
 - Illuminate\Database\Eloquent\Model
-- Department
-- OrgMember
+- Organization
 - ProjectManagementTool
 - Illuminate\Http\RedirectResponse
 - Task
@@ -39,12 +39,12 @@
 - users/create.blade.php
 - users/edit.blade.php
 - projects/edit.blade.php
-- Illuminate\Database\Seeder
+- OrgMember
 - Illuminate\Foundation\Http\FormRequest
+- Illuminate\Database\Seeder
 - Illuminate\View\View
 - ProjectManagementController
 - TaskManagementController
-- Department.php
 - tasks/edit.blade.php
 - tasks/index.blade.php
 - auth.php
@@ -96,6 +96,10 @@ Nodes (12): Diagram editing & preview, Docs, Generate diagrams (GitHub Copilot r
 Cohesion: 0.08
 Nodes (23): concurrently, intl-tel-input, @laravel/multiplex, laravel-vite-plugin, dependencies, intl-tel-input, devDependencies, concurrently (+15 more)
 
+### Community 5 - "Department"
+Cohesion: 0.19
+Nodes (3): DepartmentManagementController, StoreDepartmentRequest, Department
+
 ### Community 6 - "Closure"
 Cohesion: 0.22
 Nodes (7): EnsureBelongsToOrganization, EnsureUserIsActive, ValidClientUser, ValidPhoneNumber, Closure, Illuminate\Contracts\Validation\ValidationRule, Symfony\Component\HttpFoundation\Response
@@ -115,14 +119,6 @@ Nodes (5): bootBelongsToOrganization(), bootHidesInactiveFromNonAdmins(), UserFa
 ### Community 39 - "Illuminate\Database\Eloquent\Model"
 Cohesion: 0.11
 Nodes (7): AccessPermission, AuditLog, organization(), NotificationSetting, Illuminate\Database\Eloquent\Model, Illuminate\Database\Eloquent\Relations\BelongsTo, makeStaffWithDepartmentAccess()
-
-### Community 42 - "Department"
-Cohesion: 0.19
-Nodes (3): DepartmentManagementController, StoreDepartmentRequest, Department
-
-### Community 44 - "OrgMember"
-Cohesion: 0.22
-Nodes (3): OrgMember, joinOrg(), makeClientOnProject()
 
 ### Community 53 - "Illuminate\Http\RedirectResponse"
 Cohesion: 0.07
@@ -144,15 +140,19 @@ Nodes (4): users._inline-validation, users._password-input, users._phone-input, 
 Cohesion: 0.40
 Nodes (4): users._inline-validation, users._password-input, users._phone-input, users._unsaved-changes-guard
 
-### Community 72 - "Illuminate\Database\Seeder"
-Cohesion: 0.21
-Nodes (7): DatabaseSeeder, DepartmentSeeder, OrganizationSeeder, PermissionSeeder, RoleSeeder, UserSeeder, Illuminate\Database\Seeder
+### Community 72 - "OrgMember"
+Cohesion: 0.22
+Nodes (3): OrgMember, joinOrg(), makeClientOnProject()
 
 ### Community 73 - "Illuminate\Foundation\Http\FormRequest"
 Cohesion: 0.07
 Nodes (12): LoginRequest, UpdateDepartmentRequest, StoreOrganizationRequest, UpdateOrganizationRequest, UpdateProjectRequest, UpdateRoleRequest, validateCompanyRoles(), validateSuperAdminGrant() (+4 more)
 
-### Community 74 - "Illuminate\View\View"
+### Community 74 - "Illuminate\Database\Seeder"
+Cohesion: 0.21
+Nodes (7): DatabaseSeeder, DepartmentSeeder, OrganizationSeeder, PermissionSeeder, RoleSeeder, UserSeeder, Illuminate\Database\Seeder
+
+### Community 77 - "Illuminate\View\View"
 Cohesion: 0.22
 Nodes (3): DashboardController, SettingsController, Illuminate\View\View
 
@@ -168,11 +168,11 @@ Nodes (3): tasks._comments, tasks._subtasks, tasks._documents
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `Role.php`, `Organization`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Database\Seeder`, `Illuminate\Foundation\Http\FormRequest`, `Illuminate\View\View`, `OrgMember`, `ProjectManagementController`, `Illuminate\Http\RedirectResponse`, `Task`, `Project`?**
+- **Why does `User` connect `User` to `Illuminate\Database\Eloquent\Model`, `OrgMember`, `Illuminate\Foundation\Http\FormRequest`, `Role.php`, `Illuminate\Database\Seeder`, `Organization`, `Illuminate\View\View`, `ProjectManagementController`, `Illuminate\Http\RedirectResponse`, `Task`, `Project`?**
   _High betweenness centrality (0.110) - this node is a cross-community bridge._
-- **Why does `Organization` connect `Organization` to `Role.php`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Database\Seeder`, `Illuminate\Foundation\Http\FormRequest`, `Department`, `Illuminate\View\View`, `OrgMember`, `ProjectManagementController`, `TaskManagementController`, `User`, `Illuminate\Http\RedirectResponse`, `Project`?**
+- **Why does `Organization` connect `Organization` to `Department`, `Illuminate\Database\Eloquent\Model`, `OrgMember`, `Illuminate\Foundation\Http\FormRequest`, `Role.php`, `User`, `Illuminate\Database\Seeder`, `Illuminate\View\View`, `ProjectManagementController`, `TaskManagementController`, `Illuminate\Http\RedirectResponse`, `Project`?**
   _High betweenness centrality (0.044) - this node is a cross-community bridge._
-- **Why does `Role` connect `Illuminate\Http\RedirectResponse` to `Role.php`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Database\Seeder`, `Illuminate\Foundation\Http\FormRequest`, `User`, `OrgMember`, `ProjectManagementController`, `StoreProjectRequest`?**
+- **Why does `Role` connect `Illuminate\Http\RedirectResponse` to `Illuminate\Database\Eloquent\Model`, `OrgMember`, `Illuminate\Foundation\Http\FormRequest`, `Role.php`, `User`, `Illuminate\Database\Seeder`, `ProjectManagementController`, `StoreProjectRequest`?**
   _High betweenness centrality (0.027) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `User` (e.g. with `.index()` and `.callback()`) actually correct?**
   _`User` has 5 INFERRED edges - model-reasoned connections that need verification._
