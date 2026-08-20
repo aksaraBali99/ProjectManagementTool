@@ -28,13 +28,6 @@
         </div>
 
         <div>
-            <label for="slug" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Slug</label>
-            <input id="slug" name="slug" type="text" value="{{ old('slug') }}" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-            <p class="mt-1 text-[10px] text-gray-500">Letters, numbers, dashes, and underscores only.</p>
-        </div>
-
-        <div>
             <label for="accent_color" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Accent color</label>
             <input id="accent_color" name="accent_color" type="color" value="{{ old('accent_color', '#1D9E75') }}" required
                 class="mt-1 h-10 w-20 rounded-[8px] border border-gray-300">

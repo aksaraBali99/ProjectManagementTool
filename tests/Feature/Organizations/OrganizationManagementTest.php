@@ -25,39 +25,67 @@ test('a non-owner/non-super-admin cannot access organization management', functi
     $this->actingAs($manager)->get('/organizations/create')->assertForbidden();
 });
 
-test('an owner can create a company', function () {
+test('an owner can create a company, and the slug is auto-generated from the name', function () {
     $response = $this->actingAs($this->owner)->post('/organizations', [
         'name' => 'New Co',
-        'slug' => 'new-co',
         'accent_color' => '#1D9E75',
     ]);
 
     $response->assertRedirect('/organizations');
-    $this->assertDatabaseHas('organizations', ['slug' => 'new-co', 'is_active' => true]);
+    $this->assertDatabaseHas('organizations', ['name' => 'New Co', 'slug' => 'new-co', 'is_active' => true]);
+});
+
+test('creating two companies whose names produce the same slug get unique suffixed slugs', function () {
+    $this->actingAs($this->owner)->post('/organizations', [
+        'name' => 'Acme Co',
+        'accent_color' => '#1D9E75',
+    ]);
+    $this->actingAs($this->owner)->post('/organizations', [
+        'name' => 'Acme Co',
+        'accent_color' => '#534AB7',
+    ]);
+
+    $slugs = Organization::where('name', 'Acme Co')->pluck('slug')->sort()->values();
+    expect($slugs->all())->toBe(['acme-co', 'acme-co-2']);
+});
+
+test('the slug field is not present on the create or edit company forms', function () {
+    $this->actingAs($this->owner)->get('/organizations/create')
+        ->assertOk()
+        ->assertDontSee('name="slug"', false);
+
+    $organization = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
+    $this->actingAs($this->owner)->get("/organizations/{$organization->id}/edit")
+        ->assertOk()
+        ->assertDontSee('name="slug"', false);
 });
 
 test('creating a company requires a valid hex accent color', function () {
     $response = $this->actingAs($this->owner)->post('/organizations', [
         'name' => 'New Co',
-        'slug' => 'new-co',
         'accent_color' => 'not-a-color',
     ]);
 
     $response->assertSessionHasErrors('accent_color');
-    $this->assertDatabaseMissing('organizations', ['slug' => 'new-co']);
+    $this->assertDatabaseMissing('organizations', ['name' => 'New Co']);
 });
 
-test('an owner can update a company', function () {
+test('an owner can update a company, and the slug stays fixed even when the name changes', function () {
     $organization = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
 
     $response = $this->actingAs($this->owner)->put("/organizations/{$organization->id}", [
         'name' => 'Org A Renamed',
-        'slug' => 'org-a',
         'accent_color' => '#534AB7',
     ]);
 
     $response->assertRedirect('/organizations');
-    expect($organization->fresh()->name)->toBe('Org A Renamed');
+    expect($organization->fresh()->name)->toBe('Org A Renamed')
+        ->and($organization->fresh()->slug)->toBe('org-a');
+});
+
+test('generateUniqueSlug lowercases, hyphenates, and strips special characters', function () {
+    expect(Organization::generateUniqueSlug('Bali Virtual Academy!'))->toBe('bali-virtual-academy');
+    expect(Organization::generateUniqueSlug('  R&D / Ops  '))->toBe('rd-ops');
 });
 
 test('there is no route to delete a company', function () {

@@ -23,7 +23,6 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Slug</th>
                     <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Accent</th>
                     <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Departments</th>
                     <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Projects</th>
@@ -35,7 +34,6 @@
                 @foreach ($organizations as $organization)
                     <tr>
                         <td class="px-3 py-2.5 text-[12px] font-medium text-[#1F2937]">{{ $organization->name }}</td>
-                        <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $organization->slug }}</td>
                         <td class="px-3 py-2.5">
                             <span class="inline-block h-3.5 w-3.5 rounded-full align-middle" style="background-color: {{ $organization->accent_color }}"></span>
                             <span class="ml-1 text-[10px] text-gray-500">{{ $organization->accent_color }}</span>
