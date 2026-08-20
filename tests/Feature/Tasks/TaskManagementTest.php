@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AccessPermission;
+use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
@@ -964,4 +965,137 @@ test('adding a document from the task list does not attach it to any task', func
     $response->assertRedirect();
     $document = Document::where('name', 'Library doc')->firstOrFail();
     expect($document->tasks()->count())->toBe(0);
+});
+
+test('creating a task writes an audit_log entry', function () {
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Audited task',
+        'priority' => 'high',
+        'status' => 'pending',
+    ]);
+
+    $task = Task::where('title', 'Audited task')->firstOrFail();
+    $response->assertRedirect('/tasks/'.$task->id.'/edit');
+
+    $log = AuditLog::where('entity_type', Task::class)->where('entity_id', $task->id)->firstOrFail();
+    expect($log->action)->toBe('created')
+        ->and($log->organization_id)->toBe($this->orgA->id)
+        ->and($log->user_id)->toBe($this->management->id)
+        ->and($log->changes['title'])->toBe('Audited task');
+});
+
+test('updating a task writes an audit_log entry recording the changed fields', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Original title',
+        'priority' => 'low',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->management)->put("/tasks/{$task->id}", [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Updated title',
+        'priority' => 'high',
+        'status' => 'pending',
+    ]);
+
+    $log = AuditLog::where('entity_type', Task::class)->where('entity_id', $task->id)->where('action', 'updated')->firstOrFail();
+    expect($log->user_id)->toBe($this->management->id)
+        ->and($log->changes['title'])->toBe('Updated title')
+        ->and($log->changes['priority'])->toBe('high')
+        ->and($log->changes)->not->toHaveKey('status');
+});
+
+test('updating a task with no actual field changes does not write an audit_log entry', function () {
+    // assignee_id/due_date are explicitly set to null here (rather than
+    // omitted) to match what TaskManagementController::store() always
+    // writes — Eloquent's dirty-check treats a key entirely absent from
+    // the original attributes as "changed" the first time it's set, even
+    // to the same null value, which would otherwise make this update look
+    // dirty for reasons unrelated to what's actually being tested.
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => null,
+        'due_date' => null,
+        'title' => 'Unchanged',
+        'description' => 'Same description',
+        'priority' => 'low',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->management)->put("/tasks/{$task->id}", [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Unchanged',
+        'description' => 'Same description',
+        'priority' => 'low',
+        'status' => 'pending',
+    ]);
+
+    expect(AuditLog::where('entity_type', Task::class)->where('entity_id', $task->id)->where('action', 'updated')->exists())->toBeFalse();
+});
+
+test('deactivating and reactivating a task writes audit_log entries', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Toggle me',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->management)->patch("/tasks/{$task->id}/toggle-active");
+    $this->actingAs($this->management)->patch("/tasks/{$task->id}/toggle-active");
+
+    $actions = AuditLog::where('entity_type', Task::class)->where('entity_id', $task->id)
+        ->whereIn('action', ['deactivated', 'reactivated'])
+        ->orderBy('id')
+        ->pluck('action');
+
+    expect($actions->all())->toBe(['deactivated', 'reactivated']);
+});
+
+test('the comments JSON endpoint returns the task comments with a per-viewer can_edit flag', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task with comments',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $ownComment = $task->comments()->create(['user_id' => $this->management->id, 'body' => 'Mine']);
+    $othersComment = $task->comments()->create(['user_id' => $this->owner->id, 'body' => 'Not mine']);
+
+    $response = $this->actingAs($this->management)->getJson("/tasks/{$task->id}/comments");
+
+    $response->assertOk();
+    $comments = collect($response->json('comments'))->keyBy('id');
+    expect($comments[$ownComment->id]['body'])->toBe('Mine')
+        ->and($comments[$ownComment->id]['can_edit'])->toBeTrue()
+        ->and($comments[$othersComment->id]['can_edit'])->toBeFalse();
+});
+
+test('the comments JSON endpoint respects CommentPolicy view scoping like the page', function () {
+    $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $otherDept->id,
+        'title' => 'Not staff\'s department',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+
+    $this->actingAs($staff)->getJson("/tasks/{$task->id}/comments")->assertForbidden();
 });

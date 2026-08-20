@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1787232831.9738529,
-    "ast_hash": "4469040c2519207e3cc664fed08f06bd",
+    "mtime": 1787235348.3107338,
+    "ast_hash": "e0c7e4b3e7dafa41a4d9e1d0f4848d96",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -260,7 +260,7 @@
     "semantic_hash": ""
   },
   "app/Models/Organization.php": {
-    "mtime": 1787233042.8744152,
+    "mtime": 1787233491.6465013,
     "ast_hash": "c6547a513556444ee3ed672ecaab5f73",
     "semantic_hash": ""
   },
@@ -455,7 +455,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/OrganizationManagementController.php": {
-    "mtime": 1787233053.6174705,
+    "mtime": 1787233491.6414664,
     "ast_hash": "99cf347310b13984ad02d7e10d8a3af1",
     "semantic_hash": ""
   },
@@ -485,12 +485,12 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Organizations/StoreOrganizationRequest.php": {
-    "mtime": 1787233060.280898,
+    "mtime": 1787233491.642984,
     "ast_hash": "d21e97be4bbf087a575ddba75fbe20fd",
     "semantic_hash": ""
   },
   "app/Http/Requests/Organizations/UpdateOrganizationRequest.php": {
-    "mtime": 1787233068.8447936,
+    "mtime": 1787233491.6449928,
     "ast_hash": "cc61ce19d7787efec829cd11ff75d97c",
     "semantic_hash": ""
   },
@@ -560,17 +560,17 @@
     "semantic_hash": ""
   },
   "resources/views/organizations/create.blade.php": {
-    "mtime": 1787233077.158075,
+    "mtime": 1787233491.6684206,
     "ast_hash": "b39a264bfcb9689267e1c41cf844d2e0",
     "semantic_hash": ""
   },
   "resources/views/organizations/edit.blade.php": {
-    "mtime": 1787233085.7928262,
+    "mtime": 1787233491.670487,
     "ast_hash": "1c4afcb26efbac41263496d27da71807",
     "semantic_hash": ""
   },
   "resources/views/organizations/index.blade.php": {
-    "mtime": 1787233100.702103,
+    "mtime": 1787233491.6714966,
     "ast_hash": "af8c927f0779ff74284544f53c5c92fa",
     "semantic_hash": ""
   },
@@ -590,12 +590,12 @@
     "semantic_hash": ""
   },
   "resources/views/users/create.blade.php": {
-    "mtime": 1787216778.7394671,
+    "mtime": 1787234973.2831106,
     "ast_hash": "83a5b8b49dc1d177e38e8deff3929064",
     "semantic_hash": ""
   },
   "resources/views/users/edit.blade.php": {
-    "mtime": 1787216778.7414675,
+    "mtime": 1787234973.2831106,
     "ast_hash": "130f2442b8d4ded92f701bffd0bd983f",
     "semantic_hash": ""
   },
@@ -620,7 +620,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Organizations/OrganizationManagementTest.php": {
-    "mtime": 1787233162.0650504,
+    "mtime": 1787233491.6735294,
     "ast_hash": "06e38dcefb08f56849630d19dab5ee17",
     "semantic_hash": ""
   },
@@ -635,7 +635,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Users/UserManagementTest.php": {
-    "mtime": 1787216778.7457452,
+    "mtime": 1787234973.2868216,
     "ast_hash": "0e0216f98f42c2e2f0584c0be2d910bd",
     "semantic_hash": ""
   },
@@ -700,8 +700,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/CommentController.php": {
-    "mtime": 1787232831.918524,
-    "ast_hash": "4706bdf009fc93e7d6600c0f583e5ed2",
+    "mtime": 1787235367.8266397,
+    "ast_hash": "4e577f634767982ddf2bca5baa3f15d4",
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1787232831.924034,
-    "ast_hash": "0d17b4ee8df518288e0df8920257b81f",
+    "mtime": 1787235803.835195,
+    "ast_hash": "533a531512870e5acbaaefdbc3b15d29",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -780,8 +780,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
-    "mtime": 1787232831.9668555,
-    "ast_hash": "1d62800efccb3d6d12dd904cb0dc3447",
+    "mtime": 1787235425.9129066,
+    "ast_hash": "3c18a23425af95a12e71ad411939813d",
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
@@ -835,8 +835,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskManagementTest.php": {
-    "mtime": 1787232831.981881,
-    "ast_hash": "4f18e44904fc8ed9180b680b23d15ee6",
+    "mtime": 1787235808.1049616,
+    "ast_hash": "3860d43dfff3da968c9655fb27878d8e",
     "semantic_hash": ""
   },
   "app/Enums/DocumentAccessLevel.php": {

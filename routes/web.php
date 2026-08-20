@@ -86,6 +86,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::put('/subtasks/{subtask}', [SubtaskController::class, 'update'])->name('subtasks.update');
     Route::delete('/subtasks/{subtask}', [SubtaskController::class, 'destroy'])->name('subtasks.destroy');
 
+    Route::get('/tasks/{task}/comments', [CommentController::class, 'index'])->name('comments.index');
     Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
     Route::put('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');

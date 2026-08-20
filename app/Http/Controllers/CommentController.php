@@ -10,6 +10,23 @@ use Illuminate\Support\Facades\Gate;
 
 class CommentController extends Controller
 {
+    public function index(Task $task): JsonResponse
+    {
+        Gate::authorize('view', $task);
+
+        $comments = $task->comments()->with('user')->orderBy('created_at')->get();
+
+        return response()->json([
+            'comments' => $comments->map(fn (Comment $comment) => [
+                'id' => $comment->id,
+                'body' => $comment->body,
+                'user_name' => $comment->user->name,
+                'created_at' => $comment->created_at->format('M j, Y g:ia'),
+                'can_edit' => Gate::allows('update', $comment),
+            ])->values(),
+        ]);
+    }
+
     public function store(Request $request, Task $task): JsonResponse
     {
         // CommentPolicy@create doesn't take the task (it's a blanket "can
