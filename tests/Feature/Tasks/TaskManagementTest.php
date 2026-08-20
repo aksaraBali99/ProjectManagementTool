@@ -1099,3 +1099,100 @@ test('the comments JSON endpoint respects CommentPolicy view scoping like the pa
 
     $this->actingAs($staff)->getJson("/tasks/{$task->id}/comments")->assertForbidden();
 });
+
+test('creating a subtask writes an audit_log entry', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->post("/tasks/{$task->id}/subtasks", [
+        'title' => 'Audited subtask',
+    ]);
+    $response->assertCreated();
+
+    $subtask = Subtask::where('title', 'Audited subtask')->firstOrFail();
+    $log = AuditLog::where('entity_type', Subtask::class)->where('entity_id', $subtask->id)->firstOrFail();
+    expect($log->action)->toBe('created')
+        ->and($log->organization_id)->toBe($this->orgA->id)
+        ->and($log->user_id)->toBe($this->management->id)
+        ->and($log->changes['title'])->toBe('Audited subtask');
+});
+
+test('toggling a subtask done state writes an audit_log entry', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $subtask = $task->subtasks()->create(['title' => 'Toggle me']);
+
+    $this->actingAs($this->management)->patch("/subtasks/{$subtask->id}/toggle")->assertOk();
+    $this->actingAs($this->management)->patch("/subtasks/{$subtask->id}/toggle")->assertOk();
+
+    $actions = AuditLog::where('entity_type', Subtask::class)->where('entity_id', $subtask->id)
+        ->orderBy('id')
+        ->pluck('action');
+
+    expect($actions->all())->toBe(['completed', 'reopened']);
+});
+
+test('updating a subtask writes an audit_log entry recording the changed fields', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $subtask = $task->subtasks()->create(['title' => 'Original title']);
+
+    $this->actingAs($this->management)->put("/subtasks/{$subtask->id}", ['title' => 'Renamed'])->assertOk();
+
+    $log = AuditLog::where('entity_type', Subtask::class)->where('entity_id', $subtask->id)->where('action', 'updated')->firstOrFail();
+    expect($log->user_id)->toBe($this->management->id)
+        ->and($log->changes)->toBe(['title' => 'Renamed']);
+});
+
+test('updating a subtask with no actual field changes does not write an audit_log entry', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $subtask = $task->subtasks()->create(['title' => 'Unchanged']);
+
+    $this->actingAs($this->management)->put("/subtasks/{$subtask->id}", ['title' => 'Unchanged'])->assertOk();
+
+    expect(AuditLog::where('entity_type', Subtask::class)->where('entity_id', $subtask->id)->where('action', 'updated')->exists())->toBeFalse();
+});
+
+test('deleting a subtask writes an audit_log entry', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $subtask = $task->subtasks()->create(['title' => 'Doomed subtask']);
+    $subtaskId = $subtask->id;
+
+    $this->actingAs($this->management)->delete("/subtasks/{$subtask->id}")->assertOk();
+
+    $log = AuditLog::where('entity_type', Subtask::class)->where('entity_id', $subtaskId)->where('action', 'deleted')->firstOrFail();
+    expect($log->organization_id)->toBe($this->orgA->id)
+        ->and($log->changes['title'])->toBe('Doomed subtask');
+});
