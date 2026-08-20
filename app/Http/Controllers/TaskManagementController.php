@@ -8,9 +8,7 @@ use App\Models\AccessPermission;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
-use App\Models\OrgMember;
 use App\Models\Project;
-use App\Models\Role;
 use App\Models\Task;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -237,11 +235,12 @@ class TaskManagementController extends Controller
     }
 
     /**
-     * Assignee options for a task/subtask are staff who are BOTH staff-role
-     * in the project's company AND actually assigned to that project (via
-     * project_staff) — not every staff member company-wide. Joins the pivot
-     * directly rather than relying on an eager-loaded `staff` relation, so
-     * this works whether $projects is an Eloquent or a plain Support
+     * Assignee options for a task/subtask are anyone attached to the
+     * project — via project_staff (any role: management, staff, ...) or
+     * project_clients (the project's client) — not scoped to a "Staff"
+     * role, and not every company member company-wide. Joins the pivots
+     * directly rather than relying on eager-loaded relations, so this
+     * works whether $projects is an Eloquent or a plain Support
      * collection (e.g. Task::with('project')->get()->pluck('project')).
      *
      * @param  Collection<int, Project>  $projects
@@ -253,25 +252,23 @@ class TaskManagementController extends Controller
             return [];
         }
 
-        $organizationIds = $projects->pluck('organization_id')->unique()->values();
+        $projectIds = $projects->pluck('id');
 
-        $staffUserIdsByOrg = OrgMember::whereIn('organization_id', $organizationIds)
-            ->whereHas('role', fn ($query) => $query->where('slug', Role::STAFF))
-            ->get(['organization_id', 'user_id'])
-            ->groupBy('organization_id')
-            ->map(fn ($rows) => $rows->pluck('user_id'));
-
-        $projectStaffByProject = DB::table('project_staff')
+        $staffRows = DB::table('project_staff')
             ->join('users', 'users.id', '=', 'project_staff.user_id')
-            ->whereIn('project_staff.project_id', $projects->pluck('id'))
-            ->get(['project_staff.project_id', 'users.id', 'users.name'])
-            ->groupBy('project_id');
+            ->whereIn('project_staff.project_id', $projectIds)
+            ->get(['project_staff.project_id', 'users.id', 'users.name']);
 
-        return $projects->mapWithKeys(function (Project $project) use ($projectStaffByProject, $staffUserIdsByOrg) {
-            $allowedIds = $staffUserIdsByOrg->get($project->organization_id, collect());
+        $clientRows = DB::table('project_clients')
+            ->join('users', 'users.id', '=', 'project_clients.user_id')
+            ->whereIn('project_clients.project_id', $projectIds)
+            ->get(['project_clients.project_id', 'users.id', 'users.name']);
 
-            $members = ($projectStaffByProject->get($project->id) ?? collect())
-                ->filter(fn ($row) => $allowedIds->contains($row->id))
+        $membersByProject = $staffRows->concat($clientRows)->groupBy('project_id');
+
+        return $projects->mapWithKeys(function (Project $project) use ($membersByProject) {
+            $members = ($membersByProject->get($project->id) ?? collect())
+                ->unique('id')
                 ->sortBy('name')
                 ->map(fn ($row) => ['id' => $row->id, 'name' => $row->name])
                 ->values();

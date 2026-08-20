@@ -50,7 +50,7 @@ class UpdateTaskRequest extends FormRequest
 
             $assigneeId = $this->input('assignee_id');
             if ($assigneeId && ! $this->isAssignableStaffForProject($project, $assigneeId)) {
-                $validator->errors()->add('assignee_id', 'Select a staff member assigned to this project.');
+                $validator->errors()->add('assignee_id', 'Select a user assigned to this project.');
             }
         });
     }

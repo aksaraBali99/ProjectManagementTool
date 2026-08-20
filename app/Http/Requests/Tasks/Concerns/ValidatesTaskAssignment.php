@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests\Tasks\Concerns;
 
-use App\Models\OrgMember;
 use App\Models\Project;
-use App\Models\Role;
 
 /**
  * Shared assignee check for StoreTaskRequest/UpdateTaskRequest and
@@ -13,22 +11,18 @@ use App\Models\Role;
 trait ValidatesTaskAssignment
 {
     /**
-     * A task/subtask assignee must both hold the Staff role in the
-     * project's company and actually be assigned to that project (via
-     * project_staff) — matching what the Assignee dropdown itself offers,
-     * not just anyone staff company-wide.
+     * A task/subtask assignee must be attached to the project — via
+     * project_staff (any role) or project_clients (the project's client) —
+     * matching what the Assignee dropdown itself offers. Not restricted to
+     * a "Staff" role: management and the project's client are assignable
+     * too, as long as they're actually attached to the project.
      */
     protected function isAssignableStaffForProject(Project $project, mixed $userId): bool
     {
-        $isStaffInCompany = OrgMember::where('organization_id', $project->organization_id)
-            ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->where('slug', Role::STAFF))
-            ->exists();
-
-        if (! $isStaffInCompany) {
-            return false;
+        if ($project->staff()->where('users.id', $userId)->exists()) {
+            return true;
         }
 
-        return $project->staff()->where('users.id', $userId)->exists();
+        return $project->clients()->where('users.id', $userId)->exists();
     }
 }

@@ -157,6 +157,55 @@ test('assigning a task to a staff member added to the project succeeds', functio
     $this->assertDatabaseHas('tasks', ['title' => 'Assignable', 'assignee_id' => $staff->id]);
 });
 
+test('a management user added to the project can be assigned to a task', function () {
+    $this->projectA->staff()->attach($this->management->id);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $this->management->id,
+        'title' => 'Assigned to management',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('tasks', ['title' => 'Assigned to management', 'assignee_id' => $this->management->id]);
+});
+
+test('the project\'s client can be assigned to a task', function () {
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $client->id,
+        'title' => 'Assigned to client',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('tasks', ['title' => 'Assigned to client', 'assignee_id' => $client->id]);
+});
+
+test('a client not attached to the project cannot be assigned to a task', function () {
+    $client = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $client->id, 'role_id' => Role::where('slug', 'client')->first()->id]);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $client->id,
+        'title' => 'Unattached client',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasErrors('assignee_id');
+    $this->assertDatabaseMissing('tasks', ['title' => 'Unattached client']);
+});
+
 test('assigning a subtask to a staff member not assigned to the project is rejected', function () {
     $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
     $task = Task::create([
