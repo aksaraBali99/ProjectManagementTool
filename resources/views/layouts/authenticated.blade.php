@@ -136,7 +136,7 @@
                 </div>
             </header>
 
-            <main class="min-w-0 flex-1 px-[18px] py-[14px]">
+            <main class="min-w-0 flex-1 px-xl py-lg">
                 @yield('content')
             </main>
         </div>

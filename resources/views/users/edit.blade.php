@@ -9,7 +9,7 @@
     <h1 class="mt-2 text-[14px] font-medium text-[#1F2937]">Edit user</h1>
 
     @if (session('status'))
-        <div class="mt-4 rounded-[8px] bg-[#E1F5EE] p-3 text-[12px] text-[#085041]">
+        <div class="mt-4 rounded-md bg-[#E1F5EE] p-3 text-[12px] text-[#085041]">
             {{ session('status') }}
         </div>
     @endif
@@ -21,7 +21,7 @@
         <div>
             <label for="username" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Username <span class="text-red-600">*</span></label>
             <input id="username" name="username" type="text" value="{{ old('username', $user->username) }}" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('username')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -31,9 +31,9 @@
             <label class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Password</label>
             <div class="mt-1 flex items-center gap-3">
                 <input type="password" value="********" disabled
-                    class="block w-full rounded-[8px] border border-gray-300 bg-gray-50 px-3 py-2 text-[12px] text-gray-400">
+                    class="block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-[12px] text-gray-400">
                 <button type="button" onclick="document.getElementById('password-modal').showModal()"
-                    class="whitespace-nowrap rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
+                    class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
                     Change Password
                 </button>
             </div>
@@ -42,7 +42,7 @@
         <div>
             <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Full name <span class="text-red-600">*</span></label>
             <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('name')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -51,7 +51,7 @@
         <div>
             <label for="employee_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Employee ID <span class="text-red-600">*</span></label>
             <input id="employee_id" name="employee_id" type="text" value="{{ old('employee_id', $user->employee_id) }}" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('employee_id')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -62,7 +62,7 @@
             <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" required
                 pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
                 title="Must include a domain with an extension, e.g. name@example.com"
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('email')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -71,7 +71,7 @@
         @include('users._phone-input', ['phoneValue' => old('phone', $user->phone)])
 
         @if ($isTargetOwner)
-            <div class="rounded-[8px] border border-gray-200 bg-gray-50 px-3 py-3">
+            <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-3">
                 <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Global role</span>
                 <p class="mt-1 text-[12px] font-medium text-[#1F2937]">{{ $globalRoles->implode(', ') }}</p>
                 <p class="mt-1 text-[11px] text-gray-500">
@@ -86,9 +86,9 @@
                 <div class="mt-2 space-y-2">
                     @foreach ($organizations as $organization)
                         @php $current = old('roles.'.$organization->id, $currentRoles[$organization->id] ?? 'none') @endphp
-                        <div class="flex items-center justify-between rounded-[8px] border border-gray-200 px-3 py-2">
+                        <div class="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
                             <span class="text-[12px] font-medium text-[#1F2937]">{{ $organization->name }}</span>
-                            <select name="roles[{{ $organization->id }}]" class="role-select rounded-[8px] border border-gray-300 px-2 py-1 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                            <select name="roles[{{ $organization->id }}]" class="role-select rounded-md border border-gray-300 px-2 py-1 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                                 <option value="none" {{ $current === 'none' ? 'selected' : '' }}>No access</option>
                                 @foreach ($assignableRoles as $role)
                                     <option value="{{ $role->slug }}" {{ $current === $role->slug ? 'selected' : '' }}>{{ $role->name }}</option>
@@ -104,7 +104,7 @@
             </div>
 
             @if ($canGrantSuperAdmin)
-                <div id="super-admin-section" class="rounded-[8px] border border-gray-200 px-3 py-3">
+                <div id="super-admin-section" class="rounded-md border border-gray-200 px-3 py-3">
                     <label class="flex items-center gap-2">
                         <input type="checkbox" name="grant_super_admin" value="1" {{ old('grant_super_admin', $isTargetSuperAdmin) ? 'checked' : '' }}
                             class="rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]">
@@ -124,18 +124,18 @@
 
         <div class="flex items-center gap-3 pt-2">
             <button type="submit"
-                class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                 Save changes
             </button>
             <a href="{{ route('users.index') }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
         </div>
     </form>
 
-    <dialog id="password-modal" class="w-full max-w-sm rounded-[12px] border border-gray-200 p-6 shadow-lg backdrop:bg-black/30">
+    <dialog id="password-modal" class="w-full max-w-sm rounded-lg border border-gray-200 p-6 shadow-lg backdrop:bg-black/30">
         <h2 class="text-[14px] font-medium text-[#1F2937]">Change password</h2>
 
         @if ($errors->has('password'))
-            <div class="mt-3 rounded-[8px] bg-red-50 p-3 text-[12px] text-red-700">
+            <div class="mt-3 rounded-md bg-red-50 p-3 text-[12px] text-red-700">
                 {{ $errors->first('password') }}
             </div>
         @endif
@@ -162,7 +162,7 @@
                     Cancel
                 </button>
                 <button type="submit" id="password-submit-btn" disabled
-                    class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56] disabled:cursor-not-allowed disabled:opacity-50">
+                    class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56] disabled:cursor-not-allowed disabled:opacity-50">
                     Save password
                 </button>
             </div>

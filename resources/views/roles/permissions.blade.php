@@ -13,14 +13,14 @@
     </p>
 
     @if (session('status'))
-        <div class="mt-4 rounded-[8px] bg-[#E1F5EE] p-3 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-4 rounded-md bg-[#E1F5EE] p-3 text-[12px] text-[#085041]">{{ session('status') }}</div>
     @endif
 
     <form method="POST" action="{{ route('roles.permissions.update') }}" class="mt-6">
         @csrf
         @method('PUT')
 
-        <div class="overflow-x-auto rounded-[10px] border border-gray-200">
+        <div class="overflow-x-auto rounded-lg border border-gray-200">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
@@ -68,7 +68,7 @@
         </div>
 
         <div class="mt-4 flex items-center gap-3">
-            <button type="submit" class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+            <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                 Save changes
             </button>
             <a href="{{ route('roles.index') }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>

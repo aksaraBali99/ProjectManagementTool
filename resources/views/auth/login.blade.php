@@ -4,11 +4,11 @@
 
 @section('content')
 <div class="flex min-h-screen items-center justify-center px-4">
-    <div class="w-full max-w-sm rounded-[12px] border border-gray-200 bg-white p-8 shadow-sm">
+    <div class="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
         <h1 class="mb-6 text-[14px] font-medium text-[#1F2937]">Solava</h1>
 
         @if ($errors->any())
-            <div class="mb-4 rounded-[8px] bg-red-50 p-3 text-[12px] text-red-700">
+            <div class="mb-4 rounded-md bg-red-50 p-3 text-[12px] text-red-700">
                 {{ $errors->first() }}
             </div>
         @endif
@@ -25,7 +25,7 @@
                     value="{{ old('identifier') }}"
                     required
                     autofocus
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"
                 >
             </div>
 
@@ -36,7 +36,7 @@
                     name="password"
                     type="password"
                     required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"
                 >
                 <label class="mt-2 flex items-center gap-2 text-[11px] text-gray-600">
                     <input
@@ -50,7 +50,7 @@
 
             <button
                 type="submit"
-                class="w-full rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]"
+                class="w-full rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]"
             >
                 Log in
             </button>
@@ -64,7 +64,7 @@
 
         <a
             href="{{ route('google.redirect') }}"
-            class="flex w-full items-center justify-center gap-2 rounded-[8px] border border-gray-300 px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50"
+            class="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50"
         >
             Sign in with Google
         </a>

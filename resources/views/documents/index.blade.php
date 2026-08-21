@@ -8,14 +8,14 @@
         <h1 class="text-[14px] font-medium text-[#1F2937]">Documents</h1>
         @if ($organization && $canManage)
             <a href="{{ route('documents.create', $organization) }}"
-               class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+               class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                 + Add new document
             </a>
         @endif
     </div>
 
     @if (session('status'))
-        <div class="mt-3 rounded-[8px] bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-3 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
     @endif
 
     @if ($organizations->isEmpty())
@@ -32,7 +32,7 @@
             @endforeach
         </div>
 
-        <div class="mt-4 overflow-hidden rounded-[10px] border border-gray-200">
+        <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
                 <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
@@ -50,11 +50,11 @@
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Access level</span>
                                 @if ($document->access_level === \App\Enums\DocumentAccessLevel::Private)
-                                    <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $document->access_level->label() }}</span>
+                                    <span class="rounded-sm bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $document->access_level->label() }}</span>
                                 @elseif ($document->access_level === \App\Enums\DocumentAccessLevel::Internal)
-                                    <span class="rounded-[5px] bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">{{ $document->access_level->label() }}</span>
+                                    <span class="rounded-sm bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">{{ $document->access_level->label() }}</span>
                                 @else
-                                    <span class="rounded-[5px] bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">{{ $document->access_level->label() }}</span>
+                                    <span class="rounded-sm bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">{{ $document->access_level->label() }}</span>
                                 @endif
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">

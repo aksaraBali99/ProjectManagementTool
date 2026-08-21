@@ -8,6 +8,6 @@
 @props(['background', 'text', 'weight' => 'font-medium'])
 
 <span
-    {{ $attributes->merge(['class' => "inline-flex items-center rounded-[5px] px-2 py-0.5 text-[10px] $weight"]) }}
+    {{ $attributes->merge(['class' => "inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] $weight"]) }}
     style="background-color: {{ $background }}; color: {{ $text }}"
 >{{ $slot }}</span>

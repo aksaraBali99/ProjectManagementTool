@@ -7,7 +7,7 @@
     <h1 class="text-[14px] font-medium text-[#1F2937]">Notifications</h1>
     <p class="mt-1 text-[11px] text-gray-500">Everything you've been notified about. Unread items are marked read once you view this page.</p>
 
-    <div class="mt-4 overflow-hidden rounded-[10px] border border-gray-200">
+    <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
         <ul class="divide-y divide-gray-100 bg-white">
             @forelse ($notifications as $notification)
                 @php $wasUnread = $originallyUnreadIds->contains($notification->id) @endphp

@@ -15,7 +15,7 @@
             <label for="username" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Username <span class="text-red-600">*</span></label>
             <input id="username" name="username" type="text" value="{{ old('username') }}" required
                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('username')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -33,7 +33,7 @@
         <div>
             <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Full name <span class="text-red-600">*</span></label>
             <input id="name" name="name" type="text" value="{{ old('name') }}" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('name')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -42,7 +42,7 @@
         <div>
             <label for="employee_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Employee ID <span class="text-red-600">*</span></label>
             <input id="employee_id" name="employee_id" type="text" value="{{ old('employee_id') }}" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('employee_id')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -53,7 +53,7 @@
             <input id="email" name="email" type="email" value="{{ old('email') }}" required
                 pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
                 title="Must include a domain with an extension, e.g. name@example.com"
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('email')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -66,9 +66,9 @@
             <p class="mt-1 text-[11px] text-gray-500">Assign this user a role in at least one company.</p>
             <div class="mt-2 space-y-2">
                 @foreach ($organizations as $organization)
-                    <div class="flex items-center justify-between rounded-[8px] border border-gray-200 px-3 py-2">
+                    <div class="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
                         <span class="text-[12px] font-medium text-[#1F2937]">{{ $organization->name }}</span>
-                        <select name="roles[{{ $organization->id }}]" class="role-select rounded-[8px] border border-gray-300 px-2 py-1 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        <select name="roles[{{ $organization->id }}]" class="role-select rounded-md border border-gray-300 px-2 py-1 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                             <option value="none" {{ old('roles.'.$organization->id, 'none') === 'none' ? 'selected' : '' }}>No access</option>
                             @foreach ($assignableRoles as $role)
                                 <option value="{{ $role->slug }}" {{ old('roles.'.$organization->id) === $role->slug ? 'selected' : '' }}>{{ $role->name }}</option>
@@ -84,7 +84,7 @@
         </div>
 
         @if ($canGrantSuperAdmin)
-            <div id="super-admin-section" class="rounded-[8px] border border-gray-200 px-3 py-3">
+            <div id="super-admin-section" class="rounded-md border border-gray-200 px-3 py-3">
                 <label class="flex items-center gap-2">
                     <input type="checkbox" name="grant_super_admin" value="1" {{ old('grant_super_admin') ? 'checked' : '' }}
                         class="rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]">
@@ -103,7 +103,7 @@
 
         <div class="flex items-center gap-3 pt-2">
             <button type="submit" id="submit-btn"
-                class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                 Create user
             </button>
             <a href="{{ route('users.index') }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>

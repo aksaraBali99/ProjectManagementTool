@@ -20,7 +20,7 @@
             @endforeach
         </div>
 
-        <div class="mt-4 rounded-[10px] border border-[#FCA5A5] bg-[#FEF2F2]">
+        <div class="mt-4 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2]">
             <div class="flex items-center justify-between border-b border-[#FCA5A5] px-3 py-2">
                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-[#B91C1C]">Active</span>
                 <span class="text-[10px] text-[#B91C1C]">{{ $activeTasks->count() }}</span>
@@ -47,7 +47,7 @@
         <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
             @foreach (\App\Enums\Priority::cases() as $priority)
                 @php $group = $priorityGroups[$priority->value] ?? collect() @endphp
-                <div class="rounded-[10px] border border-gray-200 bg-white">
+                <div class="rounded-lg border border-gray-200 bg-white">
                     <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
                         <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">{{ $priority->label() }}</span>
                         <span class="text-[10px] text-gray-400">{{ $group->count() }}</span>
@@ -74,7 +74,7 @@
              set is already project-scoped and shown in full above (Active +
              Priority groups), so a MyTask section here would just repeat it. --}}
         @if ($myTaskMode !== 'none')
-        <div class="mt-4 rounded-[10px] border border-gray-200 bg-white">
+        <div class="mt-4 rounded-lg border border-gray-200 bg-white">
             <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">My Task</span>
                 <span class="text-[10px] text-gray-400">{{ $myTasks->count() }}</span>
@@ -89,7 +89,7 @@
                             {{ $staffMember->name }}
                         </label>
                     @endforeach
-                    <button type="submit" class="rounded-[8px] border border-gray-300 px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-50">
+                    <button type="submit" class="rounded-md border border-gray-300 px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-50">
                         Filter
                     </button>
                     @if (! empty($selectedStaffIds))

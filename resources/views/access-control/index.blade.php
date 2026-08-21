@@ -10,7 +10,7 @@
     </p>
 
     @if (session('status'))
-        <div class="mt-3 rounded-[8px] bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-3 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
     @endif
 
     @if ($organizations->isEmpty())
@@ -31,7 +31,7 @@
         @if ($departments->isEmpty())
             <p class="mt-6 text-[12px] text-gray-500">{{ $organization->name }} has no active departments yet.</p>
         @else
-            <div class="mt-4 overflow-x-auto rounded-[10px] border border-gray-200">
+            <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>

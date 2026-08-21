@@ -5,7 +5,7 @@
     <div class="comment-list space-y-2">
         @forelse ($task->comments as $comment)
             @php $canEditComment = auth()->user()->can('update', $comment); @endphp
-            <div class="rounded-[8px] bg-white border border-gray-200 px-3 py-2" data-comment-id="{{ $comment->id }}" data-can-edit="{{ $canEditComment ? '1' : '0' }}">
+            <div class="rounded-md bg-white border border-gray-200 px-3 py-2" data-comment-id="{{ $comment->id }}" data-can-edit="{{ $canEditComment ? '1' : '0' }}">
                 <div class="flex items-center justify-between">
                     <span class="inline-flex items-center gap-1.5">
                         <x-avatar :user="$comment->user" size="18px" />
@@ -27,8 +27,8 @@
     </div>
 
     <div class="mt-2 flex items-start gap-2">
-        <textarea class="new-comment-body flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" rows="2" placeholder="Add a comment…"></textarea>
-        <button type="button" class="post-comment-btn rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
+        <textarea class="new-comment-body flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" rows="2" placeholder="Add a comment…"></textarea>
+        <button type="button" class="post-comment-btn rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
             Post
         </button>
     </div>
@@ -78,7 +78,7 @@
 
         function buildCommentRow(comment) {
             const row = document.createElement('div');
-            row.className = 'rounded-[8px] bg-white border border-gray-200 px-3 py-2';
+            row.className = 'rounded-md bg-white border border-gray-200 px-3 py-2';
             row.dataset.commentId = comment.id;
             row.dataset.canEdit = comment.can_edit ? '1' : '0';
 
@@ -129,7 +129,7 @@
                 editBtn.addEventListener('click', function () {
                     const currentBody = bodyText.textContent;
                     const textarea = document.createElement('textarea');
-                    textarea.className = 'comment-edit-textarea mt-1 w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]';
+                    textarea.className = 'comment-edit-textarea mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]';
                     textarea.rows = 2;
                     textarea.value = currentBody;
                     bodyText.replaceWith(textarea);

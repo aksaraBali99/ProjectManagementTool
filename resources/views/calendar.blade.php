@@ -21,7 +21,7 @@
             @endforeach
         </div>
 
-        <div class="mt-4 overflow-hidden rounded-[10px] border border-gray-200 bg-white">
+        <div class="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
             @if (empty($ganttTasks))
                 <p class="py-10 text-center text-[12px] text-gray-500">No tasks with a due date in {{ $organization->name }}.</p>
             @else

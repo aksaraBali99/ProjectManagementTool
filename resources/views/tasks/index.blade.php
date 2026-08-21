@@ -9,13 +9,13 @@
         <div class="flex items-center gap-3">
             @if ($organization && $canAddDocuments)
                 <button type="button" onclick="document.getElementById('add-document-modal').showModal()"
-                    class="rounded-[8px] border border-gray-300 px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
+                    class="rounded-md border border-gray-300 px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
                     + Add new document
                 </button>
             @endif
             @if ($organization && $canCreate)
                 <a href="{{ route('tasks.create', $organization->projects()->orderBy('name')->first()) }}"
-                   class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                   class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                     + Add task
                 </a>
             @endif
@@ -23,7 +23,7 @@
     </div>
 
     @if (session('status'))
-        <div class="mt-3 rounded-[8px] bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-3 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
     @endif
 
     @if ($organizations->isEmpty())
@@ -54,7 +54,7 @@
              headers themselves are hidden below md rather than repeated
              per row. At md and up this reverts to a normal table, unchanged
              from before. --}}
-        <div class="mt-4 overflow-hidden rounded-[10px] border border-gray-200 md:overflow-x-auto">
+        <div class="mt-4 overflow-hidden rounded-lg border border-gray-200 md:overflow-x-auto">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
                 <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
@@ -121,9 +121,9 @@
                                 <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                                     <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Active</span>
                                     @if ($task->trashed())
-                                        <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">Inactive</span>
+                                        <span class="rounded-sm bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">Inactive</span>
                                     @else
-                                        <span class="rounded-[5px] bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">Active</span>
+                                        <span class="rounded-sm bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">Active</span>
                                     @endif
                                 </td>
                             @endif
@@ -171,12 +171,12 @@
 </div>
 
 @if ($organization && $canAddDocuments)
-    <dialog id="add-document-modal" class="w-full max-w-sm rounded-[12px] border border-gray-200 p-6 shadow-lg backdrop:bg-black/30">
+    <dialog id="add-document-modal" class="w-full max-w-sm rounded-lg border border-gray-200 p-6 shadow-lg backdrop:bg-black/30">
         <h2 class="text-[14px] font-medium text-[#1F2937]">Add document</h2>
         <p class="mt-1 text-[11px] text-gray-500">Adds to {{ $organization->name }}'s document library — not attached to any task yet.</p>
 
         @if ($errors->any())
-            <div class="mt-3 rounded-[8px] bg-red-50 p-3 text-[12px] text-red-700">
+            <div class="mt-3 rounded-md bg-red-50 p-3 text-[12px] text-red-700">
                 <ul class="list-disc pl-4">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -192,19 +192,19 @@
             <div>
                 <label for="document-name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</label>
                 <input id="document-name" name="name" type="text" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             </div>
 
             <div>
                 <label for="document-link" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Link</label>
                 <input id="document-link" name="link" type="url" required placeholder="https://…"
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             </div>
 
             <div>
                 <label for="document-access" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Access level</label>
                 <select id="document-access" name="access_level" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
                         <option value="{{ $accessCase->value }}" {{ $accessCase === \App\Enums\DocumentAccessLevel::Internal ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
                     @endforeach
@@ -216,7 +216,7 @@
                     class="text-[12px] text-gray-600 hover:underline">
                     Cancel
                 </button>
-                <button type="submit" class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                     Add document
                 </button>
             </div>

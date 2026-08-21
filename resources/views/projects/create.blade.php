@@ -20,7 +20,7 @@
         <div>
             <label for="organization_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Company</label>
             <select id="organization_id" name="organization_id" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                 @foreach ($organizations as $org)
                     <option value="{{ $org->id }}" {{ (int) old('organization_id', $organization->id) === $org->id ? 'selected' : '' }}>
                         {{ $org->name }}
@@ -35,7 +35,7 @@
         <div>
             <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project name <span class="text-red-600">*</span></label>
             <input id="name" name="name" type="text" value="{{ old('name', $templateName ?? '') }}" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('name')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -44,7 +44,7 @@
         <div>
             <label for="description" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description <span class="text-red-600">*</span></label>
             <textarea id="description" name="description" rows="3" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">{{ old('description', $templateDescription ?? '') }}</textarea>
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">{{ old('description', $templateDescription ?? '') }}</textarea>
             @error('description')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -54,7 +54,7 @@
             <label for="client" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Client</label>
             @php $clientValue = old('client'); @endphp
             <select id="client" name="client"
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                 <option value="" {{ ! $clientValue ? 'selected' : '' }}>Internal</option>
                 @foreach ($clientOptions as $clientUser)
                     <option value="{{ $clientUser->id }}" {{ (string) $clientValue === (string) $clientUser->id ? 'selected' : '' }}>{{ $clientUser->name }}</option>
@@ -70,7 +70,7 @@
             <div>
                 <label for="status" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</label>
                 <select id="status" name="status" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     @php $statusValue = old('status', \App\Enums\ProjectStatus::Open->value); @endphp
                     @foreach (\App\Enums\ProjectStatus::cases() as $statusCase)
                         <option value="{{ $statusCase->value }}" {{ $statusValue === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
@@ -85,7 +85,7 @@
                 <label for="priority" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority</label>
                 @php $priorityValue = old('priority', $templatePriority ?? \App\Enums\Priority::Medium->value); @endphp
                 <select id="priority" name="priority" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     @foreach (\App\Enums\Priority::cases() as $priorityCase)
                         <option value="{{ $priorityCase->value }}" {{ $priorityValue === $priorityCase->value ? 'selected' : '' }}>{{ $priorityCase->label() }}</option>
                     @endforeach
@@ -103,12 +103,12 @@
             <div id="staff-rows" class="mt-2 space-y-2">
                 @forelse (old('staff', []) as $staffId)
                     <div class="flex items-center gap-2">
-                        <select name="staff[]" class="staff-select flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" data-selected="{{ $staffId }}"></select>
+                        <select name="staff[]" class="staff-select flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" data-selected="{{ $staffId }}"></select>
                         <button type="button" class="remove-staff-row text-[11px] text-gray-500 hover:underline">Remove</button>
                     </div>
                 @empty
                     <div class="flex items-center gap-2">
-                        <select name="staff[]" class="staff-select flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"></select>
+                        <select name="staff[]" class="staff-select flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"></select>
                         <button type="button" class="remove-staff-row text-[11px] text-gray-500 hover:underline">Remove</button>
                     </div>
                 @endforelse
@@ -123,7 +123,7 @@
         </div>
 
         <div class="flex items-center gap-3 pt-2">
-            <button type="submit" class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+            <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                 Create project
             </button>
             <a href="{{ route('projects.index', $organization) }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
@@ -163,7 +163,7 @@
 
             const select = document.createElement('select');
             select.name = 'staff[]';
-            select.className = 'staff-select flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]';
+            select.className = 'staff-select flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]';
             buildOptions(select, null);
 
             const removeBtn = document.createElement('button');

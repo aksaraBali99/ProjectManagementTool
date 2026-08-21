@@ -9,7 +9,7 @@
     <h1 class="mt-2 text-[14px] font-medium text-[#1F2937]">Notification Settings</h1>
 
     @if (session('status'))
-        <div class="mt-4 rounded-[8px] bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-4 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
     @endif
 
     <h2 class="mt-6 text-[12px] font-semibold uppercase tracking-[0.05em] text-gray-500">My Notification Preferences</h2>
@@ -19,7 +19,7 @@
         @csrf
         @method('PUT')
 
-        <div class="overflow-hidden rounded-[10px] border border-gray-200">
+        <div class="overflow-hidden rounded-lg border border-gray-200">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
@@ -48,7 +48,7 @@
             </table>
         </div>
 
-        <button type="submit" class="mt-3 rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+        <button type="submit" class="mt-3 rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
             Save my preferences
         </button>
     </form>
@@ -57,7 +57,7 @@
         <h2 class="mt-8 text-[12px] font-semibold uppercase tracking-[0.05em] text-gray-500">Team Notification Rules</h2>
         <p class="mt-1 text-[11px] text-gray-500">Notify specific people, or an entire role, when an event happens. Requires manage_settings.</p>
 
-        <form method="POST" action="{{ route('notification-settings.rules.store') }}" class="mt-3 space-y-3 rounded-[10px] border border-gray-200 bg-white p-3">
+        <form method="POST" action="{{ route('notification-settings.rules.store') }}" class="mt-3 space-y-3 rounded-lg border border-gray-200 bg-white p-3">
             @csrf
 
             @error('duplicate')
@@ -67,7 +67,7 @@
             <div class="flex flex-wrap items-end gap-3">
                 <div>
                     <label for="rule_event_type" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Event</label>
-                    <select id="rule_event_type" name="event_type" required class="mt-1 rounded-[8px] border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    <select id="rule_event_type" name="event_type" required class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                         @foreach ($eventTypes as $eventType)
                             <option value="{{ $eventType->value }}">{{ $eventType->label() }}</option>
                         @endforeach
@@ -76,7 +76,7 @@
 
                 <div>
                     <label for="rule_channel" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Channel</label>
-                    <select id="rule_channel" name="channel" required class="mt-1 rounded-[8px] border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    <select id="rule_channel" name="channel" required class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                         @foreach ($channels as $channel)
                             <option value="{{ $channel->value }}">{{ $channel->label() }}</option>
                         @endforeach
@@ -89,7 +89,7 @@
                     <input type="radio" name="recipient_type" value="users" checked class="text-[#1D9E75] focus:ring-[#1D9E75]">
                     Specific users
                 </label>
-                <select name="user_ids[]" multiple size="4" class="rounded-[8px] border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                <select name="user_ids[]" multiple size="4" class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     @foreach ($users as $option)
                         <option value="{{ $option->id }}">{{ $option->name }}</option>
                     @endforeach
@@ -99,7 +99,7 @@
                     <input type="radio" name="recipient_type" value="role" class="text-[#1D9E75] focus:ring-[#1D9E75]">
                     Everyone with a role
                 </label>
-                <select name="role" class="rounded-[8px] border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                <select name="role" class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     @foreach ($roles as $roleOption)
                         <option value="{{ $roleOption->slug }}">{{ $roleOption->name }}</option>
                     @endforeach
@@ -113,12 +113,12 @@
                 <p class="field-error text-[11px] text-red-600">{{ $message }}</p>
             @enderror
 
-            <button type="submit" class="rounded-[8px] border border-gray-300 px-3 py-1.5 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
+            <button type="submit" class="rounded-md border border-gray-300 px-3 py-1.5 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
                 + Add rule
             </button>
         </form>
 
-        <div class="mt-3 overflow-hidden rounded-[10px] border border-gray-200">
+        <div class="mt-3 overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
                 <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
@@ -153,9 +153,9 @@
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Status</span>
                                 @if ($rule->is_active)
-                                    <span class="rounded-[5px] bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">Active</span>
+                                    <span class="rounded-sm bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">Active</span>
                                 @else
-                                    <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">Inactive</span>
+                                    <span class="rounded-sm bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">Inactive</span>
                                 @endif
                             </td>
                             <td class="flex items-center justify-end gap-2 py-1 md:table-cell md:px-3 md:py-2.5 md:text-right">

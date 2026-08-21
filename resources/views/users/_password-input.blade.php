@@ -3,8 +3,8 @@
 <div class="mt-1 flex items-center gap-2">
     <input id="{{ $id }}" name="{{ $name }}" type="password" required
         @isset($autocomplete) autocomplete="{{ $autocomplete }}" @endisset
-        class="block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-    <button type="button" class="password-toggle-btn flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-gray-300 text-gray-500 hover:bg-gray-50" tabindex="-1" aria-label="Show password">
+        class="block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+    <button type="button" class="password-toggle-btn flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-gray-300 text-gray-500 hover:bg-gray-50" tabindex="-1" aria-label="Show password">
         <i class="ti ti-eye text-[14px]"></i>
     </button>
 </div>
