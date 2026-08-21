@@ -34,8 +34,8 @@
         </div>
 
         <div class="mt-4 overflow-hidden rounded-[10px] border border-gray-200">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
+                <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
                         <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</th>
                         <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Client</th>
@@ -45,19 +45,24 @@
                         <th class="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 bg-white">
+                <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($projects as $project)
-                        <tr>
-                            <td class="px-3 py-2.5 text-[12px] font-medium text-[#1F2937]">{{ $project->name }}</td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $project->primaryClient()->name ?? 'Internal' }}</td>
-                            <td class="px-3 py-2.5">
+                        <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
+                            <td class="text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">{{ $project->name }}</td>
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Client</span>
+                                {{ $project->primaryClient()->name ?? 'Internal' }}
+                            </td>
+                            <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Status</span>
                                 @if ($project->status === \App\Enums\ProjectStatus::Open)
                                     <span class="rounded-[5px] bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">{{ $project->status->label() }}</span>
                                 @else
                                     <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $project->status->label() }}</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2.5">
+                            <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Priority</span>
                                 @if ($project->priority === \App\Enums\Priority::High)
                                     <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $project->priority->label() }}</span>
                                 @elseif ($project->priority === \App\Enums\Priority::Medium)
@@ -66,8 +71,11 @@
                                     <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">{{ $project->priority->label() }}</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $project->tasks_count }}</td>
-                            <td class="px-3 py-2.5 text-right text-[11px]">
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Tasks</span>
+                                {{ $project->tasks_count }}
+                            </td>
+                            <td class="flex items-center justify-end gap-2 py-1 text-[11px] md:table-cell md:px-3 md:py-2.5 md:text-right">
                                 @can('update', $project)
                                     <a href="{{ route('projects.edit', $project) }}" class="text-[#1D9E75] hover:underline">Edit</a>
                                 @endcan
@@ -77,8 +85,8 @@
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="6" class="px-3 py-4 text-center text-[12px] text-gray-500">No projects yet.</td>
+                        <tr class="block md:table-row">
+                            <td colspan="6" class="block px-3 py-4 text-center text-[12px] text-gray-500 md:table-cell">No projects yet.</td>
                         </tr>
                     @endforelse
                 </tbody>

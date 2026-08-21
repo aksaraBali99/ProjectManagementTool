@@ -141,3 +141,13 @@ test('canManage on the Documents list is true for management and false for staff
     $managementResponse->assertOk();
     expect($managementResponse->viewData('canManage'))->toBeTrue();
 });
+
+test('the document list renders with mobile card-stacking markup alongside the desktop table', function () {
+    makeDocumentForList($this->orgA, $this->management, 'internal', 'Doc A');
+
+    $response = $this->actingAs($this->owner)->get('/documents/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertSee('hidden bg-gray-50 md:table-header-group', false);
+    $response->assertSee('md:table-cell', false);
+});

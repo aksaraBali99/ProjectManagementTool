@@ -270,6 +270,16 @@ test('the project index scopes the project list to the selected company tab', fu
     $response->assertOk()->assertSee('Project A')->assertDontSee('Project B');
 });
 
+test('the project list renders with mobile card-stacking markup alongside the desktop table', function () {
+    Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+
+    $response = $this->actingAs($this->owner)->get("/projects/{$this->orgA->id}");
+
+    $response->assertOk();
+    $response->assertSee('hidden bg-gray-50 md:table-header-group', false);
+    $response->assertSee('md:table-cell', false);
+});
+
 test('a client user only sees the projects they are attached to, even within a visible company', function () {
     $client = User::factory()->create();
     OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $client->id, 'role_id' => $this->roles['client']->id]);

@@ -119,8 +119,8 @@
         </form>
 
         <div class="mt-3 overflow-hidden rounded-[10px] border border-gray-200">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
+                <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
                         <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Event</th>
                         <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Channel</th>
@@ -130,27 +130,35 @@
                         <th class="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 bg-white">
+                <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($rules as $rule)
-                        <tr>
-                            <td class="px-3 py-2.5 text-[12px] text-[#1F2937]">{{ $rule->event_type->label() }}</td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $rule->channel->label() }}</td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">
+                        <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
+                            <td class="text-[12px] text-[#1F2937] md:table-cell md:px-3 md:py-2.5">{{ $rule->event_type->label() }}</td>
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Channel</span>
+                                {{ $rule->channel->label() }}
+                            </td>
+                            <td class="py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="mb-0.5 block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Recipients</span>
                                 @if (($rule->recipients['type'] ?? null) === 'role')
                                     Role: {{ $roles->firstWhere('slug', $rule->recipients['role'])?->name ?? ucfirst($rule->recipients['role']) }}
                                 @else
                                     Users: {{ \App\Models\User::whereIn('id', $rule->recipients['ids'] ?? [])->pluck('name')->implode(', ') }}
                                 @endif
                             </td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $rule->owner->name ?? '—' }}</td>
-                            <td class="px-3 py-2.5">
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Configured by</span>
+                                {{ $rule->owner->name ?? '—' }}
+                            </td>
+                            <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Status</span>
                                 @if ($rule->is_active)
                                     <span class="rounded-[5px] bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">Active</span>
                                 @else
                                     <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">Inactive</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2.5 text-right">
+                            <td class="flex items-center justify-end gap-2 py-1 md:table-cell md:px-3 md:py-2.5 md:text-right">
                                 <form method="POST" action="{{ route('notification-settings.rules.toggle', $rule) }}" class="inline">
                                     @csrf
                                     @method('PATCH')
@@ -164,8 +172,8 @@
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="6" class="px-3 py-6 text-center text-[12px] text-gray-500">No team rules configured yet.</td>
+                        <tr class="block md:table-row">
+                            <td colspan="6" class="block px-3 py-6 text-center text-[12px] text-gray-500 md:table-cell">No team rules configured yet.</td>
                         </tr>
                     @endforelse
                 </tbody>
