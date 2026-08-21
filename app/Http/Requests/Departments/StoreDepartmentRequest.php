@@ -24,6 +24,20 @@ class StoreDepartmentRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'organization_ids.min' => 'Select at least one company.',
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'organization_ids' => 'companies',
+        ];
+    }
+
     /**
      * Creating one department per selected company means the usual
      * Rule::unique (scoped to a single organization_id) doesn't fit —

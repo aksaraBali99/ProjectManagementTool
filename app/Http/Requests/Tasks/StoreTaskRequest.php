@@ -54,6 +54,14 @@ class StoreTaskRequest extends FormRequest
         ];
     }
 
+    public function attributes(): array
+    {
+        return [
+            'project_id' => 'project',
+            'department_id' => 'department',
+        ];
+    }
+
     /**
      * The Department and Assignee dropdowns are JS-filtered to the selected
      * project's company, but that's client-side only — re-check server-side

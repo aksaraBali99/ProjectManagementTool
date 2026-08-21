@@ -29,4 +29,11 @@ class UpdateDepartmentRequest extends FormRequest
             'color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ];
     }
+
+    public function attributes(): array
+    {
+        return [
+            'organization_id' => 'company',
+        ];
+    }
 }
