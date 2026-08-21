@@ -15,9 +15,16 @@ use App\Notifications\AuditEventMailNotification;
  * called from the same Observers that wrote it (Part A), so there's one
  * "did something notification-worthy happen" detection, not a duplicate
  * one living separately from the audit trail.
+ *
+ * All precedence/de-duplication logic (personal vs. admin rules,
+ * collapsing overlapping admin rules) lives in NotificationSettingsResolver
+ * — this class only enumerates who's even worth asking about, then fires
+ * whatever channels the resolver says to.
  */
 class AuditEventNotifier
 {
+    public function __construct(private readonly NotificationSettingsResolver $resolver) {}
+
     public function notify(AuditLog $auditLog): void
     {
         $eventType = $this->matchEventType($auditLog);
@@ -26,12 +33,14 @@ class AuditEventNotifier
             return;
         }
 
-        foreach ($this->resolveRecipientChannels($eventType, $auditLog) as $userId => $channels) {
+        foreach ($this->candidateUserIds($eventType, $auditLog) as $userId) {
             $user = User::find($userId);
 
             if (! $user) {
                 continue;
             }
+
+            $channels = $this->resolver->resolveChannels($user, $eventType, $auditLog);
 
             if (in_array(NotificationChannel::InApp->value, $channels, true)) {
                 $user->notify(new AuditEventDatabaseNotification($auditLog, $eventType->label()));
@@ -55,50 +64,33 @@ class AuditEventNotifier
     }
 
     /**
-     * A user can end up a recipient via more than one rule (their own
-     * personal preference AND an admin-configured broadcast rule), each
-     * possibly specifying a different channel — so this collects the full
-     * set of channels each recipient should receive on, rather than
-     * picking just one rule per user.
+     * Everyone worth asking the resolver about for this event: anyone with
+     * a personal rule for it (any channel, active or not — an inactive
+     * one still needs to reach the resolver so it can correctly block a
+     * matching admin rule instead of silently falling through it), plus
+     * anyone targeted by an active admin broadcast rule. The resolver
+     * re-derives the actual precedence answer per user independently of
+     * how they ended up in this set.
      *
-     * @return array<int, array<int, string>> user_id => channel values
+     * @return list<int>
      */
-    private function resolveRecipientChannels(NotificationEventType $eventType, AuditLog $auditLog): array
+    private function candidateUserIds(NotificationEventType $eventType, AuditLog $auditLog): array
     {
-        $map = [];
-        $addChannel = function (int $userId, string $channel) use (&$map) {
-            $map[$userId] = array_values(array_unique([...($map[$userId] ?? []), $channel]));
-        };
+        $ids = NotificationSetting::where('event_type', $eventType->value)
+            ->whereNull('recipients')
+            ->pluck('owner_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
-        $rows = NotificationSetting::where('event_type', $eventType->value)->where('is_active', true)->get();
+        $adminRows = NotificationSetting::where('event_type', $eventType->value)
+            ->where('is_active', true)
+            ->whereNotNull('recipients')
+            ->get();
 
-        foreach ($rows as $row) {
-            if (empty($row->recipients)) {
-                // A self-preference row. task_assigned is special: it only
-                // fires for the person who actually just became the
-                // assignee ("task assigned to ME"), not for everyone who's
-                // subscribed to hear about every assignment in the system.
-                if ($eventType === NotificationEventType::TaskAssigned) {
-                    $newAssigneeId = $this->newAssigneeId($auditLog);
-                    if ($newAssigneeId !== null && (int) $row->owner_id === $newAssigneeId) {
-                        $addChannel((int) $row->owner_id, $row->channel->value);
-                    }
-
-                    continue;
-                }
-
-                $addChannel((int) $row->owner_id, $row->channel->value);
-
-                continue;
-            }
-
-            // An admin-configured broadcast row: specific users, or a role
-            // resolved against THIS event's own organization — a
-            // role-based rule isn't tied to one company at creation time,
-            // it resolves fresh per event.
+        foreach ($adminRows as $row) {
             if (($row->recipients['type'] ?? null) === 'users') {
                 foreach ($row->recipients['ids'] ?? [] as $id) {
-                    $addChannel((int) $id, $row->channel->value);
+                    $ids[] = (int) $id;
                 }
             } elseif (($row->recipients['type'] ?? null) === 'role') {
                 $roleUserIds = User::whereHas(
@@ -108,25 +100,11 @@ class AuditEventNotifier
                 )->pluck('id');
 
                 foreach ($roleUserIds as $id) {
-                    $addChannel((int) $id, $row->channel->value);
+                    $ids[] = (int) $id;
                 }
             }
         }
 
-        return $map;
-    }
-
-    private function newAssigneeId(AuditLog $auditLog): ?int
-    {
-        $changes = $auditLog->changes ?? [];
-
-        if (! array_key_exists('assignee_id', $changes)) {
-            return null;
-        }
-
-        $value = $changes['assignee_id'];
-        $newValue = is_array($value) && array_key_exists('new', $value) ? $value['new'] : $value;
-
-        return $newValue !== null ? (int) $newValue : null;
+        return array_values(array_unique($ids));
     }
 }

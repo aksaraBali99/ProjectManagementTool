@@ -106,3 +106,65 @@ test('an email-channel rule queues an email notification for the configured reci
 
     Notification::assertSentTo($this->recipient, AuditEventMailNotification::class);
 });
+
+test('a personal "off" preference is respected even when an active admin broadcast rule would otherwise include the same user', function () {
+    // The personal row (recipients null) is the user's own preference,
+    // deliberately turned off.
+    NotificationSetting::create([
+        'owner_id' => $this->recipient->id,
+        'event_type' => 'task_status_changed',
+        'channel' => 'in_app',
+        'recipients' => null,
+        'is_active' => false,
+    ]);
+
+    // An admin-configured broadcast rule that would otherwise notify this
+    // exact user for the same event_type/channel.
+    NotificationSetting::create([
+        'owner_id' => $this->management->id,
+        'event_type' => 'task_status_changed',
+        'channel' => 'in_app',
+        'recipients' => ['type' => 'users', 'ids' => [$this->recipient->id]],
+        'is_active' => true,
+    ]);
+
+    changeTaskStatus($this);
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(0);
+});
+
+test('a user with no personal rule for an event correctly receives notifications per the applicable admin rule', function () {
+    NotificationSetting::create([
+        'owner_id' => $this->management->id,
+        'event_type' => 'task_status_changed',
+        'channel' => 'in_app',
+        'recipients' => ['type' => 'users', 'ids' => [$this->recipient->id]],
+        'is_active' => true,
+    ]);
+
+    changeTaskStatus($this);
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(1);
+});
+
+test('a user matching two different admin rules for the same event_type receives exactly one notification, not two', function () {
+    NotificationSetting::create([
+        'owner_id' => $this->management->id,
+        'event_type' => 'task_status_changed',
+        'channel' => 'in_app',
+        'recipients' => ['type' => 'users', 'ids' => [$this->recipient->id]],
+        'is_active' => true,
+    ]);
+
+    NotificationSetting::create([
+        'owner_id' => $this->management->id,
+        'event_type' => 'task_status_changed',
+        'channel' => 'in_app',
+        'recipients' => ['type' => 'role', 'role' => 'staff'],
+        'is_active' => true,
+    ]);
+
+    changeTaskStatus($this);
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(1);
+});

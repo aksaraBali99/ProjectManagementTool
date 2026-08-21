@@ -215,7 +215,7 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Auth/LoginRequest.php": {
-    "mtime": 1787305289.683674,
+    "mtime": 1787306004.3990579,
     "ast_hash": "6e7501bf023d77f614ab2b530913ed22",
     "semantic_hash": ""
   },
@@ -415,7 +415,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Auth/LoginTest.php": {
-    "mtime": 1787305390.5731752,
+    "mtime": 1787306004.4541454,
     "ast_hash": "d5a8e8736baea4e0670853a7afddad7e",
     "semantic_hash": ""
   },
@@ -995,8 +995,8 @@
     "semantic_hash": ""
   },
   "app/Services/AuditEventNotifier.php": {
-    "mtime": 1787297716.4077976,
-    "ast_hash": "3fdfdd1c8c78848ad8c2b6322208fd68",
+    "mtime": 1787307364.6513968,
+    "ast_hash": "3fc8851636106b8ce39d5e853f99298c",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_21_070656_create_notifications_table.php": {
@@ -1010,7 +1010,7 @@
     "semantic_hash": ""
   },
   "resources/views/notification-settings/index.blade.php": {
-    "mtime": 1787305300.9048522,
+    "mtime": 1787306004.4491048,
     "ast_hash": "050c9a91c4d396b7a9d1a284568c1687",
     "semantic_hash": ""
   },
@@ -1030,33 +1030,38 @@
     "semantic_hash": ""
   },
   "tests/Feature/Notifications/NotificationDeliveryTest.php": {
-    "mtime": 1787297716.4565566,
-    "ast_hash": "d9028fdc8aeead884ea67191746bb03c",
+    "mtime": 1787307393.573932,
+    "ast_hash": "c510a7ccc53c661eed0da2b13b26b614",
     "semantic_hash": ""
   },
   "tests/Feature/Notifications/NotificationSettingsTest.php": {
-    "mtime": 1787305417.3500605,
+    "mtime": 1787306004.4601607,
     "ast_hash": "1e6f38d352eb0d0311dd098d3b29a005",
     "semantic_hash": ""
   },
   "resources/views/errors/403.blade.php": {
-    "mtime": 1787305308.132032,
+    "mtime": 1787306004.4430945,
     "ast_hash": "add90a8892cf7cc99ae1519c374d0d2f",
     "semantic_hash": ""
   },
   "resources/views/errors/404.blade.php": {
-    "mtime": 1787305313.7309527,
+    "mtime": 1787306004.445112,
     "ast_hash": "b11ecef6090b464ebdff6126d361a045",
     "semantic_hash": ""
   },
   "resources/views/errors/500.blade.php": {
-    "mtime": 1787305318.9296532,
+    "mtime": 1787306004.4461145,
     "ast_hash": "02e4b4cdd5e0aa57229b673f931eaa0a",
     "semantic_hash": ""
   },
   "tests/Feature/ErrorPages/CustomErrorPagesTest.php": {
-    "mtime": 1787305466.2600372,
+    "mtime": 1787306004.4571612,
     "ast_hash": "c221edba8713a88fde49a834f2a60c58",
+    "semantic_hash": ""
+  },
+  "app/Services/NotificationSettingsResolver.php": {
+    "mtime": 1787307226.5967996,
+    "ast_hash": "ca9c2ee55fb141dece9f6dae65e52a68",
     "semantic_hash": ""
   }
 }
