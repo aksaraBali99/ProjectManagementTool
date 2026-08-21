@@ -31,6 +31,7 @@ class PermissionSeeder extends Seeder
             ['slug' => 'view_dashboard', 'name' => 'View dashboard', 'group' => 'Dashboard'],
             ['slug' => 'view_kanban', 'name' => 'View kanban board', 'group' => 'Kanban'],
             ['slug' => 'update_kanban_cards', 'name' => 'Update cards (move to change status)', 'group' => 'Kanban'],
+            ['slug' => 'view_calendar', 'name' => 'View calendar', 'group' => 'Calendar'],
             ['slug' => 'view_documents', 'name' => 'View documents', 'group' => 'Documents'],
             ['slug' => 'manage_documents', 'name' => 'Add & edit documents', 'group' => 'Documents'],
             ['slug' => 'manage_settings', 'name' => 'Manage settings', 'group' => 'Administration'],
@@ -49,7 +50,7 @@ class PermissionSeeder extends Seeder
                 'view_projects', 'create_edit_projects',
                 'view_tasks', 'create_edit_tasks', 'toggle_subtask_done',
                 'view_comments', 'add_edit_own_comment',
-                'view_dashboard', 'view_kanban', 'update_kanban_cards',
+                'view_dashboard', 'view_kanban', 'update_kanban_cards', 'view_calendar',
                 // Documents are part of "manage projects/tasks for their
                 // staff", same reasoning as create_edit_tasks/projects.
                 'view_documents', 'manage_documents',
@@ -66,7 +67,7 @@ class PermissionSeeder extends Seeder
                 // TaskPolicy::updateStatus()'s own identity bypass, same as
                 // they can edit a task assigned to them without
                 // create_edit_tasks.
-                'view_dashboard', 'view_kanban',
+                'view_dashboard', 'view_kanban', 'view_calendar',
                 // view_documents only — staff can see the Documents list
                 // and attach existing documents to tasks, but can't add new
                 // ones (manage_documents not granted).
@@ -80,7 +81,7 @@ class PermissionSeeder extends Seeder
                 // their own attached project(s) via User::boardOrganizationIds()
                 // and Task::scopeVisibleTo() — this doesn't widen that.
                 // update_kanban_cards not granted, same reasoning as staff.
-                'view_dashboard', 'view_kanban',
+                'view_dashboard', 'view_kanban', 'view_calendar',
                 // Neither view_documents nor manage_documents — a client's
                 // document visibility is handled entirely by access_level
                 // (public documents linked to their project via
