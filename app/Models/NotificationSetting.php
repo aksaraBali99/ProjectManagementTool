@@ -47,4 +47,28 @@ class NotificationSetting extends Model
             && count($recipients['ids'] ?? []) === 1
             && (int) ($recipients['ids'][0] ?? 0) === $userId;
     }
+
+    /**
+     * Two recipient descriptors are the same rule regardless of key order
+     * or user-id order — a 'users' list is compared as a set, a 'role' is
+     * compared by its slug.
+     *
+     * @param  array<string, mixed>  $a
+     * @param  array<string, mixed>  $b
+     */
+    public static function recipientsEqual(array $a, array $b): bool
+    {
+        if (($a['type'] ?? null) !== ($b['type'] ?? null)) {
+            return false;
+        }
+
+        if ($a['type'] === 'users') {
+            $idsA = collect($a['ids'] ?? [])->map(fn ($id) => (int) $id)->sort()->values();
+            $idsB = collect($b['ids'] ?? [])->map(fn ($id) => (int) $id)->sort()->values();
+
+            return $idsA->all() === $idsB->all();
+        }
+
+        return ($a['role'] ?? null) === ($b['role'] ?? null);
+    }
 }
