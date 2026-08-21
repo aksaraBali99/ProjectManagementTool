@@ -47,6 +47,15 @@ test('the permission matrix lists the Dashboard and Kanban board view permission
     $response->assertSee('View kanban board');
 });
 
+test('comment permissions are grouped under Tasks, not a separate Comments group', function () {
+    $response = $this->actingAs($this->owner)->get('/roles/permissions');
+
+    $response->assertOk();
+    $response->assertSee('View comments');
+    $response->assertSee('Add / edit own comments');
+    $response->assertDontSee('Comments');
+});
+
 test('unchecking a permission for a role in the matrix removes that capability immediately', function () {
     $project = Project::create([
         'organization_id' => $this->orgA->id,
