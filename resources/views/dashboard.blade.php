@@ -7,7 +7,7 @@
     <h1 class="text-[14px] font-medium text-[#1F2937]">Dashboard</h1>
 
     @if ($organizations->isEmpty())
-        <p class="mt-6 text-[12px] text-gray-500">You don't have access to any companies yet.</p>
+        <p class="mt-6 text-[12px] text-gray-500">{{ $emptyMessage ?? "You don't have access to any companies yet." }}</p>
     @else
         <div class="mt-4 flex gap-1 border-b border-gray-200">
             @foreach ($organizations as $tab)

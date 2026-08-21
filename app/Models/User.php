@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BoardAccessDeniedReason;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -262,5 +263,51 @@ class User extends Authenticatable
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Why boardOrganizationIds($permissionSlug) came up empty, so the
+     * Dashboard/Kanban empty state can say something accurate instead of
+     * one generic message for every cause. Checked in priority order: a
+     * role that would otherwise qualify but is missing the permission is a
+     * more specific (and more actionable) diagnosis than "no project yet",
+     * which in turn is more specific than the true fallback (no
+     * organization membership at all, or a deactivated company).
+     */
+    public function boardAccessDeniedReason(string $permissionSlug): BoardAccessDeniedReason
+    {
+        $qualifiesByRoleSomewhere = false;
+        $hasPermissionWhereQualified = false;
+        $isClientSomewhere = false;
+
+        foreach ($this->visibleOrganizationIds() as $organizationId) {
+            $roleQualifies = $this->isManagementInOrg($organizationId)
+                || $this->isStaffInOrg($organizationId)
+                || $this->isClientInOrg($organizationId);
+
+            if (! $roleQualifies) {
+                continue;
+            }
+
+            $qualifiesByRoleSomewhere = true;
+
+            if ($this->hasPermission($permissionSlug, $organizationId)) {
+                $hasPermissionWhereQualified = true;
+            }
+
+            if ($this->isClientInOrg($organizationId)) {
+                $isClientSomewhere = true;
+            }
+        }
+
+        if ($qualifiesByRoleSomewhere && ! $hasPermissionWhereQualified) {
+            return BoardAccessDeniedReason::PermissionDenied;
+        }
+
+        if ($isClientSomewhere && ! $this->projectsAsClient()->exists()) {
+            return BoardAccessDeniedReason::NoProject;
+        }
+
+        return BoardAccessDeniedReason::NoAccess;
     }
 }

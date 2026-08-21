@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "app/Models/User.php": {
-    "mtime": 1787279235.5529232,
-    "ast_hash": "da22bc6eb15c30fd307c2c802934abdc",
+    "mtime": 1787281175.3520465,
+    "ast_hash": "98e489216caac8a7dfb4cf8f732ae47d",
     "semantic_hash": ""
   },
   "app/Providers/AppServiceProvider.php": {
@@ -130,7 +130,7 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1787275964.8289504,
+    "mtime": 1787280635.949908,
     "ast_hash": "e95b70860bd124c1c4c335712795a18e",
     "semantic_hash": ""
   },
@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DashboardController.php": {
-    "mtime": 1787279240.8501267,
-    "ast_hash": "ca68845e933889742558281f023d46d2",
+    "mtime": 1787281186.0625434,
+    "ast_hash": "ecb050aa7b66f7aa397c20a93b08868c",
     "semantic_hash": ""
   },
   "app/Http/Middleware/EnsureBelongsToOrganization.php": {
@@ -280,7 +280,7 @@
     "semantic_hash": ""
   },
   "app/Models/Task.php": {
-    "mtime": 1787274172.4641137,
+    "mtime": 1787280635.8465445,
     "ast_hash": "4b9f57d0df1c9d168a21b9d445998d7f",
     "semantic_hash": ""
   },
@@ -405,8 +405,8 @@
     "semantic_hash": ""
   },
   "resources/views/dashboard.blade.php": {
-    "mtime": 1787277692.6280444,
-    "ast_hash": "6426f0e92364295d6acbafee1fef8457",
+    "mtime": 1787281204.8842094,
+    "ast_hash": "bd57fb6de9c27be07a654450b5eac5a0",
     "semantic_hash": ""
   },
   "resources/views/layouts/app.blade.php": {
@@ -555,7 +555,7 @@
     "semantic_hash": ""
   },
   "resources/views/layouts/authenticated.blade.php": {
-    "mtime": 1787276012.649063,
+    "mtime": 1787280635.9458852,
     "ast_hash": "e509a130a91bbbeed1ac30c1f4591491",
     "semantic_hash": ""
   },
@@ -725,7 +725,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1787275946.7954266,
+    "mtime": 1787280635.8440242,
     "ast_hash": "0b7651c66de1d575753d037c54883774",
     "semantic_hash": ""
   },
@@ -770,7 +770,7 @@
     "semantic_hash": ""
   },
   "database/seeders/PermissionSeeder.php": {
-    "mtime": 1787279210.3307722,
+    "mtime": 1787280635.8503268,
     "ast_hash": "6814321dbae4c865c8eb9f9882e9cc91",
     "semantic_hash": ""
   },
@@ -830,7 +830,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Permissions/PermissionMatrixTest.php": {
-    "mtime": 1787279300.980081,
+    "mtime": 1787280635.9539664,
     "ast_hash": "4c7862166805f2c4d5bcd0536dd51168",
     "semantic_hash": ""
   },
@@ -884,24 +884,29 @@
     "ast_hash": "f09728654fef113f64913bdaf975f7e6",
     "semantic_hash": ""
   },
+  "app/Enums/BoardAccessDeniedReason.php": {
+    "mtime": 1787281150.4737623,
+    "ast_hash": "cbd8aacf622bb83b18463ab4deb44ae9",
+    "semantic_hash": ""
+  },
   "app/Http/Controllers/KanbanController.php": {
-    "mtime": 1787279245.17978,
-    "ast_hash": "75d5917fe56eb344d13083ace98fc3f0",
+    "mtime": 1787281195.366632,
+    "ast_hash": "930bdf92eafcfd91dce6679b20ceda0a",
     "semantic_hash": ""
   },
   "resources/views/kanban.blade.php": {
-    "mtime": 1787276005.9962013,
-    "ast_hash": "210ac5d3949e794b3227159c94f85d9a",
+    "mtime": 1787281209.3477306,
+    "ast_hash": "eb3babab3e9906acf1bc53f0ace2487f",
     "semantic_hash": ""
   },
   "tests/Feature/Dashboard/DashboardTest.php": {
-    "mtime": 1787279316.4004097,
-    "ast_hash": "45acdb3e87d06317e79c78f73580241f",
+    "mtime": 1787281284.9039266,
+    "ast_hash": "ee69ae18416b636c320274d3e2560bf6",
     "semantic_hash": ""
   },
   "tests/Feature/Kanban/KanbanTest.php": {
-    "mtime": 1787279330.1440213,
-    "ast_hash": "8d81c420f36f61979f18f09d9c5409fe",
+    "mtime": 1787281301.7946744,
+    "ast_hash": "24d5b37bcfd1a9cfb8d9fd7b890cc2d1",
     "semantic_hash": ""
   }
 }
