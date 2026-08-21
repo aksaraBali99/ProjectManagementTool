@@ -60,6 +60,10 @@
         <form method="POST" action="{{ route('notification-settings.rules.store') }}" class="mt-3 space-y-3 rounded-[10px] border border-gray-200 bg-white p-3">
             @csrf
 
+            @error('duplicate')
+                <p class="field-error text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
+
             <div class="flex flex-wrap items-end gap-3">
                 <div>
                     <label for="rule_event_type" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Event</label>

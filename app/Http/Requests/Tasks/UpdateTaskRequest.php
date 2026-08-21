@@ -34,6 +34,14 @@ class UpdateTaskRequest extends FormRequest
         ];
     }
 
+    public function attributes(): array
+    {
+        return [
+            'project_id' => 'project',
+            'department_id' => 'department',
+        ];
+    }
+
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {

@@ -85,6 +85,9 @@ class NotificationSettingsController extends Controller
             'user_ids' => ['required_if:recipient_type,users', 'array'],
             'user_ids.*' => ['integer', 'exists:users,id'],
             'role' => ['required_if:recipient_type,role', 'in:'.implode(',', [Role::MANAGEMENT, Role::STAFF, Role::CLIENT])],
+        ], [
+            'user_ids.required_if' => 'Please select a user when the recipient type is users.',
+            'role.required_if' => 'Please select a role when the recipient type is role.',
         ]);
 
         $recipients = $data['recipient_type'] === 'users'
@@ -92,6 +95,18 @@ class NotificationSettingsController extends Controller
             : ['type' => 'role', 'role' => $data['role']];
 
         Gate::authorize('create', [NotificationSetting::class, $recipients]);
+
+        $duplicate = NotificationSetting::where('event_type', $data['event_type'])
+            ->where('channel', $data['channel'])
+            ->whereNotNull('recipients')
+            ->get()
+            ->contains(fn (NotificationSetting $existing) => NotificationSetting::recipientsEqual($existing->recipients, $recipients));
+
+        if ($duplicate) {
+            return back()->withInput()->withErrors([
+                'duplicate' => 'A rule for this event, channel, and recipient(s) already exists — toggle or edit the existing one instead.',
+            ]);
+        }
 
         NotificationSetting::create([
             'owner_id' => auth()->id(),

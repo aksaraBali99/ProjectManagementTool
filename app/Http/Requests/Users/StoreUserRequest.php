@@ -39,8 +39,15 @@ class StoreUserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.email' => 'Please enter valid email address',
-            'email.regex' => 'Please enter valid email address',
+            'email.email' => 'Please enter a valid email address.',
+            'email.regex' => 'Please enter a valid email address.',
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'employee_id' => 'Employee ID',
         ];
     }
 
