@@ -80,6 +80,61 @@ class User extends Authenticatable
         return $this->hasMany(NotificationSetting::class, 'owner_id');
     }
 
+    /**
+     * First letter of the first and last words of the name ("Olivia Larsen"
+     * -> "OL"), per the UIX spec's avatar examples. A single-word name
+     * falls back to just its first letter rather than repeating it, since
+     * the spec gives no guidance for that case.
+     */
+    public function initials(): string
+    {
+        $words = preg_split('/\s+/', trim($this->name)) ?: [];
+        $words = array_values(array_filter($words, fn ($word) => $word !== ''));
+
+        if (count($words) === 0) {
+            return '';
+        }
+
+        if (count($words) === 1) {
+            return mb_strtoupper(mb_substr($words[0], 0, 1));
+        }
+
+        return mb_strtoupper(mb_substr($words[0], 0, 1).mb_substr($words[count($words) - 1], 0, 1));
+    }
+
+    /**
+     * Deterministic hash-based avatar colour (id % 8) into the UIX spec's
+     * 8-pair palette, rather than a colour hardcoded per person, so any
+     * user gets a stable, spec-matching avatar colour automatically.
+     *
+     * @return array{0: string, 1: string} [background, text]
+     */
+    private function avatarPalette(): array
+    {
+        $palette = [
+            ['#9FE1CB', '#085041'],
+            ['#CECBF6', '#3C3489'],
+            ['#F5C4B3', '#712B13'],
+            ['#B5D4F4', '#0C447C'],
+            ['#FAC775', '#633806'],
+            ['#E1F5EE', '#0F6E56'],
+            ['#FDE8F0', '#8B1A4A'],
+            ['#FDEAEA', '#A32D2D'],
+        ];
+
+        return $palette[$this->id % 8];
+    }
+
+    public function avatarBackground(): string
+    {
+        return $this->avatarPalette()[0];
+    }
+
+    public function avatarText(): string
+    {
+        return $this->avatarPalette()[1];
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->roles()->where('slug', Role::SUPER_ADMIN)->exists();
