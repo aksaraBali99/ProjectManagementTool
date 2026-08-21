@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Observers\SubtaskObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable(['task_id', 'title', 'assignee_id', 'is_done', 'due_date'])]
+#[ObservedBy(SubtaskObserver::class)]
 class Subtask extends Model
 {
     protected function casts(): array

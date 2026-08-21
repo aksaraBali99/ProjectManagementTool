@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessControlController;
+use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\CommentController;
@@ -8,6 +9,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentManagementController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\KanbanController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\OrganizationManagementController;
 use App\Http\Controllers\PermissionManagementController;
 use App\Http\Controllers\ProjectManagementController;
@@ -34,6 +37,15 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/dashboard/{organization?}', DashboardController::class)->name('dashboard');
     Route::get('/kanban/{organization?}', KanbanController::class)->name('kanban');
     Route::get('/settings', SettingsController::class)->name('settings.index');
+    Route::get('/audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail.index');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+    Route::get('/notification-settings', [NotificationSettingsController::class, 'index'])->name('notification-settings.index');
+    Route::put('/notification-settings/mine', [NotificationSettingsController::class, 'updateMine'])->name('notification-settings.update-mine');
+    Route::post('/notification-settings/rules', [NotificationSettingsController::class, 'storeRule'])->name('notification-settings.rules.store');
+    Route::patch('/notification-settings/rules/{notificationSetting}/toggle', [NotificationSettingsController::class, 'toggleRule'])->name('notification-settings.rules.toggle');
+    Route::delete('/notification-settings/rules/{notificationSetting}', [NotificationSettingsController::class, 'destroyRule'])->name('notification-settings.rules.destroy');
 
     Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserManagementController::class, 'create'])->name('users.create');

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
-use App\Models\AuditLog;
 use App\Models\Subtask;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
@@ -31,8 +30,6 @@ class SubtaskController extends Controller
         $subtask = $task->subtasks()->create($data);
         $subtask->setRelation('task', $task);
 
-        $this->logAudit($subtask, 'created', collect($subtask->getAttributes())->only(['title', 'assignee_id', 'due_date'])->all());
-
         return response()->json(['subtask' => $subtask], 201);
     }
 
@@ -41,8 +38,6 @@ class SubtaskController extends Controller
         Gate::authorize('toggle', $subtask);
 
         $subtask->update(['is_done' => ! $subtask->is_done]);
-
-        $this->logAudit($subtask, $subtask->is_done ? 'completed' : 'reopened', ['is_done' => $subtask->is_done]);
 
         return response()->json(['subtask' => $subtask]);
     }
@@ -63,12 +58,6 @@ class SubtaskController extends Controller
 
         $subtask->update($data);
 
-        $changes = $subtask->getChanges();
-        unset($changes['updated_at']);
-        if (! empty($changes)) {
-            $this->logAudit($subtask, 'updated', $changes);
-        }
-
         return response()->json(['subtask' => $subtask]);
     }
 
@@ -76,24 +65,8 @@ class SubtaskController extends Controller
     {
         Gate::authorize('delete', $subtask);
 
-        $changes = collect($subtask->getAttributes())->only(['title', 'assignee_id', 'due_date', 'is_done'])->all();
-
         $subtask->delete();
 
-        $this->logAudit($subtask, 'deleted', $changes);
-
         return response()->json(['deleted' => true]);
-    }
-
-    private function logAudit(Subtask $subtask, string $action, array $changes = []): void
-    {
-        AuditLog::create([
-            'organization_id' => $subtask->task->organization_id,
-            'user_id' => auth()->id(),
-            'action' => $action,
-            'entity_type' => Subtask::class,
-            'entity_id' => $subtask->id,
-            'changes' => $changes,
-        ]);
     }
 }

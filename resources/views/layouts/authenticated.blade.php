@@ -76,6 +76,15 @@
             <header class="flex h-12 items-center justify-between border-b border-gray-200 bg-white px-4">
                 <span class="text-[13px] font-medium text-gray-900">@yield('title', 'Solava')</span>
                 <div class="flex items-center gap-3 text-sm text-gray-600">
+                    @php $unreadCount = auth()->user()->unreadNotifications()->count() @endphp
+                    <a href="{{ route('notifications.index') }}" class="relative flex items-center hover:text-gray-900" aria-label="Notifications">
+                        <i class="ti ti-bell text-[16px]"></i>
+                        @if ($unreadCount > 0)
+                            <span class="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#DC2626] px-1 text-[9px] font-medium leading-none text-white">
+                                {{ $unreadCount > 99 ? '99+' : $unreadCount }}
+                            </span>
+                        @endif
+                    </a>
                     <span>{{ auth()->user()->name }}</span>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf

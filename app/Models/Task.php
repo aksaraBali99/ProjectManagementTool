@@ -5,7 +5,9 @@ namespace App\Models;
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
 use App\Models\Concerns\BelongsToOrganization;
+use App\Observers\TaskObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['organization_id', 'project_id', 'department_id', 'assignee_id', 'title', 'description', 'priority', 'status', 'due_date'])]
+#[ObservedBy(TaskObserver::class)]
 class Task extends Model
 {
     use BelongsToOrganization, SoftDeletes;

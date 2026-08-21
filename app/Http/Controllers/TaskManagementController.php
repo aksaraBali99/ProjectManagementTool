@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\TaskStatus;
 use App\Http\Requests\Tasks\StoreTaskRequest;
 use App\Http\Requests\Tasks\UpdateTaskRequest;
-use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
@@ -124,10 +123,6 @@ class TaskManagementController extends Controller
                 ]);
             }
 
-            $this->logAudit($task, 'created', collect($task->getAttributes())->only([
-                'project_id', 'department_id', 'assignee_id', 'title', 'priority', 'status', 'due_date',
-            ])->all());
-
             return $task;
         });
 
@@ -193,12 +188,6 @@ class TaskManagementController extends Controller
             'due_date' => $request->input('due_date') ?: null,
         ]);
 
-        $changes = $task->getChanges();
-        unset($changes['updated_at']);
-        if (! empty($changes)) {
-            $this->logAudit($task, 'updated', $changes);
-        }
-
         return redirect()->route('tasks.edit', $task)->with('status', 'Task updated.');
     }
 
@@ -209,11 +198,9 @@ class TaskManagementController extends Controller
         if ($task->trashed()) {
             $task->restore();
             $status = 'Task activated.';
-            $this->logAudit($task, 'reactivated');
         } else {
             $task->delete();
             $status = 'Task deactivated.';
-            $this->logAudit($task, 'deactivated');
         }
 
         return redirect()->route('tasks.edit', $task)->with('status', $status);
@@ -238,24 +225,8 @@ class TaskManagementController extends Controller
 
         $task->update(['status' => $data['status']]);
 
-        if ($task->wasChanged('status')) {
-            $this->logAudit($task, 'updated', ['status' => $task->status->value]);
-        }
-
         return response()->json([
             'task' => ['id' => $task->id, 'status' => $task->status->value, 'status_label' => $task->status->label()],
-        ]);
-    }
-
-    private function logAudit(Task $task, string $action, array $changes = []): void
-    {
-        AuditLog::create([
-            'organization_id' => $task->organization_id,
-            'user_id' => auth()->id(),
-            'action' => $action,
-            'entity_type' => Task::class,
-            'entity_id' => $task->id,
-            'changes' => $changes,
         ]);
     }
 
