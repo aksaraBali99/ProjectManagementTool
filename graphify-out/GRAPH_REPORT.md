@@ -1,32 +1,32 @@
 # Graph Report - ProjectManagementTool  (2026-08-21)
 
 ## Corpus Check
-- 206 files · ~55,946 words
+- 206 files · ~56,261 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 822 nodes · 1793 edges · 101 communities (88 shown, 13 thin omitted)
+- 823 nodes · 1794 edges · 102 communities (86 shown, 16 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 113 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `10d98c59`
+- Built from commit: `11077f40`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - OrgMember
-- Project
+- Illuminate\View\View
 - Task
-- Closure
+- LoginRequest
 - Illuminate\Database\Seeder
-- Illuminate\Foundation\Http\FormRequest
+- User
 - composer.json
-- UserFactory
+- Illuminate\Database\Eloquent\Relations\BelongsToMany
 - scripts
 - package.json
 - Mermaid AI Skills
-- ProjectManagementController.php
+- Illuminate\Foundation\Http\FormRequest
 - LARAVEL_README.md
 - AppServiceProvider.php
 - Pest.php
@@ -40,14 +40,15 @@
 - CLAUDE.md
 - copilot-instructions.md
 - _password-input.blade.php
-- Illuminate\View\View
-- User
+- Role
+- .boardOrganizationIds
 - Organization
-- UpdateUserRequest
-- LoginRequest
-- StoreUserRequest
-- UserManagementController.php
+- CommentPolicy
+- DepartmentPolicy
+- ProjectPolicy
+- UserPolicy
 - AuditLog
+- AuditLogPolicy.php
 
 ## God Nodes (most connected - your core abstractions)
 1. `User` - 128 edges
@@ -66,49 +67,45 @@
   tests/Feature/Dashboard/DashboardTest.php → app/Models/Role.php
 - `makeStaffForDocumentCreate()` --calls--> `Role`  [INFERRED]
   tests/Feature/Documents/DocumentCreateTest.php → app/Models/Role.php
+- `makeClientForDocumentList()` --calls--> `Role`  [INFERRED]
+  tests/Feature/Documents/DocumentListTest.php → app/Models/Role.php
 - `makeStaffForDocumentList()` --calls--> `Role`  [INFERRED]
   tests/Feature/Documents/DocumentListTest.php → app/Models/Role.php
 - `makeClientForDocuments()` --calls--> `Role`  [INFERRED]
-  tests/Feature/Documents/DocumentVisibilityTest.php → app/Models/Role.php
-- `makeStaffForDocuments()` --calls--> `Role`  [INFERRED]
   tests/Feature/Documents/DocumentVisibilityTest.php → app/Models/Role.php
 
 ## Import Cycles
 - None detected.
 
-## Communities (101 total, 13 thin omitted)
+## Communities (102 total, 16 thin omitted)
 
 ### Community 0 - "OrgMember"
 Cohesion: 0.07
-Nodes (10): organization(), OrgMember, Illuminate\Database\Eloquent\Builder, Illuminate\Database\Eloquent\Model, Illuminate\Database\Eloquent\Relations\BelongsTo, Illuminate\Support\Facades\Notification, makeStaffForDocumentCreate(), makeStaffForDocumentList() (+2 more)
+Nodes (10): organization(), OrgMember, Illuminate\Contracts\Validation\Validator, Illuminate\Database\Eloquent\Model, Illuminate\Database\Eloquent\Relations\BelongsTo, Illuminate\Support\Facades\Notification, makeStaffForDocumentCreate(), makeStaffForDocumentList() (+2 more)
 
-### Community 1 - "Project"
-Cohesion: 0.09
-Nodes (12): DashboardController, Collection, ProjectManagementController, TaskManagementController, isAssignableStaffForProject(), StoreTaskRequest, UpdateTaskRequest, Project (+4 more)
+### Community 1 - "Illuminate\View\View"
+Cohesion: 0.08
+Nodes (15): DashboardController, Collection, NotificationController, ProjectManagementController, SettingsController, TaskManagementController, isAssignableStaffForProject(), StoreTaskRequest (+7 more)
 
 ### Community 2 - "Task"
-Cohesion: 0.06
-Nodes (15): CommentController, DocumentController, SubtaskController, TaskDocumentController, Document, Subtask, Task, SubtaskObserver (+7 more)
+Cohesion: 0.07
+Nodes (13): CommentController, DocumentController, SubtaskController, TaskDocumentController, Document, Task, TaskObserver, DocumentPolicy (+5 more)
 
-### Community 3 - "Closure"
-Cohesion: 0.22
-Nodes (7): EnsureBelongsToOrganization, EnsureUserIsActive, ValidClientUser, ValidPhoneNumber, Closure, Illuminate\Contracts\Validation\ValidationRule, Symfony\Component\HttpFoundation\Response
+### Community 3 - "LoginRequest"
+Cohesion: 0.09
+Nodes (13): EnsureBelongsToOrganization, EnsureUserIsActive, LoginRequest, bootBelongsToOrganization(), bootHidesInactiveFromNonAdmins(), ValidClientUser, ValidPhoneNumber, Closure (+5 more)
 
 ### Community 4 - "Illuminate\Database\Seeder"
 Cohesion: 0.18
 Nodes (6): Permission, DatabaseSeeder, OrganizationSeeder, PermissionSeeder, RoleSeeder, Illuminate\Database\Seeder
 
-### Community 5 - "Illuminate\Foundation\Http\FormRequest"
-Cohesion: 0.19
-Nodes (4): UpdateDepartmentRequest, StoreOrganizationRequest, UpdateOrganizationRequest, Illuminate\Foundation\Http\FormRequest
+### Community 5 - "User"
+Cohesion: 0.13
+Nodes (6): User, OrganizationPolicy, TaskPolicy, Illuminate\Database\Eloquent\Factories\HasFactory, Illuminate\Foundation\Auth\User, Illuminate\Notifications\Notifiable
 
 ### Community 6 - "composer.json"
 Cohesion: 0.04
 Nodes (44): pestphp/pest-plugin, php-http/discovery, autoload, autoload-dev, psr-4, psr-4, config, allow-plugins (+36 more)
-
-### Community 7 - "UserFactory"
-Cohesion: 0.32
-Nodes (5): bootBelongsToOrganization(), bootHidesInactiveFromNonAdmins(), UserFactory, Illuminate\Database\Eloquent\Factories\Factory, static
 
 ### Community 8 - "scripts"
 Cohesion: 0.08
@@ -121,6 +118,10 @@ Nodes (23): concurrently, intl-tel-input, @laravel/multiplex, laravel-vite-plugi
 ### Community 10 - "Mermaid AI Skills"
 Cohesion: 0.15
 Nodes (12): Diagram editing & preview, Docs, Generate diagrams (GitHub Copilot required), Install / update this pack, LM Tools — call these for every diagram interaction, Mermaid AI Skills, Mermaid Chart cloud, @mermaid-chart slash commands (+4 more)
+
+### Community 11 - "Illuminate\Foundation\Http\FormRequest"
+Cohesion: 0.05
+Nodes (13): UpdateDepartmentRequest, StoreOrganizationRequest, UpdateOrganizationRequest, StoreProjectRequest, UpdateProjectRequest, UpdateRoleRequest, validateCompanyRoles(), validateSuperAdminGrant() (+5 more)
 
 ### Community 12 - "LARAVEL_README.md"
 Cohesion: 0.25
@@ -138,39 +139,31 @@ Nodes (4): users._inline-validation, users._password-input, users._phone-input, 
 Cohesion: 0.50
 Nodes (3): tasks._comments, tasks._subtasks, tasks._documents
 
-### Community 86 - "Illuminate\View\View"
-Cohesion: 0.07
-Nodes (18): AuditTrailController, AuthenticatedSessionController, GoogleAuthController, Controller, KanbanController, NotificationController, NotificationSettingsController, OrganizationManagementController (+10 more)
-
-### Community 87 - "User"
-Cohesion: 0.05
-Nodes (14): Collection, User, AuditLogPolicy, DepartmentPolicy, NotificationSettingPolicy, OrganizationPolicy, ProjectPolicy, RolePolicy (+6 more)
+### Community 86 - "Role"
+Cohesion: 0.06
+Nodes (15): AuthenticatedSessionController, GoogleAuthController, Controller, DepartmentManagementController, NotificationSettingsController, OrganizationManagementController, PermissionManagementController, RoleManagementController (+7 more)
 
 ### Community 88 - "Organization"
-Cohesion: 0.07
-Nodes (15): AccessControlController, DepartmentManagementController, StoreDepartmentRequest, AccessPermission, Department, Organization, DepartmentSeeder, UserSeeder (+7 more)
-
-### Community 91 - "StoreUserRequest"
-Cohesion: 0.18
-Nodes (5): UpdateRoleRequest, validateCompanyRoles(), validateSuperAdminGrant(), StoreUserRequest, Illuminate\Validation\Validator
+Cohesion: 0.08
+Nodes (13): AccessControlController, KanbanController, StoreDepartmentRequest, AccessPermission, Department, Organization, DepartmentSeeder, UserSeeder (+5 more)
 
 ### Community 93 - "AuditLog"
 Cohesion: 0.06
-Nodes (11): AuditLog, Comment, AuditEventDatabaseNotification, AuditEventMailNotification, CommentObserver, CommentPolicy, AuditEventNotifier, Illuminate\Bus\Queueable (+3 more)
+Nodes (15): AuditTrailController, AuditLog, Comment, Subtask, AuditEventDatabaseNotification, AuditEventMailNotification, CommentObserver, SubtaskObserver (+7 more)
 
 ## Knowledge Gaps
 - **99 isolated node(s):** `$schema`, `name`, `type`, `description`, `laravel` (+94 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **13 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `OrgMember`, `Project`, `Task`, `Illuminate\View\View`, `Organization`, `LoginRequest`, `UserManagementController.php`, `AuditLog`?**
+- **Why does `User` connect `User` to `OrgMember`, `Illuminate\View\View`, `Task`, `LoginRequest`, `AuditLogPolicy.php`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Foundation\Http\FormRequest`, `Role`, `.boardOrganizationIds`, `Organization`, `CommentPolicy`, `DepartmentPolicy`, `ProjectPolicy`, `UserPolicy`, `AuditLog`?**
   _High betweenness centrality (0.140) - this node is a cross-community bridge._
-- **Why does `Organization` connect `Organization` to `OrgMember`, `Project`, `Task`, `Illuminate\Database\Seeder`, `ProjectManagementController.php`, `Illuminate\View\View`, `User`, `StoreUserRequest`?**
+- **Why does `Organization` connect `Organization` to `OrgMember`, `Illuminate\View\View`, `Task`, `Illuminate\Database\Seeder`, `User`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Foundation\Http\FormRequest`, `Role`, `.boardOrganizationIds`, `AuditLog`?**
   _High betweenness centrality (0.055) - this node is a cross-community bridge._
-- **Why does `Task` connect `Task` to `OrgMember`, `Project`, `Illuminate\View\View`, `User`, `AuditLog`?**
+- **Why does `Task` connect `Task` to `OrgMember`, `Illuminate\View\View`, `User`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Role`, `Organization`, `AuditLog`?**
   _High betweenness centrality (0.033) - this node is a cross-community bridge._
 - **Are the 10 inferred relationships involving `User` (e.g. with `.index()` and `.index()`) actually correct?**
   _`User` has 10 INFERRED edges - model-reasoned connections that need verification._

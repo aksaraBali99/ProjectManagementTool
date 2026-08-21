@@ -93,6 +93,18 @@ class NotificationSettingsController extends Controller
 
         Gate::authorize('create', [NotificationSetting::class, $recipients]);
 
+        $duplicate = NotificationSetting::where('event_type', $data['event_type'])
+            ->where('channel', $data['channel'])
+            ->whereNotNull('recipients')
+            ->get()
+            ->contains(fn (NotificationSetting $existing) => NotificationSetting::recipientsEqual($existing->recipients, $recipients));
+
+        if ($duplicate) {
+            return back()->withInput()->withErrors([
+                'duplicate' => 'A rule for this event, channel, and recipient(s) already exists — toggle or edit the existing one instead.',
+            ]);
+        }
+
         NotificationSetting::create([
             'owner_id' => auth()->id(),
             'event_type' => $data['event_type'],
