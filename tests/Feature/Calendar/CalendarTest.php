@@ -175,6 +175,46 @@ test('a user with no company membership at all sees the generic "no access" cale
     $response->assertSee("You don't have access to any companies yet.");
 });
 
+test('a gantt bar spans from the task\'s created_at to its due_date, not just a single day at the due date', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Spanning task',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => now()->addDays(10),
+    ]);
+    $task->created_at = now()->subDays(3);
+    $task->save();
+
+    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
+
+    $ganttTask = collect($response->viewData('ganttTasks'))->firstWhere('id', (string) $task->id);
+    expect($ganttTask['start'])->toBe(now()->subDays(3)->toDateString())
+        ->and($ganttTask['end'])->toBe(now()->addDays(10)->toDateString());
+});
+
+test('a task backdated so its due_date falls before created_at renders as a single-day bar instead of being dropped', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Backdated due date',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => now()->subDays(5),
+    ]);
+    $task->created_at = now();
+    $task->save();
+
+    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
+
+    $ganttTask = collect($response->viewData('ganttTasks'))->firstWhere('id', (string) $task->id);
+    expect($ganttTask['start'])->toBe(now()->subDays(5)->toDateString())
+        ->and($ganttTask['end'])->toBe(now()->subDays(5)->toDateString());
+});
+
 test('the gantt-container data-tasks attribute is valid, parseable JSON even when a task title contains a double quote', function () {
     Task::create([
         'organization_id' => $this->orgA->id,
