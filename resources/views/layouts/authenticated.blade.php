@@ -24,10 +24,12 @@
                 'route' => 'settings.index',
                 'matches' => ['settings.index'],
                 'children' => [
+                    ['label' => 'Notifications', 'route' => 'notification-settings.index', 'matches' => ['notification-settings.*']],
                     ['label' => 'Users', 'route' => 'users.index', 'matches' => ['users.*'], 'can' => ['viewAny', \App\Models\User::class]],
                     ['label' => 'Companies', 'route' => 'organizations.index', 'matches' => ['organizations.*'], 'can' => ['viewAny', \App\Models\Organization::class]],
                     ['label' => 'Departments', 'route' => 'departments.index', 'matches' => ['departments.*'], 'can' => ['viewAny', \App\Models\Department::class]],
                     ['label' => 'Roles', 'route' => 'roles.index', 'matches' => ['roles.*'], 'can' => ['viewAny', \App\Models\Role::class]],
+                    ['label' => 'Audit trail', 'route' => 'audit-trail.index', 'matches' => ['audit-trail.*'], 'can' => ['viewAny', \App\Models\AuditLog::class]],
                 ],
             ],
         ];
