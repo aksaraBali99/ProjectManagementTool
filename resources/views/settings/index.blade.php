@@ -11,7 +11,8 @@
             || auth()->user()->can('viewAny', App\Models\Organization::class)
             || auth()->user()->can('viewAny', App\Models\Department::class)
             || auth()->user()->can('viewAny', App\Models\Role::class)
-            || auth()->user()->can('viewAny', App\Models\AuditLog::class);
+            || auth()->user()->can('viewAny', App\Models\AuditLog::class)
+            || auth()->user()->can('analytics.view');
     @endphp
 
     <div class="mt-6 space-y-2">
@@ -76,6 +77,17 @@
                 <span>
                     <span class="block text-sm font-medium text-gray-900">Audit trail</span>
                     <span class="block text-xs text-gray-500">Read-only history of task, subtask, and comment changes</span>
+                </span>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+        @endcan
+
+        @can('analytics.view')
+            <a href="{{ route('analytics.index') }}"
+               class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50">
+                <span>
+                    <span class="block text-sm font-medium text-gray-900">Analytics</span>
+                    <span class="block text-xs text-gray-500">Cross-company task completion, status, priority, and staff workload</span>
                 </span>
                 <i class="ti ti-chevron-right text-gray-400"></i>
             </a>

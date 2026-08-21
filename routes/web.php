@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessControlController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -38,6 +39,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/kanban/{organization?}', KanbanController::class)->name('kanban');
     Route::get('/settings', SettingsController::class)->name('settings.index');
     Route::get('/audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail.index');
+    Route::get('/analytics', AnalyticsController::class)->name('analytics.index');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 

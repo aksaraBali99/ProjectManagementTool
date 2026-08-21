@@ -25,5 +25,10 @@ class AppServiceProvider extends ServiceProvider
         // organizations/departments/users — so a plain ability rather
         // than a model policy.
         Gate::define('access-control.view', fn (User $user) => $user->isSuperAdmin() || $user->isOwner());
+
+        // Founder Analytics: an owner-tier cross-company oversight view, not
+        // an operational one — rides the same manage_settings Administration
+        // bundle as the Audit Trail, rather than a dedicated permission.
+        Gate::define('analytics.view', fn (User $user) => $user->hasPermission('manage_settings'));
     }
 }
