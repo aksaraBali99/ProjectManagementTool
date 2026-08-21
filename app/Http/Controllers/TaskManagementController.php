@@ -212,14 +212,16 @@ class TaskManagementController extends Controller
 
     /**
      * Kanban's drag-and-drop (and its dropdown fallback) both hit this
-     * endpoint — same authorization as a normal edit (Gate::authorize
-     * 'update', which is hasPermission('create_edit_tasks') for
-     * management-tier, OR being the task's own assignee), so a drag isn't a
-     * side door around the rule a form submit already enforces.
+     * endpoint — authorized via TaskPolicy::updateStatus() (its own
+     * update_kanban_cards permission, OR being the task's own assignee),
+     * not the general task-edit ability, so a drag isn't a side door
+     * around a rule a form submit already enforces, and "who can move
+     * cards on Kanban" is independently configurable from "who can edit
+     * the full task form".
      */
     public function updateStatus(Request $request, Task $task): JsonResponse
     {
-        Gate::authorize('update', $task);
+        Gate::authorize('updateStatus', $task);
 
         $data = $request->validate([
             'status' => ['required', Rule::enum(TaskStatus::class)],

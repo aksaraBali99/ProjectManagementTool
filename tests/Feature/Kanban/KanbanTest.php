@@ -169,6 +169,64 @@ test('management can change the status of any task in their company via Kanban',
     expect($task->fresh()->status)->toBe(TaskStatus::InReview);
 });
 
+test('revoking update_kanban_cards from management blocks moving another person\'s card, but not editing the task via the full form', function () {
+    $staff = makeStaffOnKanban($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Staff task',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+
+    $managementRole = Role::where('slug', 'management')->firstOrFail();
+    $remainingPermissionIds = $managementRole->permissions()
+        ->where('slug', '!=', 'update_kanban_cards')
+        ->pluck('permissions.id')
+        ->all();
+    $managementRole->permissions()->sync($remainingPermissionIds);
+
+    $this->actingAs($this->management)->patchJson("/tasks/{$task->id}/status", ['status' => 'in_review'])
+        ->assertForbidden();
+    expect($task->fresh()->status)->toBe(TaskStatus::Pending);
+
+    // update_kanban_cards is independent of create_edit_tasks — the full
+    // task-edit form still works for management with that permission
+    // still intact.
+    $this->actingAs($this->management)->put("/tasks/{$task->id}", [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Staff task, renamed',
+        'priority' => 'medium',
+        'status' => 'in_review',
+    ])->assertRedirect("/tasks/{$task->id}/edit");
+    expect($task->fresh()->title)->toBe('Staff task, renamed')
+        ->and($task->fresh()->status)->toBe(TaskStatus::InReview);
+});
+
+test('the assignee of a task can still move its Kanban card even without the update_kanban_cards permission', function () {
+    $staff = makeStaffOnKanban($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'My task',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+
+    // Staff never holds update_kanban_cards, per the seeder — the
+    // assignee bypass in TaskPolicy::updateStatus() is what's under test.
+    $this->actingAs($staff)->patchJson("/tasks/{$task->id}/status", ['status' => 'in_progress'])
+        ->assertOk();
+    expect($task->fresh()->status)->toBe(TaskStatus::InProgress);
+});
+
 test('Kanban only shows tasks in a staff user\'s granted departments, same as the Dashboard', function () {
     $staff = makeStaffOnKanban($this->orgA, $this->deptA);
     Task::create([

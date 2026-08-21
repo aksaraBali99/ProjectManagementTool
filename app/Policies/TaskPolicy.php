@@ -97,6 +97,24 @@ class TaskPolicy
     }
 
     /**
+     * Kanban's card-move (drag-and-drop or the dropdown fallback) is
+     * deliberately its own capability, not a reuse of create_edit_tasks —
+     * same two-way-in shape as update() (management-tier via permission,
+     * OR being the task's own assignee), so an assignee can still move
+     * their own card even if update_kanban_cards isn't granted to their
+     * role, same reasoning as update()'s assignee bypass.
+     */
+    public function updateStatus(User $user, Task $task): bool
+    {
+        if ($user->hasPermission('update_kanban_cards', $task->organization_id)
+            && ($user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($task->organization_id))) {
+            return true;
+        }
+
+        return $task->assignee_id === $user->id;
+    }
+
+    /**
      * Deactivation reuses create_edit_tasks rather than a separate
      * permission slug — same "no distinct capability" precedent as
      * Projects, where closing a project is just part of the normal edit
