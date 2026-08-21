@@ -33,6 +33,7 @@ class DashboardController extends Controller
                 'myTaskMode' => 'none',
                 'staffOptions' => collect(),
                 'selectedStaffIds' => [],
+                'emptyMessage' => $user->boardAccessDeniedReason('view_dashboard')->message(),
             ]);
         }
 

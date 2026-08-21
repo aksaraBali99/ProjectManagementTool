@@ -235,7 +235,7 @@ test('a client-role user gets a Kanban tab for their project\'s company, scoped 
     $response->assertDontSee('Other project task');
 });
 
-test('a client with the Client role but no attached project sees the empty-state Kanban', function () {
+test('a client with the Client role but no attached project sees a "no active project" Kanban message', function () {
     $client = User::factory()->create();
     OrgMember::create([
         'organization_id' => $this->orgA->id,
@@ -246,7 +246,16 @@ test('a client with the Client role but no attached project sees the empty-state
     $response = $this->actingAs($client)->get('/kanban');
 
     $response->assertOk();
-    $response->assertSee("You don't have access to any companies yet.", false);
+    $response->assertSee("You don't have any active project yet.");
+});
+
+test('a user with no company membership at all sees the generic "no access" Kanban message', function () {
+    $orphan = User::factory()->create();
+
+    $response = $this->actingAs($orphan)->get('/kanban');
+
+    $response->assertOk();
+    $response->assertSee("You don't have access to any companies yet.");
 });
 
 test('revoking the view_kanban permission from Client removes their Kanban access, even with an attached project', function () {
@@ -274,5 +283,5 @@ test('revoking the view_kanban permission from Client removes their Kanban acces
     // Their project attachment is untouched — only the board-level
     // capability was revoked.
     expect($client->projectsAsClient()->pluck('projects.id')->all())->toBe([$this->projectA->id]);
-    $response->assertSee("You don't have access to any companies yet.", false);
+    $response->assertSee('You have no access for this page.');
 });

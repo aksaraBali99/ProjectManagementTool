@@ -173,7 +173,7 @@ test('a client-role user gets a Dashboard tab for their project\'s company, scop
     $response->assertDontSee('My Task');
 });
 
-test('a client with no attached project and no other role sees the empty-state Dashboard', function () {
+test('a client with no attached project and no other role sees a "no active project" Dashboard message', function () {
     $client = User::factory()->create();
     OrgMember::create([
         'organization_id' => $this->orgA->id,
@@ -185,7 +185,16 @@ test('a client with no attached project and no other role sees the empty-state D
     $response = $this->actingAs($client)->get('/dashboard');
 
     $response->assertOk();
-    $response->assertSee("You don't have access to any companies yet.", false);
+    $response->assertSee("You don't have any active project yet.");
+});
+
+test('a user with no company membership at all sees the generic "no access" Dashboard message', function () {
+    $orphan = User::factory()->create();
+
+    $response = $this->actingAs($orphan)->get('/dashboard');
+
+    $response->assertOk();
+    $response->assertSee("You don't have access to any companies yet.");
 });
 
 test('a staff user\'s MyTask only shows tasks assigned to them AND within their granted departments', function () {
@@ -346,5 +355,5 @@ test('revoking the view_dashboard permission from Staff removes their Dashboard 
     // board-level capability was revoked, confirming the two stay
     // independent as required.
     expect($staff->allowedDepartmentIds($this->orgA->id)->all())->toBe([$this->deptA->id]);
-    $response->assertSee("You don't have access to any companies yet.", false);
+    $response->assertSee('You have no access for this page.');
 });

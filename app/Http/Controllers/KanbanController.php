@@ -25,6 +25,7 @@ class KanbanController extends Controller
                 'organizations' => $organizations,
                 'organization' => null,
                 'columns' => collect(),
+                'emptyMessage' => $user->boardAccessDeniedReason('view_kanban')->message(),
             ]);
         }
 
