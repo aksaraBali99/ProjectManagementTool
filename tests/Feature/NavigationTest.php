@@ -32,3 +32,16 @@ test('a non-admin sees Settings but not the Users submenu', function () {
     $response->assertSee('Settings');
     $response->assertDontSee('Users');
 });
+
+test('the mobile nav drawer toggle elements are present on every authenticated page', function () {
+    $owner = User::factory()->create();
+    $owner->roles()->attach(Role::create(['name' => 'Owner', 'slug' => 'owner', 'is_system' => true])->id);
+
+    $response = $this->actingAs($owner)->get('/dashboard');
+
+    $response->assertOk();
+    $response->assertSee('id="sidebar"', false);
+    $response->assertSee('id="sidebar-backdrop"', false);
+    $response->assertSee('id="sidebar-open"', false);
+    $response->assertSee('id="sidebar-close"', false);
+});
