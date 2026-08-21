@@ -249,3 +249,19 @@ test('a role-based rule displays the role\'s current editable name, not its slug
     $response->assertSee('Role: Field Staff');
     $response->assertDontSee('Role: Staff');
 });
+
+test('the team notification rules list renders with mobile card-stacking markup alongside the desktop table', function () {
+    NotificationSetting::create([
+        'owner_id' => $this->owner->id,
+        'event_type' => 'task_status_changed',
+        'channel' => 'in_app',
+        'recipients' => ['type' => 'users', 'ids' => [$this->staff->id]],
+        'is_active' => true,
+    ]);
+
+    $response = $this->actingAs($this->owner)->get('/notification-settings');
+
+    $response->assertOk();
+    $response->assertSee('hidden bg-gray-50 md:table-header-group', false);
+    $response->assertSee('md:table-cell', false);
+});

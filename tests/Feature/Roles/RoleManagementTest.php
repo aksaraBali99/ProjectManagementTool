@@ -51,6 +51,16 @@ test('there is no route to create or delete a role', function () {
     $this->actingAs($this->owner)->post('/roles', ['name' => 'Custom'])->assertStatus(405);
 });
 
+test('the role list renders with mobile card-stacking markup alongside the desktop table', function () {
+    Role::create(['name' => 'Staff', 'slug' => 'staff', 'description' => 'd', 'is_system' => true]);
+
+    $response = $this->actingAs($this->owner)->get('/roles');
+
+    $response->assertOk();
+    $response->assertSee('hidden bg-gray-50 md:table-header-group', false);
+    $response->assertSee('md:table-cell', false);
+});
+
 test('the slug is not shown as a column or field anywhere on the roles pages', function () {
     $role = Role::create(['name' => 'Staff', 'slug' => 'staff', 'description' => 'd', 'is_system' => true]);
 

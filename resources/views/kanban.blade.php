@@ -20,9 +20,16 @@
             @endforeach
         </div>
 
-        <div id="kanban-board" class="mt-4 grid grid-cols-1 gap-4" style="grid-template-columns: repeat({{ $columns->count() }}, minmax(0, 1fr));">
+        {{-- Below md, columns become a horizontally scroll-snapping row
+             (each column ~85% of the viewport, so the next one peeks in as
+             a scroll affordance) rather than squeezing N columns into
+             unusable slivers. At md and up this reverts to equal-width
+             columns side by side via flex-1, same visual result as the
+             old fixed-N-column grid but without needing a per-count inline
+             style to get there. --}}
+        <div id="kanban-board" class="mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:snap-none md:overflow-visible">
             @foreach ($columns as $column)
-                <div class="kanban-column rounded-[10px] border border-gray-200 bg-white" data-status="{{ $column['status']->value }}">
+                <div class="kanban-column w-[85vw] shrink-0 snap-center rounded-[10px] border border-gray-200 bg-white sm:w-[320px] md:min-w-0 md:flex-1 md:snap-align-none" data-status="{{ $column['status']->value }}">
                     <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
                         <span class="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">{{ $column['status']->label() }}</span>
                         <span class="text-[10px] text-gray-400">{{ $column['tasks']->count() }}</span>

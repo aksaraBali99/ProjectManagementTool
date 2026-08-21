@@ -48,9 +48,15 @@
             </label>
         </div>
 
-        <div class="mt-4 overflow-hidden rounded-[10px] border border-gray-200">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+        {{-- Below md, the table becomes a stack of row-cards: each <tr>
+             is a bordered block instead of a table row, and every <td>
+             carries its own inline label (md:hidden) since the column
+             headers themselves are hidden below md rather than repeated
+             per row. At md and up this reverts to a normal table, unchanged
+             from before. --}}
+        <div class="mt-4 overflow-hidden rounded-[10px] border border-gray-200 md:overflow-x-auto">
+            <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
+                <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
                         <th class="w-8 px-3 py-2"></th>
                         <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</th>
@@ -66,23 +72,34 @@
                         <th class="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 bg-white">
+                <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($tasks as $task)
                         @php
                             $canEditTask = auth()->user()->can('update', $task);
                             $canDeactivateTask = auth()->user()->can('delete', $task);
                         @endphp
-                        <tr class="task-row" data-drilldown-toggle="{{ $task->id }}">
-                            <td class="px-3 py-2.5">
+                        <tr class="task-row block px-3 py-2.5 md:table-row md:px-0 md:py-0" data-drilldown-toggle="{{ $task->id }}">
+                            <td class="hidden md:table-cell md:px-3 md:py-2.5">
                                 <button type="button" class="drilldown-btn text-[11px] text-gray-500 hover:text-gray-700" data-target="{{ $task->id }}">+</button>
                             </td>
-                            <td class="px-3 py-2.5 text-[12px] font-medium text-[#1F2937]">
-                                <a href="{{ route('tasks.edit', $task) }}" class="hover:underline">{{ $task->title }}</a>
+                            <td class="flex items-center justify-between gap-2 py-1 text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
+                                <button type="button" class="drilldown-btn text-[11px] text-gray-500 hover:text-gray-700 md:hidden" data-target="{{ $task->id }}">+</button>
+                                <a href="{{ route('tasks.edit', $task) }}" class="flex-1 hover:underline">{{ $task->title }}</a>
                             </td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $task->project->name }}</td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $task->department->name }}</td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $task->assignee->name ?? 'Unassigned' }}</td>
-                            <td class="px-3 py-2.5">
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Project</span>
+                                {{ $task->project->name }}
+                            </td>
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Department</span>
+                                {{ $task->department->name }}
+                            </td>
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Assignee</span>
+                                {{ $task->assignee->name ?? 'Unassigned' }}
+                            </td>
+                            <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Priority</span>
                                 @if ($task->priority === \App\Enums\Priority::High)
                                     <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $task->priority->label() }}</span>
                                 @elseif ($task->priority === \App\Enums\Priority::Medium)
@@ -91,10 +108,17 @@
                                     <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">{{ $task->priority->label() }}</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $task->status->label() }}</td>
-                            <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $task->due_date?->format('M j') ?? '—' }}</td>
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Status</span>
+                                {{ $task->status->label() }}
+                            </td>
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Due</span>
+                                {{ $task->due_date?->format('M j') ?? '—' }}
+                            </td>
                             @if ($showInactive)
-                                <td class="px-3 py-2.5">
+                                <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
+                                    <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Active</span>
                                     @if ($task->trashed())
                                         <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">Inactive</span>
                                     @else
@@ -102,7 +126,7 @@
                                     @endif
                                 </td>
                             @endif
-                            <td class="px-3 py-2.5 text-right text-[11px]">
+                            <td class="flex items-center justify-end gap-2 py-1 text-[11px] md:table-cell md:px-3 md:py-2.5 md:text-right">
                                 @if ($canEditTask)
                                     <a href="{{ route('tasks.edit', $task) }}" class="text-[#1D9E75] hover:underline">Edit</a>
                                 @endif
@@ -117,9 +141,9 @@
                                 @endif
                             </td>
                         </tr>
-                        <tr class="drilldown-row" data-drilldown="{{ $task->id }}" style="display: none;">
-                            <td></td>
-                            <td colspan="{{ $showInactive ? 8 : 7 }}" class="bg-gray-50 px-3 py-3">
+                        <tr class="drilldown-row block border-t border-gray-100 md:table-row" data-drilldown="{{ $task->id }}" style="display: none;">
+                            <td class="hidden md:table-cell"></td>
+                            <td colspan="{{ $showInactive ? 8 : 7 }}" class="block bg-gray-50 px-3 py-3 md:table-cell">
                                 <div class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</div>
                                 <p class="mt-1 text-[12px] text-gray-700">{{ $task->description ?: 'No description.' }}</p>
 
@@ -135,8 +159,8 @@
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="{{ $showInactive ? 9 : 8 }}" class="px-3 py-4 text-center text-[12px] text-gray-500">No tasks yet.</td>
+                        <tr class="block md:table-row">
+                            <td colspan="{{ $showInactive ? 9 : 8 }}" class="block px-3 py-4 text-center text-[12px] text-gray-500 md:table-cell">No tasks yet.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -205,13 +229,20 @@
 
 <script>
     (function () {
+        // Each row renders two .drilldown-btn copies (one for the desktop
+        // table layout, one inline in the mobile card layout) so only one
+        // is ever visible at a given breakpoint — sync both on click so
+        // neither shows stale +/− state if the viewport is later resized
+        // across md without a page reload.
         document.querySelectorAll('.drilldown-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 const target = document.querySelector('[data-drilldown="' + btn.dataset.target + '"]');
                 if (! target) return;
                 const isHidden = target.style.display === 'none';
                 target.style.display = isHidden ? '' : 'none';
-                btn.textContent = isHidden ? '−' : '+';
+                document.querySelectorAll('.drilldown-btn[data-target="' + btn.dataset.target + '"]').forEach(function (twin) {
+                    twin.textContent = isHidden ? '−' : '+';
+                });
             });
         });
     })();

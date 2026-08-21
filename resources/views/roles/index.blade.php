@@ -23,8 +23,8 @@
     @endif
 
     <div class="mt-6 overflow-hidden rounded-lg border border-gray-200">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm md:min-w-full md:divide-y md:divide-gray-200">
+            <thead class="hidden bg-gray-50 md:table-header-group">
                 <tr>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Name</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Description</th>
@@ -32,18 +32,24 @@
                     <th class="px-4 py-2 text-right font-medium text-gray-500">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100 bg-white">
+            <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                 @foreach ($roles as $role)
-                    <tr>
-                        <td class="px-4 py-3 text-gray-900">
+                    <tr class="block px-4 py-3 md:table-row md:px-0 md:py-0">
+                        <td class="text-gray-900 md:table-cell md:px-4 md:py-3">
                             {{ $role->name }}
                             @if ($role->is_system)
                                 <span class="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">System</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-gray-600">{{ $role->description }}</td>
-                        <td class="px-4 py-3 text-gray-600">{{ $role->users_count }}</td>
-                        <td class="px-4 py-3 text-right">
+                        <td class="py-1 text-gray-600 md:table-cell md:px-4 md:py-3">
+                            <span class="mb-0.5 block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Description</span>
+                            {{ $role->description }}
+                        </td>
+                        <td class="flex items-center justify-between gap-2 py-1 text-gray-600 md:table-cell md:px-4 md:py-3">
+                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Users</span>
+                            {{ $role->users_count }}
+                        </td>
+                        <td class="py-1 text-right md:table-cell md:px-4 md:py-3">
                             <a href="{{ route('roles.edit', $role) }}" class="text-[#1D9E75] hover:underline">Edit</a>
                         </td>
                     </tr>

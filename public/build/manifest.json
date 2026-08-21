@@ -27,12 +27,6 @@
     "file": "assets/instrument-sans-600-normal-B9e8oLYv.woff",
     "src": "_instrument-sans-600-normal-B9e8oLYv.woff"
   },
-  "node_modules/chart.js/dist/chart.js": {
-    "file": "assets/chart-DE73qPQm.js",
-    "name": "chart",
-    "src": "node_modules/chart.js/dist/chart.js",
-    "isDynamicEntry": true
-  },
   "node_modules/intl-tel-input/dist/img/flags.webp": {
     "file": "assets/flags-DjVgN9ag.webp",
     "src": "node_modules/intl-tel-input/dist/img/flags.webp"
@@ -42,7 +36,7 @@
     "src": "node_modules/intl-tel-input/dist/img/flags@2x.webp"
   },
   "resources/css/app.css": {
-    "file": "assets/app-Dr2r7TSN.css",
+    "file": "assets/app-BFrkhNay.css",
     "name": "app",
     "names": [
       "app.css"
@@ -51,13 +45,10 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-B6fQbRzj.js",
+    "file": "assets/app-BvRENhvy.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
-    "dynamicImports": [
-      "node_modules/chart.js/dist/chart.js"
-    ],
     "css": [
       "assets/app-DmSsuaRf.css"
     ],

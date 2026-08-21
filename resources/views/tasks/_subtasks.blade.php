@@ -10,10 +10,10 @@
 <div class="subtask-container" data-task-id="{{ $task->id }}" data-can-edit="{{ $canEdit ? '1' : '0' }}">
     <div class="subtask-rows space-y-2">
         @foreach ($task->subtasks as $subtask)
-            <div class="flex items-center gap-2" data-subtask-id="{{ $subtask->id }}">
+            <div class="flex flex-wrap items-center gap-2" data-subtask-id="{{ $subtask->id }}">
                 <input type="checkbox" class="subtask-toggle rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]" {{ $subtask->is_done ? 'checked' : '' }}>
                 <input type="text" value="{{ $subtask->title }}" {{ $canEdit ? '' : 'disabled' }}
-                    class="subtask-title-input flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent disabled:px-0">
+                    class="subtask-title-input min-w-[140px] flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent disabled:px-0">
                 <select class="subtask-assignee-select w-28 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent" {{ $canEdit ? '' : 'disabled' }}>
                     <option value="">Unassigned</option>
                     @foreach ($staffOptions as $staff)
@@ -34,8 +34,8 @@
     </div>
 
     @if ($canEdit)
-        <div class="mt-2 flex items-center gap-2">
-            <input type="text" class="new-subtask-title flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" placeholder="New subtask title">
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+            <input type="text" class="new-subtask-title min-w-[140px] flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" placeholder="New subtask title">
             <select class="new-subtask-assignee w-28 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                 <option value="">Unassigned</option>
                 @foreach ($staffOptions as $staff)
@@ -225,10 +225,10 @@
                     .then(function (data) {
                         clearEmptyState();
                         const row = document.createElement('div');
-                        row.className = 'flex items-center gap-2';
+                        row.className = 'flex flex-wrap items-center gap-2';
                         row.dataset.subtaskId = data.subtask.id;
                         row.innerHTML = '<input type="checkbox" class="subtask-toggle rounded border-gray-300 text-[#1D9E75] focus:ring-1 focus:ring-[#1D9E75]">'
-                            + '<input type="text" value="' + data.subtask.title.replace(/"/g, '&quot;') + '" class="subtask-title-input flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
+                            + '<input type="text" value="' + data.subtask.title.replace(/"/g, '&quot;') + '" class="subtask-title-input min-w-[140px] flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
                             + buildAssigneeSelectHtml(data.subtask.assignee_id)
                             + '<input type="date" value="' + (data.subtask.due_date || '') + '" class="subtask-due-date w-32 shrink-0 rounded-[8px] border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
                             + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>'

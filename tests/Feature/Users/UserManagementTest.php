@@ -645,3 +645,11 @@ test('updating a user rejects an invalid phone format', function (string $phone)
     $response->assertSessionHasErrors('phone');
     expect($target->fresh()->phone)->not->toBe($phone);
 })->with('invalidPhones');
+
+test('the user list renders with mobile card-stacking markup alongside the desktop table', function () {
+    $response = $this->actingAs($this->owner)->get('/users');
+
+    $response->assertOk();
+    $response->assertSee('hidden bg-gray-50 md:table-header-group', false);
+    $response->assertSee('md:table-cell', false);
+});

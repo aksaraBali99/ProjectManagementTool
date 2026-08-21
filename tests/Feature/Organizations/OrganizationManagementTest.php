@@ -129,3 +129,13 @@ test('an owner still sees an inactive company in the admin list', function () {
     $response->assertOk();
     $response->assertSee('Org A');
 });
+
+test('the company list renders with mobile card-stacking markup alongside the desktop table', function () {
+    Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
+
+    $response = $this->actingAs($this->owner)->get('/organizations');
+
+    $response->assertOk();
+    $response->assertSee('hidden bg-gray-50 md:table-header-group', false);
+    $response->assertSee('md:table-cell', false);
+});

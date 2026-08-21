@@ -1,5 +1,6 @@
 import intlTelInput from 'intl-tel-input/intlTelInputWithUtils';
 import 'intl-tel-input/dist/css/intlTelInput.css';
+import Gantt from 'frappe-gantt';
 
 function initPhoneInputs() {
     document.querySelectorAll('[data-phone-input]').forEach(function (input) {
@@ -80,6 +81,23 @@ function initPhoneInputs() {
     });
 }
 
+function initGanttChart() {
+    const container = document.getElementById('gantt-container');
+    if (! container || container.dataset.ganttInitialized) return;
+    container.dataset.ganttInitialized = 'true';
+
+    const tasks = JSON.parse(container.dataset.tasks || '[]');
+    if (tasks.length === 0) return;
+
+    new Gantt(container, tasks, {
+        view_mode: 'Week',
+        view_mode_select: true,
+        on_click: function (task) {
+            if (task.editUrl) window.location = task.editUrl;
+        },
+    });
+}
+
 const CHART_PALETTE = ['#1D9E75', '#534AB7', '#2563EB', '#D97706', '#DB2777', '#0891B2'];
 
 // Chart.js is loaded on demand, not bundled into every page's initial
@@ -149,9 +167,11 @@ async function initAnalyticsCharts() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
         initPhoneInputs();
+        initGanttChart();
         initAnalyticsCharts();
     });
 } else {
     initPhoneInputs();
+    initGanttChart();
     initAnalyticsCharts();
 }

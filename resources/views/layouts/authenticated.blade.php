@@ -13,6 +13,7 @@
         $navItems = [
             ['label' => 'Dashboard', 'icon' => 'ti-layout-dashboard', 'route' => 'dashboard', 'matches' => ['dashboard']],
             ['label' => 'Kanban', 'icon' => 'ti-layout-kanban', 'route' => 'kanban', 'matches' => ['kanban']],
+            ['label' => 'Calendar', 'icon' => 'ti-calendar', 'route' => 'calendar', 'matches' => ['calendar']],
             ['label' => 'Projects', 'icon' => 'ti-folder', 'route' => 'projects.index', 'matches' => ['projects.*']],
             ['label' => 'Tasks', 'icon' => 'ti-checklist', 'route' => 'tasks.index', 'matches' => ['tasks.*', 'subtasks.*', 'comments.*'], 'can' => ['viewAny', \App\Models\Task::class]],
             ['label' => 'Documents', 'icon' => 'ti-files', 'route' => 'documents.index', 'matches' => ['documents.*']],
@@ -37,11 +38,20 @@
     @endphp
 
     <div class="flex min-h-screen">
-        <aside class="flex w-[180px] shrink-0 flex-col border-r border-gray-200 bg-white">
-            <div class="flex h-12 items-center border-b border-gray-200 px-4">
+        {{-- Below md, the sidebar becomes a fixed off-canvas drawer (closed
+             by default, translated fully off-screen) toggled by the header's
+             hamburger button; at md and up it reverts to the normal static
+             in-flow sidebar exactly as before, so desktop is unaffected. --}}
+        <div id="sidebar-backdrop" class="fixed inset-0 z-30 hidden bg-black/40 md:hidden"></div>
+
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-[220px] -translate-x-full flex-col border-r border-gray-200 bg-white transition-transform duration-200 ease-in-out md:static md:z-auto md:w-[180px] md:translate-x-0">
+            <div class="flex h-12 shrink-0 items-center justify-between border-b border-gray-200 px-4">
                 <span class="text-sm font-medium text-gray-900">Solava</span>
+                <button type="button" id="sidebar-close" class="text-gray-400 hover:text-gray-600 md:hidden" aria-label="Close menu">
+                    <i class="ti ti-x text-[16px]"></i>
+                </button>
             </div>
-            <nav class="flex-1 py-2">
+            <nav class="flex-1 overflow-y-auto py-2">
                 @foreach ($navItems as $item)
                     @php
                         $active = collect($item['matches'])->contains(fn ($pattern) => request()->routeIs($pattern));
@@ -75,10 +85,15 @@
             </nav>
         </aside>
 
-        <div class="flex flex-1 flex-col">
-            <header class="flex h-12 items-center justify-between border-b border-gray-200 bg-white px-4">
-                <span class="text-[13px] font-medium text-gray-900">@yield('title', 'Solava')</span>
-                <div class="flex items-center gap-3 text-sm text-gray-600">
+        <div class="flex min-w-0 flex-1 flex-col">
+            <header class="flex h-12 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4">
+                <div class="flex min-w-0 items-center gap-3">
+                    <button type="button" id="sidebar-open" class="text-gray-500 hover:text-gray-900 md:hidden" aria-label="Open menu">
+                        <i class="ti ti-menu-2 text-[18px]"></i>
+                    </button>
+                    <span class="truncate text-[13px] font-medium text-gray-900">@yield('title', 'Solava')</span>
+                </div>
+                <div class="flex shrink-0 items-center gap-3 text-sm text-gray-600">
                     @php $unreadCount = auth()->user()->unreadNotifications()->count() @endphp
                     <a href="{{ route('notifications.index') }}" class="relative flex items-center hover:text-gray-900" aria-label="Notifications">
                         <i class="ti ti-bell text-[16px]"></i>
@@ -88,18 +103,47 @@
                             </span>
                         @endif
                     </a>
-                    <span>{{ auth()->user()->name }}</span>
+                    <span class="max-w-[100px] truncate sm:max-w-none">{{ auth()->user()->name }}</span>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="hover:text-gray-900">Log out</button>
+                        <button type="submit" class="flex items-center gap-1 hover:text-gray-900" aria-label="Log out">
+                            <i class="ti ti-logout text-[16px]"></i>
+                            <span class="hidden sm:inline">Log out</span>
+                        </button>
                     </form>
                 </div>
             </header>
 
-            <main class="flex-1 px-[18px] py-[14px]">
+            <main class="min-w-0 flex-1 px-[18px] py-[14px]">
                 @yield('content')
             </main>
         </div>
     </div>
+
+    <script>
+        (function () {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            const openBtn = document.getElementById('sidebar-open');
+            const closeBtn = document.getElementById('sidebar-close');
+
+            function openSidebar() {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            }
+
+            function closeSidebar() {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            }
+
+            openBtn.addEventListener('click', openSidebar);
+            closeBtn.addEventListener('click', closeSidebar);
+            backdrop.addEventListener('click', closeSidebar);
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') closeSidebar();
+            });
+        })();
+    </script>
 </body>
 </html>

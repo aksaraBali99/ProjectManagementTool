@@ -39,6 +39,14 @@ test('an owner can view the permission matrix with current grants pre-checked', 
     $response->assertSee('Locked');
 });
 
+test('the matrix renders with a scrollable container and a sticky first column for mobile widths', function () {
+    $response = $this->actingAs($this->owner)->get('/roles/permissions');
+
+    $response->assertOk();
+    $response->assertSee('overflow-x-auto', false);
+    $response->assertSee('sticky left-0', false);
+});
+
 test('the permission matrix lists the Dashboard and Kanban board view permissions', function () {
     $response = $this->actingAs($this->owner)->get('/roles/permissions');
 
