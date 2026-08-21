@@ -61,12 +61,20 @@ class CalendarController extends Controller
 
             $dueDate = $task->due_date->toDateString();
 
+            // Tasks have no explicit "start date" column — created_at is the
+            // best available proxy for "when work began" without a schema
+            // change, so the bar spans from creation to due_date rather than
+            // rendering as a single-day sliver at the due date. Guarded
+            // against due_date falling before created_at (e.g. a backdated
+            // due date) since Frappe Gantt silently drops any task whose end
+            // is before its start rather than rendering it.
+            $startDate = $task->created_at->toDateString();
+            $startDate = $startDate <= $dueDate ? $startDate : $dueDate;
+
             return [
                 'id' => (string) $task->id,
                 'name' => $task->project->name.': '.$task->title,
-                'start' => $dueDate,
-                // Frappe Gantt bars need a start/end range; a due_date is a
-                // single point, so start === end renders a one-day bar.
+                'start' => $startDate,
                 'end' => $dueDate,
                 'progress' => match ($task->status) {
                     TaskStatus::Pending => 0,
