@@ -53,7 +53,7 @@ class KanbanController extends Controller
                 ->values()
                 ->map(fn (Task $task) => [
                     'task' => $task,
-                    'canEdit' => Gate::allows('update', $task),
+                    'canEdit' => Gate::allows('updateStatus', $task),
                 ]),
         ]);
 

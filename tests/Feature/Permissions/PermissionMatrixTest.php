@@ -45,6 +45,7 @@ test('the permission matrix lists the Dashboard and Kanban board view permission
     $response->assertOk();
     $response->assertSee('View dashboard');
     $response->assertSee('View kanban board');
+    $response->assertSee('Update cards (move to change status)');
 });
 
 test('comment permissions are grouped under Tasks, not a separate Comments group', function () {

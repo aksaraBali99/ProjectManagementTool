@@ -30,6 +30,7 @@ class PermissionSeeder extends Seeder
             ['slug' => 'add_edit_own_comment', 'name' => 'Add / edit own comments', 'group' => 'Tasks'],
             ['slug' => 'view_dashboard', 'name' => 'View dashboard', 'group' => 'Dashboard'],
             ['slug' => 'view_kanban', 'name' => 'View kanban board', 'group' => 'Kanban'],
+            ['slug' => 'update_kanban_cards', 'name' => 'Update cards (move to change status)', 'group' => 'Kanban'],
             ['slug' => 'manage_settings', 'name' => 'Manage settings', 'group' => 'Administration'],
         ];
 
@@ -46,7 +47,7 @@ class PermissionSeeder extends Seeder
                 'view_projects', 'create_edit_projects',
                 'view_tasks', 'create_edit_tasks', 'toggle_subtask_done',
                 'view_comments', 'add_edit_own_comment',
-                'view_dashboard', 'view_kanban',
+                'view_dashboard', 'view_kanban', 'update_kanban_cards',
             ],
             Role::STAFF => [
                 'view_projects',
@@ -55,6 +56,11 @@ class PermissionSeeder extends Seeder
                 // Board access is gated here, but which companies/tasks
                 // actually show up is still department-gated via
                 // access_permissions — this permission doesn't widen that.
+                // update_kanban_cards is deliberately NOT granted — staff
+                // can still move a card they're the assignee of, via
+                // TaskPolicy::updateStatus()'s own identity bypass, same as
+                // they can edit a task assigned to them without
+                // create_edit_tasks.
                 'view_dashboard', 'view_kanban',
             ],
             Role::CLIENT => [
@@ -64,6 +70,7 @@ class PermissionSeeder extends Seeder
                 // Same: board access is gated here, but still narrowed to
                 // their own attached project(s) via User::boardOrganizationIds()
                 // and Task::scopeVisibleTo() — this doesn't widen that.
+                // update_kanban_cards not granted, same reasoning as staff.
                 'view_dashboard', 'view_kanban',
             ],
         ];
