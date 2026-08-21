@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1787314751.9553845,
-    "ast_hash": "0dcb95043421458654fe3ceb618a695b",
+    "mtime": 1787317269.3106275,
+    "ast_hash": "480c59cca662d8171c41d47161546406",
     "semantic_hash": ""
   },
   "public/index.php": {
@@ -155,8 +155,8 @@
     "semantic_hash": ""
   },
   "vite.config.js": {
-    "mtime": 1786455016.0,
-    "ast_hash": "8ef22d264079dab94f6d36526b0cb1bc",
+    "mtime": 1787317324.6384578,
+    "ast_hash": "60c40741a9c5b915a5e5542cfb23bc25",
     "semantic_hash": ""
   },
   ".github/copilot-instructions.md": {
@@ -405,8 +405,8 @@
     "semantic_hash": ""
   },
   "resources/views/dashboard.blade.php": {
-    "mtime": 1787283507.243849,
-    "ast_hash": "16c884e38c6c704a1ee534c2a2eba95b",
+    "mtime": 1787317682.3601928,
+    "ast_hash": "079d615b4294b80b89108a8841b7e965",
     "semantic_hash": ""
   },
   "resources/views/layouts/app.blade.php": {
@@ -685,8 +685,8 @@
     "semantic_hash": ""
   },
   "resources/views/projects/index.blade.php": {
-    "mtime": 1787314752.025728,
-    "ast_hash": "220ffbe7535486f440765548f501fffa",
+    "mtime": 1787318005.3900638,
+    "ast_hash": "94d5f115ff19e93a42c82ed667abe27e",
     "semantic_hash": ""
   },
   "tests/Feature/AccessControl/AccessControlTest.php": {
@@ -800,13 +800,13 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1787314752.0478466,
-    "ast_hash": "43a880e4801a3158999f2d57b271d7da",
+    "mtime": 1787318036.6142702,
+    "ast_hash": "ef4a4ef08724ef39a2395b211677f959",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
-    "mtime": 1787314752.0508811,
-    "ast_hash": "ad52b42baca1d1627c5190952fb90b95",
+    "mtime": 1787317713.8852398,
+    "ast_hash": "658fe5a974520726a521bf0ac970645d",
     "semantic_hash": ""
   },
   "resources/views/users/_inline-validation.blade.php": {
@@ -845,8 +845,8 @@
     "semantic_hash": ""
   },
   "app/Enums/Priority.php": {
-    "mtime": 1787216778.6619253,
-    "ast_hash": "89c7c4b0673435eaed2c98571c605281",
+    "mtime": 1787317588.2988513,
+    "ast_hash": "a3285fb41de7f7fc2de3bdb9a8ec2bb7",
     "semantic_hash": ""
   },
   "app/Enums/ProjectStatus.php": {
@@ -855,8 +855,8 @@
     "semantic_hash": ""
   },
   "app/Enums/TaskStatus.php": {
-    "mtime": 1787216778.6649473,
-    "ast_hash": "7462022e65ceb9a35d7646938cd3cbca",
+    "mtime": 1787317603.1263003,
+    "ast_hash": "9a8fd6a3251f992b6bc5daf7a6b8b68d",
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/Concerns/ValidatesCompanyRoles.php": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "resources/views/kanban.blade.php": {
-    "mtime": 1787314752.0081668,
-    "ast_hash": "f83016c05c9758e7ea6ef1cde94e537a",
+    "mtime": 1787317738.9340937,
+    "ast_hash": "c7e6e51aa437bffc6729ca29875688aa",
     "semantic_hash": ""
   },
   "tests/Feature/Dashboard/DashboardTest.php": {
@@ -1070,7 +1070,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/CalendarController.php": {
-    "mtime": 1787316380.802995,
+    "mtime": 1787316926.268678,
     "ast_hash": "69018e964b5c526d271227821f2ff92d",
     "semantic_hash": ""
   },
@@ -1090,8 +1090,18 @@
     "semantic_hash": ""
   },
   "tests/Feature/Calendar/CalendarTest.php": {
-    "mtime": 1787316407.3913999,
+    "mtime": 1787316926.2812266,
     "ast_hash": "e84e0caf4636e5fd01d4b15f6924ec5c",
+    "semantic_hash": ""
+  },
+  "resources/views/components/badge.blade.php": {
+    "mtime": 1787317635.5036533,
+    "ast_hash": "3eaa0b8891f0e263db1d80dc36e11ca1",
+    "semantic_hash": ""
+  },
+  "resources/views/components/dot.blade.php": {
+    "mtime": 1787317643.862219,
+    "ast_hash": "f2d277793a775f59b0476669da91da96",
     "semantic_hash": ""
   }
 }

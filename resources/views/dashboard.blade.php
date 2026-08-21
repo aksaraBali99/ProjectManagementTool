@@ -36,7 +36,7 @@
                                 @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
                             </p>
                         </div>
-                        <span class="text-[10px] font-medium uppercase tracking-[0.05em] text-[#B91C1C]">{{ $task->status->label() }}</span>
+                        <x-badge :background="$task->status->badgeBackground()" :text="$task->status->badgeText()">{{ $task->status->label() }}</x-badge>
                     </a>
                 @empty
                     <p class="px-3 py-4 text-center text-[11px] text-gray-400">No active high-priority tasks</p>

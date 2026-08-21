@@ -63,13 +63,7 @@
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Priority</span>
-                                @if ($project->priority === \App\Enums\Priority::High)
-                                    <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $project->priority->label() }}</span>
-                                @elseif ($project->priority === \App\Enums\Priority::Medium)
-                                    <span class="rounded-[5px] bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">{{ $project->priority->label() }}</span>
-                                @else
-                                    <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">{{ $project->priority->label() }}</span>
-                                @endif
+                                <x-badge :background="$project->priority->badgeBackground()" :text="$project->priority->badgeText()">{{ $project->priority->label() }}</x-badge>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Tasks</span>

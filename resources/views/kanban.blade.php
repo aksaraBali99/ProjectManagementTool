@@ -46,13 +46,7 @@
                                     @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
                                 </p>
                                 <div class="mt-1.5 flex items-center justify-between gap-2">
-                                    @if ($task->priority === \App\Enums\Priority::High)
-                                        <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $task->priority->label() }}</span>
-                                    @elseif ($task->priority === \App\Enums\Priority::Medium)
-                                        <span class="rounded-[5px] bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">{{ $task->priority->label() }}</span>
-                                    @else
-                                        <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">{{ $task->priority->label() }}</span>
-                                    @endif
+                                    <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
 
                                     <select class="kanban-status-select rounded-[6px] border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"
                                             data-task-id="{{ $task->id }}" {{ $canEdit ? '' : 'disabled' }}>

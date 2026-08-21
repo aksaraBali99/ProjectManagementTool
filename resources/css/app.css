@@ -6,12 +6,19 @@
    filesystem path instead, which bypasses that resolution entirely. */
 @import '../../node_modules/frappe-gantt/dist/frappe-gantt.css';
 
+/* Inter, self-hosted via the @fontsource/inter npm package (bundled through
+   Vite, same "install it, don't CDN it" pattern as intl-tel-input) rather
+   than a Google Fonts CDN call. Only the weights the UI_Screens typography
+   table actually specifies (400/500/600) are loaded. */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* intl-tel-input: match the app's UIX styling (teal accent, gray-300 borders, 8px radius). */
