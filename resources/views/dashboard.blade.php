@@ -49,7 +49,7 @@
                     <div class="space-y-1.5 p-2">
                         @forelse ($group as $task)
                             <a href="{{ route('tasks.edit', $task) }}"
-                               class="block rounded-md border-l-4 px-2.5 py-2 hover:opacity-90"
+                               class="block rounded-md border-l-4 px-4 py-2 hover:opacity-90"
                                style="border-left-color: {{ $priority->dotColor() }}; background-color: {{ $priority->badgeBackground() }};">
                                 <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
                                 <p class="mt-0.5 flex items-center justify-between text-[10px]">
