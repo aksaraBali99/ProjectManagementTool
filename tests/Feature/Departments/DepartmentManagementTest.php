@@ -154,3 +154,13 @@ test('an owner still sees an inactive department in the admin list', function ()
     $response->assertOk();
     $response->assertSee('Marketing');
 });
+
+test('the department list renders with mobile card-stacking markup alongside the desktop table', function () {
+    Department::create(['organization_id' => $this->organization->id, 'name' => 'Marketing', 'color' => '#000000']);
+
+    $response = $this->actingAs($this->owner)->get('/departments');
+
+    $response->assertOk();
+    $response->assertSee('hidden bg-gray-50 md:table-header-group', false);
+    $response->assertSee('md:table-cell', false);
+});

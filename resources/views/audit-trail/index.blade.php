@@ -73,8 +73,8 @@
     </form>
 
     <div class="mt-4 overflow-hidden rounded-[10px] border border-gray-200">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
+            <thead class="hidden bg-gray-50 md:table-header-group">
                 <tr>
                     <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">When</th>
                     <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Who</th>
@@ -84,19 +84,34 @@
                     <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">What changed</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100 bg-white">
+            <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                 @forelse ($entries as $entry)
-                    <tr>
-                        <td class="whitespace-nowrap px-3 py-2.5 text-[11px] text-gray-500">{{ $entry->created_at->format('M j, Y g:ia') }}</td>
-                        <td class="px-3 py-2.5 text-[12px] text-[#1F2937]">{{ $entry->user->name ?? 'Unknown user' }}</td>
-                        <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $entry->organization->name ?? '—' }}</td>
-                        <td class="px-3 py-2.5 text-[12px] font-medium text-[#1F2937]">{{ $entry->actionLabel() }}</td>
-                        <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $entry->entityLabel() }}</td>
-                        <td class="px-3 py-2.5 text-[11px] text-gray-600">{{ $entry->describeChanges() }}</td>
+                    <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
+                        <td class="whitespace-nowrap text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">{{ $entry->created_at->format('M j, Y g:ia') }}</td>
+                        <td class="flex items-center justify-between gap-2 py-1 text-[12px] text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
+                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Who</span>
+                            {{ $entry->user->name ?? 'Unknown user' }}
+                        </td>
+                        <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Company</span>
+                            {{ $entry->organization->name ?? '—' }}
+                        </td>
+                        <td class="flex items-center justify-between gap-2 py-1 text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
+                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Action</span>
+                            {{ $entry->actionLabel() }}
+                        </td>
+                        <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Entity</span>
+                            {{ $entry->entityLabel() }}
+                        </td>
+                        <td class="py-1 text-[11px] text-gray-600 md:table-cell md:px-3 md:py-2.5">
+                            <span class="mb-0.5 block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">What changed</span>
+                            {{ $entry->describeChanges() }}
+                        </td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="6" class="px-3 py-6 text-center text-[12px] text-gray-500">No audit entries match these filters.</td>
+                    <tr class="block md:table-row">
+                        <td colspan="6" class="block px-3 py-6 text-center text-[12px] text-gray-500 md:table-cell">No audit entries match these filters.</td>
                     </tr>
                 @endforelse
             </tbody>

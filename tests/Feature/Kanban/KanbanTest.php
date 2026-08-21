@@ -75,8 +75,16 @@ test('Kanban renders one column per TaskStatus case, in the enum\'s declared ord
     sort($sorted);
     expect($positions)->toBe($sorted);
 
-    $columnCount = substr_count($content, 'kanban-column rounded');
+    $columnCount = substr_count($content, 'class="kanban-column ');
     expect($columnCount)->toBe(count(TaskStatus::cases()));
+});
+
+test('Kanban board uses a horizontally scroll-snapping container below md, and equal-width columns at md and up', function () {
+    $response = $this->actingAs($this->management)->get('/kanban/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertSee('snap-x snap-mandatory', false);
+    $response->assertSee('md:flex-1', false);
 });
 
 test('Kanban columns sort tasks by Priority\'s natural ordering, High before Medium before Low', function () {
