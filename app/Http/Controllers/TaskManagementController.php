@@ -2,19 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TaskStatus;
 use App\Http\Requests\Tasks\StoreTaskRequest;
 use App\Http\Requests\Tasks\UpdateTaskRequest;
-use App\Models\AccessPermission;
 use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class TaskManagementController extends Controller
@@ -46,36 +49,11 @@ class TaskManagementController extends Controller
 
         $showInactive = request()->boolean('show_inactive');
 
-        $query = Task::where('organization_id', $organization->id)
+        $query = Task::visibleTo($user, $organization->id)
             ->with(['project', 'department', 'assignee', 'subtasks', 'comments.user']);
 
         if ($showInactive) {
             $query->withTrashed();
-        }
-
-        $isManagerHere = $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organization->id);
-
-        if (! $isManagerHere) {
-            if ($user->isClientInOrg($organization->id)) {
-                $clientProjectIds = $user->projectsAsClient()->where('organization_id', $organization->id)->pluck('projects.id');
-
-                $query->whereIn('project_id', $clientProjectIds);
-            } else {
-                $allowedDepartmentIds = AccessPermission::where('user_id', $user->id)
-                    ->where('organization_id', $organization->id)
-                    ->where('allowed', true)
-                    ->pluck('department_id');
-
-                // A task assigned directly to this user — or one of its
-                // subtasks — is visible even outside their granted
-                // departments; being an assignee at either level is its own
-                // access path, independent of department scope.
-                $query->where(function ($q) use ($allowedDepartmentIds, $user) {
-                    $q->whereIn('department_id', $allowedDepartmentIds)
-                        ->orWhere('assignee_id', $user->id)
-                        ->orWhereHas('subtasks', fn ($sq) => $sq->where('assignee_id', $user->id));
-                });
-            }
         }
 
         $tasks = $query->orderBy('due_date')->orderBy('title')->get();
@@ -230,6 +208,32 @@ class TaskManagementController extends Controller
         }
 
         return redirect()->route('tasks.edit', $task)->with('status', $status);
+    }
+
+    /**
+     * Kanban's drag-and-drop (and its dropdown fallback) both hit this
+     * endpoint — same authorization as a normal edit (Gate::authorize
+     * 'update', which is hasPermission('create_edit_tasks') for
+     * management-tier, OR being the task's own assignee), so a drag isn't a
+     * side door around the rule a form submit already enforces.
+     */
+    public function updateStatus(Request $request, Task $task): JsonResponse
+    {
+        Gate::authorize('update', $task);
+
+        $data = $request->validate([
+            'status' => ['required', Rule::enum(TaskStatus::class)],
+        ]);
+
+        $task->update(['status' => $data['status']]);
+
+        if ($task->wasChanged('status')) {
+            $this->logAudit($task, 'updated', ['status' => $task->status->value]);
+        }
+
+        return response()->json([
+            'task' => ['id' => $task->id, 'status' => $task->status->value, 'status_label' => $task->status->label()],
+        ]);
     }
 
     private function logAudit(Task $task, string $action, array $changes = []): void

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 
 #[Fillable(['username', 'name', 'employee_id', 'email', 'phone', 'password', 'is_active', 'auth_provider', 'provider_id'])]
 #[Hidden(['password'])]
@@ -132,6 +133,23 @@ class User extends Authenticatable
             ->exists();
     }
 
+    /**
+     * Department IDs this user has been explicitly granted access to within
+     * $organizationId, via access_permissions — the department-gating half
+     * of Task::scopeVisibleTo(), exposed here so other consumers (e.g. the
+     * Dashboard's stricter MyTask filter) can reuse the same derivation
+     * instead of re-querying access_permissions themselves.
+     *
+     * @return Collection<int, int>
+     */
+    public function allowedDepartmentIds(int $organizationId): Collection
+    {
+        return $this->accessPermissions()
+            ->where('organization_id', $organizationId)
+            ->where('allowed', true)
+            ->pluck('department_id');
+    }
+
     public function isClientOnProject(int $projectId): bool
     {
         return $this->projectsAsClient()->where('projects.id', $projectId)->exists();
@@ -205,6 +223,28 @@ class User extends Authenticatable
         return $this->orgMemberships()
             ->whereHas('organization', fn ($query) => $query->where('is_active', true))
             ->pluck('organization_id')
+            ->all();
+    }
+
+    /**
+     * The organization IDs that get a company tab on the Dashboard/Kanban
+     * boards — narrower than visibleOrganizationIds(): both are
+     * company-tab, internal task-management views, and a client's
+     * visibility is project-scoped rather than company-scoped, so a
+     * company where this user only holds the Client role doesn't produce a
+     * tab (they still see their tasks via the project-aware Tasks page).
+     *
+     * @return array<int, int>
+     */
+    public function boardOrganizationIds(): array
+    {
+        if ($this->isSuperAdmin() || $this->isOwner()) {
+            return Organization::where('is_active', true)->pluck('id')->all();
+        }
+
+        return Collection::make($this->visibleOrganizationIds())
+            ->filter(fn ($organizationId) => $this->isManagementInOrg($organizationId) || $this->isStaffInOrg($organizationId))
+            ->values()
             ->all();
     }
 }

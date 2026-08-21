@@ -12,6 +12,7 @@
     @php
         $navItems = [
             ['label' => 'Dashboard', 'icon' => 'ti-layout-dashboard', 'route' => 'dashboard', 'matches' => ['dashboard']],
+            ['label' => 'Kanban', 'icon' => 'ti-layout-kanban', 'route' => 'kanban', 'matches' => ['kanban']],
             ['label' => 'Projects', 'icon' => 'ti-folder', 'route' => 'projects.index', 'matches' => ['projects.*']],
             ['label' => 'Tasks', 'icon' => 'ti-checklist', 'route' => 'tasks.index', 'matches' => ['tasks.*', 'subtasks.*', 'comments.*'], 'can' => ['viewAny', \App\Models\Task::class]],
             ['label' => 'Documents', 'icon' => 'ti-files', 'route' => null, 'matches' => []],
