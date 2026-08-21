@@ -42,7 +42,7 @@ class DashboardController extends Controller
         }
 
         $tasks = Task::visibleTo($user, $organization->id)
-            ->with(['project', 'department', 'assignee'])
+            ->with(['project', 'department', 'assignee', 'subtasks'])
             ->get();
 
         $priorityGroups = collect(Priority::cases())->mapWithKeys(
@@ -72,9 +72,12 @@ class DashboardController extends Controller
     /**
      * MyTask is a narrower FILTER on top of the general visibility already
      * applied to $tasks, not a replacement for it — scoped per role:
-     *   - staff: assigned to them, further constrained to departments they
-     *     have access to (stricter than the general assignee-anywhere
-     *     bypass $tasks may already include).
+     *   - staff: assigned to them (directly, OR via one of the task's
+     *     subtasks — being a subtask's assignee is its own inclusion path,
+     *     same as the general Task List/TaskPolicy precedent), further
+     *     constrained to departments they have access to (stricter than
+     *     the general assignee-anywhere bypass $tasks may already
+     *     include).
      *   - management: assigned to Staff-role members of this company.
      *   - super_admin/owner: every task in this company, narrowable via a
      *     checkbox filter to specific Staff-role members.
@@ -105,7 +108,8 @@ class DashboardController extends Controller
         if ($user->isStaffInOrg($organizationId)) {
             $allowedDepartmentIds = $user->allowedDepartmentIds($organizationId);
             $myTasks = $tasks
-                ->filter(fn (Task $task) => $task->assignee_id === $user->id && $allowedDepartmentIds->contains($task->department_id))
+                ->filter(fn (Task $task) => $allowedDepartmentIds->contains($task->department_id)
+                    && ($task->assignee_id === $user->id || $task->subtasks->contains('assignee_id', $user->id)))
                 ->sortBy('due_date')
                 ->values();
 

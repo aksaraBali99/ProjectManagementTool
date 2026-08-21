@@ -1,7 +1,7 @@
 # Graph Report - ProjectManagementTool  (2026-08-21)
 
 ## Corpus Check
-- 180 files · ~46,248 words
+- 180 files · ~46,514 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,16 +10,16 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `262c35ab`
+- Built from commit: `f92a5def`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - OrgMember
 - Project
-- .boardOrganizationIds
-- LoginRequest
 - Illuminate\Database\Eloquent\Relations\BelongsTo
+- LoginRequest
+- .boardOrganizationIds
 - Illuminate\Foundation\Http\FormRequest
 - composer.json
 - Organization
@@ -43,17 +43,17 @@
 - Illuminate\Http\RedirectResponse
 - User
 - Task
-- UserManagementController.php
+- Subtask
 - Illuminate\Database\Eloquent\Relations\BelongsToMany
 - UpdateUserRequest
+- UserManagementController.php
 - Comment
-- DepartmentPolicy
 - Illuminate\Http\Request
-- Subtask
-- DocumentPolicy.php
-- Controller
 - Document.php
 - TaskPolicy
+- Controller
+- DepartmentPolicy
+- DocumentPolicy.php
 - UpdateProjectRequest
 
 ## God Nodes (most connected - your core abstractions)
@@ -93,13 +93,13 @@ Nodes (14): OrgMember, Permission, DatabaseSeeder, DepartmentSeeder, Organizatio
 Cohesion: 0.14
 Nodes (5): isAssignableStaffForProject(), StoreTaskRequest, UpdateTaskRequest, Project, makeClientOnProject()
 
+### Community 2 - "Illuminate\Database\Eloquent\Relations\BelongsTo"
+Cohesion: 0.12
+Nodes (4): AuditLog, organization(), NotificationSetting, Illuminate\Database\Eloquent\Relations\BelongsTo
+
 ### Community 3 - "LoginRequest"
 Cohesion: 0.09
 Nodes (13): EnsureBelongsToOrganization, EnsureUserIsActive, LoginRequest, bootBelongsToOrganization(), bootHidesInactiveFromNonAdmins(), ValidClientUser, ValidPhoneNumber, Closure (+5 more)
-
-### Community 4 - "Illuminate\Database\Eloquent\Relations\BelongsTo"
-Cohesion: 0.12
-Nodes (4): AuditLog, organization(), NotificationSetting, Illuminate\Database\Eloquent\Relations\BelongsTo
 
 ### Community 5 - "Illuminate\Foundation\Http\FormRequest"
 Cohesion: 0.14
@@ -157,6 +157,10 @@ Nodes (7): User, OrganizationPolicy, ProjectPolicy, UserPolicy, Illuminate\Datab
 Cohesion: 0.27
 Nodes (3): TaskManagementController, Task, Illuminate\Database\Eloquent\SoftDeletes
 
+### Community 89 - "Subtask"
+Cohesion: 0.27
+Nodes (3): SubtaskController, Subtask, SubtaskPolicy
+
 ### Community 91 - "UpdateUserRequest"
 Cohesion: 0.18
 Nodes (5): validateCompanyRoles(), validateSuperAdminGrant(), StoreUserRequest, UpdateUserRequest, Illuminate\Validation\Validator
@@ -164,10 +168,6 @@ Nodes (5): validateCompanyRoles(), validateSuperAdminGrant(), StoreUserRequest, 
 ### Community 94 - "Illuminate\Http\Request"
 Cohesion: 0.27
 Nodes (5): CommentController, TaskDocumentController, Document, Illuminate\Http\JsonResponse, Illuminate\Http\Request
-
-### Community 95 - "Subtask"
-Cohesion: 0.27
-Nodes (3): SubtaskController, Subtask, SubtaskPolicy
 
 ### Community 97 - "Controller"
 Cohesion: 0.21
@@ -181,11 +181,11 @@ Nodes (4): AuthenticatedSessionController, Controller, PermissionManagementContr
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `OrgMember`, `Project`, `.boardOrganizationIds`, `LoginRequest`, `DocumentPolicy.php`, `TaskPolicy`, `Organization`, `Role`, `Illuminate\Http\RedirectResponse`, `Task`, `UserManagementController.php`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Comment`, `DepartmentPolicy`, `Subtask`?**
+- **Why does `User` connect `User` to `OrgMember`, `Project`, `TaskPolicy`, `LoginRequest`, `.boardOrganizationIds`, `DepartmentPolicy`, `DocumentPolicy.php`, `Organization`, `Role`, `Illuminate\Http\RedirectResponse`, `Task`, `Subtask`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `UserManagementController.php`, `Comment`?**
   _High betweenness centrality (0.121) - this node is a cross-community bridge._
 - **Why does `Organization` connect `Organization` to `OrgMember`, `Project`, `.boardOrganizationIds`, `Illuminate\Http\RedirectResponse`, `User`, `Task`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `UpdateUserRequest`?**
   _High betweenness centrality (0.051) - this node is a cross-community bridge._
-- **Why does `Task` connect `Task` to `OrgMember`, `Project`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `TaskPolicy`, `Organization`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Http\Request`, `Subtask`?**
+- **Why does `Task` connect `Task` to `OrgMember`, `Project`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `TaskPolicy`, `Organization`, `Subtask`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Http\Request`?**
   _High betweenness centrality (0.027) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `User` (e.g. with `.index()` and `.callback()`) actually correct?**
   _`User` has 5 INFERRED edges - model-reasoned connections that need verification._
