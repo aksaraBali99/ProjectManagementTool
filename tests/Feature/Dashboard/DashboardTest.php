@@ -142,7 +142,7 @@ test('a deactivated (soft-deleted) task is excluded from the Dashboard', functio
     $response->assertDontSee('Deactivated task');
 });
 
-test('a company where the user only holds the Client role does not appear as a Dashboard tab', function () {
+test('a client-role user gets a Dashboard tab for their project\'s company, scoped to only their attached project\'s tasks', function () {
     $client = User::factory()->create();
     OrgMember::create([
         'organization_id' => $this->orgA->id,
@@ -150,6 +150,37 @@ test('a company where the user only holds the Client role does not appear as a D
         'role_id' => Role::where('slug', 'client')->first()->id,
     ]);
     $this->projectA->clients()->attach($client->id);
+
+    $myProjectTask = makeTaskOnDashboard($this->orgA, $this->projectA, $this->deptA, 'My project task', Priority::High);
+
+    $otherProject = Project::create([
+        'organization_id' => $this->orgA->id,
+        'name' => 'Other project',
+        'description' => 'd',
+    ]);
+    makeTaskOnDashboard($this->orgA, $otherProject, $this->deptA, 'Other project task', Priority::High);
+
+    $response = $this->actingAs($client)->get('/dashboard');
+
+    $response->assertOk();
+    $response->assertSee('Org A');
+    $response->assertSee('My project task');
+    $response->assertDontSee('Other project task');
+    // No MyTask box for a client — their full (already project-scoped)
+    // task list is already shown in full above, so a MyTask section would
+    // just repeat it.
+    expect($response->viewData('myTaskMode'))->toBe('none');
+    $response->assertDontSee('My Task');
+});
+
+test('a client with no attached project and no other role sees the empty-state Dashboard', function () {
+    $client = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $this->orgA->id,
+        'user_id' => $client->id,
+        'role_id' => Role::where('slug', 'client')->first()->id,
+    ]);
+    // Deliberately NOT attached to any project via project_clients.
 
     $response = $this->actingAs($client)->get('/dashboard');
 
@@ -293,4 +324,27 @@ test('management only sees their own company as a Dashboard tab, and super_admin
     $superAdminResponse = $this->actingAs($superAdmin)->get('/dashboard');
     $superAdminResponse->assertSee('Org A');
     $superAdminResponse->assertSee('Org B');
+});
+
+test('revoking the view_dashboard permission from Staff removes their Dashboard access, even with department access intact', function () {
+    $staff = makeStaffOnDashboard($this->orgA, $this->deptA);
+
+    // Sanity check: staff can see the Dashboard before the change.
+    $this->actingAs($staff)->get('/dashboard/'.$this->orgA->id)->assertSee('Org A');
+
+    $staffRole = Role::where('slug', 'staff')->firstOrFail();
+    $remainingPermissionIds = $staffRole->permissions()
+        ->where('slug', '!=', 'view_dashboard')
+        ->pluck('permissions.id')
+        ->all();
+    $staffRole->permissions()->sync($remainingPermissionIds);
+
+    $response = $this->actingAs($staff)->get('/dashboard');
+
+    $response->assertOk();
+    // Department access (access_permissions) is untouched — only the
+    // board-level capability was revoked, confirming the two stay
+    // independent as required.
+    expect($staff->allowedDepartmentIds($this->orgA->id)->all())->toBe([$this->deptA->id]);
+    $response->assertSee("You don't have access to any companies yet.", false);
 });

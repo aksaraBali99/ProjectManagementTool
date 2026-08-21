@@ -228,22 +228,38 @@ class User extends Authenticatable
 
     /**
      * The organization IDs that get a company tab on the Dashboard/Kanban
-     * boards — narrower than visibleOrganizationIds(): both are
-     * company-tab, internal task-management views, and a client's
-     * visibility is project-scoped rather than company-scoped, so a
-     * company where this user only holds the Client role doesn't produce a
-     * tab (they still see their tasks via the project-aware Tasks page).
+     * boards, gated by $permissionSlug ('view_dashboard' or 'view_kanban'
+     * — the two are independently toggleable per role via the Role
+     * Permissions admin screen, so a role could hold one but not the
+     * other). This is the capability check layer only ("can this role see
+     * the board at all") — it's layered on top of, not a replacement for,
+     * the existing per-company/department/project scoping, same pattern as
+     * TaskPolicy: a client still only gets a tab for a company where
+     * they're both holding the Client role AND attached to a project (so a
+     * tab never shows up empty — matches exactly what
+     * Task::scopeVisibleTo()'s client branch requires to return any
+     * tasks), and staff/management's tabs remain unaffected — this
+     * permission narrows or widens WHICH ROLES get a board at all, not
+     * which departments/projects a staff/client sees once they're in.
      *
      * @return array<int, int>
      */
-    public function boardOrganizationIds(): array
+    public function boardOrganizationIds(string $permissionSlug): array
     {
         if ($this->isSuperAdmin() || $this->isOwner()) {
             return Organization::where('is_active', true)->pluck('id')->all();
         }
 
         return Collection::make($this->visibleOrganizationIds())
-            ->filter(fn ($organizationId) => $this->isManagementInOrg($organizationId) || $this->isStaffInOrg($organizationId))
+            ->filter(function ($organizationId) use ($permissionSlug) {
+                if (! $this->hasPermission($permissionSlug, $organizationId)) {
+                    return false;
+                }
+
+                return $this->isManagementInOrg($organizationId)
+                    || $this->isStaffInOrg($organizationId)
+                    || ($this->isClientInOrg($organizationId) && $this->projectsAsClient()->where('organization_id', $organizationId)->exists());
+            })
             ->values()
             ->all();
     }

@@ -18,7 +18,7 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        $organizations = Organization::whereIn('id', $user->boardOrganizationIds())
+        $organizations = Organization::whereIn('id', $user->boardOrganizationIds('view_dashboard'))
             ->where('is_active', true)
             ->orderBy('name')
             ->get();

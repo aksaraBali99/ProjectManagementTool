@@ -1,23 +1,23 @@
 # Graph Report - ProjectManagementTool  (2026-08-21)
 
 ## Corpus Check
-- 179 files · ~45,282 words
+- 179 files · ~45,931 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 715 nodes · 1460 edges · 99 communities (81 shown, 18 thin omitted)
+- 715 nodes · 1463 edges · 99 communities (81 shown, 18 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 83 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `186934bd`
+- Built from commit: `3a0fa178`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - OrgMember
 - Project
-- .boardOrganizationIds
+- .orgMemberships
 - LoginRequest
 - Task
 - Illuminate\Foundation\Http\FormRequest
@@ -166,10 +166,10 @@ Nodes (4): KanbanController, SettingsController, UserManagementController, Illum
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `OrgMember`, `Project`, `.boardOrganizationIds`, `LoginRequest`, `Task`, `DocumentPolicy.php`, `Organization`, `Role`, `Illuminate\Http\RedirectResponse`, `Illuminate\View\View`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `CommentPolicy`, `DepartmentPolicy`, `ProjectPolicy`, `UserPolicy`?**
-  _High betweenness centrality (0.120) - this node is a cross-community bridge._
-- **Why does `Organization` connect `Organization` to `OrgMember`, `Project`, `.boardOrganizationIds`, `Task`, `Illuminate\Foundation\Http\FormRequest`, `Role`, `Illuminate\Http\RedirectResponse`, `User`, `Department`, `Illuminate\View\View`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`?**
-  _High betweenness centrality (0.050) - this node is a cross-community bridge._
+- **Why does `User` connect `User` to `OrgMember`, `Project`, `.orgMemberships`, `LoginRequest`, `Task`, `DocumentPolicy.php`, `Organization`, `Role`, `Illuminate\Http\RedirectResponse`, `Illuminate\View\View`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `CommentPolicy`, `DepartmentPolicy`, `ProjectPolicy`, `UserPolicy`?**
+  _High betweenness centrality (0.119) - this node is a cross-community bridge._
+- **Why does `Organization` connect `Organization` to `OrgMember`, `Project`, `.orgMemberships`, `Task`, `Illuminate\Foundation\Http\FormRequest`, `Role`, `Illuminate\Http\RedirectResponse`, `User`, `Department`, `Illuminate\View\View`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **Why does `Task` connect `Task` to `OrgMember`, `Project`, `Organization`, `Role`, `User`, `Illuminate\View\View`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`?**
   _High betweenness centrality (0.027) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `User` (e.g. with `.index()` and `.callback()`) actually correct?**

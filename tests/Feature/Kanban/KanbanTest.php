@@ -195,7 +195,7 @@ test('Kanban only shows tasks in a staff user\'s granted departments, same as th
     $response->assertDontSee('Hidden task');
 });
 
-test('a company where the user only holds the Client role does not appear as a Kanban tab', function () {
+test('a client-role user gets a Kanban tab for their project\'s company, scoped to only their attached project\'s tasks', function () {
     $client = User::factory()->create();
     OrgMember::create([
         'organization_id' => $this->orgA->id,
@@ -204,8 +204,75 @@ test('a company where the user only holds the Client role does not appear as a K
     ]);
     $this->projectA->clients()->attach($client->id);
 
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'My project task',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+
+    $otherProject = Project::create([
+        'organization_id' => $this->orgA->id,
+        'name' => 'Other project',
+        'description' => 'd',
+    ]);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $otherProject->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Other project task',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+
     $response = $this->actingAs($client)->get('/kanban');
 
     $response->assertOk();
+    $response->assertSee('Org A');
+    $response->assertSee('My project task');
+    $response->assertDontSee('Other project task');
+});
+
+test('a client with the Client role but no attached project sees the empty-state Kanban', function () {
+    $client = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $this->orgA->id,
+        'user_id' => $client->id,
+        'role_id' => Role::where('slug', 'client')->first()->id,
+    ]);
+
+    $response = $this->actingAs($client)->get('/kanban');
+
+    $response->assertOk();
+    $response->assertSee("You don't have access to any companies yet.", false);
+});
+
+test('revoking the view_kanban permission from Client removes their Kanban access, even with an attached project', function () {
+    $client = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $this->orgA->id,
+        'user_id' => $client->id,
+        'role_id' => Role::where('slug', 'client')->first()->id,
+    ]);
+    $this->projectA->clients()->attach($client->id);
+
+    // Sanity check: client can see Kanban before the change.
+    $this->actingAs($client)->get('/kanban')->assertSee('Org A');
+
+    $clientRole = Role::where('slug', 'client')->firstOrFail();
+    $remainingPermissionIds = $clientRole->permissions()
+        ->where('slug', '!=', 'view_kanban')
+        ->pluck('permissions.id')
+        ->all();
+    $clientRole->permissions()->sync($remainingPermissionIds);
+
+    $response = $this->actingAs($client)->get('/kanban');
+
+    $response->assertOk();
+    // Their project attachment is untouched — only the board-level
+    // capability was revoked.
+    expect($client->projectsAsClient()->pluck('projects.id')->all())->toBe([$this->projectA->id]);
     $response->assertSee("You don't have access to any companies yet.", false);
 });

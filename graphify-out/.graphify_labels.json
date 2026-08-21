@@ -1,7 +1,7 @@
 {
   "0": "OrgMember",
   "1": "Project",
-  "2": ".boardOrganizationIds",
+  "2": ".orgMemberships",
   "3": "LoginRequest",
   "4": "Task",
   "5": "Illuminate\\Foundation\\Http\\FormRequest",

@@ -251,19 +251,6 @@
       "norm_label": "testcase"
     },
     {
-      "label": "Permission",
-      "file_type": "code",
-      "source_file": "app/Models/Permission.php",
-      "source_location": "L9",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_models_permission_permission",
-      "community": 2,
-      "community_name": ".boardOrganizationIds",
-      "norm_label": "permission"
-    },
-    {
       "label": "EnsureBelongsToOrganization",
       "file_type": "code",
       "source_file": "app/Http/Middleware/EnsureBelongsToOrganization.php",
@@ -782,6 +769,19 @@
       "community": 89,
       "community_name": "Illuminate\\View\\View",
       "norm_label": "usermanagementcontroller"
+    },
+    {
+      "label": "Permission",
+      "file_type": "code",
+      "source_file": "app/Models/Permission.php",
+      "source_location": "L9",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_models_permission_permission",
+      "community": 90,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
+      "norm_label": "permission"
     },
     {
       "label": "UpdateUserRequest",
@@ -1763,27 +1763,15 @@
       "norm_label": "up()"
     },
     {
-      "label": ".roles()",
-      "file_type": "code",
-      "source_file": "app/Models/Permission.php",
-      "source_location": "L12",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_models_permission_permission_roles",
-      "community": 2,
-      "community_name": ".boardOrganizationIds",
-      "norm_label": ".roles()"
-    },
-    {
       "label": ".boardOrganizationIds()",
       "file_type": "code",
       "source_file": "app/Models/User.php",
-      "source_location": "L239",
+      "source_location": "L247",
       "_callable": true,
       "_origin": "ast",
       "id": "app_models_user_user_boardorganizationids",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".boardorganizationids()"
     },
     {
@@ -1795,7 +1783,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_hasglobalrole",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".hasglobalrole()"
     },
     {
@@ -1807,7 +1795,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_haspermission",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".haspermission()"
     },
     {
@@ -1819,7 +1807,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_isclientinorg",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".isclientinorg()"
     },
     {
@@ -1831,7 +1819,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_ismanagementinorg",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".ismanagementinorg()"
     },
     {
@@ -1843,7 +1831,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_isowner",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".isowner()"
     },
     {
@@ -1855,7 +1843,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_isstaffinorg",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".isstaffinorg()"
     },
     {
@@ -1867,7 +1855,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_issuperadmin",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".issuperadmin()"
     },
     {
@@ -1879,7 +1867,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_manageableorganizationids",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".manageableorganizationids()"
     },
     {
@@ -1891,7 +1879,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_orgmemberships",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".orgmemberships()"
     },
     {
@@ -1903,7 +1891,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_roles",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".roles()"
     },
     {
@@ -1915,7 +1903,7 @@
       "_origin": "ast",
       "id": "app_models_user_user_visibleorganizationids",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": ".visibleorganizationids()"
     },
     {
@@ -4151,6 +4139,18 @@
       "norm_label": ".members()"
     },
     {
+      "label": ".roles()",
+      "file_type": "code",
+      "source_file": "app/Models/Permission.php",
+      "source_location": "L12",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_permission_permission_roles",
+      "community": 90,
+      "community_name": "Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany",
+      "norm_label": ".roles()"
+    },
+    {
       "label": ".clients()",
       "file_type": "code",
       "source_file": "app/Models/Project.php",
@@ -5712,7 +5712,7 @@
       "_origin": "ast",
       "id": "app_models_user_php_collection",
       "community": 2,
-      "community_name": ".boardOrganizationIds",
+      "community_name": ".orgMemberships",
       "norm_label": "collection"
     },
     {
@@ -8942,7 +8942,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/Models/User.php",
-      "source_location": "L241",
+      "source_location": "L249",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_models_user_user_boardorganizationids",
@@ -8954,7 +8954,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/Models/User.php",
-      "source_location": "L241",
+      "source_location": "L249",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_models_user_user_boardorganizationids",
@@ -8966,7 +8966,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/Models/User.php",
-      "source_location": "L245",
+      "source_location": "L253",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_models_user_user_boardorganizationids",
@@ -8978,7 +8978,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/Models/User.php",
-      "source_location": "L245",
+      "source_location": "L253",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_models_user_user_boardorganizationids",
@@ -8990,7 +8990,19 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/Models/User.php",
-      "source_location": "L246",
+      "source_location": "L255",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "app_models_user_user_boardorganizationids",
+      "target": "app_models_user_user_haspermission",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/Models/User.php",
+      "source_location": "L259",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_models_user_user_boardorganizationids",
@@ -9002,11 +9014,35 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/Models/User.php",
-      "source_location": "L246",
+      "source_location": "L260",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_models_user_user_boardorganizationids",
       "target": "app_models_user_user_isstaffinorg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/Models/User.php",
+      "source_location": "L261",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "app_models_user_user_boardorganizationids",
+      "target": "app_models_user_user_isclientinorg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/Models/User.php",
+      "source_location": "L261",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "app_models_user_user_boardorganizationids",
+      "target": "app_models_user_user_projectsasclient",
       "confidence_score": 1.0
     },
     {
@@ -23332,7 +23368,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/Models/User.php",
-      "source_location": "L239",
+      "source_location": "L247",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_models_user_user",
@@ -25000,7 +25036,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/Models/User.php",
-      "source_location": "L242",
+      "source_location": "L250",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_models_user_user_boardorganizationids",
@@ -25096,7 +25132,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "database/seeders/PermissionSeeder.php",
-      "source_location": "L31",
+      "source_location": "L33",
       "weight": 1.0,
       "_origin": "ast",
       "source": "database_seeders_permissionseeder_permissionseeder_run",
@@ -25108,7 +25144,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "database/seeders/PermissionSeeder.php",
-      "source_location": "L57",
+      "source_location": "L68",
       "weight": 1.0,
       "_origin": "ast",
       "source": "database_seeders_permissionseeder_permissionseeder_run",
@@ -25272,5 +25308,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "186934bd910206a0174be05656e8d1ccd56e6534"
+  "built_at_commit": "3a0fa178b0843a8ce6cd7dce7099dc27bbcfe3b0"
 }

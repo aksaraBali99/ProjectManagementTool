@@ -70,6 +70,10 @@
             @endforeach
         </div>
 
+        {{-- Client falls through to mode 'none': their entire visible task
+             set is already project-scoped and shown in full above (Active +
+             Priority groups), so a MyTask section here would just repeat it. --}}
+        @if ($myTaskMode !== 'none')
         <div class="mt-4 rounded-[10px] border border-gray-200 bg-white">
             <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
                 <span class="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">My Task</span>
@@ -110,6 +114,7 @@
                 @endforelse
             </div>
         </div>
+        @endif
     @endif
 </div>
 @endsection

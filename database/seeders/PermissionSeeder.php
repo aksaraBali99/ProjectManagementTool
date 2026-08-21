@@ -24,6 +24,8 @@ class PermissionSeeder extends Seeder
             ['slug' => 'toggle_subtask_done', 'name' => 'Toggle subtask done', 'group' => 'Tasks'],
             ['slug' => 'view_comments', 'name' => 'View comments', 'group' => 'Comments'],
             ['slug' => 'add_edit_own_comment', 'name' => 'Add / edit own comments', 'group' => 'Comments'],
+            ['slug' => 'view_dashboard', 'name' => 'View dashboard', 'group' => 'Dashboard'],
+            ['slug' => 'view_kanban', 'name' => 'View kanban board', 'group' => 'Kanban'],
             ['slug' => 'manage_settings', 'name' => 'Manage settings', 'group' => 'Administration'],
         ];
 
@@ -40,16 +42,25 @@ class PermissionSeeder extends Seeder
                 'view_projects', 'create_edit_projects',
                 'view_tasks', 'create_edit_tasks', 'toggle_subtask_done',
                 'view_comments', 'add_edit_own_comment',
+                'view_dashboard', 'view_kanban',
             ],
             Role::STAFF => [
                 'view_projects',
                 'view_tasks', 'toggle_subtask_done',
                 'view_comments', 'add_edit_own_comment',
+                // Board access is gated here, but which companies/tasks
+                // actually show up is still department-gated via
+                // access_permissions — this permission doesn't widen that.
+                'view_dashboard', 'view_kanban',
             ],
             Role::CLIENT => [
                 'view_projects',
                 'view_tasks', // narrowed to their own project's tasks in TaskPolicy, not company-wide
                 'view_comments', 'add_edit_own_comment',
+                // Same: board access is gated here, but still narrowed to
+                // their own attached project(s) via User::boardOrganizationIds()
+                // and Task::scopeVisibleTo() — this doesn't widen that.
+                'view_dashboard', 'view_kanban',
             ],
         ];
 
