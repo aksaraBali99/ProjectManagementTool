@@ -1,7 +1,7 @@
 # Graph Report - ProjectManagementTool  (2026-08-21)
 
 ## Corpus Check
-- 206 files · ~56,428 words
+- 206 files · ~56,674 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8af38869`
+- Built from commit: `218fe31d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -40,24 +40,24 @@
 - CLAUDE.md
 - copilot-instructions.md
 - _password-input.blade.php
+- Document
 - User
 - Organization
 - UpdateUserRequest
-- Document
+- Illuminate\Database\Eloquent\Relations\BelongsTo
 - Illuminate\Foundation\Http\FormRequest
 - ProjectStatus.php
 - AuditLog
 - StoreUserRequest
 - Comment
-- UpdateDepartmentRequest
-- StoreProjectRequest
-- Illuminate\Database\Eloquent\Relations\BelongsTo
 - AuditEventNotifier
 - CommentPolicy
-- UpdateRoleRequest
 - ProjectPolicy
-- StoreTaskRequest
 - UserPolicy
+- UpdateDepartmentRequest
+- StoreProjectRequest
+- StoreTaskRequest
+- UpdateRoleRequest
 - UserManagementController.php
 - NotificationSettingPolicy
 - RolePolicy
@@ -148,6 +148,10 @@ Nodes (4): users._inline-validation, users._password-input, users._phone-input, 
 Cohesion: 0.50
 Nodes (3): tasks._comments, tasks._subtasks, tasks._documents
 
+### Community 86 - "Document"
+Cohesion: 0.18
+Nodes (5): TaskDocumentController, Document, DocumentPolicy, makeDocumentForList(), makeDocument()
+
 ### Community 87 - "User"
 Cohesion: 0.12
 Nodes (7): User, AuditLogPolicy, DepartmentPolicy, OrganizationPolicy, Illuminate\Database\Eloquent\Factories\HasFactory, Illuminate\Foundation\Auth\User, Illuminate\Notifications\Notifiable
@@ -155,10 +159,6 @@ Nodes (7): User, AuditLogPolicy, DepartmentPolicy, OrganizationPolicy, Illuminat
 ### Community 88 - "Organization"
 Cohesion: 0.05
 Nodes (18): AccessControlController, DepartmentManagementController, StoreDepartmentRequest, AccessPermission, Department, Organization, DatabaseSeeder, DepartmentSeeder (+10 more)
-
-### Community 90 - "Document"
-Cohesion: 0.18
-Nodes (5): TaskDocumentController, Document, DocumentPolicy, makeDocumentForList(), makeDocument()
 
 ### Community 91 - "Illuminate\Foundation\Http\FormRequest"
 Cohesion: 0.27
@@ -184,11 +184,11 @@ Nodes (3): isAssignableStaffForProject(), StoreTaskRequest, UpdateTaskRequest
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `OrgMember`, `.boardOrganizationIds`, `LoginRequest`, `Illuminate\View\View`, `Task`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Subtask`, `Organization`, `Document`, `AuditLog`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `AuditEventNotifier`, `CommentPolicy`, `ProjectPolicy`, `UserPolicy`, `UserManagementController.php`, `NotificationSettingPolicy`, `RolePolicy`, `Illuminate\Database\Eloquent\Builder`?**
+- **Why does `User` connect `User` to `OrgMember`, `.boardOrganizationIds`, `LoginRequest`, `Illuminate\View\View`, `Task`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Subtask`, `Document`, `Organization`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `AuditLog`, `AuditEventNotifier`, `CommentPolicy`, `ProjectPolicy`, `UserPolicy`, `UserManagementController.php`, `NotificationSettingPolicy`, `RolePolicy`, `Illuminate\Database\Eloquent\Builder`?**
   _High betweenness centrality (0.139) - this node is a cross-community bridge._
-- **Why does `Organization` connect `Organization` to `OrgMember`, `.boardOrganizationIds`, `Illuminate\Http\Request`, `Illuminate\View\View`, `StoreUserRequest`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `DocumentController.php`, `User`, `Document`, `Illuminate\Foundation\Http\FormRequest`?**
+- **Why does `Organization` connect `Organization` to `OrgMember`, `.boardOrganizationIds`, `Illuminate\Http\Request`, `Illuminate\View\View`, `StoreUserRequest`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `DocumentController.php`, `Document`, `User`, `Illuminate\Foundation\Http\FormRequest`?**
   _High betweenness centrality (0.055) - this node is a cross-community bridge._
-- **Why does `Task` connect `Task` to `OrgMember`, `Illuminate\Http\Request`, `Illuminate\View\View`, `Comment`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Subtask`, `Illuminate\Database\Eloquent\Builder`, `Document`?**
+- **Why does `Task` connect `Task` to `OrgMember`, `Illuminate\Http\Request`, `Illuminate\View\View`, `Comment`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Subtask`, `Illuminate\Database\Eloquent\Builder`, `Document`, `Illuminate\Database\Eloquent\Relations\BelongsTo`?**
   _High betweenness centrality (0.033) - this node is a cross-community bridge._
 - **Are the 10 inferred relationships involving `User` (e.g. with `.index()` and `.index()`) actually correct?**
   _`User` has 10 INFERRED edges - model-reasoned connections that need verification._

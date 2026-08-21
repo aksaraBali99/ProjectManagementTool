@@ -66,6 +66,20 @@
             });
         }
 
+        // Surfaces the backend's actual validation/authorization message
+        // instead of a generic "failed" string, falling back to that
+        // generic string only when the response carries no message of its own.
+        function requestOrThrow(url, method, body, fallback) {
+            return request(url, method, body).then(function (response) {
+                if (response.ok) return response;
+                return response.json().catch(function () { return null; }).then(function (data) {
+                    const fieldErrors = data && data.errors ? Object.values(data.errors)[0] : null;
+                    const message = (Array.isArray(fieldErrors) && fieldErrors[0]) || (data && data.message) || fallback;
+                    throw new Error(message);
+                });
+            });
+        }
+
         function clearEmptyState() {
             const empty = listEl.querySelector('.document-empty');
             if (empty) empty.remove();
@@ -82,9 +96,8 @@
             if (! btn) return;
             btn.addEventListener('click', function () {
                 const documentId = row.dataset.documentId;
-                request('/tasks/' + taskId + '/documents/' + documentId, 'DELETE')
-                    .then(function (response) {
-                        if (! response.ok) throw new Error();
+                requestOrThrow('/tasks/' + taskId + '/documents/' + documentId, 'DELETE', undefined, 'Failed to detach document.')
+                    .then(function () {
                         row.remove();
                         if (! listEl.querySelector('[data-document-id]')) {
                             const empty = document.createElement('p');
@@ -93,8 +106,8 @@
                             listEl.appendChild(empty);
                         }
                     })
-                    .catch(function () {
-                        alert('Failed to detach document.');
+                    .catch(function (error) {
+                        alert(error.message);
                     });
             });
         }
@@ -121,9 +134,8 @@
                 const documentId = attachSelect.value;
                 if (! documentId) return;
 
-                request('/tasks/' + taskId + '/documents', 'POST', { document_id: Number(documentId) })
+                requestOrThrow('/tasks/' + taskId + '/documents', 'POST', { document_id: Number(documentId) }, 'Failed to attach document.')
                     .then(function (response) {
-                        if (! response.ok) throw new Error();
                         return response.json();
                     })
                     .then(function (data) {
@@ -132,8 +144,8 @@
                         if (chosenOption) chosenOption.remove();
                         attachSelect.value = '';
                     })
-                    .catch(function () {
-                        alert('Failed to attach document.');
+                    .catch(function (error) {
+                        alert(error.message);
                     });
             });
         }
@@ -155,15 +167,14 @@
                 const errorEl = container.querySelector('.new-document-error');
                 errorEl.style.display = 'none';
 
-                request('/documents', 'POST', {
+                requestOrThrow('/documents', 'POST', {
                     organization_id: Number(organizationId),
                     name: nameInput.value.trim(),
                     link: linkInput.value.trim(),
                     access_level: accessSelect.value,
                     task_id: Number(taskId),
-                })
+                }, 'Failed to create document.')
                     .then(function (response) {
-                        if (! response.ok) return response.json().then(function (body) { throw body; });
                         return response.json();
                     })
                     .then(function (data) {
@@ -172,8 +183,8 @@
                         linkInput.value = '';
                         newForm.classList.add('hidden');
                     })
-                    .catch(function (body) {
-                        errorEl.textContent = (body && body.message) ? body.message : 'Failed to create document.';
+                    .catch(function (error) {
+                        errorEl.textContent = error.message;
                         errorEl.style.display = '';
                     });
             });
