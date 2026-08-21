@@ -96,7 +96,14 @@
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Assignee</span>
-                                {{ $task->assignee->name ?? 'Unassigned' }}
+                                @if ($task->assignee)
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <x-avatar :user="$task->assignee" size="18px" />
+                                        {{ \Illuminate\Support\Str::before($task->assignee->name, ' ') }}
+                                    </span>
+                                @else
+                                    Unassigned
+                                @endif
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Priority</span>

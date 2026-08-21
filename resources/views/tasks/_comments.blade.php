@@ -7,7 +7,10 @@
             @php $canEditComment = auth()->user()->can('update', $comment); @endphp
             <div class="rounded-[8px] bg-white border border-gray-200 px-3 py-2" data-comment-id="{{ $comment->id }}" data-can-edit="{{ $canEditComment ? '1' : '0' }}">
                 <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-medium text-[#1F2937]">{{ $comment->user->name }}</span>
+                    <span class="inline-flex items-center gap-1.5">
+                        <x-avatar :user="$comment->user" size="18px" />
+                        <span class="text-[11px] font-medium text-[#1F2937]">{{ $comment->user->name }}</span>
+                    </span>
                     <span class="text-[10px] text-gray-400">{{ $comment->created_at->format('M j, Y g:ia') }}</span>
                 </div>
                 <p class="comment-body-text mt-1 text-[12px] text-gray-700">{{ $comment->body }}</p>
@@ -86,8 +89,14 @@
                     + '</div>'
                 : '';
 
+            const avatarStyle = 'background-color: ' + comment.user_avatar_bg + '; color: ' + comment.user_avatar_text
+                + '; width: 18px; height: 18px; font-size: calc(18px * 0.43);';
+
             row.innerHTML = '<div class="flex items-center justify-between">'
-                + '<span class="text-[11px] font-medium text-[#1F2937]">' + escapeHtml(comment.user_name) + '</span>'
+                + '<span class="inline-flex items-center gap-1.5">'
+                    + '<span class="inline-flex shrink-0 items-center justify-center rounded-full font-medium leading-none" style="' + avatarStyle + '">' + escapeHtml(comment.user_initials) + '</span>'
+                    + '<span class="text-[11px] font-medium text-[#1F2937]">' + escapeHtml(comment.user_name) + '</span>'
+                + '</span>'
                 + '<span class="text-[10px] text-gray-400">' + escapeHtml(comment.created_at) + '</span>'
                 + '</div>'
                 + '<p class="comment-body-text mt-1 text-[12px] text-gray-700">' + escapeHtml(comment.body) + '</p>'

@@ -59,7 +59,10 @@
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Uploaded by</span>
-                                {{ $document->uploader->name }}
+                                <span class="inline-flex items-center gap-1.5">
+                                    <x-avatar :user="$document->uploader" size="16px" />
+                                    {{ $document->uploader->name }}
+                                </span>
                             </td>
                         </tr>
                     @empty

@@ -48,9 +48,7 @@
                         @forelse ($staffUsers as $staff)
                             <tr>
                                 <td class="sticky left-0 z-10 flex items-center gap-2 bg-white px-3 py-2">
-                                    <span class="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-gray-100 text-[10px] font-medium text-gray-600">
-                                        {{ collect(explode(' ', $staff->name))->map(fn ($part) => mb_substr($part, 0, 1))->take(2)->implode('') }}
-                                    </span>
+                                    <x-avatar :user="$staff" size="30px" />
                                     <span class="text-[12px] font-medium text-[#1F2937]">{{ $staff->name }}</span>
                                 </td>
                                 @foreach ($departments as $department)
