@@ -173,3 +173,61 @@ test('the Team Notification Rules section is visible to an owner', function () {
     $response->assertOk();
     $response->assertSee('Team Notification Rules');
 });
+
+test('an owner cannot save a rule that exactly duplicates an existing one, even with the user_ids in a different order', function () {
+    $this->actingAs($this->owner)->post('/notification-settings/rules', [
+        'event_type' => 'task_status_changed',
+        'channel' => 'in_app',
+        'recipient_type' => 'users',
+        'user_ids' => [$this->staff->id, $this->otherStaff->id],
+    ])->assertRedirect('/notification-settings');
+
+    $response = $this->actingAs($this->owner)->post('/notification-settings/rules', [
+        'event_type' => 'task_status_changed',
+        'channel' => 'in_app',
+        'recipient_type' => 'users',
+        'user_ids' => [$this->otherStaff->id, $this->staff->id],
+    ]);
+
+    $response->assertSessionHasErrors('duplicate');
+    expect(NotificationSetting::where('event_type', 'task_status_changed')->where('channel', 'in_app')->count())->toBe(1);
+});
+
+test('an owner cannot save a duplicate role-based rule', function () {
+    $this->actingAs($this->owner)->post('/notification-settings/rules', [
+        'event_type' => 'comment_added',
+        'channel' => 'email',
+        'recipient_type' => 'role',
+        'role' => 'staff',
+    ])->assertRedirect('/notification-settings');
+
+    $response = $this->actingAs($this->owner)->post('/notification-settings/rules', [
+        'event_type' => 'comment_added',
+        'channel' => 'email',
+        'recipient_type' => 'role',
+        'role' => 'staff',
+    ]);
+
+    $response->assertSessionHasErrors('duplicate');
+    expect(NotificationSetting::where('event_type', 'comment_added')->where('channel', 'email')->count())->toBe(1);
+});
+
+test('the same recipients on a different channel is not considered a duplicate', function () {
+    $this->actingAs($this->owner)->post('/notification-settings/rules', [
+        'event_type' => 'task_status_changed',
+        'channel' => 'in_app',
+        'recipient_type' => 'users',
+        'user_ids' => [$this->staff->id],
+    ])->assertRedirect('/notification-settings');
+
+    $response = $this->actingAs($this->owner)->post('/notification-settings/rules', [
+        'event_type' => 'task_status_changed',
+        'channel' => 'email',
+        'recipient_type' => 'users',
+        'user_ids' => [$this->staff->id],
+    ]);
+
+    $response->assertRedirect('/notification-settings');
+    $response->assertSessionDoesntHaveErrors('duplicate');
+    expect(NotificationSetting::where('event_type', 'task_status_changed')->count())->toBe(2);
+});
