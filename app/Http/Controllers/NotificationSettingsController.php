@@ -87,6 +87,7 @@ class NotificationSettingsController extends Controller
             'role' => ['required_if:recipient_type,role', 'in:'.implode(',', [Role::MANAGEMENT, Role::STAFF, Role::CLIENT])],
         ], [
             'user_ids.required_if' => 'Please select a user when the recipient type is users.',
+            'role.required_if' => 'Please select a role when the recipient type is role.',
         ]);
 
         $recipients = $data['recipient_type'] === 'users'
