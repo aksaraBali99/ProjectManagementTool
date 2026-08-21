@@ -6,6 +6,7 @@ use App\Enums\Priority;
 use App\Enums\TaskStatus;
 use App\Models\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -54,5 +55,39 @@ class Task extends Model
     public function documents(): BelongsToMany
     {
         return $this->belongsToMany(Document::class, 'task_documents');
+    }
+
+    /**
+     * Which tasks in $organizationId are visible to $user. Global roles and
+     * management see everything; a client sees only their attached
+     * projects' tasks; everyone else (staff) is department-gated via
+     * access_permissions, with an assignee-anywhere bypass — a task (or one
+     * of its subtasks) assigned to them is visible even outside their
+     * granted departments, since being the assignee is its own access
+     * path, independent of department scope. This is the single source of
+     * truth for task visibility — the Task List, Dashboard, and Kanban
+     * pages all filter through this scope rather than re-deriving it.
+     */
+    public function scopeVisibleTo(Builder $query, User $user, int $organizationId): Builder
+    {
+        $query->where('organization_id', $organizationId);
+
+        if ($user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId)) {
+            return $query;
+        }
+
+        if ($user->isClientInOrg($organizationId)) {
+            $clientProjectIds = $user->projectsAsClient()->where('organization_id', $organizationId)->pluck('projects.id');
+
+            return $query->whereIn('project_id', $clientProjectIds);
+        }
+
+        $allowedDepartmentIds = $user->allowedDepartmentIds($organizationId);
+
+        return $query->where(function ($q) use ($allowedDepartmentIds, $user) {
+            $q->whereIn('department_id', $allowedDepartmentIds)
+                ->orWhere('assignee_id', $user->id)
+                ->orWhereHas('subtasks', fn ($sq) => $sq->where('assignee_id', $user->id));
+        });
     }
 }

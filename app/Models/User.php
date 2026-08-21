@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 
 #[Fillable(['username', 'name', 'employee_id', 'email', 'phone', 'password', 'is_active', 'auth_provider', 'provider_id'])]
 #[Hidden(['password'])]
@@ -132,6 +133,23 @@ class User extends Authenticatable
             ->exists();
     }
 
+    /**
+     * Department IDs this user has been explicitly granted access to within
+     * $organizationId, via access_permissions — the department-gating half
+     * of Task::scopeVisibleTo(), exposed here so other consumers (e.g. the
+     * Dashboard's stricter MyTask filter) can reuse the same derivation
+     * instead of re-querying access_permissions themselves.
+     *
+     * @return Collection<int, int>
+     */
+    public function allowedDepartmentIds(int $organizationId): Collection
+    {
+        return $this->accessPermissions()
+            ->where('organization_id', $organizationId)
+            ->where('allowed', true)
+            ->pluck('department_id');
+    }
+
     public function isClientOnProject(int $projectId): bool
     {
         return $this->projectsAsClient()->where('projects.id', $projectId)->exists();
@@ -205,6 +223,44 @@ class User extends Authenticatable
         return $this->orgMemberships()
             ->whereHas('organization', fn ($query) => $query->where('is_active', true))
             ->pluck('organization_id')
+            ->all();
+    }
+
+    /**
+     * The organization IDs that get a company tab on the Dashboard/Kanban
+     * boards, gated by $permissionSlug ('view_dashboard' or 'view_kanban'
+     * — the two are independently toggleable per role via the Role
+     * Permissions admin screen, so a role could hold one but not the
+     * other). This is the capability check layer only ("can this role see
+     * the board at all") — it's layered on top of, not a replacement for,
+     * the existing per-company/department/project scoping, same pattern as
+     * TaskPolicy: a client still only gets a tab for a company where
+     * they're both holding the Client role AND attached to a project (so a
+     * tab never shows up empty — matches exactly what
+     * Task::scopeVisibleTo()'s client branch requires to return any
+     * tasks), and staff/management's tabs remain unaffected — this
+     * permission narrows or widens WHICH ROLES get a board at all, not
+     * which departments/projects a staff/client sees once they're in.
+     *
+     * @return array<int, int>
+     */
+    public function boardOrganizationIds(string $permissionSlug): array
+    {
+        if ($this->isSuperAdmin() || $this->isOwner()) {
+            return Organization::where('is_active', true)->pluck('id')->all();
+        }
+
+        return Collection::make($this->visibleOrganizationIds())
+            ->filter(function ($organizationId) use ($permissionSlug) {
+                if (! $this->hasPermission($permissionSlug, $organizationId)) {
+                    return false;
+                }
+
+                return $this->isManagementInOrg($organizationId)
+                    || $this->isStaffInOrg($organizationId)
+                    || ($this->isClientInOrg($organizationId) && $this->projectsAsClient()->where('organization_id', $organizationId)->exists());
+            })
+            ->values()
             ->all();
     }
 }
