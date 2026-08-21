@@ -17,6 +17,7 @@
         "@laravel/multiplex": "^0.4.1"
     },
     "dependencies": {
+        "frappe-gantt": "^1.2.2",
         "intl-tel-input": "^29.2.3"
     }
 }
