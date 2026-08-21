@@ -146,10 +146,19 @@ class TaskManagementController extends Controller
             $projects->push($project);
         }
 
-        $attachedDocuments = $task->documents()->orderBy('name')->get();
+        $allAttachedDocuments = $task->documents()->orderBy('name')->get();
+
+        // A document attached to this task isn't automatically visible to
+        // everyone who can see the task — e.g. a private document
+        // management attached stays hidden from a staff assignee who
+        // isn't its uploader, same as it would be on the Documents page
+        // itself.
+        $attachedDocuments = $allAttachedDocuments
+            ->filter(fn (Document $document) => Gate::allows('view', $document))
+            ->values();
 
         $availableDocuments = Document::where('organization_id', $task->organization_id)
-            ->whereNotIn('id', $attachedDocuments->pluck('id'))
+            ->whereNotIn('id', $allAttachedDocuments->pluck('id'))
             ->get()
             ->filter(fn (Document $document) => Gate::allows('view', $document))
             ->sortBy('name')

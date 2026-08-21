@@ -57,6 +57,33 @@ test('comment permissions are grouped under Tasks, not a separate Comments group
     $response->assertDontSee('Comments');
 });
 
+test('the permission matrix lists the Documents group and its two permissions, and they can be toggled', function () {
+    $response = $this->actingAs($this->owner)->get('/roles/permissions');
+
+    $response->assertOk();
+    $response->assertSee('Documents');
+    $response->assertSee('View documents');
+    $response->assertSee('Add & edit documents');
+
+    $staffRole = Role::where('slug', 'staff')->firstOrFail();
+    expect($staffRole->permissions()->pluck('slug')->all())
+        ->toContain('view_documents')
+        ->not->toContain('manage_documents');
+
+    $remainingPermissionIds = $staffRole->permissions()
+        ->where('slug', '!=', 'view_documents')
+        ->pluck('permissions.id')
+        ->all();
+
+    $this->actingAs($this->owner)->put('/roles/permissions', [
+        'role_permissions' => [
+            $staffRole->id => $remainingPermissionIds,
+        ],
+    ])->assertRedirect();
+
+    expect($staffRole->fresh()->permissions()->pluck('slug')->all())->not->toContain('view_documents');
+});
+
 test('unchecking a permission for a role in the matrix removes that capability immediately', function () {
     $project = Project::create([
         'organization_id' => $this->orgA->id,

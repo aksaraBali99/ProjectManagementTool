@@ -95,6 +95,13 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
 
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
+    Route::get('/documents/create/{organization?}', [DocumentController::class, 'create'])->name('documents.create');
+    // Must stay registered after /documents/create/{organization?} above —
+    // both are single-optional-segment GET routes, and Laravel matches in
+    // registration order, so /documents/create would otherwise be
+    // swallowed as an attempt to bind an Organization with route key
+    // "create" (same ordering Tasks/Projects/Departments rely on).
+    Route::get('/documents/{organization?}', [DocumentController::class, 'index'])->name('documents.index');
     Route::post('/tasks/{task}/documents', [TaskDocumentController::class, 'attach'])->name('task-documents.attach');
     Route::delete('/tasks/{task}/documents/{document}', [TaskDocumentController::class, 'detach'])->name('task-documents.detach');
 

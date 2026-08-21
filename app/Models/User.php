@@ -266,6 +266,32 @@ class User extends Authenticatable
     }
 
     /**
+     * The organization IDs that get a company tab on the Documents page.
+     * Unlike boardOrganizationIds(), a client's path here is NOT gated by
+     * view_documents — a client never holds that permission by design
+     * (DocumentPolicy::view() handles their visibility entirely through
+     * access_level + task_documents project-linkage), so they still get a
+     * tab for a company where they have an attached project, same as
+     * Dashboard/Kanban's client tab, even though the permission check that
+     * gates management/staff doesn't apply to them at all.
+     *
+     * @return array<int, int>
+     */
+    public function documentOrganizationIds(): array
+    {
+        if ($this->isSuperAdmin() || $this->isOwner()) {
+            return Organization::where('is_active', true)->pluck('id')->all();
+        }
+
+        return Collection::make($this->visibleOrganizationIds())
+            ->filter(fn ($organizationId) => $this->isManagementInOrg($organizationId)
+                || $this->hasPermission('view_documents', $organizationId)
+                || $this->projectsAsClient()->where('organization_id', $organizationId)->exists())
+            ->values()
+            ->all();
+    }
+
+    /**
      * Why boardOrganizationIds($permissionSlug) came up empty, so the
      * Dashboard/Kanban empty state can say something accurate instead of
      * one generic message for every cause. Checked in priority order: a

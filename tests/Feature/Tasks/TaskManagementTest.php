@@ -928,6 +928,81 @@ test('a user without task edit permission cannot attach or detach documents', fu
     $this->actingAs($staff)->delete("/tasks/{$task->id}/documents/{$document->id}")->assertForbidden();
 });
 
+test('a private document attached to a task stays hidden from a task viewer who cannot otherwise see it', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Task with a hidden document',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $privateDocument = Document::create([
+        'organization_id' => $this->orgA->id,
+        'uploaded_by' => $this->management->id,
+        'name' => 'Confidential attachment',
+        'link' => 'https://example.com/confidential-attachment.pdf',
+        'access_level' => 'private',
+    ]);
+    // Management (who can view it) is the one who attaches it — the leak
+    // this test guards against is a *viewer* seeing it via the task
+    // drilldown despite being unable to view it directly.
+    $task->documents()->attach($privateDocument->id);
+
+    $response = $this->actingAs($staff)->get("/tasks/{$task->id}/edit");
+
+    $response->assertOk();
+    $response->assertDontSee('Confidential attachment');
+    expect($response->viewData('attachedDocuments')->pluck('id')->all())->not->toContain($privateDocument->id);
+
+    $managementResponse = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit");
+    $managementResponse->assertSee('Confidential attachment');
+});
+
+test('a client on the task\'s project sees a public attached document but not internal or private ones', function () {
+    $client = makeClientOnProject($this->orgA, $this->projectA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task on client\'s project',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $publicDocument = Document::create([
+        'organization_id' => $this->orgA->id,
+        'uploaded_by' => $this->management->id,
+        'name' => 'Public brief',
+        'link' => 'https://example.com/public-brief.pdf',
+        'access_level' => 'public',
+    ]);
+    $internalDocument = Document::create([
+        'organization_id' => $this->orgA->id,
+        'uploaded_by' => $this->management->id,
+        'name' => 'Internal notes',
+        'link' => 'https://example.com/internal-notes.pdf',
+        'access_level' => 'internal',
+    ]);
+    $privateDocument = Document::create([
+        'organization_id' => $this->orgA->id,
+        'uploaded_by' => $this->management->id,
+        'name' => 'Private memo',
+        'link' => 'https://example.com/private-memo.pdf',
+        'access_level' => 'private',
+    ]);
+    $task->documents()->attach([$publicDocument->id, $internalDocument->id, $privateDocument->id]);
+
+    $response = $this->actingAs($client)->get("/tasks/{$task->id}/edit");
+
+    $response->assertOk();
+    $response->assertSee('Public brief');
+    $response->assertDontSee('Internal notes');
+    $response->assertDontSee('Private memo');
+    expect($response->viewData('attachedDocuments')->pluck('id')->all())->toBe([$publicDocument->id]);
+});
+
 test('creating a new document from the task edit page attaches it to that task in the same request', function () {
     $task = Task::create([
         'organization_id' => $this->orgA->id,
