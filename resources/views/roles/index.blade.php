@@ -27,7 +27,6 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Name</th>
-                    <th class="px-4 py-2 text-left font-medium text-gray-500">Slug</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Description</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500">Users</th>
                     <th class="px-4 py-2 text-right font-medium text-gray-500">Actions</th>
@@ -36,9 +35,8 @@
             <tbody class="divide-y divide-gray-100 bg-white">
                 @foreach ($roles as $role)
                     <tr>
-                        <td class="px-4 py-3 text-gray-900">{{ $role->name }}</td>
-                        <td class="px-4 py-3 text-gray-600">
-                            {{ $role->slug }}
+                        <td class="px-4 py-3 text-gray-900">
+                            {{ $role->name }}
                             @if ($role->is_system)
                                 <span class="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">System</span>
                             @endif

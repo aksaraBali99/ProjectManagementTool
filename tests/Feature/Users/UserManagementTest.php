@@ -522,6 +522,20 @@ test('the user index shows a global role badge instead of "no company access"', 
     $response->assertSee('Super_admin');
 });
 
+test('the user index shows a per-company role\'s proper name, not its slug', function () {
+    // A name deliberately different from ucfirst(slug), so this can't
+    // pass by the two coincidentally matching for a single-word slug.
+    $this->roles['management']->update(['name' => 'Management Team']);
+    $manager = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $manager->id, 'role_id' => $this->roles['management']->id]);
+
+    $response = $this->actingAs($this->owner)->get('/users');
+
+    $response->assertOk();
+    $response->assertSee('Org A: Management Team', false);
+    $response->assertDontSee('Org A: management', false);
+});
+
 dataset('invalidEmails', [
     'not-an-email',
     'missing-domain@',

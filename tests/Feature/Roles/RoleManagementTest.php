@@ -50,3 +50,16 @@ test('an owner can edit a system role\'s name and description when slug is left 
 test('there is no route to create or delete a role', function () {
     $this->actingAs($this->owner)->post('/roles', ['name' => 'Custom'])->assertStatus(405);
 });
+
+test('the slug is not shown as a column or field anywhere on the roles pages', function () {
+    $role = Role::create(['name' => 'Staff', 'slug' => 'staff', 'description' => 'd', 'is_system' => true]);
+
+    $this->actingAs($this->owner)->get('/roles')
+        ->assertOk()
+        ->assertDontSee('Slug');
+
+    $this->actingAs($this->owner)->get("/roles/{$role->id}/edit")
+        ->assertOk()
+        ->assertDontSee('name="slug"', false)
+        ->assertDontSee('Slug');
+});
