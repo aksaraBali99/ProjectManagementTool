@@ -59,17 +59,17 @@
                 <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
                         <th class="w-8 px-3 py-2"></th>
-                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Department</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Assignee</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Due</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Title</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Project</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Department</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Assignee</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Priority</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Due</th>
                         @if ($showInactive)
-                            <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Active</th>
+                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Active</th>
                         @endif
-                        <th class="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Actions</th>
+                        <th class="px-3 py-2 text-right text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
@@ -87,15 +87,15 @@
                                 <a href="{{ route('tasks.edit', $task) }}" class="flex-1 hover:underline">{{ $task->title }}</a>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
-                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Project</span>
+                                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Project</span>
                                 {{ $task->project->name }}
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
-                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Department</span>
+                                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Department</span>
                                 <x-badge :background="$task->department->badgeBackground()" :text="$task->department->badgeText()">{{ $task->department->name }}</x-badge>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
-                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Assignee</span>
+                                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Assignee</span>
                                 @if ($task->assignee)
                                     <span class="inline-flex items-center gap-1.5">
                                         <x-avatar :user="$task->assignee" size="18px" />
@@ -106,20 +106,20 @@
                                 @endif
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
-                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Priority</span>
+                                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Priority</span>
                                 <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
-                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Status</span>
+                                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Status</span>
                                 <x-badge :background="$task->status->badgeBackground()" :text="$task->status->badgeText()">{{ $task->status->label() }}</x-badge>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
-                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Due</span>
+                                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Due</span>
                                 {{ $task->due_date?->format('M j') ?? '—' }}
                             </td>
                             @if ($showInactive)
                                 <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
-                                    <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Active</span>
+                                    <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Active</span>
                                     @if ($task->trashed())
                                         <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">Inactive</span>
                                     @else

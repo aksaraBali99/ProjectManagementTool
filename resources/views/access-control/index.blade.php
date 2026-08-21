@@ -35,9 +35,9 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="sticky left-0 z-10 bg-gray-50 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Staff</th>
+                            <th class="sticky left-0 z-10 bg-gray-50 px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Staff</th>
                             @foreach ($departments as $department)
-                                <th class="px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">
+                                <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">
                                     <span class="mr-1 inline-block h-2 w-2 rounded-full align-middle" style="background-color: {{ $department->color }}"></span>
                                     {{ $department->name }}
                                 </th>

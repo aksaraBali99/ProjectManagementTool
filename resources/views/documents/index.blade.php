@@ -36,9 +36,9 @@
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
                 <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
-                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Access level</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Uploaded by</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Name</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Access level</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Uploaded by</th>
                     </tr>
                 </thead>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
@@ -48,7 +48,7 @@
                                 <a href="{{ $document->link }}" target="_blank" rel="noopener noreferrer" class="hover:underline">{{ $document->name }}</a>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
-                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Access level</span>
+                                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Access level</span>
                                 @if ($document->access_level === \App\Enums\DocumentAccessLevel::Private)
                                     <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $document->access_level->label() }}</span>
                                 @elseif ($document->access_level === \App\Enums\DocumentAccessLevel::Internal)
@@ -58,7 +58,7 @@
                                 @endif
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
-                                <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Uploaded by</span>
+                                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Uploaded by</span>
                                 <span class="inline-flex items-center gap-1.5">
                                     <x-avatar :user="$document->uploader" size="16px" />
                                     {{ $document->uploader->name }}

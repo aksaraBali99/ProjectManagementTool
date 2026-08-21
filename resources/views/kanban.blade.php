@@ -31,7 +31,7 @@
             @foreach ($columns as $column)
                 <div class="kanban-column w-[85vw] shrink-0 snap-center rounded-[10px] border border-gray-200 bg-white sm:w-[320px] md:min-w-0 md:flex-1 md:snap-align-none" data-status="{{ $column['status']->value }}">
                     <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-                        <span class="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">{{ $column['status']->label() }}</span>
+                        <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">{{ $column['status']->label() }}</span>
                         <span class="text-[10px] text-gray-400">{{ $column['tasks']->count() }}</span>
                     </div>
                     <div class="kanban-column-body min-h-[80px] space-y-2 p-2">

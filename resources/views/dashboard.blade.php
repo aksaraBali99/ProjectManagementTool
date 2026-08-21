@@ -22,7 +22,7 @@
 
         <div class="mt-4 rounded-[10px] border border-[#FCA5A5] bg-[#FEF2F2]">
             <div class="flex items-center justify-between border-b border-[#FCA5A5] px-3 py-2">
-                <span class="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#B91C1C]">Active</span>
+                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-[#B91C1C]">Active</span>
                 <span class="text-[10px] text-[#B91C1C]">{{ $activeTasks->count() }}</span>
             </div>
             <div class="divide-y divide-[#FECACA]">
@@ -49,7 +49,7 @@
                 @php $group = $priorityGroups[$priority->value] ?? collect() @endphp
                 <div class="rounded-[10px] border border-gray-200 bg-white">
                     <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-                        <span class="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">{{ $priority->label() }}</span>
+                        <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">{{ $priority->label() }}</span>
                         <span class="text-[10px] text-gray-400">{{ $group->count() }}</span>
                     </div>
                     <div class="divide-y divide-gray-100">
@@ -76,7 +76,7 @@
         @if ($myTaskMode !== 'none')
         <div class="mt-4 rounded-[10px] border border-gray-200 bg-white">
             <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-                <span class="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">My Task</span>
+                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">My Task</span>
                 <span class="text-[10px] text-gray-400">{{ $myTasks->count() }}</span>
             </div>
 

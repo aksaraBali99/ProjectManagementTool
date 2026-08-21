@@ -26,12 +26,12 @@
         <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
             <thead class="hidden bg-gray-50 md:table-header-group">
                 <tr>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Username</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Email</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Company roles</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</th>
-                    <th class="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Actions</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Name</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Username</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Email</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Company roles</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
+                    <th class="px-3 py-2 text-right text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Actions</th>
                 </tr>
             </thead>
             <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
@@ -39,15 +39,15 @@
                     <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
                         <td class="text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">{{ $user->name }}</td>
                         <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
-                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Username</span>
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Username</span>
                             {{ $user->username }}
                         </td>
                         <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
-                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Email</span>
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Email</span>
                             {{ $user->email }}
                         </td>
                         <td class="py-1 md:table-cell md:px-3 md:py-2.5">
-                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Company roles</span>
+                            <span class="mb-1 block text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Company roles</span>
                             @php $globalRoles = $user->roles->whereIn('slug', [\App\Models\Role::SUPER_ADMIN, \App\Models\Role::OWNER]) @endphp
                             @forelse ($globalRoles as $role)
                                 <span class="mr-1 inline-block rounded-[5px] bg-[#E1F5EE] px-2 py-0.5 text-[10px] font-medium text-[#085041]">
@@ -67,7 +67,7 @@
                             @endforelse
                         </td>
                         <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
-                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Status</span>
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Status</span>
                             @if ($user->is_active)
                                 <span class="rounded-[5px] bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">Active</span>
                             @else

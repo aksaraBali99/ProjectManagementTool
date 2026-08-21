@@ -76,12 +76,12 @@
         <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
             <thead class="hidden bg-gray-50 md:table-header-group">
                 <tr>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">When</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Who</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Company</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Action</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Entity</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">What changed</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">When</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Who</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Company</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Action</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Entity</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">What changed</th>
                 </tr>
             </thead>
             <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
@@ -89,11 +89,11 @@
                     <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
                         <td class="whitespace-nowrap text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">{{ $entry->created_at->format('M j, Y g:ia') }}</td>
                         <td class="flex items-center justify-between gap-2 py-1 text-[12px] text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
-                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Who</span>
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Who</span>
                             {{ $entry->user->name ?? 'Unknown user' }}
                         </td>
                         <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
-                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Company</span>
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Company</span>
                             @if ($entry->organization)
                                 <x-badge :background="$entry->organization->badgeBackground()" :text="$entry->organization->badgeText()">{{ $entry->organization->name }}</x-badge>
                             @else
@@ -101,15 +101,15 @@
                             @endif
                         </td>
                         <td class="flex items-center justify-between gap-2 py-1 text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
-                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Action</span>
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Action</span>
                             {{ $entry->actionLabel() }}
                         </td>
                         <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
-                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Entity</span>
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Entity</span>
                             {{ $entry->entityLabel() }}
                         </td>
                         <td class="py-1 text-[11px] text-gray-600 md:table-cell md:px-3 md:py-2.5">
-                            <span class="mb-0.5 block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">What changed</span>
+                            <span class="mb-0.5 block text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">What changed</span>
                             {{ $entry->describeChanges() }}
                         </td>
                     </tr>

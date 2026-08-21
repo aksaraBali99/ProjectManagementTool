@@ -24,9 +24,9 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="sticky left-0 z-10 bg-gray-50 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Permission</th>
+                        <th class="sticky left-0 z-10 bg-gray-50 px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Permission</th>
                         @foreach ($roles as $role)
-                            <th class="px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">
+                            <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">
                                 {{ $role->name }}
                                 @if (! in_array($role->slug, $editableRoleSlugs, true))
                                     <span class="ml-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] normal-case text-gray-500">Locked</span>

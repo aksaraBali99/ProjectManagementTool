@@ -9,7 +9,7 @@
                 <div class="flex items-center justify-between">
                     <span class="inline-flex items-center gap-1.5">
                         <x-avatar :user="$comment->user" size="18px" />
-                        <span class="text-[11px] font-medium text-[#1F2937]">{{ $comment->user->name }}</span>
+                        <span class="text-[10px] font-medium text-[#1F2937]">{{ $comment->user->name }}</span>
                     </span>
                     <span class="text-[10px] text-gray-400">{{ $comment->created_at->format('M j, Y g:ia') }}</span>
                 </div>
@@ -95,7 +95,7 @@
             row.innerHTML = '<div class="flex items-center justify-between">'
                 + '<span class="inline-flex items-center gap-1.5">'
                     + '<span class="inline-flex shrink-0 items-center justify-center rounded-full font-medium leading-none" style="' + avatarStyle + '">' + escapeHtml(comment.user_initials) + '</span>'
-                    + '<span class="text-[11px] font-medium text-[#1F2937]">' + escapeHtml(comment.user_name) + '</span>'
+                    + '<span class="text-[10px] font-medium text-[#1F2937]">' + escapeHtml(comment.user_name) + '</span>'
                 + '</span>'
                 + '<span class="text-[10px] text-gray-400">' + escapeHtml(comment.created_at) + '</span>'
                 + '</div>'
