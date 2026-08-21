@@ -20,17 +20,6 @@
 @theme {
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-    /* UIX spec spacing scale. Named so `gap-xs`, `p-md`, etc. are available
-       for the couple of spots that need a step the default 4px-multiple
-       numeric scale doesn't hit (e.g. 18px, 14px) — most of the app already
-       lands on these values for free via p-1..p-6 (4/8/12/16/20/24px). */
-    --spacing-xs: 4px;
-    --spacing-sm: 8px;
-    --spacing-md: 12px;
-    --spacing-lg: 16px;
-    --spacing-xl: 20px;
-    --spacing-2xl: 24px;
-
     /* UIX spec border-radius scale (badges/pills, form inputs/small cards,
        main panels/company cards/modals — round(50%) is Tailwind's built-in
        rounded-full, no override needed). */
