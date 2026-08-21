@@ -238,6 +238,43 @@ test('a staff user\'s MyTask only shows tasks assigned to them AND within their 
         ->and($response->viewData('myTaskMode'))->toBe('staff');
 });
 
+test('a staff user\'s MyTask includes a task where they are only a subtask\'s assignee, not the task\'s own assignee', function () {
+    $staff = makeStaffOnDashboard($this->orgA, $this->deptA);
+
+    $taskWithMySubtask = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Parent task, not assigned to me',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+    $mySubtask = $taskWithMySubtask->subtasks()->create(['title' => 'My subtask', 'assignee_id' => $staff->id]);
+
+    // Same shape, but outside a granted department — subtask assignment
+    // doesn't bypass the department constraint any more than direct
+    // assignment does.
+    $outOfDeptTask = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptOther->id,
+        'title' => 'Parent task outside my department',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+    $outOfDeptTask->subtasks()->create(['title' => 'Subtask outside my department', 'assignee_id' => $staff->id]);
+
+    $response = $this->actingAs($staff)->get('/dashboard/'.$this->orgA->id);
+
+    $response->assertOk();
+    // The out-of-department task legitimately still appears elsewhere on
+    // the page (Priority groups use the general assignee/subtask-anywhere
+    // bypass) — myTasks specifically is the precise assertion here, same
+    // reasoning as the direct-assignee department test above.
+    expect($response->viewData('myTasks')->pluck('id')->all())->toBe([$taskWithMySubtask->id]);
+    $response->assertSee('Your subtask: My subtask');
+});
+
 test('a management user\'s MyTask shows tasks assigned to Staff-role members of their company, not other management', function () {
     $staffMember = makeStaffOnDashboard($this->orgA, $this->deptA);
     $otherManagement = User::factory()->create();

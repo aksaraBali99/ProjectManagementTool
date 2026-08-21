@@ -5,7 +5,7 @@
     "semantic_hash": ""
   },
   "app/Models/User.php": {
-    "mtime": 1787281175.3520465,
+    "mtime": 1787282171.178676,
     "ast_hash": "98e489216caac8a7dfb4cf8f732ae47d",
     "semantic_hash": ""
   },
@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DashboardController.php": {
-    "mtime": 1787281186.0625434,
-    "ast_hash": "ecb050aa7b66f7aa397c20a93b08868c",
+    "mtime": 1787282182.485243,
+    "ast_hash": "a6783b8b3df18a0fcc9c9e7e4ec5741c",
     "semantic_hash": ""
   },
   "app/Http/Middleware/EnsureBelongsToOrganization.php": {
@@ -405,8 +405,8 @@
     "semantic_hash": ""
   },
   "resources/views/dashboard.blade.php": {
-    "mtime": 1787281204.8842094,
-    "ast_hash": "bd57fb6de9c27be07a654450b5eac5a0",
+    "mtime": 1787282182.520928,
+    "ast_hash": "16c884e38c6c704a1ee534c2a2eba95b",
     "semantic_hash": ""
   },
   "resources/views/layouts/app.blade.php": {
@@ -884,29 +884,29 @@
     "ast_hash": "f09728654fef113f64913bdaf975f7e6",
     "semantic_hash": ""
   },
-  "app/Enums/BoardAccessDeniedReason.php": {
-    "mtime": 1787281150.4737623,
-    "ast_hash": "cbd8aacf622bb83b18463ab4deb44ae9",
-    "semantic_hash": ""
-  },
   "app/Http/Controllers/KanbanController.php": {
-    "mtime": 1787281195.366632,
+    "mtime": 1787282171.17515,
     "ast_hash": "930bdf92eafcfd91dce6679b20ceda0a",
     "semantic_hash": ""
   },
   "resources/views/kanban.blade.php": {
-    "mtime": 1787281209.3477306,
+    "mtime": 1787282171.2332475,
     "ast_hash": "eb3babab3e9906acf1bc53f0ace2487f",
     "semantic_hash": ""
   },
   "tests/Feature/Dashboard/DashboardTest.php": {
-    "mtime": 1787281284.9039266,
-    "ast_hash": "ee69ae18416b636c320274d3e2560bf6",
+    "mtime": 1787282182.523925,
+    "ast_hash": "1b3b1d81a857b1037d1a687a2f68268d",
     "semantic_hash": ""
   },
   "tests/Feature/Kanban/KanbanTest.php": {
-    "mtime": 1787281301.7946744,
+    "mtime": 1787282171.2427852,
     "ast_hash": "24d5b37bcfd1a9cfb8d9fd7b890cc2d1",
+    "semantic_hash": ""
+  },
+  "app/Enums/BoardAccessDeniedReason.php": {
+    "mtime": 1787282171.1681368,
+    "ast_hash": "cbd8aacf622bb83b18463ab4deb44ae9",
     "semantic_hash": ""
   }
 }

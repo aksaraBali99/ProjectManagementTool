@@ -100,6 +100,15 @@
 
             <div class="divide-y divide-gray-100">
                 @forelse ($myTasks as $task)
+                    @php
+                        // For staff, a task can show up here because a subtask
+                        // (not the task itself) is assigned to them — surface
+                        // which subtask, so they can find it once they drill
+                        // into the task.
+                        $myViaSubtask = $myTaskMode === 'staff' && $task->assignee_id !== auth()->id()
+                            ? $task->subtasks->firstWhere('assignee_id', auth()->id())
+                            : null;
+                    @endphp
                     <a href="{{ route('tasks.edit', $task) }}" class="block px-3 py-2 hover:bg-gray-50">
                         <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
                         <p class="mt-0.5 text-[10px] text-gray-500">
@@ -108,6 +117,9 @@
                             @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
                             &middot; {{ $task->priority->label() }} &middot; {{ $task->status->label() }}
                         </p>
+                        @if ($myViaSubtask)
+                            <p class="mt-0.5 text-[10px] font-medium text-[#1D9E75]">Your subtask: {{ $myViaSubtask->title }}</p>
+                        @endif
                     </a>
                 @empty
                     <p class="px-3 py-4 text-center text-[11px] text-gray-400">No tasks</p>
