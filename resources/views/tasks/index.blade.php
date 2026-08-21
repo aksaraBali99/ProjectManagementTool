@@ -29,19 +29,10 @@
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">You don't have access to any companies yet.</p>
     @else
-        <div class="mt-4 flex items-center justify-between border-b border-gray-200">
-            <div class="flex gap-1">
-                @foreach ($organizations as $tab)
-                    @php $isActiveTab = $organization && $organization->id === $tab->id @endphp
-                    <a href="{{ route('tasks.index', $tab) }}{{ $showInactive ? '?show_inactive=1' : '' }}"
-                       style="border-color: {{ $tab->accent_color }}"
-                       class="border-b-2 px-4 py-2 text-[12px] {{ $isActiveTab ? 'font-medium text-[#1F2937]' : 'text-gray-500 hover:text-gray-700' }}">
-                        {{ $tab->name }}
-                    </a>
-                @endforeach
-            </div>
+        <div class="flex items-start justify-between">
+            <x-company-tabs :organizations="$organizations" :active="$organization" route="tasks.index" :query="$showInactive ? 'show_inactive=1' : ''" />
 
-            <label class="mb-2 flex items-center gap-1.5 text-[11px] text-gray-600">
+            <label class="mt-4 flex items-center gap-1.5 text-[11px] text-gray-600">
                 <input type="checkbox" {{ $showInactive ? 'checked' : '' }}
                     onchange="window.location = '{{ route('tasks.index', $organization) }}' + (this.checked ? '?show_inactive=1' : '')">
                 Show inactive tasks

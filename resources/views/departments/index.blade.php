@@ -21,17 +21,7 @@
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">No active companies yet.</p>
     @else
-        {{-- Company tabs, active underline in that company's own accent color --}}
-        <div class="mt-4 flex gap-1 border-b border-gray-200">
-            @foreach ($organizations as $tab)
-                @php $isActiveTab = $organization && $organization->id === $tab->id @endphp
-                <a href="{{ route('departments.index', $tab) }}"
-                   style="border-color: {{ $tab->accent_color }}"
-                   class="border-b-2 px-4 py-2 text-[12px] {{ $isActiveTab ? 'font-medium text-[#1F2937]' : 'text-gray-500 hover:text-gray-700' }}">
-                    {{ $tab->name }}
-                </a>
-            @endforeach
-        </div>
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="departments.index" />
 
         <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
