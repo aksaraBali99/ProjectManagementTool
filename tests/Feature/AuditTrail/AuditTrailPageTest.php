@@ -165,3 +165,20 @@ test('audit log entries cannot be edited or deleted via any route', function () 
     expect($log->fresh()->action)->not->toBe('tampered');
     $this->assertDatabaseHas('audit_log', ['id' => $log->id]);
 });
+
+test('the audit trail list renders with mobile card-stacking markup alongside the desktop table', function () {
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Responsive markup task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->owner)->get('/audit-trail');
+
+    $response->assertOk();
+    $response->assertSee('hidden bg-gray-50 md:table-header-group', false);
+    $response->assertSee('md:table-cell', false);
+});

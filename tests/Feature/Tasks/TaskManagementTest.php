@@ -1278,3 +1278,23 @@ test('deleting a subtask writes an audit_log entry', function () {
     expect($log->organization_id)->toBe($this->orgA->id)
         ->and($log->changes['title'])->toBe('Doomed subtask');
 });
+
+test('the task list renders with mobile card-stacking markup alongside the desktop table', function () {
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Responsive markup task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->get("/tasks/{$this->orgA->id}");
+
+    $response->assertOk();
+    // Header hidden below md (labels move inline into each cell instead).
+    $response->assertSee('hidden bg-gray-50 md:table-header-group', false);
+    // Rows/cells switch between block (mobile) and table display (desktop).
+    $response->assertSee('block divide-y divide-gray-100 bg-white md:table-row-group', false);
+    $response->assertSee('md:table-cell', false);
+});

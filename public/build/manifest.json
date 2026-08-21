@@ -36,7 +36,7 @@
     "src": "node_modules/intl-tel-input/dist/img/flags@2x.webp"
   },
   "resources/css/app.css": {
-    "file": "assets/app-BGpJILQ0.css",
+    "file": "assets/app-gC8O5plB.css",
     "name": "app",
     "names": [
       "app.css"
@@ -45,7 +45,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-BvRENhvy.js",
+    "file": "assets/app-DE2Jj8ZA.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
