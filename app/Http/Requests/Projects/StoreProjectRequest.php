@@ -42,4 +42,11 @@ class StoreProjectRequest extends FormRequest
             ],
         ];
     }
+
+    public function attributes(): array
+    {
+        return [
+            'organization_id' => 'company',
+        ];
+    }
 }

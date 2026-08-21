@@ -89,6 +89,8 @@ class DocumentController extends Controller
             'link' => ['required', 'string', 'max:2048', 'url'],
             'access_level' => ['required', Rule::enum(DocumentAccessLevel::class)],
             'task_id' => ['nullable', 'integer', 'exists:tasks,id'],
+        ], [], [
+            'organization_id' => 'company',
         ]);
 
         Gate::authorize('create', [Document::class, $data['organization_id']]);
