@@ -127,3 +127,24 @@ test('staff workload counts open tasks per staff assignee, excluding completed t
     $managementInWorkload = $response->viewData('staffWorkload')->firstWhere('label', $this->management->name);
     expect($managementInWorkload)->toBeNull();
 });
+
+test('every chart data-chart-labels/values attribute is valid, parseable JSON even when a label contains a double quote', function () {
+    $quotedOrg = Organization::create(['name' => 'Bob\'s "Best" Co', 'slug' => 'bobs-best-co', 'accent_color' => '#000000']);
+    $quotedDept = Department::create(['organization_id' => $quotedOrg->id, 'name' => 'Ops', 'color' => '#000000']);
+    $quotedProject = Project::create(['organization_id' => $quotedOrg->id, 'name' => 'P', 'description' => 'd']);
+    makeTaskForAnalytics($quotedOrg, $quotedProject, $quotedDept, ['status' => 'completed']);
+
+    $response = $this->actingAs($this->owner)->get('/analytics');
+
+    $response->assertOk();
+    $count = preg_match_all("/data-chart-labels='(.*?)'/s", $response->getContent(), $matches);
+    expect($count)->toBeGreaterThan(0);
+
+    foreach ($matches[1] as $attribute) {
+        json_decode($attribute, true);
+        expect(json_last_error())->toBe(JSON_ERROR_NONE);
+    }
+
+    $completionLabels = json_decode($matches[1][0], true);
+    expect($completionLabels)->toContain('Bob\'s "Best" Co');
+});

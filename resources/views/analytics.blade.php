@@ -20,8 +20,8 @@
             @else
                 <div class="mt-2 h-64"><canvas
                     data-chart-type="bar"
-                    data-chart-labels="@json($completionByCompany->pluck('label'))"
-                    data-chart-values="@json($completionByCompany->pluck('rate'))"
+                    data-chart-labels='@json($completionByCompany->pluck('label'))'
+                    data-chart-values='@json($completionByCompany->pluck('rate'))'
                     data-chart-suffix="%"
                 ></canvas></div>
             @endif
@@ -34,8 +34,8 @@
             @else
                 <div class="mt-2 h-64"><canvas
                     data-chart-type="doughnut"
-                    data-chart-labels="@json($statusCounts->pluck('label'))"
-                    data-chart-values="@json($statusCounts->pluck('count'))"
+                    data-chart-labels='@json($statusCounts->pluck('label'))'
+                    data-chart-values='@json($statusCounts->pluck('count'))'
                 ></canvas></div>
             @endif
         </div>
@@ -47,8 +47,8 @@
             @else
                 <div class="mt-2 h-64"><canvas
                     data-chart-type="doughnut"
-                    data-chart-labels="@json($priorityCounts->pluck('label'))"
-                    data-chart-values="@json($priorityCounts->pluck('count'))"
+                    data-chart-labels='@json($priorityCounts->pluck('label'))'
+                    data-chart-values='@json($priorityCounts->pluck('count'))'
                 ></canvas></div>
             @endif
         </div>
@@ -61,8 +61,8 @@
                 <div class="mt-2 h-64"><canvas
                     data-chart-type="bar"
                     data-chart-horizontal="1"
-                    data-chart-labels="@json($staffWorkload->pluck('label'))"
-                    data-chart-values="@json($staffWorkload->pluck('count'))"
+                    data-chart-labels='@json($staffWorkload->pluck('label'))'
+                    data-chart-values='@json($staffWorkload->pluck('count'))'
                 ></canvas></div>
             @endif
         </div>
