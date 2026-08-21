@@ -670,8 +670,8 @@
     "semantic_hash": ""
   },
   "resources/views/access-control/index.blade.php": {
-    "mtime": 1787118458.8201847,
-    "ast_hash": "cdbe47981408a83b19dd81eea3e57f16",
+    "mtime": 1787309235.8121848,
+    "ast_hash": "5d843eb7b4daf3c8332441cbd25d50bd",
     "semantic_hash": ""
   },
   "resources/views/projects/create.blade.php": {
@@ -690,8 +690,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/AccessControl/AccessControlTest.php": {
-    "mtime": 1787065223.3833892,
-    "ast_hash": "c0c080aac03de9344c08a8c7a1b948fe",
+    "mtime": 1787309409.3784454,
+    "ast_hash": "77bc6d7ca346a4e602afbf56ee212c4c",
     "semantic_hash": ""
   },
   "tests/Feature/Projects/ProjectManagementTest.php": {
@@ -775,8 +775,8 @@
     "semantic_hash": ""
   },
   "resources/views/roles/permissions.blade.php": {
-    "mtime": 1787209693.7147462,
-    "ast_hash": "0adad4a919a170bda6df37e28e60f607",
+    "mtime": 1787309256.521666,
+    "ast_hash": "2c60eb19f3bc872523e73c5b65077e07",
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
@@ -830,8 +830,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Permissions/PermissionMatrixTest.php": {
-    "mtime": 1787291846.0970626,
-    "ast_hash": "dbd3800c023f1cc383b465d0e1bbafa9",
+    "mtime": 1787309393.648177,
+    "ast_hash": "d7b9882335b67ce37cf402704a3b52b4",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskManagementTest.php": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "resources/views/kanban.blade.php": {
-    "mtime": 1787304774.9581501,
-    "ast_hash": "7174b40d3c73c725260dee6ef1497bcb",
+    "mtime": 1787309322.4888108,
+    "ast_hash": "f83016c05c9758e7ea6ef1cde94e537a",
     "semantic_hash": ""
   },
   "tests/Feature/Dashboard/DashboardTest.php": {
@@ -900,8 +900,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Kanban/KanbanTest.php": {
-    "mtime": 1787297716.4555507,
-    "ast_hash": "026d595ac74f72cf1853b4c37644b1b5",
+    "mtime": 1787309427.8818302,
+    "ast_hash": "44794dac94c46bb731a7e6749a6302a8",
     "semantic_hash": ""
   },
   "app/Enums/BoardAccessDeniedReason.php": {

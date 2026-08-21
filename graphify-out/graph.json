@@ -82,19 +82,6 @@
       "norm_label": "roleseeder"
     },
     {
-      "label": "AccessControlController",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/AccessControlController.php",
-      "source_location": "L15",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_accesscontrolcontroller_accesscontrolcontroller",
-      "community": 1,
-      "community_name": "Illuminate\\Http\\RedirectResponse",
-      "norm_label": "accesscontrolcontroller"
-    },
-    {
       "label": "NotificationSettingsController",
       "file_type": "code",
       "source_file": "app/Http/Controllers/NotificationSettingsController.php",
@@ -116,22 +103,9 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller",
-      "community": 101,
-      "community_name": "Role",
+      "community": 1,
+      "community_name": "Illuminate\\Http\\RedirectResponse",
       "norm_label": "usermanagementcontroller"
-    },
-    {
-      "label": "Role",
-      "file_type": "code",
-      "source_file": "app/Models/Role.php",
-      "source_location": "L10",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_models_role_role",
-      "community": 101,
-      "community_name": "Role",
-      "norm_label": "role"
     },
     {
       "label": "Subtask",
@@ -524,30 +498,17 @@
       "norm_label": "userfactory"
     },
     {
-      "label": "NotificationController",
+      "label": "PermissionManagementController",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/NotificationController.php",
-      "source_location": "L7",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_notificationcontroller_notificationcontroller",
-      "community": 4,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "notificationcontroller"
-    },
-    {
-      "label": "OrganizationManagementController",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/OrganizationManagementController.php",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
       "source_location": "L12",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_http_controllers_organizationmanagementcontroller_organizationmanagementcontroller",
+      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller",
       "community": 4,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "organizationmanagementcontroller"
+      "community_name": "Role",
+      "norm_label": "permissionmanagementcontroller"
     },
     {
       "label": "RoleManagementController",
@@ -559,21 +520,21 @@
       "_origin": "ast",
       "id": "app_http_controllers_rolemanagementcontroller_rolemanagementcontroller",
       "community": 4,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Role",
       "norm_label": "rolemanagementcontroller"
     },
     {
-      "label": "SettingsController",
+      "label": "Role",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/SettingsController.php",
-      "source_location": "L7",
+      "source_file": "app/Models/Role.php",
+      "source_location": "L10",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_http_controllers_settingscontroller_settingscontroller",
+      "id": "app_models_role_role",
       "community": 4,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "settingscontroller"
+      "community_name": "Role",
+      "norm_label": "role"
     },
     {
       "label": "KanbanController",
@@ -797,6 +758,19 @@
       "norm_label": "userseeder"
     },
     {
+      "label": "AccessControlController",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/AccessControlController.php",
+      "source_location": "L15",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_accesscontrolcontroller_accesscontrolcontroller",
+      "community": 89,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": "accesscontrolcontroller"
+    },
+    {
       "label": "AuthenticatedSessionController",
       "file_type": "code",
       "source_file": "app/Http/Controllers/Auth/AuthenticatedSessionController.php",
@@ -806,7 +780,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_auth_authenticatedsessioncontroller_authenticatedsessioncontroller",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": "authenticatedsessioncontroller"
     },
     {
@@ -819,7 +793,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_auth_googleauthcontroller_googleauthcontroller",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": "googleauthcontroller"
     },
     {
@@ -832,7 +806,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_controller_controller",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": "controller"
     },
     {
@@ -845,21 +819,47 @@
       "_origin": "ast",
       "id": "app_http_controllers_dashboardcontroller_dashboardcontroller",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": "dashboardcontroller"
     },
     {
-      "label": "PermissionManagementController",
+      "label": "NotificationController",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
+      "source_file": "app/Http/Controllers/NotificationController.php",
+      "source_location": "L7",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_notificationcontroller_notificationcontroller",
+      "community": 89,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": "notificationcontroller"
+    },
+    {
+      "label": "OrganizationManagementController",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/OrganizationManagementController.php",
       "source_location": "L12",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller",
+      "id": "app_http_controllers_organizationmanagementcontroller_organizationmanagementcontroller",
       "community": 89,
-      "community_name": "Controller",
-      "norm_label": "permissionmanagementcontroller"
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": "organizationmanagementcontroller"
+    },
+    {
+      "label": "SettingsController",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/SettingsController.php",
+      "source_location": "L7",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_settingscontroller_settingscontroller",
+      "community": 89,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": "settingscontroller"
     },
     {
       "label": "UpdateProjectRequest",
@@ -1271,18 +1271,6 @@
       "norm_label": "makeclientonproject()"
     },
     {
-      "label": ".index()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/AccessControlController.php",
-      "source_location": "L17",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_accesscontrolcontroller_accesscontrolcontroller_index",
-      "community": 1,
-      "community_name": "Illuminate\\Http\\RedirectResponse",
-      "norm_label": ".index()"
-    },
-    {
       "label": ".toggle()",
       "file_type": "code",
       "source_file": "app/Http/Controllers/AccessControlController.php",
@@ -1439,18 +1427,6 @@
       "norm_label": ".update()"
     },
     {
-      "label": ".update()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/RoleManagementController.php",
-      "source_location": "L27",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_rolemanagementcontroller_rolemanagementcontroller_update",
-      "community": 1,
-      "community_name": "Illuminate\\Http\\RedirectResponse",
-      "norm_label": ".update()"
-    },
-    {
       "label": ".toggleActive()",
       "file_type": "code",
       "source_file": "app/Http/Controllers/TaskManagementController.php",
@@ -1470,8 +1446,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_create",
-      "community": 101,
-      "community_name": "Role",
+      "community": 1,
+      "community_name": "Illuminate\\Http\\RedirectResponse",
       "norm_label": ".create()"
     },
     {
@@ -1482,8 +1458,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_edit",
-      "community": 101,
-      "community_name": "Role",
+      "community": 1,
+      "community_name": "Illuminate\\Http\\RedirectResponse",
       "norm_label": ".edit()"
     },
     {
@@ -1494,8 +1470,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_index",
-      "community": 101,
-      "community_name": "Role",
+      "community": 1,
+      "community_name": "Illuminate\\Http\\RedirectResponse",
       "norm_label": ".index()"
     },
     {
@@ -1506,8 +1482,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_store",
-      "community": 101,
-      "community_name": "Role",
+      "community": 1,
+      "community_name": "Illuminate\\Http\\RedirectResponse",
       "norm_label": ".store()"
     },
     {
@@ -1518,8 +1494,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_synccompanyroles",
-      "community": 101,
-      "community_name": "Role",
+      "community": 1,
+      "community_name": "Illuminate\\Http\\RedirectResponse",
       "norm_label": ".synccompanyroles()"
     },
     {
@@ -1530,8 +1506,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_syncsuperadmingrant",
-      "community": 101,
-      "community_name": "Role",
+      "community": 1,
+      "community_name": "Illuminate\\Http\\RedirectResponse",
       "norm_label": ".syncsuperadmingrant()"
     },
     {
@@ -1542,8 +1518,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_toggleactive",
-      "community": 101,
-      "community_name": "Role",
+      "community": 1,
+      "community_name": "Illuminate\\Http\\RedirectResponse",
       "norm_label": ".toggleactive()"
     },
     {
@@ -1554,8 +1530,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_update",
-      "community": 101,
-      "community_name": "Role",
+      "community": 1,
+      "community_name": "Illuminate\\Http\\RedirectResponse",
       "norm_label": ".update()"
     },
     {
@@ -1566,45 +1542,9 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_updatepassword",
-      "community": 101,
-      "community_name": "Role",
+      "community": 1,
+      "community_name": "Illuminate\\Http\\RedirectResponse",
       "norm_label": ".updatepassword()"
-    },
-    {
-      "label": ".casts()",
-      "file_type": "code",
-      "source_file": "app/Models/Role.php",
-      "source_location": "L30",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_models_role_role_casts",
-      "community": 101,
-      "community_name": "Role",
-      "norm_label": ".casts()"
-    },
-    {
-      "label": "makeClientForDocumentList()",
-      "file_type": "code",
-      "source_file": "tests/Feature/Documents/DocumentListTest.php",
-      "source_location": "L50",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_documents_documentlisttest_makeclientfordocumentlist",
-      "community": 101,
-      "community_name": "Role",
-      "norm_label": "makeclientfordocumentlist()"
-    },
-    {
-      "label": "makeClientForDocuments()",
-      "file_type": "code",
-      "source_file": "tests/Feature/Documents/DocumentVisibilityTest.php",
-      "source_location": "L50",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_documents_documentvisibilitytest_makeclientfordocuments",
-      "community": 101,
-      "community_name": "Role",
-      "norm_label": "makeclientfordocuments()"
     },
     {
       "label": "label()",
@@ -3779,52 +3719,28 @@
       "norm_label": "up()"
     },
     {
-      "label": ".index()",
+      "label": ".edit()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/NotificationController.php",
-      "source_location": "L15",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_notificationcontroller_notificationcontroller_index",
-      "community": 4,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": ".index()"
-    },
-    {
-      "label": ".create()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/OrganizationManagementController.php",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
       "source_location": "L23",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_organizationmanagementcontroller_organizationmanagementcontroller_create",
+      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_edit",
       "community": 4,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": ".create()"
-    },
-    {
-      "label": ".edit()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/OrganizationManagementController.php",
-      "source_location": "L43",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_organizationmanagementcontroller_organizationmanagementcontroller_edit",
-      "community": 4,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Role",
       "norm_label": ".edit()"
     },
     {
-      "label": ".index()",
+      "label": ".rolesInDisplayOrder()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/OrganizationManagementController.php",
-      "source_location": "L14",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
+      "source_location": "L67",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_organizationmanagementcontroller_organizationmanagementcontroller_index",
+      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_rolesindisplayorder",
       "community": 4,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": ".index()"
+      "community_name": "Role",
+      "norm_label": ".rolesindisplayorder()"
     },
     {
       "label": ".edit()",
@@ -3835,7 +3751,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_rolemanagementcontroller_rolemanagementcontroller_edit",
       "community": 4,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Role",
       "norm_label": ".edit()"
     },
     {
@@ -3847,20 +3763,56 @@
       "_origin": "ast",
       "id": "app_http_controllers_rolemanagementcontroller_rolemanagementcontroller_index",
       "community": 4,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Role",
       "norm_label": ".index()"
     },
     {
-      "label": ".__invoke()",
+      "label": ".update()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/SettingsController.php",
-      "source_location": "L9",
+      "source_file": "app/Http/Controllers/RoleManagementController.php",
+      "source_location": "L27",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_settingscontroller_settingscontroller_invoke",
+      "id": "app_http_controllers_rolemanagementcontroller_rolemanagementcontroller_update",
       "community": 4,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": ".__invoke()"
+      "community_name": "Role",
+      "norm_label": ".update()"
+    },
+    {
+      "label": ".casts()",
+      "file_type": "code",
+      "source_file": "app/Models/Role.php",
+      "source_location": "L30",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_role_role_casts",
+      "community": 4,
+      "community_name": "Role",
+      "norm_label": ".casts()"
+    },
+    {
+      "label": "makeClientForDocumentList()",
+      "file_type": "code",
+      "source_file": "tests/Feature/Documents/DocumentListTest.php",
+      "source_location": "L50",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_documents_documentlisttest_makeclientfordocumentlist",
+      "community": 4,
+      "community_name": "Role",
+      "norm_label": "makeclientfordocumentlist()"
+    },
+    {
+      "label": "makeClientForDocuments()",
+      "file_type": "code",
+      "source_file": "tests/Feature/Documents/DocumentVisibilityTest.php",
+      "source_location": "L50",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_documents_documentvisibilitytest_makeclientfordocuments",
+      "community": 4,
+      "community_name": "Role",
+      "norm_label": "makeclientfordocuments()"
     },
     {
       "label": "initPhoneInputs()",
@@ -4907,6 +4859,18 @@
       "norm_label": "makestaffwithdepartmentaccess()"
     },
     {
+      "label": ".index()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/AccessControlController.php",
+      "source_location": "L17",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_accesscontrolcontroller_accesscontrolcontroller_index",
+      "community": 89,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": ".index()"
+    },
+    {
       "label": ".create()",
       "file_type": "code",
       "source_file": "app/Http/Controllers/Auth/AuthenticatedSessionController.php",
@@ -4915,7 +4879,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_auth_authenticatedsessioncontroller_authenticatedsessioncontroller_create",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": ".create()"
     },
     {
@@ -4927,7 +4891,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_dashboardcontroller_dashboardcontroller_invoke",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": ".__invoke()"
     },
     {
@@ -4939,7 +4903,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_dashboardcontroller_dashboardcontroller_mytasksection",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": ".mytasksection()"
     },
     {
@@ -4951,32 +4915,68 @@
       "_origin": "ast",
       "id": "app_http_controllers_dashboardcontroller_dashboardcontroller_staffinorg",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": ".staffinorg()"
+    },
+    {
+      "label": ".index()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/NotificationController.php",
+      "source_location": "L15",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_notificationcontroller_notificationcontroller_index",
+      "community": 89,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": ".index()"
+    },
+    {
+      "label": ".create()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/OrganizationManagementController.php",
+      "source_location": "L23",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_organizationmanagementcontroller_organizationmanagementcontroller_create",
+      "community": 89,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": ".create()"
     },
     {
       "label": ".edit()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L23",
+      "source_file": "app/Http/Controllers/OrganizationManagementController.php",
+      "source_location": "L43",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_edit",
+      "id": "app_http_controllers_organizationmanagementcontroller_organizationmanagementcontroller_edit",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": ".edit()"
     },
     {
-      "label": ".rolesInDisplayOrder()",
+      "label": ".index()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L67",
+      "source_file": "app/Http/Controllers/OrganizationManagementController.php",
+      "source_location": "L14",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_rolesindisplayorder",
+      "id": "app_http_controllers_organizationmanagementcontroller_organizationmanagementcontroller_index",
       "community": 89,
-      "community_name": "Controller",
-      "norm_label": ".rolesindisplayorder()"
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": ".index()"
+    },
+    {
+      "label": ".__invoke()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/SettingsController.php",
+      "source_location": "L9",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_settingscontroller_settingscontroller_invoke",
+      "community": 89,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": ".__invoke()"
     },
     {
       "label": ".authorize()",
@@ -7610,17 +7610,6 @@
       "norm_label": "2026_08_20_170951_drop_client_name_from_projects_table.php"
     },
     {
-      "label": "NotificationController.php",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/NotificationController.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_controllers_notificationcontroller",
-      "community": 4,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "notificationcontroller.php"
-    },
-    {
       "label": "RoleManagementController.php",
       "file_type": "code",
       "source_file": "app/Http/Controllers/RoleManagementController.php",
@@ -7628,30 +7617,8 @@
       "_origin": "ast",
       "id": "app_http_controllers_rolemanagementcontroller",
       "community": 4,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Role",
       "norm_label": "rolemanagementcontroller.php"
-    },
-    {
-      "label": "SettingsController.php",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/SettingsController.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_controllers_settingscontroller",
-      "community": 4,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "settingscontroller.php"
-    },
-    {
-      "label": "Illuminate\\View\\View",
-      "file_type": "code",
-      "source_file": "",
-      "source_location": "",
-      "_origin": "ast",
-      "id": "illuminate_view_view",
-      "community": 4,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "illuminate\\view\\view"
     },
     {
       "label": "README.md",
@@ -9212,7 +9179,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_auth_authenticatedsessioncontroller",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": "authenticatedsessioncontroller.php"
     },
     {
@@ -9223,7 +9190,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_auth_googleauthcontroller",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": "googleauthcontroller.php"
     },
     {
@@ -9234,7 +9201,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_controller",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": "controller.php"
     },
     {
@@ -9245,8 +9212,41 @@
       "_origin": "ast",
       "id": "app_http_controllers_dashboardcontroller_php_collection",
       "community": 89,
-      "community_name": "Controller",
+      "community_name": "Illuminate\\View\\View",
       "norm_label": "collection"
+    },
+    {
+      "label": "NotificationController.php",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/NotificationController.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_controllers_notificationcontroller",
+      "community": 89,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": "notificationcontroller.php"
+    },
+    {
+      "label": "SettingsController.php",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/SettingsController.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_controllers_settingscontroller",
+      "community": 89,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": "settingscontroller.php"
+    },
+    {
+      "label": "Illuminate\\View\\View",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "illuminate_view_view",
+      "community": 89,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": "illuminate\\view\\view"
     },
     {
       "label": "package.json",
@@ -31182,5 +31182,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "3cdbcdef15bdf2fe2801e62056ace9e6426ad31b"
+  "built_at_commit": "72a183286dce96c19b6160458eabb11beb3737e2"
 }

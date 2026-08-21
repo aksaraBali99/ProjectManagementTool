@@ -1,16 +1,16 @@
 # Graph Report - ProjectManagementTool  (2026-08-21)
 
 ## Corpus Check
-- 211 files · ~57,738 words
+- 211 files · ~58,131 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 844 nodes · 1834 edges · 122 communities (97 shown, 25 thin omitted)
+- 844 nodes · 1834 edges · 121 communities (96 shown, 25 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 110 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3cdbcdef`
+- Built from commit: `72a18328`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,7 +19,7 @@
 - Illuminate\Http\RedirectResponse
 - Illuminate\Http\Request
 - LoginRequest
-- Illuminate\View\View
+- Role
 - Task
 - composer.json
 - Project
@@ -43,12 +43,11 @@
 - TaskManagementController
 - User
 - Organization
-- Controller
+- Illuminate\View\View
 - UpdateProjectRequest
 - Illuminate\Foundation\Http\FormRequest
 - StoreProjectRequest
 - AuditLog
-- Role
 - Subtask
 - Document
 - StoreUserRequest
@@ -93,15 +92,15 @@
 ## Import Cycles
 - None detected.
 
-## Communities (122 total, 25 thin omitted)
+## Communities (121 total, 25 thin omitted)
 
 ### Community 0 - "OrgMember"
 Cohesion: 0.07
 Nodes (15): OrgMember, Permission, DatabaseSeeder, OrganizationSeeder, PermissionSeeder, RoleSeeder, Illuminate\Database\Eloquent\Model, Illuminate\Database\Seeder (+7 more)
 
 ### Community 1 - "Illuminate\Http\RedirectResponse"
-Cohesion: 0.21
-Nodes (3): AccessControlController, NotificationSettingsController, Illuminate\Http\RedirectResponse
+Cohesion: 0.16
+Nodes (3): NotificationSettingsController, UserManagementController, Illuminate\Http\RedirectResponse
 
 ### Community 2 - "Illuminate\Http\Request"
 Cohesion: 0.25
@@ -111,9 +110,9 @@ Nodes (4): CommentController, SubtaskController, Illuminate\Http\JsonResponse, I
 Cohesion: 0.09
 Nodes (13): EnsureBelongsToOrganization, EnsureUserIsActive, LoginRequest, bootBelongsToOrganization(), bootHidesInactiveFromNonAdmins(), ValidClientUser, ValidPhoneNumber, Closure (+5 more)
 
-### Community 4 - "Illuminate\View\View"
-Cohesion: 0.19
-Nodes (5): NotificationController, OrganizationManagementController, RoleManagementController, SettingsController, Illuminate\View\View
+### Community 4 - "Role"
+Cohesion: 0.23
+Nodes (5): PermissionManagementController, RoleManagementController, Role, makeClientForDocumentList(), makeClientForDocuments()
 
 ### Community 5 - "Task"
 Cohesion: 0.16
@@ -163,9 +162,9 @@ Nodes (6): User, OrganizationPolicy, ProjectPolicy, Illuminate\Database\Eloquent
 Cohesion: 0.07
 Nodes (14): DepartmentManagementController, StoreDepartmentRequest, AccessPermission, Department, Organization, DepartmentSeeder, UserSeeder, Illuminate\Contracts\Validation\Validator (+6 more)
 
-### Community 89 - "Controller"
-Cohesion: 0.18
-Nodes (6): AuthenticatedSessionController, GoogleAuthController, Controller, DashboardController, Collection, PermissionManagementController
+### Community 89 - "Illuminate\View\View"
+Cohesion: 0.13
+Nodes (10): AccessControlController, AuthenticatedSessionController, GoogleAuthController, Controller, DashboardController, Collection, NotificationController, OrganizationManagementController (+2 more)
 
 ### Community 91 - "Illuminate\Foundation\Http\FormRequest"
 Cohesion: 0.19
@@ -174,10 +173,6 @@ Nodes (4): StoreOrganizationRequest, UpdateOrganizationRequest, UpdateUserPasswo
 ### Community 93 - "AuditLog"
 Cohesion: 0.06
 Nodes (14): AuditTrailController, AuditLog, NotificationSetting, AuditEventDatabaseNotification, AuditEventMailNotification, NotificationSettingPolicy, AuditEventNotifier, NotificationEventType (+6 more)
-
-### Community 101 - "Role"
-Cohesion: 0.24
-Nodes (4): UserManagementController, Role, makeClientForDocumentList(), makeClientForDocuments()
 
 ### Community 106 - "Subtask"
 Cohesion: 0.25
@@ -203,11 +198,11 @@ Nodes (3): isAssignableStaffForProject(), StoreTaskRequest, UpdateTaskRequest
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `OrgMember`, `Illuminate\Http\RedirectResponse`, `LoginRequest`, `Task`, `Project`, `.boardOrganizationIds`, `Organization`, `Controller`, `AuditLog`, `Role`, `Subtask`, `Document`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `CommentPolicy`, `DepartmentPolicy`, `UserPolicy`, `RolePolicy`, `Illuminate\Database\Eloquent\Builder`, `AuditLogPolicy.php`?**
+- **Why does `User` connect `User` to `OrgMember`, `Illuminate\Http\RedirectResponse`, `LoginRequest`, `Role`, `Task`, `Project`, `.boardOrganizationIds`, `Organization`, `Illuminate\View\View`, `AuditLog`, `Subtask`, `Document`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `CommentPolicy`, `DepartmentPolicy`, `UserPolicy`, `RolePolicy`, `Illuminate\Database\Eloquent\Builder`, `AuditLogPolicy.php`?**
   _High betweenness centrality (0.146) - this node is a cross-community bridge._
-- **Why does `Organization` connect `Organization` to `OrgMember`, `Illuminate\Http\RedirectResponse`, `Illuminate\Http\Request`, `Illuminate\View\View`, `Task`, `Role`, `Project`, `DocumentController.php`, `Document`, `StoreUserRequest`, `.boardOrganizationIds`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `TaskManagementController`, `User`, `Controller`, `Illuminate\Foundation\Http\FormRequest`, `AuditLog`?**
+- **Why does `Organization` connect `Organization` to `OrgMember`, `Illuminate\Http\RedirectResponse`, `Illuminate\Http\Request`, `Role`, `Task`, `Project`, `DocumentController.php`, `Document`, `StoreUserRequest`, `.boardOrganizationIds`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `TaskManagementController`, `User`, `Illuminate\View\View`, `Illuminate\Foundation\Http\FormRequest`, `AuditLog`?**
   _High betweenness centrality (0.054) - this node is a cross-community bridge._
-- **Why does `Task` connect `Task` to `OrgMember`, `Illuminate\Http\RedirectResponse`, `Illuminate\Http\Request`, `Subtask`, `Document`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Comment`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `TaskManagementController`, `Illuminate\Database\Eloquent\Builder`, `Controller`?**
+- **Why does `Task` connect `Task` to `OrgMember`, `Illuminate\Http\RedirectResponse`, `Illuminate\Http\Request`, `Subtask`, `Document`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Comment`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `TaskManagementController`, `Illuminate\Database\Eloquent\Builder`, `Illuminate\View\View`?**
   _High betweenness centrality (0.032) - this node is a cross-community bridge._
 - **Are the 10 inferred relationships involving `User` (e.g. with `.index()` and `.index()`) actually correct?**
   _`User` has 10 INFERRED edges - model-reasoned connections that need verification._
