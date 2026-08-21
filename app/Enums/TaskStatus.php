@@ -9,12 +9,13 @@ enum TaskStatus: string
     case InReview = 'in_review';
     case Completed = 'completed';
 
+    /** Display text per the UIX spec's Status Badge Colours table. */
     public function label(): string
     {
         return match ($this) {
             self::Pending => 'Pending',
-            self::InProgress => 'In progress',
-            self::InReview => 'In review',
+            self::InProgress => 'Active',
+            self::InReview => 'Need Review',
             self::Completed => 'Completed',
         };
     }

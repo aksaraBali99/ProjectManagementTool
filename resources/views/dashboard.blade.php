@@ -39,22 +39,26 @@
             @foreach (\App\Enums\Priority::cases() as $priority)
                 @php $group = $priorityGroups[$priority->value] ?? collect() @endphp
                 <div class="rounded-lg border border-gray-200 bg-white">
-                    <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-                        <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">{{ $priority->label() }}</span>
+                    <div class="flex items-center justify-between border-b-2 px-3 py-2" style="border-color: {{ $priority->dotColor() }}">
+                        <span class="flex items-center gap-1.5">
+                            <x-dot :color="$priority->dotColor()" size="8px" />
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em]" style="color: {{ $priority->dotColor() }}">{{ $priority->label() }}</span>
+                        </span>
                         <span class="text-[10px] text-gray-400">{{ $group->count() }}</span>
                     </div>
-                    <div class="divide-y divide-gray-100">
+                    <div class="space-y-1.5 p-2">
                         @forelse ($group as $task)
-                            <a href="{{ route('tasks.edit', $task) }}" class="block px-3 py-2 hover:bg-gray-50">
+                            <a href="{{ route('tasks.edit', $task) }}"
+                               class="block rounded-md border-l-4 px-2.5 py-2 hover:opacity-90"
+                               style="border-left-color: {{ $priority->dotColor() }}; background-color: {{ $priority->badgeBackground() }};">
                                 <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
-                                <p class="mt-0.5 text-[10px] text-gray-500">
-                                    {{ $task->project->name }}
-                                    @if ($task->assignee) &middot; <x-avatar :user="$task->assignee" size="16px" class="align-middle" /> {{ $task->assignee->name }} @endif
-                                    @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
+                                <p class="mt-0.5 flex items-center justify-between text-[10px]">
+                                    <span style="color: {{ $task->department->badgeText() }}">{{ $task->department->name }}</span>
+                                    <span style="color: {{ $task->status->badgeText() }}">{{ $task->status->label() }}</span>
                                 </p>
                             </a>
                         @empty
-                            <p class="px-3 py-4 text-center text-[11px] text-gray-400">No tasks</p>
+                            <p class="py-4 text-center text-[11px] text-gray-400">No tasks</p>
                         @endforelse
                     </div>
                 </div>
