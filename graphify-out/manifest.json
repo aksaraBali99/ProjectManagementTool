@@ -675,13 +675,13 @@
     "semantic_hash": ""
   },
   "resources/views/projects/create.blade.php": {
-    "mtime": 1787232831.9617958,
-    "ast_hash": "ac87a702734f36676282a8379b3b0ec7",
+    "mtime": 1787309887.576638,
+    "ast_hash": "2615ae4dd5856d7ec77bc3909cb281f6",
     "semantic_hash": ""
   },
   "resources/views/projects/edit.blade.php": {
-    "mtime": 1787232831.963795,
-    "ast_hash": "310a2ed6ed28c5cde61a86f9c6a7cfab",
+    "mtime": 1787309887.5791478,
+    "ast_hash": "2cd0a4d39e81647aff39f8f83c7d6b93",
     "semantic_hash": ""
   },
   "resources/views/projects/index.blade.php": {
@@ -790,23 +790,23 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_subtasks.blade.php": {
-    "mtime": 1787304774.965207,
-    "ast_hash": "d9d3f383c6486886223e0d5e4216ef5b",
+    "mtime": 1787309846.5734644,
+    "ast_hash": "1d8e7239a2282ff4babfe60d40dbcb23",
     "semantic_hash": ""
   },
   "resources/views/tasks/create.blade.php": {
-    "mtime": 1787232831.968856,
-    "ast_hash": "08ea85108043adfe757e89eb8b30a276",
+    "mtime": 1787309869.2806144,
+    "ast_hash": "3d7fc3c9cc0f767086a88443cad5cf3d",
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1787232831.970858,
-    "ast_hash": "8f91f2af4d05c58eef403776587562ba",
+    "mtime": 1787309869.2816162,
+    "ast_hash": "91939b7ac05a23b8274571223b612169",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
-    "mtime": 1787232831.9718547,
-    "ast_hash": "02846f2e5327bdce07e33936d6ab30e0",
+    "mtime": 1787309760.9647808,
+    "ast_hash": "ad52b42baca1d1627c5190952fb90b95",
     "semantic_hash": ""
   },
   "resources/views/users/_inline-validation.blade.php": {
@@ -835,8 +835,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskManagementTest.php": {
-    "mtime": 1787297716.4636083,
-    "ast_hash": "1881b183b705eb8fcea7370a15fc3dda",
+    "mtime": 1787309947.2015378,
+    "ast_hash": "3999b8ae94f707b7b3c2b0053da834f9",
     "semantic_hash": ""
   },
   "app/Enums/DocumentAccessLevel.php": {
