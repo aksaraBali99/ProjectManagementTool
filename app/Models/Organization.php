@@ -75,4 +75,31 @@ class Organization extends Model
     {
         return $this->hasMany(AccessPermission::class);
     }
+
+    /**
+     * Full pill treatment (background/text) per the UIX spec's Company
+     * colour table. Keyed on accent_color, which OrganizationSeeder pins to
+     * the spec's dot colour for each of the 3 known companies; any other
+     * accent_color (a future 4th+ company) falls back to a neutral pill
+     * rather than guessing.
+     */
+    public function badgeBackground(): string
+    {
+        return match ($this->accent_color) {
+            '#1D9E75' => '#E1F5EE',
+            '#534AB7' => '#EEEDFE',
+            '#BA7517' => '#FAEEDA',
+            default => '#F3F4F6',
+        };
+    }
+
+    public function badgeText(): string
+    {
+        return match ($this->accent_color) {
+            '#1D9E75' => '#0F6E56',
+            '#534AB7' => '#3C3489',
+            '#BA7517' => '#854F0B',
+            default => '#374151',
+        };
+    }
 }

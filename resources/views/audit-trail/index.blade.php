@@ -94,7 +94,11 @@
                         </td>
                         <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                             <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Company</span>
-                            {{ $entry->organization->name ?? '—' }}
+                            @if ($entry->organization)
+                                <x-badge :background="$entry->organization->badgeBackground()" :text="$entry->organization->badgeText()">{{ $entry->organization->name }}</x-badge>
+                            @else
+                                —
+                            @endif
                         </td>
                         <td class="flex items-center justify-between gap-2 py-1 text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
                             <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Action</span>

@@ -57,9 +57,9 @@
                             @endforelse
 
                             @forelse ($user->orgMemberships as $membership)
-                                <span class="mr-1 inline-block rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700">
+                                <x-badge :background="$membership->organization->badgeBackground()" :text="$membership->organization->badgeText()" class="mr-1">
                                     {{ $membership->organization->name }}: {{ $membership->role->name }}
-                                </span>
+                                </x-badge>
                             @empty
                                 @if ($globalRoles->isEmpty())
                                     <span class="text-[10px] text-gray-400">No company access</span>

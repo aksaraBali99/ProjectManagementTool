@@ -10,9 +10,9 @@ class OrganizationSeeder extends Seeder
     public function run(): void
     {
         $organizations = [
-            ['name' => 'Bali Virtual Academy', 'slug' => 'bali-virtual-academy', 'accent_color' => '#2563eb'],
-            ['name' => 'Bali Hire', 'slug' => 'bali-hire', 'accent_color' => '#16a34a'],
-            ['name' => 'Remote Works', 'slug' => 'remote-works', 'accent_color' => '#9333ea'],
+            ['name' => 'Bali Virtual Academy', 'slug' => 'bali-virtual-academy', 'accent_color' => '#1D9E75'],
+            ['name' => 'Bali Hire', 'slug' => 'bali-hire', 'accent_color' => '#534AB7'],
+            ['name' => 'Remote Works', 'slug' => 'remote-works', 'accent_color' => '#BA7517'],
         ];
 
         foreach ($organizations as $organization) {
