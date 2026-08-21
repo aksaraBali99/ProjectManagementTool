@@ -25,6 +25,14 @@ class LoginRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'identifier.required' => 'Please enter your username.',
+            'password.required' => 'Please enter your password.',
+        ];
+    }
+
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();

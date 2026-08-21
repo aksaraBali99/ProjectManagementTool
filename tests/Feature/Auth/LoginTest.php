@@ -80,3 +80,12 @@ test('an authenticated user reaches the dashboard', function () {
 
     $this->actingAs($user)->get('/dashboard')->assertOk();
 });
+
+test('submitting an empty username shows a friendly message, not the raw field name', function () {
+    $response = $this->post('/login', [
+        'identifier' => '',
+        'password' => 'anything',
+    ]);
+
+    $response->assertSessionHasErrors(['identifier' => 'Please enter your username.']);
+});

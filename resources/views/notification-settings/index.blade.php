@@ -137,7 +137,7 @@
                             <td class="px-3 py-2.5 text-[11px] text-gray-500">{{ $rule->channel->label() }}</td>
                             <td class="px-3 py-2.5 text-[11px] text-gray-500">
                                 @if (($rule->recipients['type'] ?? null) === 'role')
-                                    Role: {{ ucfirst($rule->recipients['role']) }}
+                                    Role: {{ $roles->firstWhere('slug', $rule->recipients['role'])?->name ?? ucfirst($rule->recipients['role']) }}
                                 @else
                                     Users: {{ \App\Models\User::whereIn('id', $rule->recipients['ids'] ?? [])->pluck('name')->implode(', ') }}
                                 @endif
