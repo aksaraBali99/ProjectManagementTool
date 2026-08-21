@@ -22,8 +22,12 @@ class PermissionSeeder extends Seeder
             ['slug' => 'view_tasks', 'name' => 'View tasks', 'group' => 'Tasks'],
             ['slug' => 'create_edit_tasks', 'name' => 'Create & edit tasks', 'group' => 'Tasks'],
             ['slug' => 'toggle_subtask_done', 'name' => 'Toggle subtask done', 'group' => 'Tasks'],
-            ['slug' => 'view_comments', 'name' => 'View comments', 'group' => 'Comments'],
-            ['slug' => 'add_edit_own_comment', 'name' => 'Add / edit own comments', 'group' => 'Comments'],
+            // Comments live under Tasks, not their own group — a comment
+            // always belongs to exactly one task (comments.task_id is a
+            // required FK, no other entity has comments), so there's no
+            // scenario where this permission applies outside a task.
+            ['slug' => 'view_comments', 'name' => 'View comments', 'group' => 'Tasks'],
+            ['slug' => 'add_edit_own_comment', 'name' => 'Add / edit own comments', 'group' => 'Tasks'],
             ['slug' => 'view_dashboard', 'name' => 'View dashboard', 'group' => 'Dashboard'],
             ['slug' => 'view_kanban', 'name' => 'View kanban board', 'group' => 'Kanban'],
             ['slug' => 'manage_settings', 'name' => 'Manage settings', 'group' => 'Administration'],
