@@ -42,7 +42,7 @@
                                 <a href="{{ route('tasks.edit', $task) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline">{{ $task->title }}</a>
                                 <p class="mt-1 text-[10px] text-gray-500">
                                     {{ $task->project->name }}
-                                    @if ($task->assignee) &middot; {{ $task->assignee->name }} @endif
+                                    @if ($task->assignee) &middot; <x-avatar :user="$task->assignee" size="16px" class="align-middle" /> {{ $task->assignee->name }} @endif
                                     @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
                                 </p>
                                 <div class="mt-1.5 flex items-center justify-between gap-2">
