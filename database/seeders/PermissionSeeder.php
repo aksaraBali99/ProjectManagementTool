@@ -31,6 +31,8 @@ class PermissionSeeder extends Seeder
             ['slug' => 'view_dashboard', 'name' => 'View dashboard', 'group' => 'Dashboard'],
             ['slug' => 'view_kanban', 'name' => 'View kanban board', 'group' => 'Kanban'],
             ['slug' => 'update_kanban_cards', 'name' => 'Update cards (move to change status)', 'group' => 'Kanban'],
+            ['slug' => 'view_documents', 'name' => 'View documents', 'group' => 'Documents'],
+            ['slug' => 'manage_documents', 'name' => 'Add & edit documents', 'group' => 'Documents'],
             ['slug' => 'manage_settings', 'name' => 'Manage settings', 'group' => 'Administration'],
         ];
 
@@ -48,6 +50,9 @@ class PermissionSeeder extends Seeder
                 'view_tasks', 'create_edit_tasks', 'toggle_subtask_done',
                 'view_comments', 'add_edit_own_comment',
                 'view_dashboard', 'view_kanban', 'update_kanban_cards',
+                // Documents are part of "manage projects/tasks for their
+                // staff", same reasoning as create_edit_tasks/projects.
+                'view_documents', 'manage_documents',
             ],
             Role::STAFF => [
                 'view_projects',
@@ -62,6 +67,10 @@ class PermissionSeeder extends Seeder
                 // they can edit a task assigned to them without
                 // create_edit_tasks.
                 'view_dashboard', 'view_kanban',
+                // view_documents only — staff can see the Documents list
+                // and attach existing documents to tasks, but can't add new
+                // ones (manage_documents not granted).
+                'view_documents',
             ],
             Role::CLIENT => [
                 'view_projects',
@@ -72,6 +81,10 @@ class PermissionSeeder extends Seeder
                 // and Task::scopeVisibleTo() — this doesn't widen that.
                 // update_kanban_cards not granted, same reasoning as staff.
                 'view_dashboard', 'view_kanban',
+                // Neither view_documents nor manage_documents — a client's
+                // document visibility is handled entirely by access_level
+                // (public documents linked to their project via
+                // task_documents), not by this permission.
             ],
         ];
 
