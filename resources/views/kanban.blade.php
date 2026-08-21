@@ -37,24 +37,28 @@
                     <div class="kanban-column-body min-h-[80px] space-y-2 p-2">
                         @forelse ($column['tasks'] as $item)
                             @php [$task, $canEdit] = [$item['task'], $item['canEdit']] @endphp
-                            <div class="kanban-card rounded-md border border-gray-200 bg-white p-2 {{ $canEdit ? 'cursor-move' : '' }}"
+                            <div class="kanban-card flex items-start justify-between gap-2 rounded-md border border-gray-200 bg-white p-2 {{ $canEdit ? 'cursor-move' : '' }}"
                                  draggable="{{ $canEdit ? 'true' : 'false' }}" data-task-id="{{ $task->id }}">
-                                <a href="{{ route('tasks.edit', $task) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline">{{ $task->title }}</a>
-                                <p class="mt-1 text-[10px] text-gray-500">
-                                    {{ $task->project->name }}
-                                    @if ($task->assignee) &middot; <x-avatar :user="$task->assignee" size="16px" class="align-middle" /> {{ $task->assignee->name }} @endif
-                                    @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
-                                </p>
-                                <div class="mt-1.5 flex items-center justify-between gap-2">
-                                    <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
+                                <div class="min-w-0 flex-1">
+                                    <a href="{{ route('tasks.edit', $task) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline">{{ $task->title }}</a>
+                                    <p class="mt-1 text-[10px] text-gray-500">
+                                        {{ $task->project->name }}
+                                        @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
+                                    </p>
+                                    <div class="mt-1.5 flex items-center justify-between gap-2">
+                                        <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
 
-                                    <select class="kanban-status-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"
-                                            data-task-id="{{ $task->id }}" {{ $canEdit ? '' : 'disabled' }}>
-                                        @foreach (\App\Enums\TaskStatus::cases() as $statusOption)
-                                            <option value="{{ $statusOption->value }}" {{ $task->status === $statusOption ? 'selected' : '' }}>{{ $statusOption->label() }}</option>
-                                        @endforeach
-                                    </select>
+                                        <select class="kanban-status-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"
+                                                data-task-id="{{ $task->id }}" {{ $canEdit ? '' : 'disabled' }}>
+                                            @foreach (\App\Enums\TaskStatus::cases() as $statusOption)
+                                                <option value="{{ $statusOption->value }}" {{ $task->status === $statusOption ? 'selected' : '' }}>{{ $statusOption->label() }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
+                                @if ($task->assignee)
+                                    <x-avatar :user="$task->assignee" size="32px" class="shrink-0" />
+                                @endif
                             </div>
                         @empty
                             <p class="py-4 text-center text-[11px] text-gray-400">No tasks</p>
