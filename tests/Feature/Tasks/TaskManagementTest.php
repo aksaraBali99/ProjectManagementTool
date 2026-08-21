@@ -1054,8 +1054,8 @@ test('creating a task writes an audit_log entry', function () {
     $task = Task::where('title', 'Audited task')->firstOrFail();
     $response->assertRedirect('/tasks/'.$task->id.'/edit');
 
-    $log = AuditLog::where('entity_type', Task::class)->where('entity_id', $task->id)->firstOrFail();
-    expect($log->action)->toBe('created')
+    $log = AuditLog::where('entity_type', 'task')->where('entity_id', $task->id)->firstOrFail();
+    expect($log->action)->toBe('task.created')
         ->and($log->organization_id)->toBe($this->orgA->id)
         ->and($log->user_id)->toBe($this->management->id)
         ->and($log->changes['title'])->toBe('Audited task');
@@ -1079,10 +1079,13 @@ test('updating a task writes an audit_log entry recording the changed fields', f
         'status' => 'pending',
     ]);
 
-    $log = AuditLog::where('entity_type', Task::class)->where('entity_id', $task->id)->where('action', 'updated')->firstOrFail();
+    // Priority is the only "named" changed field here (title isn't), so
+    // that's the action the observer picks, but the changes payload still
+    // captures every field that actually changed in this one combined row.
+    $log = AuditLog::where('entity_type', 'task')->where('entity_id', $task->id)->where('action', 'task.priority_changed')->firstOrFail();
     expect($log->user_id)->toBe($this->management->id)
-        ->and($log->changes['title'])->toBe('Updated title')
-        ->and($log->changes['priority'])->toBe('high')
+        ->and($log->changes['title'])->toBe(['old' => 'Original title', 'new' => 'Updated title'])
+        ->and($log->changes['priority'])->toBe(['old' => 'low', 'new' => 'high'])
         ->and($log->changes)->not->toHaveKey('status');
 });
 
@@ -1114,7 +1117,7 @@ test('updating a task with no actual field changes does not write an audit_log e
         'status' => 'pending',
     ]);
 
-    expect(AuditLog::where('entity_type', Task::class)->where('entity_id', $task->id)->where('action', 'updated')->exists())->toBeFalse();
+    expect(AuditLog::where('entity_type', 'task')->where('entity_id', $task->id)->exists())->toBeFalse();
 });
 
 test('deactivating and reactivating a task writes audit_log entries', function () {
@@ -1130,12 +1133,12 @@ test('deactivating and reactivating a task writes audit_log entries', function (
     $this->actingAs($this->management)->patch("/tasks/{$task->id}/toggle-active");
     $this->actingAs($this->management)->patch("/tasks/{$task->id}/toggle-active");
 
-    $actions = AuditLog::where('entity_type', Task::class)->where('entity_id', $task->id)
-        ->whereIn('action', ['deactivated', 'reactivated'])
+    $actions = AuditLog::where('entity_type', 'task')->where('entity_id', $task->id)
+        ->whereIn('action', ['task.deactivated', 'task.reactivated'])
         ->orderBy('id')
         ->pluck('action');
 
-    expect($actions->all())->toBe(['deactivated', 'reactivated']);
+    expect($actions->all())->toBe(['task.deactivated', 'task.reactivated']);
 });
 
 test('the comments JSON endpoint returns the task comments with a per-viewer can_edit flag', function () {
@@ -1191,8 +1194,8 @@ test('creating a subtask writes an audit_log entry', function () {
     $response->assertCreated();
 
     $subtask = Subtask::where('title', 'Audited subtask')->firstOrFail();
-    $log = AuditLog::where('entity_type', Subtask::class)->where('entity_id', $subtask->id)->firstOrFail();
-    expect($log->action)->toBe('created')
+    $log = AuditLog::where('entity_type', 'subtask')->where('entity_id', $subtask->id)->firstOrFail();
+    expect($log->action)->toBe('subtask.created')
         ->and($log->organization_id)->toBe($this->orgA->id)
         ->and($log->user_id)->toBe($this->management->id)
         ->and($log->changes['title'])->toBe('Audited subtask');
@@ -1212,11 +1215,15 @@ test('toggling a subtask done state writes an audit_log entry', function () {
     $this->actingAs($this->management)->patch("/subtasks/{$subtask->id}/toggle")->assertOk();
     $this->actingAs($this->management)->patch("/subtasks/{$subtask->id}/toggle")->assertOk();
 
-    $actions = AuditLog::where('entity_type', Subtask::class)->where('entity_id', $subtask->id)
+    // Both directions share the same action name — the toggle direction
+    // is distinguished by the changes payload, not the action string.
+    $logs = AuditLog::where('entity_type', 'subtask')->where('entity_id', $subtask->id)
         ->orderBy('id')
-        ->pluck('action');
+        ->get();
 
-    expect($actions->all())->toBe(['completed', 'reopened']);
+    expect($logs->pluck('action')->all())->toBe(['subtask.status_changed', 'subtask.status_changed'])
+        ->and($logs[0]->changes['is_done'])->toBe(['old' => false, 'new' => true])
+        ->and($logs[1]->changes['is_done'])->toBe(['old' => true, 'new' => false]);
 });
 
 test('updating a subtask writes an audit_log entry recording the changed fields', function () {
@@ -1232,9 +1239,9 @@ test('updating a subtask writes an audit_log entry recording the changed fields'
 
     $this->actingAs($this->management)->put("/subtasks/{$subtask->id}", ['title' => 'Renamed'])->assertOk();
 
-    $log = AuditLog::where('entity_type', Subtask::class)->where('entity_id', $subtask->id)->where('action', 'updated')->firstOrFail();
+    $log = AuditLog::where('entity_type', 'subtask')->where('entity_id', $subtask->id)->where('action', 'subtask.updated')->firstOrFail();
     expect($log->user_id)->toBe($this->management->id)
-        ->and($log->changes)->toBe(['title' => 'Renamed']);
+        ->and($log->changes)->toBe(['title' => ['old' => 'Original title', 'new' => 'Renamed']]);
 });
 
 test('updating a subtask with no actual field changes does not write an audit_log entry', function () {
@@ -1250,7 +1257,7 @@ test('updating a subtask with no actual field changes does not write an audit_lo
 
     $this->actingAs($this->management)->put("/subtasks/{$subtask->id}", ['title' => 'Unchanged'])->assertOk();
 
-    expect(AuditLog::where('entity_type', Subtask::class)->where('entity_id', $subtask->id)->where('action', 'updated')->exists())->toBeFalse();
+    expect(AuditLog::where('entity_type', 'subtask')->where('entity_id', $subtask->id)->exists())->toBeFalse();
 });
 
 test('deleting a subtask writes an audit_log entry', function () {
@@ -1267,7 +1274,7 @@ test('deleting a subtask writes an audit_log entry', function () {
 
     $this->actingAs($this->management)->delete("/subtasks/{$subtask->id}")->assertOk();
 
-    $log = AuditLog::where('entity_type', Subtask::class)->where('entity_id', $subtaskId)->where('action', 'deleted')->firstOrFail();
+    $log = AuditLog::where('entity_type', 'subtask')->where('entity_id', $subtaskId)->where('action', 'subtask.deleted')->firstOrFail();
     expect($log->organization_id)->toBe($this->orgA->id)
         ->and($log->changes['title'])->toBe('Doomed subtask');
 });

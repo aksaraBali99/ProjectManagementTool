@@ -10,10 +10,22 @@
         $hasAnyCard = auth()->user()->can('viewAny', App\Models\User::class)
             || auth()->user()->can('viewAny', App\Models\Organization::class)
             || auth()->user()->can('viewAny', App\Models\Department::class)
-            || auth()->user()->can('viewAny', App\Models\Role::class);
+            || auth()->user()->can('viewAny', App\Models\Role::class)
+            || auth()->user()->can('viewAny', App\Models\AuditLog::class);
     @endphp
 
     <div class="mt-6 space-y-2">
+        {{-- Always visible — everyone can configure their own notification
+             preferences, no permission required for that part of the page. --}}
+        <a href="{{ route('notification-settings.index') }}"
+           class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50">
+            <span>
+                <span class="block text-sm font-medium text-gray-900">Notification settings</span>
+                <span class="block text-xs text-gray-500">Choose which events notify you, and how</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400"></i>
+        </a>
+
         @can('viewAny', App\Models\User::class)
             <a href="{{ route('users.index') }}"
                class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50">
@@ -53,6 +65,17 @@
                 <span>
                     <span class="block text-sm font-medium text-gray-900">Manage roles</span>
                     <span class="block text-xs text-gray-500">Edit role names and descriptions</span>
+                </span>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+        @endcan
+
+        @can('viewAny', App\Models\AuditLog::class)
+            <a href="{{ route('audit-trail.index') }}"
+               class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50">
+                <span>
+                    <span class="block text-sm font-medium text-gray-900">Audit trail</span>
+                    <span class="block text-xs text-gray-500">Read-only history of task, subtask, and comment changes</span>
                 </span>
                 <i class="ti ti-chevron-right text-gray-400"></i>
             </a>

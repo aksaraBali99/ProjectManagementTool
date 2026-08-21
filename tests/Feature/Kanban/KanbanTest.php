@@ -145,9 +145,9 @@ test('the assignee of a task can change its status via Kanban, and it is audit l
     $response->assertOk();
     expect($task->fresh()->status)->toBe(TaskStatus::InProgress);
     $this->assertDatabaseHas('audit_log', [
-        'entity_type' => Task::class,
+        'entity_type' => 'task',
         'entity_id' => $task->id,
-        'action' => 'updated',
+        'action' => 'task.status_changed',
         'user_id' => $staff->id,
     ]);
 });
