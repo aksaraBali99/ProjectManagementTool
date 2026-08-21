@@ -231,3 +231,21 @@ test('the same recipients on a different channel is not considered a duplicate',
     $response->assertSessionDoesntHaveErrors('duplicate');
     expect(NotificationSetting::where('event_type', 'task_status_changed')->count())->toBe(2);
 });
+
+test('a role-based rule displays the role\'s current editable name, not its slug', function () {
+    Role::where('slug', 'staff')->update(['name' => 'Field Staff']);
+
+    NotificationSetting::create([
+        'owner_id' => $this->owner->id,
+        'event_type' => 'task_status_changed',
+        'channel' => 'in_app',
+        'recipients' => ['type' => 'role', 'role' => 'staff'],
+        'is_active' => true,
+    ]);
+
+    $response = $this->actingAs($this->owner)->get('/notification-settings');
+
+    $response->assertOk();
+    $response->assertSee('Role: Field Staff');
+    $response->assertDontSee('Role: Staff');
+});
