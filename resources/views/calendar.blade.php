@@ -25,7 +25,7 @@
             @if (empty($ganttTasks))
                 <p class="py-10 text-center text-[12px] text-gray-500">No tasks with a due date in {{ $organization->name }}.</p>
             @else
-                <div id="gantt-container" data-tasks="@json($ganttTasks)"></div>
+                <div id="gantt-container" data-tasks='@json($ganttTasks)'></div>
             @endif
         </div>
     @endif

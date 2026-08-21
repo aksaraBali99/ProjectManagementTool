@@ -174,3 +174,25 @@ test('a user with no company membership at all sees the generic "no access" cale
     $response->assertOk();
     $response->assertSee("You don't have access to any companies yet.");
 });
+
+test('the gantt-container data-tasks attribute is valid, parseable JSON even when a task title contains a double quote', function () {
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Say "hi" & <test>',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => now()->addDays(3),
+    ]);
+
+    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
+
+    $response->assertOk();
+    preg_match("/data-tasks='(.*?)'/s", $response->getContent(), $matches);
+    expect($matches)->toHaveCount(2);
+
+    $decoded = json_decode($matches[1], true);
+    expect(json_last_error())->toBe(JSON_ERROR_NONE)
+        ->and($decoded[0]['name'])->toContain('Say "hi" & <test>');
+});
