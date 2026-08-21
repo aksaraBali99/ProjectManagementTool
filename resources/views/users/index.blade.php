@@ -51,7 +51,7 @@
 
                             @forelse ($user->orgMemberships as $membership)
                                 <span class="mr-1 inline-block rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700">
-                                    {{ $membership->organization->name }}: {{ ucfirst($membership->role->slug) }}
+                                    {{ $membership->organization->name }}: {{ $membership->role->name }}
                                 </span>
                             @empty
                                 @if ($globalRoles->isEmpty())
