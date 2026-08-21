@@ -70,6 +70,21 @@
             });
         }
 
+        // Surfaces the backend's actual validation/authorization message
+        // (e.g. "Assignee must be assigned to this project.") instead of a
+        // generic "failed" string, falling back to that generic string only
+        // when the response carries no usable message of its own.
+        function requestOrThrow(url, method, body, fallback) {
+            return request(url, method, body).then(function (response) {
+                if (response.ok) return response;
+                return response.json().catch(function () { return null; }).then(function (data) {
+                    const fieldErrors = data && data.errors ? Object.values(data.errors)[0] : null;
+                    const message = (Array.isArray(fieldErrors) && fieldErrors[0]) || (data && data.message) || fallback;
+                    throw new Error(message);
+                });
+            });
+        }
+
         function showFeedback(row, message, isError) {
             const feedback = row.querySelector('.subtask-feedback');
             if (! feedback) return;
@@ -93,14 +108,13 @@
 
             toggle.addEventListener('change', function () {
                 const subtaskId = row.dataset.subtaskId;
-                request('/subtasks/' + subtaskId + '/toggle', 'PATCH')
-                    .then(function (response) {
-                        if (! response.ok) throw new Error();
+                requestOrThrow('/subtasks/' + subtaskId + '/toggle', 'PATCH', undefined, 'Failed to save.')
+                    .then(function () {
                         showFeedback(row, 'Saved');
                     })
-                    .catch(function () {
+                    .catch(function (error) {
                         toggle.checked = ! toggle.checked;
-                        showFeedback(row, 'Failed to save', true);
+                        showFeedback(row, error.message, true);
                     });
             });
 
@@ -111,15 +125,14 @@
                     if (newTitle === originalTitle || newTitle === '') return;
 
                     const subtaskId = row.dataset.subtaskId;
-                    request('/subtasks/' + subtaskId, 'PUT', { title: newTitle })
-                        .then(function (response) {
-                            if (! response.ok) throw new Error();
+                    requestOrThrow('/subtasks/' + subtaskId, 'PUT', { title: newTitle }, 'Failed to save.')
+                        .then(function () {
                             originalTitle = newTitle;
                             showFeedback(row, 'Saved');
                         })
-                        .catch(function () {
+                        .catch(function (error) {
                             titleInput.value = originalTitle;
-                            showFeedback(row, 'Failed to save', true);
+                            showFeedback(row, error.message, true);
                         });
                 });
             }
@@ -129,15 +142,14 @@
                 assigneeSelect.addEventListener('change', function () {
                     const newAssignee = assigneeSelect.value;
                     const subtaskId = row.dataset.subtaskId;
-                    request('/subtasks/' + subtaskId, 'PUT', { assignee_id: newAssignee === '' ? null : Number(newAssignee) })
-                        .then(function (response) {
-                            if (! response.ok) throw new Error();
+                    requestOrThrow('/subtasks/' + subtaskId, 'PUT', { assignee_id: newAssignee === '' ? null : Number(newAssignee) }, 'Failed to save.')
+                        .then(function () {
                             originalAssignee = newAssignee;
                             showFeedback(row, 'Saved');
                         })
-                        .catch(function () {
+                        .catch(function (error) {
                             assigneeSelect.value = originalAssignee;
-                            showFeedback(row, 'Failed to save', true);
+                            showFeedback(row, error.message, true);
                         });
                 });
             }
@@ -147,15 +159,14 @@
                 dueDateInput.addEventListener('change', function () {
                     const newDueDate = dueDateInput.value;
                     const subtaskId = row.dataset.subtaskId;
-                    request('/subtasks/' + subtaskId, 'PUT', { due_date: newDueDate === '' ? null : newDueDate })
-                        .then(function (response) {
-                            if (! response.ok) throw new Error();
+                    requestOrThrow('/subtasks/' + subtaskId, 'PUT', { due_date: newDueDate === '' ? null : newDueDate }, 'Failed to save.')
+                        .then(function () {
                             originalDueDate = newDueDate;
                             showFeedback(row, 'Saved');
                         })
-                        .catch(function () {
+                        .catch(function (error) {
                             dueDateInput.value = originalDueDate;
-                            showFeedback(row, 'Failed to save', true);
+                            showFeedback(row, error.message, true);
                         });
                 });
             }
@@ -163,9 +174,8 @@
             if (removeBtn) {
                 removeBtn.addEventListener('click', function () {
                     const subtaskId = row.dataset.subtaskId;
-                    request('/subtasks/' + subtaskId, 'DELETE')
-                        .then(function (response) {
-                            if (! response.ok) throw new Error();
+                    requestOrThrow('/subtasks/' + subtaskId, 'DELETE', undefined, 'Failed to delete.')
+                        .then(function () {
                             row.remove();
                             if (! rowsEl.querySelector('[data-subtask-id]')) {
                                 const empty = document.createElement('p');
@@ -174,8 +184,8 @@
                                 rowsEl.appendChild(empty);
                             }
                         })
-                        .catch(function () {
-                            showFeedback(row, 'Failed to delete', true);
+                        .catch(function (error) {
+                            showFeedback(row, error.message, true);
                         });
                 });
             }
@@ -208,9 +218,8 @@
                     due_date: newDueDateInput.value === '' ? null : newDueDateInput.value,
                 };
 
-                request('/tasks/' + taskId + '/subtasks', 'POST', payload)
+                requestOrThrow('/tasks/' + taskId + '/subtasks', 'POST', payload, 'Failed to add subtask.')
                     .then(function (response) {
-                        if (! response.ok) throw new Error();
                         return response.json();
                     })
                     .then(function (data) {
@@ -230,8 +239,8 @@
                         // Assignee/due date inputs stay at the parent task's
                         // defaults for the next add, per spec — not reset.
                     })
-                    .catch(function () {
-                        alert('Failed to add subtask.');
+                    .catch(function (error) {
+                        alert(error.message);
                     });
             });
         }

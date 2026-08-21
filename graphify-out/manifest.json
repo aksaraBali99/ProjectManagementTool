@@ -130,7 +130,7 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1787296466.9777806,
+    "mtime": 1787297716.4505486,
     "ast_hash": "645a2a4185c8d90b7136b6001c53e845",
     "semantic_hash": ""
   },
@@ -225,12 +225,12 @@
     "semantic_hash": ""
   },
   "app/Models/AuditLog.php": {
-    "mtime": 1787296077.9706447,
+    "mtime": 1787297716.3866968,
     "ast_hash": "36e39f05c3023d1691c2f56186bb9ea5",
     "semantic_hash": ""
   },
   "app/Models/Comment.php": {
-    "mtime": 1787292732.0163715,
+    "mtime": 1787297716.3892307,
     "ast_hash": "c473a8fbf3d3d3c9d7a689dc05861513",
     "semantic_hash": ""
   },
@@ -250,7 +250,7 @@
     "semantic_hash": ""
   },
   "app/Models/NotificationSetting.php": {
-    "mtime": 1787295392.2383785,
+    "mtime": 1787302948.3832047,
     "ast_hash": "0ac26134be59116e23eb06c0038c9fb6",
     "semantic_hash": ""
   },
@@ -275,12 +275,12 @@
     "semantic_hash": ""
   },
   "app/Models/Subtask.php": {
-    "mtime": 1787292722.7280228,
+    "mtime": 1787297716.3942585,
     "ast_hash": "0653cf90c73a051c9f7d3a1e3093fdb8",
     "semantic_hash": ""
   },
   "app/Models/Task.php": {
-    "mtime": 1787292710.6046627,
+    "mtime": 1787297716.3952594,
     "ast_hash": "dfc96f270c840da89168771d7a865e36",
     "semantic_hash": ""
   },
@@ -475,12 +475,12 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Departments/StoreDepartmentRequest.php": {
-    "mtime": 1787125667.2009113,
+    "mtime": 1787303510.0808356,
     "ast_hash": "6bd2b130c04c6679a1a5dfd2b2db452e",
     "semantic_hash": ""
   },
   "app/Http/Requests/Departments/UpdateDepartmentRequest.php": {
-    "mtime": 1787061649.025847,
+    "mtime": 1787303510.082837,
     "ast_hash": "969d41b45da0b91c9149dc1586311e6a",
     "semantic_hash": ""
   },
@@ -500,7 +500,7 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/StoreUserRequest.php": {
-    "mtime": 1787216778.6838417,
+    "mtime": 1787303510.0903685,
     "ast_hash": "e4ec649239c3944849e2667d5766591f",
     "semantic_hash": ""
   },
@@ -510,7 +510,7 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/UpdateUserRequest.php": {
-    "mtime": 1787216778.685352,
+    "mtime": 1787303510.0928805,
     "ast_hash": "df043f0a59f253d691362c8e92252925",
     "semantic_hash": ""
   },
@@ -555,7 +555,7 @@
     "semantic_hash": ""
   },
   "resources/views/layouts/authenticated.blade.php": {
-    "mtime": 1787296487.9440932,
+    "mtime": 1787300435.2052488,
     "ast_hash": "12cf544d438678dbf3e0902ab0ec9ca4",
     "semantic_hash": ""
   },
@@ -585,7 +585,7 @@
     "semantic_hash": ""
   },
   "resources/views/settings/index.blade.php": {
-    "mtime": 1787295508.9293578,
+    "mtime": 1787297716.4485288,
     "ast_hash": "7a5925089b3210a47c4dd8ec5e1a6b12",
     "semantic_hash": ""
   },
@@ -660,7 +660,7 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Projects/StoreProjectRequest.php": {
-    "mtime": 1787232831.925046,
+    "mtime": 1787303510.0843608,
     "ast_hash": "bb25aabf47f881d597a9f4db59ae9fb0",
     "semantic_hash": ""
   },
@@ -705,7 +705,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1787291846.0329742,
+    "mtime": 1787303510.076836,
     "ast_hash": "d9380bbc2d94b0e70c0e15093ffbf0c7",
     "semantic_hash": ""
   },
@@ -715,7 +715,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/SubtaskController.php": {
-    "mtime": 1787292797.4333107,
+    "mtime": 1787297716.3816996,
     "ast_hash": "dd15a215f33f9ec4c47e5a6e29fdb4f6",
     "semantic_hash": ""
   },
@@ -725,17 +725,17 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1787292779.9753742,
+    "mtime": 1787297716.384698,
     "ast_hash": "3c85044795990ce44ed30cb2ad5f8d7e",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
-    "mtime": 1787232831.9290557,
+    "mtime": 1787303510.0863698,
     "ast_hash": "13ea1bdc3b26e077022164e95b0a3950",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/UpdateTaskRequest.php": {
-    "mtime": 1787232831.9310546,
+    "mtime": 1787303510.0883698,
     "ast_hash": "4e704eb051f15ceb31afe8d464a75cd3",
     "semantic_hash": ""
   },
@@ -780,18 +780,18 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
-    "mtime": 1787237827.8773403,
-    "ast_hash": "3c18a23425af95a12e71ad411939813d",
+    "mtime": 1787303519.4621263,
+    "ast_hash": "cce8442a8e586411a9facd1c30840e6f",
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
-    "mtime": 1787216778.7283375,
-    "ast_hash": "70be9d430b4c4e675f4ae267beb071a9",
+    "mtime": 1787303519.4646554,
+    "ast_hash": "2ac718275c4a5e911d1a96c98672ad36",
     "semantic_hash": ""
   },
   "resources/views/tasks/_subtasks.blade.php": {
-    "mtime": 1787129913.3401854,
-    "ast_hash": "12353d796d58cf6a8edffe10af9f81da",
+    "mtime": 1787303519.4772196,
+    "ast_hash": "d9d3f383c6486886223e0d5e4216ef5b",
     "semantic_hash": ""
   },
   "resources/views/tasks/create.blade.php": {
@@ -835,7 +835,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskManagementTest.php": {
-    "mtime": 1787293045.427125,
+    "mtime": 1787297716.4636083,
     "ast_hash": "1881b183b705eb8fcea7370a15fc3dda",
     "semantic_hash": ""
   },
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "resources/views/kanban.blade.php": {
-    "mtime": 1787282171.2332475,
-    "ast_hash": "eb3babab3e9906acf1bc53f0ace2487f",
+    "mtime": 1787303519.4601274,
+    "ast_hash": "7174b40d3c73c725260dee6ef1497bcb",
     "semantic_hash": ""
   },
   "tests/Feature/Dashboard/DashboardTest.php": {
@@ -900,7 +900,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Kanban/KanbanTest.php": {
-    "mtime": 1787293065.664313,
+    "mtime": 1787297716.4555507,
     "ast_hash": "026d595ac74f72cf1853b4c37644b1b5",
     "semantic_hash": ""
   },
@@ -910,77 +910,77 @@
     "semantic_hash": ""
   },
   "app/Enums/NotificationChannel.php": {
-    "mtime": 1787295362.763372,
+    "mtime": 1787297716.3716345,
     "ast_hash": "ec74a23d7c91e9218d42ca3722476501",
     "semantic_hash": ""
   },
   "app/Enums/NotificationEventType.php": {
-    "mtime": 1787295354.0823202,
+    "mtime": 1787297716.3736355,
     "ast_hash": "99ea5fb6f8fc3c24b4d22f5d38de63b0",
     "semantic_hash": ""
   },
   "app/Http/Controllers/AuditTrailController.php": {
-    "mtime": 1787293452.4753654,
+    "mtime": 1787297716.3751452,
     "ast_hash": "4423c1fc0976bf62c0615c68bc61f22a",
     "semantic_hash": ""
   },
   "app/Http/Controllers/NotificationController.php": {
-    "mtime": 1787296279.4899633,
+    "mtime": 1787297716.3776734,
     "ast_hash": "933299bc5fd50350d9f801dccd31793d",
     "semantic_hash": ""
   },
   "app/Http/Controllers/NotificationSettingsController.php": {
-    "mtime": 1787295427.697019,
+    "mtime": 1787302948.3802059,
     "ast_hash": "05c2a1f3e09c5fbcaab6775258cd1281",
     "semantic_hash": ""
   },
   "app/Notifications/AuditEventDatabaseNotification.php": {
-    "mtime": 1787296087.6404445,
+    "mtime": 1787297716.3962603,
     "ast_hash": "903f01dcf04117fe132c58bc7f63cde6",
     "semantic_hash": ""
   },
   "app/Notifications/AuditEventMailNotification.php": {
-    "mtime": 1787296099.3211699,
+    "mtime": 1787297716.397771,
     "ast_hash": "20d66f6434ccbd653f589918636a4159",
     "semantic_hash": ""
   },
   "app/Observers/CommentObserver.php": {
-    "mtime": 1787296245.0485394,
+    "mtime": 1787297716.3997884,
     "ast_hash": "f5a52b4c74e7d46c60fa7b02a1155efb",
     "semantic_hash": ""
   },
   "app/Observers/SubtaskObserver.php": {
-    "mtime": 1787296221.2899122,
+    "mtime": 1787297716.4018,
     "ast_hash": "f1c38e762bdf0725f46d22e4834f0eb7",
     "semantic_hash": ""
   },
   "app/Observers/TaskObserver.php": {
-    "mtime": 1787296186.1498973,
+    "mtime": 1787297716.4028006,
     "ast_hash": "16636f0f0ebc4d7d5eae6b9d24f8a991",
     "semantic_hash": ""
   },
   "app/Policies/AuditLogPolicy.php": {
-    "mtime": 1787293423.3175619,
+    "mtime": 1787297716.4048014,
     "ast_hash": "627b8db258c46e391ad2f2f4d3cda6b4",
     "semantic_hash": ""
   },
   "app/Policies/NotificationSettingPolicy.php": {
-    "mtime": 1787295404.035708,
+    "mtime": 1787297716.4057982,
     "ast_hash": "488cc562d20d8b650f535fff07f6c12a",
     "semantic_hash": ""
   },
   "app/Services/AuditEventNotifier.php": {
-    "mtime": 1787296142.9652524,
+    "mtime": 1787297716.4077976,
     "ast_hash": "3fdfdd1c8c78848ad8c2b6322208fd68",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_21_070656_create_notifications_table.php": {
-    "mtime": 1787296016.1522067,
+    "mtime": 1787297716.4113166,
     "ast_hash": "fd396841759fbd5474246c762ebef18b",
     "semantic_hash": ""
   },
   "resources/views/audit-trail/index.blade.php": {
-    "mtime": 1787295028.8811984,
+    "mtime": 1787297716.4404688,
     "ast_hash": "b21bf1eb112802ad0f63baa0fbb40f4c",
     "semantic_hash": ""
   },
@@ -995,22 +995,22 @@
     "semantic_hash": ""
   },
   "resources/views/notification-settings/index.blade.php": {
-    "mtime": 1787295490.341452,
+    "mtime": 1787302948.4074402,
     "ast_hash": "d631c30f23676440a72c33899da67ef7",
     "semantic_hash": ""
   },
   "resources/views/notifications/index.blade.php": {
-    "mtime": 1787296482.0399678,
+    "mtime": 1787297716.4454687,
     "ast_hash": "1019631a067b1e741ff4ca3a859724f7",
     "semantic_hash": ""
   },
   "tests/Feature/AuditTrail/AuditLogCaptureTest.php": {
-    "mtime": 1787293203.0046227,
+    "mtime": 1787297716.4525568,
     "ast_hash": "1394b407301dce2f6315d4fbeae52550",
     "semantic_hash": ""
   },
   "tests/Feature/AuditTrail/AuditTrailPageTest.php": {
-    "mtime": 1787294844.6166754,
+    "mtime": 1787297716.4535522,
     "ast_hash": "7e76405767b936713d643e43f41f1a7c",
     "semantic_hash": ""
   },
@@ -1030,12 +1030,12 @@
     "semantic_hash": ""
   },
   "tests/Feature/Notifications/NotificationDeliveryTest.php": {
-    "mtime": 1787296624.5765584,
+    "mtime": 1787297716.4565566,
     "ast_hash": "d9028fdc8aeead884ea67191746bb03c",
     "semantic_hash": ""
   },
   "tests/Feature/Notifications/NotificationSettingsTest.php": {
-    "mtime": 1787295624.7135491,
+    "mtime": 1787302948.4104514,
     "ast_hash": "6646a87f916b1529023b9a99180f85d6",
     "semantic_hash": ""
   }

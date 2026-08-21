@@ -83,11 +83,20 @@
                 body: JSON.stringify({ status: status }),
             })
                 .then(function (response) {
-                    if (! response.ok) throw new Error();
-                    window.location.reload();
+                    if (response.ok) {
+                        window.location.reload();
+                        return;
+                    }
+                    // Surfaces the backend's actual message (e.g. an
+                    // authorization failure) instead of a generic string,
+                    // falling back to that generic string only when the
+                    // response carries no message of its own.
+                    return response.json().catch(function () { return null; }).then(function (data) {
+                        throw new Error((data && data.message) || 'Failed to change status.');
+                    });
                 })
-                .catch(function () {
-                    alert('Failed to change status.');
+                .catch(function (error) {
+                    alert(error.message);
                     window.location.reload();
                 });
         }

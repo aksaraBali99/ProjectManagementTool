@@ -59,6 +59,20 @@
             });
         }
 
+        // Surfaces the backend's actual validation/authorization message
+        // instead of a generic "failed" string, falling back to that
+        // generic string only when the response carries no message of its own.
+        function requestOrThrow(url, method, body, fallback) {
+            return request(url, method, body).then(function (response) {
+                if (response.ok) return response;
+                return response.json().catch(function () { return null; }).then(function (data) {
+                    const fieldErrors = data && data.errors ? Object.values(data.errors)[0] : null;
+                    const message = (Array.isArray(fieldErrors) && fieldErrors[0]) || (data && data.message) || fallback;
+                    throw new Error(message);
+                });
+            });
+        }
+
         function buildCommentRow(comment) {
             const row = document.createElement('div');
             row.className = 'rounded-[8px] bg-white border border-gray-200 px-3 py-2';
@@ -137,16 +151,15 @@
                         const newBody = textarea.value.trim();
                         if (newBody === '') return;
 
-                        request('/comments/' + row.dataset.commentId, 'PUT', { body: newBody })
+                        requestOrThrow('/comments/' + row.dataset.commentId, 'PUT', { body: newBody }, 'Failed to save comment.')
                             .then(function (response) {
-                                if (! response.ok) throw new Error();
                                 return response.json();
                             })
                             .then(function (data) {
                                 restore(data.comment.body);
                             })
-                            .catch(function () {
-                                alert('Failed to save comment.');
+                            .catch(function (error) {
+                                alert(error.message);
                             });
                     });
                 });
@@ -154,14 +167,13 @@
 
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', function () {
-                    request('/comments/' + row.dataset.commentId, 'DELETE')
-                        .then(function (response) {
-                            if (! response.ok) throw new Error();
+                    requestOrThrow('/comments/' + row.dataset.commentId, 'DELETE', undefined, 'Failed to delete comment.')
+                        .then(function () {
                             row.remove();
                             showEmptyStateIfNeeded();
                         })
-                        .catch(function () {
-                            alert('Failed to delete comment.');
+                        .catch(function (error) {
+                            alert(error.message);
                         });
                 });
             }
@@ -176,9 +188,8 @@
             errorEl.style.display = 'none';
             postBtn.disabled = true;
 
-            request('/tasks/' + taskId + '/comments', 'POST', { body: body })
+            requestOrThrow('/tasks/' + taskId + '/comments', 'POST', { body: body }, 'Failed to post comment.')
                 .then(function (response) {
-                    if (! response.ok) throw new Error();
                     return response.json();
                 })
                 .then(function (data) {
@@ -189,8 +200,8 @@
                     wireComment(item);
                     bodyInput.value = '';
                 })
-                .catch(function () {
-                    errorEl.textContent = 'Failed to post comment.';
+                .catch(function (error) {
+                    errorEl.textContent = error.message;
                     errorEl.style.display = '';
                 })
                 .finally(function () {
