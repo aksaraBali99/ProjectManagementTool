@@ -140,6 +140,10 @@ function formatLocalDate(date) {
     return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
 }
 
+function formatPopupDate(isoDate) {
+    return new Date(isoDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Explicitly pinned (rather than left to Frappe's defaults) so the task-list
 // column built alongside the chart (see renderTaskListColumn) can compute
 // matching row/header heights in plain CSS without reading them back out of
@@ -352,10 +356,11 @@ function renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedT
 
     renderTaskListColumn(taskListEl, rows, toggle);
 
-    // The chart itself never shows names — only date range + progress —
-    // now that the task-list column owns the label.
+    // The chart itself never shows names on the bar — only date range +
+    // progress — now that the task-list column owns the label; `label`
+    // carries the real name through for the hover popup below instead.
     const ganttBars = rows.map(function (row) {
-        return Object.assign({}, row, { name: '' });
+        return Object.assign({}, row, { name: '', label: row.name });
     });
 
     container.innerHTML = '';
@@ -369,6 +374,22 @@ function renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedT
         upper_header_height: GANTT_UPPER_HEADER_HEIGHT,
         lower_header_height: GANTT_LOWER_HEADER_HEIGHT,
         infinite_padding: false,
+        // Frappe's default popup_on is 'click' — pointless here since a
+        // click already navigates (see on_click below), so the popup would
+        // only ever flash for an instant before the page unloads. 'hover'
+        // is what actually makes it useful. The default popup formatter
+        // reads task.name for its title, which is always '' on these bars
+        // (see ganttBars above), so it's overridden here to use task.label
+        // instead; the date-range/progress body is otherwise the same
+        // information the default formatter shows, just built from the
+        // plain ISO strings/number already on hand rather than reaching
+        // into Frappe's own internal Date objects.
+        popup_on: 'hover',
+        popup: function (opts) {
+            opts.set_title(opts.task.label || '');
+            opts.set_subtitle('');
+            opts.set_details(formatPopupDate(opts.task.start) + ' - ' + formatPopupDate(opts.task.end) + '<br/>Progress: ' + opts.task.progress + '%');
+        },
         on_click: function (task) {
             if (task.editUrl) window.location = task.editUrl;
         },
