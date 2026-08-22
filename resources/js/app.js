@@ -81,6 +81,32 @@ function initPhoneInputs() {
     });
 }
 
+// Frappe Gantt's own "Week"/"Month" view modes are timeline-granularity
+// settings (each column = one week, or each column = one whole month), not
+// paginated calendar views — "Month" mode doesn't show individual days at
+// all. Both toggle states here render at day-level granularity instead, only
+// varying column_width, so "Week" reads as ~7 comfortably-wide day columns
+// and "Month" reads as ~31 narrower day columns filling the same container
+// width — anything beyond that scrolls horizontally rather than being
+// clipped or squeezed.
+const CALENDAR_VIEW_DAYS = { Week: 7, Month: 31 };
+const CALENDAR_MIN_COLUMN_WIDTH = 30;
+
+function renderGanttView(container, tasks, view) {
+    const days = CALENDAR_VIEW_DAYS[view] || CALENDAR_VIEW_DAYS.Week;
+    const columnWidth = Math.max(CALENDAR_MIN_COLUMN_WIDTH, Math.floor(container.clientWidth / days));
+
+    container.innerHTML = '';
+    new Gantt(container, tasks, {
+        view_mode: 'Day',
+        view_mode_select: false,
+        column_width: columnWidth,
+        on_click: function (task) {
+            if (task.editUrl) window.location = task.editUrl;
+        },
+    });
+}
+
 function initGanttChart() {
     const container = document.getElementById('gantt-container');
     if (! container || container.dataset.ganttInitialized) return;
@@ -89,13 +115,14 @@ function initGanttChart() {
     const tasks = JSON.parse(container.dataset.tasks || '[]');
     if (tasks.length === 0) return;
 
-    new Gantt(container, tasks, {
-        view_mode: 'Week',
-        view_mode_select: true,
-        on_click: function (task) {
-            if (task.editUrl) window.location = task.editUrl;
-        },
-    });
+    const viewSelect = document.getElementById('calendar-view-select');
+    renderGanttView(container, tasks, viewSelect ? viewSelect.value : 'Week');
+
+    if (viewSelect) {
+        viewSelect.addEventListener('change', function () {
+            renderGanttView(container, tasks, viewSelect.value);
+        });
+    }
 }
 
 const CHART_PALETTE = ['#1D9E75', '#534AB7', '#2563EB', '#D97706', '#DB2777', '#0891B2'];

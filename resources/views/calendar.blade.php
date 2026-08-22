@@ -12,7 +12,16 @@
     @else
         <x-company-tabs :organizations="$organizations" :active="$organization" route="calendar" />
 
-        <div class="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
+        @if (! empty($ganttTasks))
+            <div class="mt-4 flex justify-end">
+                <select id="calendar-view-select" class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    <option value="Week" selected>Week</option>
+                    <option value="Month">Month</option>
+                </select>
+            </div>
+        @endif
+
+        <div class="mt-2 overflow-hidden rounded-lg border border-gray-200 bg-white">
             @if (empty($ganttTasks))
                 <p class="py-10 text-center text-[12px] text-gray-500">No tasks with a due date in {{ $organization->name }}.</p>
             @else
