@@ -175,18 +175,17 @@ test('a user with no company membership at all sees the generic "no access" cale
     $response->assertSee("You don't have access to any companies yet.");
 });
 
-test('a gantt bar spans from the task\'s created_at to its due_date, not just a single day at the due date', function () {
+test('a gantt bar spans from the task\'s start_date to its due_date when start_date is set', function () {
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,
         'department_id' => $this->deptA->id,
         'title' => 'Spanning task',
         'priority' => 'medium',
-        'status' => 'pending',
+        'status' => 'in_progress',
         'due_date' => now()->addDays(10),
+        'start_date' => now()->subDays(3),
     ]);
-    $task->created_at = now()->subDays(3);
-    $task->save();
 
     $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
 
@@ -195,18 +194,35 @@ test('a gantt bar spans from the task\'s created_at to its due_date, not just a 
         ->and($ganttTask['end'])->toBe(now()->addDays(10)->toDateString());
 });
 
-test('a task backdated so its due_date falls before created_at renders as a single-day bar instead of being dropped', function () {
+test('a task with no start_date renders as a single-day bar at its due date, not a multi-day span', function () {
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,
         'department_id' => $this->deptA->id,
-        'title' => 'Backdated due date',
+        'title' => 'Not started yet',
         'priority' => 'medium',
         'status' => 'pending',
-        'due_date' => now()->subDays(5),
+        'due_date' => now()->addDays(10),
     ]);
-    $task->created_at = now();
-    $task->save();
+
+    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
+
+    $ganttTask = collect($response->viewData('ganttTasks'))->firstWhere('id', (string) $task->id);
+    expect($ganttTask['start'])->toBe(now()->addDays(10)->toDateString())
+        ->and($ganttTask['end'])->toBe(now()->addDays(10)->toDateString());
+});
+
+test('a task whose start_date falls after its due_date renders as a single-day bar instead of being dropped', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Due date pulled earlier',
+        'priority' => 'medium',
+        'status' => 'in_progress',
+        'due_date' => now()->subDays(5),
+        'start_date' => now(),
+    ]);
 
     $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
 
