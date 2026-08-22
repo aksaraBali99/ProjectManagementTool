@@ -20,7 +20,9 @@
                         <option value="{{ $staff['id'] }}" {{ (int) $subtask->assignee_id === $staff['id'] ? 'selected' : '' }}>{{ $staff['name'] }}</option>
                     @endforeach
                 </select>
-                <input type="date" value="{{ $subtask->due_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }}
+                <input type="date" value="{{ $subtask->start_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }} title="Start date"
+                    class="subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent">
+                <input type="date" value="{{ $subtask->due_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }} title="Due date"
                     class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent">
                 @if ($canEdit)
                     <button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>
@@ -103,6 +105,7 @@
             const toggle = row.querySelector('.subtask-toggle');
             const titleInput = row.querySelector('.subtask-title-input');
             const assigneeSelect = row.querySelector('.subtask-assignee-select');
+            const startDateInput = row.querySelector('.subtask-start-date');
             const dueDateInput = row.querySelector('.subtask-due-date');
             const removeBtn = row.querySelector('.remove-subtask-row');
 
@@ -149,6 +152,23 @@
                         })
                         .catch(function (error) {
                             assigneeSelect.value = originalAssignee;
+                            showFeedback(row, error.message, true);
+                        });
+                });
+            }
+
+            if (canEdit && startDateInput) {
+                let originalStartDate = startDateInput.value;
+                startDateInput.addEventListener('change', function () {
+                    const newStartDate = startDateInput.value;
+                    const subtaskId = row.dataset.subtaskId;
+                    requestOrThrow('/subtasks/' + subtaskId, 'PUT', { start_date: newStartDate === '' ? null : newStartDate }, 'Failed to save.')
+                        .then(function () {
+                            originalStartDate = newStartDate;
+                            showFeedback(row, 'Saved');
+                        })
+                        .catch(function (error) {
+                            startDateInput.value = originalStartDate;
                             showFeedback(row, error.message, true);
                         });
                 });
@@ -230,7 +250,8 @@
                         row.innerHTML = '<input type="checkbox" class="subtask-toggle rounded border-gray-300 text-[#1D9E75] focus:ring-1 focus:ring-[#1D9E75]">'
                             + '<input type="text" value="' + data.subtask.title.replace(/"/g, '&quot;') + '" class="subtask-title-input min-w-[140px] flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
                             + buildAssigneeSelectHtml(data.subtask.assignee_id)
-                            + '<input type="date" value="' + (data.subtask.due_date || '') + '" class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
+                            + '<input type="date" value="' + (data.subtask.start_date || '') + '" title="Start date" class="subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
+                            + '<input type="date" value="' + (data.subtask.due_date || '') + '" title="Due date" class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
                             + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>'
                             + '<span class="subtask-feedback text-[10px] text-gray-400"></span>';
                         rowsEl.appendChild(row);

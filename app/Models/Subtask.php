@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['task_id', 'title', 'assignee_id', 'is_done', 'due_date'])]
+#[Fillable(['task_id', 'title', 'assignee_id', 'is_done', 'due_date', 'start_date'])]
 #[ObservedBy(SubtaskObserver::class)]
 class Subtask extends Model
 {
@@ -21,6 +21,7 @@ class Subtask extends Model
             // rows can consume directly — the plain 'date' cast emits full
             // ISO8601 with a time component, which those inputs reject.
             'due_date' => 'date:Y-m-d',
+            'start_date' => 'date:Y-m-d',
         ];
     }
 

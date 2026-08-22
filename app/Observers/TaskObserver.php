@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Enums\TaskStatus;
 use App\Models\AuditLog;
 use App\Models\Task;
 use App\Services\AuditEventNotifier;
@@ -26,10 +27,25 @@ class TaskObserver
 {
     public function __construct(private readonly AuditEventNotifier $notifier) {}
 
+    /**
+     * Fires before the row is written (covers both create and update), so
+     * the auto-set start_date lands in the same save rather than needing a
+     * second write. Only kicks in on the transition INTO in_progress (not
+     * every save while a task happens to already be in_progress) and only
+     * if start_date is still empty — a manual edit afterward is never
+     * clobbered by re-entering in_progress later.
+     */
+    public function saving(Task $task): void
+    {
+        if ($task->isDirty('status') && $task->status === TaskStatus::InProgress && ! $task->start_date) {
+            $task->start_date = now()->toDateString();
+        }
+    }
+
     public function created(Task $task): void
     {
         $this->log($task, 'task.created', collect($task->getAttributes())->only([
-            'project_id', 'department_id', 'assignee_id', 'title', 'priority', 'status', 'due_date',
+            'project_id', 'department_id', 'assignee_id', 'title', 'priority', 'status', 'due_date', 'start_date',
         ])->all());
     }
 
@@ -45,6 +61,14 @@ class TaskObserver
     {
         $changes = $task->getChanges();
         unset($changes['updated_at']);
+
+        // Cascades the same "started today" default to subtasks — only the
+        // ones that don't already have their own start_date, so a subtask
+        // someone already started (or manually backdated) keeps its own
+        // date rather than being overwritten by the parent's transition.
+        if (array_key_exists('status', $changes) && $task->status === TaskStatus::InProgress) {
+            $task->subtasks()->whereNull('start_date')->update(['start_date' => now()->toDateString()]);
+        }
 
         if (empty($changes)) {
             return;

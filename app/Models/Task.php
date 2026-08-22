@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['organization_id', 'project_id', 'department_id', 'assignee_id', 'title', 'description', 'priority', 'status', 'due_date'])]
+#[Fillable(['organization_id', 'project_id', 'department_id', 'assignee_id', 'title', 'description', 'priority', 'status', 'due_date', 'start_date'])]
 #[ObservedBy(TaskObserver::class)]
 class Task extends Model
 {
@@ -25,6 +25,7 @@ class Task extends Model
     {
         return [
             'due_date' => 'date',
+            'start_date' => 'date',
             'priority' => Priority::class,
             'status' => TaskStatus::class,
         ];
