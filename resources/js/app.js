@@ -96,30 +96,85 @@ const CALENDAR_MIN_COLUMN_WIDTH = 30;
 // the current month — Frappe's own gantt_start is just "earliest task date
 // minus padding", with no concept of calendar-boundary alignment, so the
 // view is explicitly scrolled to a computed boundary date instead of
-// defaulting to wherever the task data happens to begin.
-function getCalendarViewStart(view) {
+// defaulting to wherever the task data happens to begin. periodOffset shifts
+// that boundary by whole weeks/months for the prev/next buttons — e.g.
+// offset -1 in Week view means "the Monday of last week", not "7 days
+// earlier than today" (which would drift off calendar-week boundaries after
+// a few clicks).
+function getCalendarViewStart(view, periodOffset) {
     const now = new Date();
 
     if (view === 'Month') {
-        return new Date(now.getFullYear(), now.getMonth(), 1);
+        return new Date(now.getFullYear(), now.getMonth() + periodOffset, 1);
     }
 
     const isoWeekday = now.getDay() === 0 ? 7 : now.getDay(); // Mon=1 .. Sun=7
-    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (isoWeekday - 1));
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (isoWeekday - 1) + periodOffset * 7);
     monday.setHours(0, 0, 0, 0);
     return monday;
 }
 
-function renderGanttView(container, tasks, view) {
+const DAY_ABBREVIATIONS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// A custom Day view mode (cloned from Frappe's built-in one) so each date
+// column's label is "17\nMon" instead of just "17" — innerText (which is
+// how Frappe sets this) turns the \n into a real line break, no extra
+// markup needed, just the taller lower_header_height below to fit it.
+const DAY_VIEW_MODE_WITH_WEEKDAY = {
+    name: 'Day',
+    padding: '7d',
+    date_format: 'YYYY-MM-DD',
+    step: '1d',
+    lower_text: function (date) {
+        return date.getDate() + '\n' + DAY_ABBREVIATIONS[date.getDay()];
+    },
+    upper_text: function (date, prevDate) {
+        return (! prevDate || date.getMonth() !== prevDate.getMonth()) ? date.toLocaleDateString('en-US', { month: 'long' }) : '';
+    },
+    thick_line: function (date) {
+        return date.getDay() === 1;
+    },
+};
+
+function formatLocalDate(date) {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+}
+
+function renderGanttView(container, tasks, view, periodOffset) {
     const days = CALENDAR_VIEW_DAYS[view] || CALENDAR_VIEW_DAYS.Week;
     const columnWidth = Math.max(CALENDAR_MIN_COLUMN_WIDTH, Math.floor(container.clientWidth / days));
-    const viewStart = getCalendarViewStart(view);
+    const viewStart = getCalendarViewStart(view, periodOffset);
+
+    // Frappe's infinite_padding (on by default) auto-extends gantt_start and
+    // re-renders the instant scrollLeft lands near the edge of the
+    // originally-rendered range — which jumping straight to next/prev
+    // week/month often does. That auto-extend can cascade into a runaway
+    // loop of re-renders (reproduced: the header duplicating itself into
+    // thousands of stale date labels) when the jump is large. Disabling it
+    // and instead adding one invisible zero-height "bounds" task spanning
+    // 14 days before/after the requested window guarantees gantt_start/end
+    // cover it up front — a fixed range computed once, nothing dynamic left
+    // to loop.
+    const windowStart = new Date(viewStart);
+    windowStart.setDate(windowStart.getDate() - 14);
+    const windowEnd = new Date(viewStart);
+    windowEnd.setDate(windowEnd.getDate() + days + 14);
+    const boundsTask = {
+        id: '__calendar_bounds__',
+        name: '',
+        start: formatLocalDate(windowStart),
+        end: formatLocalDate(windowEnd),
+        custom_class: 'gantt-bounds-phantom',
+    };
 
     container.innerHTML = '';
-    new Gantt(container, tasks, {
+    new Gantt(container, tasks.concat([boundsTask]), {
         view_mode: 'Day',
+        view_modes: [DAY_VIEW_MODE_WITH_WEEKDAY],
         view_mode_select: false,
         column_width: columnWidth,
+        lower_header_height: 44,
+        infinite_padding: false,
         on_click: function (task) {
             if (task.editUrl) window.location = task.editUrl;
         },
@@ -128,31 +183,17 @@ function renderGanttView(container, tasks, view) {
     // Gantt's own scroll_to option leaves a ~1/6-column sliver of the
     // previous day visible (it centers the target slightly right of the
     // viewport edge) — measuring viewStart's own grid-column element
-    // directly and scrolling to exactly where it renders avoids that.
-    //
-    // Two passes, not one: infinite_padding (on by default, and needed here
-    // — turning it off can leave viewStart outside the much-narrower fixed
-    // padding around the task dates entirely) auto-extends gantt_start and
-    // re-renders the instant scrollLeft lands near the edge of the
-    // originally-rendered range, which viewStart often does — silently
-    // shifting every date's position out from under the first measurement.
-    // The second pass re-measures post-extension and corrects for real.
+    // directly and scrolling to exactly where it renders avoids that. Safe
+    // to do in one pass now that infinite_padding can't shift the range
+    // out from under this measurement mid-correction.
     const scrollEl = container.querySelector('.gantt-container') || container;
-    const viewStartClass = 'date_'
-        + viewStart.getFullYear() + '-'
-        + String(viewStart.getMonth() + 1).padStart(2, '0') + '-'
-        + String(viewStart.getDate()).padStart(2, '0');
+    const viewStartClass = 'date_' + formatLocalDate(viewStart);
 
-    function scrollToViewStart() {
+    requestAnimationFrame(function () {
         const marker = container.querySelector('.' + viewStartClass);
         if (! marker) return;
         const targetLeft = marker.getBoundingClientRect().left - scrollEl.getBoundingClientRect().left + scrollEl.scrollLeft;
         scrollEl.scrollLeft = Math.max(0, targetLeft);
-    }
-
-    requestAnimationFrame(function () {
-        scrollToViewStart();
-        requestAnimationFrame(scrollToViewStart);
     });
 }
 
@@ -165,11 +206,32 @@ function initGanttChart() {
     if (tasks.length === 0) return;
 
     const viewSelect = document.getElementById('calendar-view-select');
-    renderGanttView(container, tasks, viewSelect ? viewSelect.value : 'Week');
+    const prevBtn = document.getElementById('calendar-prev');
+    const nextBtn = document.getElementById('calendar-next');
+    let periodOffset = 0;
+
+    function render() {
+        renderGanttView(container, tasks, viewSelect ? viewSelect.value : 'Week', periodOffset);
+    }
+
+    render();
 
     if (viewSelect) {
         viewSelect.addEventListener('change', function () {
-            renderGanttView(container, tasks, viewSelect.value);
+            periodOffset = 0;
+            render();
+        });
+    }
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function () {
+            periodOffset -= 1;
+            render();
+        });
+    }
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function () {
+            periodOffset += 1;
+            render();
         });
     }
 }

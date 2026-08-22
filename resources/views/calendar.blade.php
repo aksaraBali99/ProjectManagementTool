@@ -13,7 +13,15 @@
         <x-company-tabs :organizations="$organizations" :active="$organization" route="calendar" />
 
         @if (! empty($ganttTasks))
-            <div class="mt-4 flex justify-end">
+            <div class="mt-4 flex items-center justify-end gap-2">
+                <button type="button" id="calendar-prev" aria-label="Previous"
+                        class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] text-gray-600 hover:bg-gray-50 focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    &larr;
+                </button>
+                <button type="button" id="calendar-next" aria-label="Next"
+                        class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] text-gray-600 hover:bg-gray-50 focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    &rarr;
+                </button>
                 <select id="calendar-view-select" class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     <option value="Week" selected>Week</option>
                     <option value="Month">Month</option>

@@ -82,6 +82,10 @@
 .gantt .bar-wrapper.gantt-project-4 .bar { fill: #db2777; }
 .gantt .bar-wrapper.gantt-project-5 .bar { fill: #0891b2; }
 
+/* Invisible task app.js adds purely to fix the calendar's date-range bounds
+   (see renderGanttView) — hide its bar, its row still takes up height. */
+.gantt .bar-wrapper.gantt-bounds-phantom { display: none; }
+
 /* Manila-folder company tabs (<x-company-tabs>). Trapezoid via clip-path:
    the first declaration (sharp corners) is the fallback for browsers that
    don't understand the "round" polygon suffix — since an unsupported value
