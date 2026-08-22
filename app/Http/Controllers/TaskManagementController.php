@@ -186,6 +186,7 @@ class TaskManagementController extends Controller
             'priority' => $request->input('priority'),
             'status' => $request->input('status'),
             'due_date' => $request->input('due_date') ?: null,
+            'start_date' => $request->input('start_date') ?: null,
         ]);
 
         return redirect()->route('tasks.edit', $task)->with('status', 'Task updated.');

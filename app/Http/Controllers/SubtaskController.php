@@ -21,6 +21,7 @@ class SubtaskController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'due_date' => ['nullable', 'date'],
+            'start_date' => ['nullable', 'date'],
         ]);
 
         if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($task->project, $data['assignee_id'])) {
@@ -50,6 +51,7 @@ class SubtaskController extends Controller
             'title' => ['sometimes', 'string', 'max:255'],
             'assignee_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'due_date' => ['sometimes', 'nullable', 'date'],
+            'start_date' => ['sometimes', 'nullable', 'date'],
         ]);
 
         if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($subtask->task->project, $data['assignee_id'])) {

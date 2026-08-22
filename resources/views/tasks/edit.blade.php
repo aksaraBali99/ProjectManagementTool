@@ -102,6 +102,13 @@
                 </div>
             </div>
 
+            <div>
+                <label for="start_date" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Start date</label>
+                <input id="start_date" name="start_date" type="date" value="{{ old('start_date', $task->start_date?->toDateString()) }}"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                <p class="mt-1 text-[10px] text-gray-500">Left empty until the task moves to Active, then set to today automatically — editable any time.</p>
+            </div>
+
             <div class="flex items-center gap-3 pt-2">
                 <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                     Save changes
@@ -164,6 +171,7 @@
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Description</span><p class="mt-0.5 text-gray-700">{{ $task->description ?: '—' }}</p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Priority</span><p class="mt-1"><x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge></p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Status</span><p class="mt-1"><x-badge :background="$task->status->badgeBackground()" :text="$task->status->badgeText()">{{ $task->status->label() }}</x-badge></p></div>
+            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Start date</span><p class="mt-0.5 text-gray-700">{{ $task->start_date?->format('M j, Y') ?? '—' }}</p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Due date</span><p class="mt-0.5 text-gray-700">{{ $task->due_date?->format('M j, Y') ?? '—' }}</p></div>
         </div>
         <p class="mt-3 text-[11px] text-gray-500">You can view this task and toggle its subtasks, but only its assignee or a manager can edit it.</p>

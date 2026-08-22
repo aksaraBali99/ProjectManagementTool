@@ -31,6 +31,7 @@ class UpdateTaskRequest extends FormRequest
             'priority' => ['required', Rule::enum(Priority::class)],
             'status' => ['required', Rule::enum(TaskStatus::class)],
             'due_date' => ['nullable', 'date'],
+            'start_date' => ['nullable', 'date'],
         ];
     }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\TaskStatus;
 use App\Models\Organization;
 use App\Models\Task;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class CalendarController extends Controller
@@ -44,53 +45,89 @@ class CalendarController extends Controller
 
         // Only tasks with a due_date can be positioned on a timeline —
         // undated tasks have nothing to plot them by, so they're excluded
-        // here rather than shown at some arbitrary fallback date.
+        // here rather than shown at some arbitrary fallback date. Same rule
+        // applies to subtasks below.
         $tasks = Task::visibleTo($user, $organization->id)
             ->whereNotNull('due_date')
-            ->with(['project'])
+            ->with(['project', 'subtasks'])
             ->get()
             ->sortBy(fn (Task $task) => $task->project->name)
             ->values();
 
         $projectColorIndex = [];
-        $ganttTasks = $tasks->map(function (Task $task) use (&$projectColorIndex) {
+        $subtasksByTask = [];
+        $ganttTasks = $tasks->map(function (Task $task) use (&$projectColorIndex, &$subtasksByTask) {
             $projectId = $task->project_id;
             if (! array_key_exists($projectId, $projectColorIndex)) {
                 $projectColorIndex[$projectId] = count($projectColorIndex) % count(self::PROJECT_COLOR_CLASSES);
             }
+            $colorClass = self::PROJECT_COLOR_CLASSES[$projectColorIndex[$projectId]];
 
-            $dueDate = $task->due_date->toDateString();
+            $plottableSubtasks = $task->subtasks->whereNotNull('due_date');
+            $subtasksByTask[$task->id] = $plottableSubtasks
+                ->map(fn ($subtask) => $this->ganttBar(
+                    id: 'subtask-'.$subtask->id,
+                    name: '↳ '.$subtask->title,
+                    startDate: $subtask->start_date,
+                    dueDate: $subtask->due_date,
+                    progress: $subtask->is_done ? 100 : 0,
+                    customClass: $colorClass,
+                    editUrl: route('tasks.edit', $task),
+                ))
+                ->values()
+                ->all();
 
-            // Tasks have no explicit "start date" column — created_at is the
-            // best available proxy for "when work began" without a schema
-            // change, so the bar spans from creation to due_date rather than
-            // rendering as a single-day sliver at the due date. Guarded
-            // against due_date falling before created_at (e.g. a backdated
-            // due date) since Frappe Gantt silently drops any task whose end
-            // is before its start rather than rendering it.
-            $startDate = $task->created_at->toDateString();
-            $startDate = $startDate <= $dueDate ? $startDate : $dueDate;
-
-            return [
-                'id' => (string) $task->id,
-                'name' => $task->project->name.': '.$task->title,
-                'start' => $startDate,
-                'end' => $dueDate,
-                'progress' => match ($task->status) {
-                    TaskStatus::Pending => 0,
-                    TaskStatus::InProgress => 50,
-                    TaskStatus::InReview => 75,
-                    TaskStatus::Completed => 100,
-                },
-                'custom_class' => self::PROJECT_COLOR_CLASSES[$projectColorIndex[$projectId]],
-                'editUrl' => route('tasks.edit', $task),
-            ];
+            return array_merge(
+                $this->ganttBar(
+                    id: (string) $task->id,
+                    name: $task->project->name.': '.$task->title,
+                    startDate: $task->start_date,
+                    dueDate: $task->due_date,
+                    progress: match ($task->status) {
+                        TaskStatus::Pending => 0,
+                        TaskStatus::InProgress => 50,
+                        TaskStatus::InReview => 75,
+                        TaskStatus::Completed => 100,
+                    },
+                    customClass: $colorClass,
+                    editUrl: route('tasks.edit', $task),
+                ),
+                ['subtaskCount' => $plottableSubtasks->count()],
+            );
         })->values()->all();
 
         return view('calendar', [
             'organizations' => $organizations,
             'organization' => $organization,
             'ganttTasks' => $ganttTasks,
+            'subtasksByTask' => $subtasksByTask,
         ]);
+    }
+
+    /**
+     * @return array{id: string, name: string, start: string, end: string, progress: int, custom_class: string, editUrl: string}
+     */
+    private function ganttBar(string $id, string $name, ?Carbon $startDate, Carbon $dueDate, int $progress, string $customClass, string $editUrl): array
+    {
+        $due = $dueDate->toDateString();
+
+        // start_date is null until work actually begins (or someone
+        // backdates it manually) — not-yet-started renders as a single-day
+        // sliver at the due date rather than a misleading multi-day bar.
+        // Guarded against start_date falling after due_date (e.g. a due
+        // date pulled earlier after work already started) since Frappe
+        // Gantt silently drops any bar whose end is before its start.
+        $start = $startDate?->toDateString() ?? $due;
+        $start = $start <= $due ? $start : $due;
+
+        return [
+            'id' => $id,
+            'name' => $name,
+            'start' => $start,
+            'end' => $due,
+            'progress' => $progress,
+            'custom_class' => $customClass,
+            'editUrl' => $editUrl,
+        ];
     }
 }

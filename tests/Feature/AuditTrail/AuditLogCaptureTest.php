@@ -62,7 +62,13 @@ test('changing a task\'s status creates a correctly-populated audit_log entry wi
     $log = AuditLog::where('entity_type', 'task')->where('entity_id', $task->id)->where('action', 'task.status_changed')->firstOrFail();
     expect($log->organization_id)->toBe($this->orgA->id)
         ->and($log->user_id)->toBe($this->management->id)
-        ->and($log->changes)->toBe(['status' => ['old' => 'pending', 'new' => 'in_progress']]);
+        ->and($log->changes)->toBe([
+            'status' => ['old' => 'pending', 'new' => 'in_progress'],
+            // TaskObserver::saving() auto-fills start_date the moment status
+            // moves to in_progress, in the same write — so it shows up here
+            // as a second field change alongside the status transition.
+            'start_date' => ['old' => null, 'new' => now()->toDateString().' 00:00:00'],
+        ]);
 });
 
 test('reassigning a task captures both the old and new assignee correctly', function () {
