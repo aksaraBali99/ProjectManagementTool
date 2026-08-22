@@ -95,6 +95,14 @@
    renderGanttView) — names live in the #gantt-task-list column instead. */
 .gantt .bar-wrapper[data-id^="subtask-"] { opacity: 0.6; }
 
+/* #gantt-task-list (app.js's renderTaskListColumn): resizable via the drag
+   handle, and its own overflow-x:auto is the scrollbar a too-long name
+   scrolls under rather than being clipped — thin here just keeps that
+   scrollbar from looking oversized next to the chart's own. */
+#gantt-task-list {
+    scrollbar-width: thin;
+}
+
 /* Manila-folder company tabs (<x-company-tabs>). Trapezoid via clip-path:
    the first declaration (sharp corners) is the fallback for browsers that
    don't understand the "round" polygon suffix — since an unsupported value

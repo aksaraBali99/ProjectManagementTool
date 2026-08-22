@@ -151,6 +151,10 @@ const GANTT_LOWER_HEADER_HEIGHT = 44;
 const GANTT_HEADER_HEIGHT = GANTT_UPPER_HEADER_HEIGHT + GANTT_LOWER_HEADER_HEIGHT + 10; // +10 matches Frappe's own header_height formula
 const GANTT_ROW_HEIGHT = GANTT_BAR_HEIGHT + GANTT_ROW_PADDING;
 
+const GANTT_TASK_LIST_DEFAULT_WIDTH = 220;
+const GANTT_TASK_LIST_MIN_WIDTH = 150;
+const GANTT_TASK_LIST_MAX_WIDTH = 420;
+
 // Frappe Gantt has no native parent/child row hierarchy or task-list column
 // (it's a flat list of bars filling the whole widget) — both are built here
 // instead. buildDisplayRows expands expandedTaskIds (keyed by the real
@@ -186,14 +190,24 @@ function buildDisplayRows(tasks, subtasksByTask, expandedTaskIds) {
 // with the bar drawn in the same position in the chart; a trailing blank
 // spacer row accounts for the chart's own invisible bounds-phantom row (see
 // renderGanttView) so the two columns' total heights still match exactly.
+//
+// Rows are built inside an inner wrapper sized `width: max-content; min-width:
+// 100%` rather than directly in the (overflow-x: auto) column element: with
+// nowrap labels, that lets the wrapper grow past the column's own width when
+// a name is too long to fit, which is what gives `el` something to scroll —
+// a plain 100%-width wrapper would just clip the overflowing text instead.
 function renderTaskListColumn(el, rows, onToggle) {
     el.innerHTML = '';
+
+    const inner = document.createElement('div');
+    inner.style.width = 'max-content';
+    inner.style.minWidth = '100%';
 
     const header = document.createElement('div');
     header.className = 'flex items-end border-b border-gray-200 px-3 pb-2 text-[11px] font-medium text-gray-500';
     header.style.height = GANTT_HEADER_HEIGHT + 'px';
     header.textContent = 'Task';
-    el.appendChild(header);
+    inner.appendChild(header);
 
     rows.forEach(function (row) {
         const rowEl = document.createElement('div');
@@ -218,17 +232,74 @@ function renderTaskListColumn(el, rows, onToggle) {
         }
 
         const label = document.createElement('span');
-        label.className = 'truncate';
+        label.className = 'whitespace-nowrap';
         label.title = row.name;
         label.textContent = row.name;
         rowEl.appendChild(label);
 
-        el.appendChild(rowEl);
+        inner.appendChild(rowEl);
     });
 
     const boundsSpacer = document.createElement('div');
     boundsSpacer.style.height = GANTT_ROW_HEIGHT + 'px';
-    el.appendChild(boundsSpacer);
+    inner.appendChild(boundsSpacer);
+
+    el.appendChild(inner);
+}
+
+// Drag-to-resize for the task-list column, clamped to [MIN, MAX]. The
+// column's own width is plain CSS (updates live, no re-render needed), but
+// the Gantt's day-column pixel width is computed once per render from
+// #gantt-container's clientWidth (see renderGanttChart) — onResize re-runs
+// that computation so the chart fills whatever space the column leaves
+// behind. rAF-throttled during the drag itself so a fast mousemove burst
+// doesn't queue up more full chart rebuilds than the browser can paint.
+function setupTaskListResizer(handle, taskListEl, onResize) {
+    let startX = 0;
+    let startWidth = 0;
+    let rafId = null;
+
+    function scheduleResize() {
+        if (rafId) return;
+        rafId = requestAnimationFrame(function () {
+            rafId = null;
+            onResize();
+        });
+    }
+
+    function onMouseMove(e) {
+        const newWidth = Math.min(GANTT_TASK_LIST_MAX_WIDTH, Math.max(GANTT_TASK_LIST_MIN_WIDTH, startWidth + (e.clientX - startX)));
+        taskListEl.style.width = newWidth + 'px';
+        scheduleResize();
+    }
+
+    function onMouseUp() {
+        // A throttled resize from the last mousemove can still be queued
+        // when the button comes up (mouseup isn't itself rAF-gated) — left
+        // pending, it would fire after this function's own render call and
+        // read a scrollLeft/columnWidth pairing from mid-render, landing the
+        // final scroll position on the wrong date. Canceling it guarantees
+        // this is the last render for the drag.
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+        document.body.style.removeProperty('cursor');
+        document.body.style.removeProperty('user-select');
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        onResize();
+    }
+
+    handle.addEventListener('mousedown', function (e) {
+        startX = e.clientX;
+        startWidth = taskListEl.getBoundingClientRect().width;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        e.preventDefault();
+    });
 }
 
 function renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedTaskIds, view, periodOffset, preserveScroll) {
@@ -258,8 +329,18 @@ function renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedT
         custom_class: 'gantt-bounds-phantom',
     };
 
+    // Captured as a day offset (scrollLeft / column_width), not a raw pixel
+    // value: view/periodOffset (so gantt_start) stay the same across a
+    // preserveScroll re-render, but column_width doesn't — the task-list
+    // resizer changes container.clientWidth, which changes column_width
+    // above. Reapplying a stale pixel scrollLeft against a new column_width
+    // would visibly shift which dates are on screen; multiplying the day
+    // offset back out by the new column_width lands on the same date either
+    // way (a no-op when column_width hasn't changed, e.g. on subtask
+    // expand/collapse).
     const scrollElBefore = container.querySelector('.gantt-container');
-    const scrollLeftBefore = scrollElBefore ? scrollElBefore.scrollLeft : 0;
+    const oldColumnWidth = scrollElBefore ? parseFloat(getComputedStyle(scrollElBefore).getPropertyValue('--gv-column-width')) : 0;
+    const dayOffsetBefore = scrollElBefore && oldColumnWidth ? scrollElBefore.scrollLeft / oldColumnWidth : 0;
 
     const rows = buildDisplayRows(tasks, subtasksByTask, expandedTaskIds);
 
@@ -296,9 +377,15 @@ function renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedT
     const scrollEl = container.querySelector('.gantt-container') || container;
 
     if (preserveScroll) {
-        requestAnimationFrame(function () {
-            scrollEl.scrollLeft = scrollLeftBefore;
-        });
+        // Applied synchronously, not deferred to requestAnimationFrame like
+        // the initial-load path below — Gantt's constructor already builds
+        // the SVG (and this scrollable element) synchronously, so the frame
+        // isn't needed here, and a resize drag can fire this render many
+        // times in quick succession (once per mousemove). Deferring it let a
+        // later render's rebuild — a fresh .gantt-container with scrollLeft
+        // reset to 0 — start, and read that 0 as "before", before an earlier
+        // render's own deferred restore ever got a turn to run.
+        scrollEl.scrollLeft = dayOffsetBefore * columnWidth;
         return;
     }
 
@@ -333,13 +420,21 @@ function initGanttChart() {
     const viewSelect = document.getElementById('calendar-view-select');
     const prevBtn = document.getElementById('calendar-prev');
     const nextBtn = document.getElementById('calendar-next');
+    const resizeHandle = document.getElementById('gantt-task-list-resizer');
     let periodOffset = 0;
 
     function render() {
         renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedTaskIds, viewSelect ? viewSelect.value : 'Week', periodOffset, false);
     }
 
+    taskListEl.style.width = GANTT_TASK_LIST_DEFAULT_WIDTH + 'px';
     render();
+
+    if (resizeHandle) {
+        setupTaskListResizer(resizeHandle, taskListEl, function () {
+            renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedTaskIds, viewSelect ? viewSelect.value : 'Week', periodOffset, true);
+        });
+    }
 
     if (viewSelect) {
         viewSelect.addEventListener('change', function () {
