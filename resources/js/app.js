@@ -140,39 +140,98 @@ function formatLocalDate(date) {
     return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
 }
 
-// Frappe Gantt has no native parent/child row hierarchy (it's a flat list
-// of bars), and task names render as plain text on/beside the bar itself —
-// there's nowhere to mount a literal (+) button. The drill-down is instead:
-// clicking a task bar with subtasks toggles them in/out of the rendered
-// list right after their parent (tracked in expandedTaskIds, keyed by the
-// real numeric task id — persists across view/prev/next re-renders so
-// switching Week/Month doesn't silently collapse everything); a "+N
-// subtasks"/"− hide subtasks" suffix on the bar's own label is the (+)
-// affordance. Single-click toggles; double-click still opens the task (or,
-// for a subtask bar, its parent task, since subtasks have no page of their
-// own), splitting Frappe's own separate click/double_click events rather
-// than trying to detect which part of the bar was clicked.
-function buildDisplayTasks(tasks, subtasksByTask, expandedTaskIds) {
-    const displayTasks = [];
+// Explicitly pinned (rather than left to Frappe's defaults) so the task-list
+// column built alongside the chart (see renderTaskListColumn) can compute
+// matching row/header heights in plain CSS without reading them back out of
+// the library at runtime.
+const GANTT_BAR_HEIGHT = 30;
+const GANTT_ROW_PADDING = 18;
+const GANTT_UPPER_HEADER_HEIGHT = 45;
+const GANTT_LOWER_HEADER_HEIGHT = 44;
+const GANTT_HEADER_HEIGHT = GANTT_UPPER_HEADER_HEIGHT + GANTT_LOWER_HEADER_HEIGHT + 10; // +10 matches Frappe's own header_height formula
+const GANTT_ROW_HEIGHT = GANTT_BAR_HEIGHT + GANTT_ROW_PADDING;
+
+// Frappe Gantt has no native parent/child row hierarchy or task-list column
+// (it's a flat list of bars filling the whole widget) — both are built here
+// instead. buildDisplayRows expands expandedTaskIds (keyed by the real
+// numeric task id, persisted across view/prev/next re-renders) into a flat
+// row list; renderTaskListColumn renders that same list as plain HTML rows
+// to the left of the chart, with the (+)/(−) toggle button living there
+// instead of on the bar. The Gantt itself only ever sees blank-named bars
+// (see renderGanttView) — it draws date range + progress, nothing else.
+function buildDisplayRows(tasks, subtasksByTask, expandedTaskIds) {
+    const rows = [];
 
     tasks.forEach(function (task) {
         const subtaskCount = task.subtaskCount || 0;
         const isExpanded = expandedTaskIds.has(String(task.id));
-        const suffix = subtaskCount === 0 ? '' : (isExpanded ? '  [− hide subtasks]' : '  [+' + subtaskCount + ' subtasks]');
 
-        displayTasks.push(Object.assign({}, task, { name: task.name + suffix }));
+        rows.push(Object.assign({}, task, {
+            isSubtask: false,
+            hasToggle: subtaskCount > 0,
+            isExpanded: isExpanded,
+        }));
 
         if (isExpanded) {
             (subtasksByTask[task.id] || []).forEach(function (subtask) {
-                displayTasks.push(subtask);
+                rows.push(Object.assign({}, subtask, { isSubtask: true, hasToggle: false }));
             });
         }
     });
 
-    return displayTasks;
+    return rows;
 }
 
-function renderGanttView(container, tasks, subtasksByTask, expandedTaskIds, view, periodOffset, preserveScroll) {
+// One row per display row, height-matched to GANTT_ROW_HEIGHT so it lines up
+// with the bar drawn in the same position in the chart; a trailing blank
+// spacer row accounts for the chart's own invisible bounds-phantom row (see
+// renderGanttView) so the two columns' total heights still match exactly.
+function renderTaskListColumn(el, rows, onToggle) {
+    el.innerHTML = '';
+
+    const header = document.createElement('div');
+    header.className = 'flex items-end border-b border-gray-200 px-3 pb-2 text-[11px] font-medium text-gray-500';
+    header.style.height = GANTT_HEADER_HEIGHT + 'px';
+    header.textContent = 'Task';
+    el.appendChild(header);
+
+    rows.forEach(function (row) {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'flex items-center gap-1 border-b border-gray-100 px-2 text-[11px] '
+            + (row.isSubtask ? 'pl-8 text-gray-500' : 'text-gray-700');
+        rowEl.style.height = GANTT_ROW_HEIGHT + 'px';
+
+        if (row.hasToggle) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border border-gray-300 text-[11px] leading-none text-gray-600 hover:bg-gray-50';
+            btn.textContent = row.isExpanded ? '−' : '+';
+            btn.setAttribute('aria-label', row.isExpanded ? 'Hide subtasks' : 'Show subtasks');
+            btn.addEventListener('click', function () {
+                onToggle(String(row.id));
+            });
+            rowEl.appendChild(btn);
+        } else if (! row.isSubtask) {
+            const spacer = document.createElement('span');
+            spacer.className = 'inline-block h-[18px] w-[18px] shrink-0';
+            rowEl.appendChild(spacer);
+        }
+
+        const label = document.createElement('span');
+        label.className = 'truncate';
+        label.title = row.name;
+        label.textContent = row.name;
+        rowEl.appendChild(label);
+
+        el.appendChild(rowEl);
+    });
+
+    const boundsSpacer = document.createElement('div');
+    boundsSpacer.style.height = GANTT_ROW_HEIGHT + 'px';
+    el.appendChild(boundsSpacer);
+}
+
+function renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedTaskIds, view, periodOffset, preserveScroll) {
     const days = CALENDAR_VIEW_DAYS[view] || CALENDAR_VIEW_DAYS.Week;
     const columnWidth = Math.max(CALENDAR_MIN_COLUMN_WIDTH, Math.floor(container.clientWidth / days));
     const viewStart = getCalendarViewStart(view, periodOffset);
@@ -202,26 +261,34 @@ function renderGanttView(container, tasks, subtasksByTask, expandedTaskIds, view
     const scrollElBefore = container.querySelector('.gantt-container');
     const scrollLeftBefore = scrollElBefore ? scrollElBefore.scrollLeft : 0;
 
-    const displayTasks = buildDisplayTasks(tasks, subtasksByTask, expandedTaskIds);
+    const rows = buildDisplayRows(tasks, subtasksByTask, expandedTaskIds);
+
+    function toggle(taskId) {
+        if (expandedTaskIds.has(taskId)) expandedTaskIds.delete(taskId);
+        else expandedTaskIds.add(taskId);
+        renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedTaskIds, view, periodOffset, true);
+    }
+
+    renderTaskListColumn(taskListEl, rows, toggle);
+
+    // The chart itself never shows names — only date range + progress —
+    // now that the task-list column owns the label.
+    const ganttBars = rows.map(function (row) {
+        return Object.assign({}, row, { name: '' });
+    });
 
     container.innerHTML = '';
-    new Gantt(container, displayTasks.concat([boundsTask]), {
+    new Gantt(container, ganttBars.concat([boundsTask]), {
         view_mode: 'Day',
         view_modes: [DAY_VIEW_MODE_WITH_WEEKDAY],
         view_mode_select: false,
         column_width: columnWidth,
-        lower_header_height: 44,
+        bar_height: GANTT_BAR_HEIGHT,
+        padding: GANTT_ROW_PADDING,
+        upper_header_height: GANTT_UPPER_HEADER_HEIGHT,
+        lower_header_height: GANTT_LOWER_HEADER_HEIGHT,
         infinite_padding: false,
         on_click: function (task) {
-            const realId = String(task.id).startsWith('subtask-') ? null : String(task.id);
-            if (! realId || ! (task.subtaskCount > 0)) return;
-
-            if (expandedTaskIds.has(realId)) expandedTaskIds.delete(realId);
-            else expandedTaskIds.add(realId);
-
-            renderGanttView(container, tasks, subtasksByTask, expandedTaskIds, view, periodOffset, true);
-        },
-        on_double_click: function (task) {
             if (task.editUrl) window.location = task.editUrl;
         },
     });
@@ -253,7 +320,8 @@ function renderGanttView(container, tasks, subtasksByTask, expandedTaskIds, view
 
 function initGanttChart() {
     const container = document.getElementById('gantt-container');
-    if (! container || container.dataset.ganttInitialized) return;
+    const taskListEl = document.getElementById('gantt-task-list');
+    if (! container || ! taskListEl || container.dataset.ganttInitialized) return;
     container.dataset.ganttInitialized = 'true';
 
     const tasks = JSON.parse(container.dataset.tasks || '[]');
@@ -268,7 +336,7 @@ function initGanttChart() {
     let periodOffset = 0;
 
     function render() {
-        renderGanttView(container, tasks, subtasksByTask, expandedTaskIds, viewSelect ? viewSelect.value : 'Week', periodOffset, false);
+        renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedTaskIds, viewSelect ? viewSelect.value : 'Week', periodOffset, false);
     }
 
     render();

@@ -5,7 +5,7 @@
 @section('content')
 <div>
     <h1 class="text-[14px] font-medium text-[#1F2937]">Calendar</h1>
-    <p class="mt-1 text-[11px] text-gray-500">Tasks positioned by due date, grouped by project (color-coded). Tasks with no due date aren't shown here. Click a task with subtasks to show/hide them; double-click a bar to open it.</p>
+    <p class="mt-1 text-[11px] text-gray-500">Tasks positioned by due date, grouped by project (color-coded). Tasks with no due date aren't shown here. Use + to show or hide a task's subtasks; click a bar to open its task.</p>
 
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">{{ $emptyMessage ?? "You don't have access to any companies yet." }}</p>
@@ -33,7 +33,10 @@
             @if (empty($ganttTasks))
                 <p class="py-10 text-center text-[12px] text-gray-500">No tasks with a due date in {{ $organization->name }}.</p>
             @else
-                <div id="gantt-container" data-tasks='@json($ganttTasks)' data-subtasks='@json($subtasksByTask)'></div>
+                <div class="flex">
+                    <div id="gantt-task-list" class="w-[220px] shrink-0 overflow-hidden border-r border-gray-200 bg-white"></div>
+                    <div id="gantt-container" class="min-w-0 flex-1" data-tasks='@json($ganttTasks)' data-subtasks='@json($subtasksByTask)'></div>
+                </div>
             @endif
         </div>
     @endif
