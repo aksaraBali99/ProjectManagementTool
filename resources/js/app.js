@@ -140,7 +140,39 @@ function formatLocalDate(date) {
     return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
 }
 
-function renderGanttView(container, tasks, view, periodOffset) {
+// Frappe Gantt has no native parent/child row hierarchy (it's a flat list
+// of bars), and task names render as plain text on/beside the bar itself —
+// there's nowhere to mount a literal (+) button. The drill-down is instead:
+// clicking a task bar with subtasks toggles them in/out of the rendered
+// list right after their parent (tracked in expandedTaskIds, keyed by the
+// real numeric task id — persists across view/prev/next re-renders so
+// switching Week/Month doesn't silently collapse everything); a "+N
+// subtasks"/"− hide subtasks" suffix on the bar's own label is the (+)
+// affordance. Single-click toggles; double-click still opens the task (or,
+// for a subtask bar, its parent task, since subtasks have no page of their
+// own), splitting Frappe's own separate click/double_click events rather
+// than trying to detect which part of the bar was clicked.
+function buildDisplayTasks(tasks, subtasksByTask, expandedTaskIds) {
+    const displayTasks = [];
+
+    tasks.forEach(function (task) {
+        const subtaskCount = task.subtaskCount || 0;
+        const isExpanded = expandedTaskIds.has(String(task.id));
+        const suffix = subtaskCount === 0 ? '' : (isExpanded ? '  [− hide subtasks]' : '  [+' + subtaskCount + ' subtasks]');
+
+        displayTasks.push(Object.assign({}, task, { name: task.name + suffix }));
+
+        if (isExpanded) {
+            (subtasksByTask[task.id] || []).forEach(function (subtask) {
+                displayTasks.push(subtask);
+            });
+        }
+    });
+
+    return displayTasks;
+}
+
+function renderGanttView(container, tasks, subtasksByTask, expandedTaskIds, view, periodOffset, preserveScroll) {
     const days = CALENDAR_VIEW_DAYS[view] || CALENDAR_VIEW_DAYS.Week;
     const columnWidth = Math.max(CALENDAR_MIN_COLUMN_WIDTH, Math.floor(container.clientWidth / days));
     const viewStart = getCalendarViewStart(view, periodOffset);
@@ -167,8 +199,13 @@ function renderGanttView(container, tasks, view, periodOffset) {
         custom_class: 'gantt-bounds-phantom',
     };
 
+    const scrollElBefore = container.querySelector('.gantt-container');
+    const scrollLeftBefore = scrollElBefore ? scrollElBefore.scrollLeft : 0;
+
+    const displayTasks = buildDisplayTasks(tasks, subtasksByTask, expandedTaskIds);
+
     container.innerHTML = '';
-    new Gantt(container, tasks.concat([boundsTask]), {
+    new Gantt(container, displayTasks.concat([boundsTask]), {
         view_mode: 'Day',
         view_modes: [DAY_VIEW_MODE_WITH_WEEKDAY],
         view_mode_select: false,
@@ -176,9 +213,27 @@ function renderGanttView(container, tasks, view, periodOffset) {
         lower_header_height: 44,
         infinite_padding: false,
         on_click: function (task) {
+            const realId = String(task.id).startsWith('subtask-') ? null : String(task.id);
+            if (! realId || ! (task.subtaskCount > 0)) return;
+
+            if (expandedTaskIds.has(realId)) expandedTaskIds.delete(realId);
+            else expandedTaskIds.add(realId);
+
+            renderGanttView(container, tasks, subtasksByTask, expandedTaskIds, view, periodOffset, true);
+        },
+        on_double_click: function (task) {
             if (task.editUrl) window.location = task.editUrl;
         },
     });
+
+    const scrollEl = container.querySelector('.gantt-container') || container;
+
+    if (preserveScroll) {
+        requestAnimationFrame(function () {
+            scrollEl.scrollLeft = scrollLeftBefore;
+        });
+        return;
+    }
 
     // Gantt's own scroll_to option leaves a ~1/6-column sliver of the
     // previous day visible (it centers the target slightly right of the
@@ -186,7 +241,6 @@ function renderGanttView(container, tasks, view, periodOffset) {
     // directly and scrolling to exactly where it renders avoids that. Safe
     // to do in one pass now that infinite_padding can't shift the range
     // out from under this measurement mid-correction.
-    const scrollEl = container.querySelector('.gantt-container') || container;
     const viewStartClass = 'date_' + formatLocalDate(viewStart);
 
     requestAnimationFrame(function () {
@@ -205,13 +259,16 @@ function initGanttChart() {
     const tasks = JSON.parse(container.dataset.tasks || '[]');
     if (tasks.length === 0) return;
 
+    const subtasksByTask = JSON.parse(container.dataset.subtasks || '{}');
+    const expandedTaskIds = new Set();
+
     const viewSelect = document.getElementById('calendar-view-select');
     const prevBtn = document.getElementById('calendar-prev');
     const nextBtn = document.getElementById('calendar-next');
     let periodOffset = 0;
 
     function render() {
-        renderGanttView(container, tasks, viewSelect ? viewSelect.value : 'Week', periodOffset);
+        renderGanttView(container, tasks, subtasksByTask, expandedTaskIds, viewSelect ? viewSelect.value : 'Week', periodOffset, false);
     }
 
     render();

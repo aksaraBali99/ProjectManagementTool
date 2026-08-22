@@ -86,6 +86,15 @@
    (see renderGanttView) — hide its bar, its row still takes up height. */
 .gantt .bar-wrapper.gantt-bounds-phantom { display: none; }
 
+/* Drill-down subtask rows (app.js's buildDisplayTasks) — same project
+   color family as their parent (custom_class only ever holds one class;
+   Frappe passes it straight to classList.add(), which throws on a
+   space-separated string), so subtask bars are identified by their id
+   prefix instead and visually receded so the parent task's own bar still
+   reads as the primary row. */
+.gantt .bar-wrapper[data-id^="subtask-"] { opacity: 0.6; }
+.gantt .bar-wrapper[data-id^="subtask-"] .bar-label { font-style: italic; }
+
 /* Manila-folder company tabs (<x-company-tabs>). Trapezoid via clip-path:
    the first declaration (sharp corners) is the fallback for browsers that
    don't understand the "round" polygon suffix — since an unsupported value

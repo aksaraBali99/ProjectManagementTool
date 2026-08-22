@@ -252,3 +252,55 @@ test('the gantt-container data-tasks attribute is valid, parseable JSON even whe
     expect(json_last_error())->toBe(JSON_ERROR_NONE)
         ->and($decoded[0]['name'])->toContain('Say "hi" & <test>');
 });
+
+test('a gantt task carries its plottable subtask count for the drill-down affordance', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task with subtasks',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => now()->addDays(3),
+    ]);
+    $task->subtasks()->create(['title' => 'Dated subtask', 'due_date' => now()->addDays(2)]);
+    $task->subtasks()->create(['title' => 'Undated subtask']);
+
+    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
+
+    $ganttTask = collect($response->viewData('ganttTasks'))->firstWhere('id', (string) $task->id);
+    expect($ganttTask['subtaskCount'])->toBe(1);
+});
+
+test('subtasksByTask carries a gantt bar per plottable subtask, keyed by parent task id', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => now()->addDays(10),
+    ]);
+    $subtask = $task->subtasks()->create([
+        'title' => 'Drill-down subtask',
+        'start_date' => now()->subDays(1),
+        'due_date' => now()->addDays(5),
+        'is_done' => true,
+    ]);
+    $task->subtasks()->create(['title' => 'Undated subtask, excluded']);
+
+    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
+
+    $subtasksByTask = $response->viewData('subtasksByTask');
+    expect($subtasksByTask)->toHaveKey($task->id)
+        ->and($subtasksByTask[$task->id])->toHaveCount(1);
+
+    $bar = $subtasksByTask[$task->id][0];
+    expect($bar['id'])->toBe('subtask-'.$subtask->id)
+        ->and($bar['name'])->toContain('Drill-down subtask')
+        ->and($bar['start'])->toBe(now()->subDays(1)->toDateString())
+        ->and($bar['end'])->toBe(now()->addDays(5)->toDateString())
+        ->and($bar['progress'])->toBe(100)
+        ->and($bar['editUrl'])->toBe(route('tasks.edit', $task));
+});
