@@ -92,9 +92,28 @@ function initPhoneInputs() {
 const CALENDAR_VIEW_DAYS = { Week: 7, Month: 31 };
 const CALENDAR_MIN_COLUMN_WIDTH = 30;
 
+// Week starts on the Monday of the current week; Month starts on the 1st of
+// the current month — Frappe's own gantt_start is just "earliest task date
+// minus padding", with no concept of calendar-boundary alignment, so the
+// view is explicitly scrolled to a computed boundary date instead of
+// defaulting to wherever the task data happens to begin.
+function getCalendarViewStart(view) {
+    const now = new Date();
+
+    if (view === 'Month') {
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    const isoWeekday = now.getDay() === 0 ? 7 : now.getDay(); // Mon=1 .. Sun=7
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (isoWeekday - 1));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+}
+
 function renderGanttView(container, tasks, view) {
     const days = CALENDAR_VIEW_DAYS[view] || CALENDAR_VIEW_DAYS.Week;
     const columnWidth = Math.max(CALENDAR_MIN_COLUMN_WIDTH, Math.floor(container.clientWidth / days));
+    const viewStart = getCalendarViewStart(view);
 
     container.innerHTML = '';
     new Gantt(container, tasks, {
@@ -104,6 +123,36 @@ function renderGanttView(container, tasks, view) {
         on_click: function (task) {
             if (task.editUrl) window.location = task.editUrl;
         },
+    });
+
+    // Gantt's own scroll_to option leaves a ~1/6-column sliver of the
+    // previous day visible (it centers the target slightly right of the
+    // viewport edge) — measuring viewStart's own grid-column element
+    // directly and scrolling to exactly where it renders avoids that.
+    //
+    // Two passes, not one: infinite_padding (on by default, and needed here
+    // — turning it off can leave viewStart outside the much-narrower fixed
+    // padding around the task dates entirely) auto-extends gantt_start and
+    // re-renders the instant scrollLeft lands near the edge of the
+    // originally-rendered range, which viewStart often does — silently
+    // shifting every date's position out from under the first measurement.
+    // The second pass re-measures post-extension and corrects for real.
+    const scrollEl = container.querySelector('.gantt-container') || container;
+    const viewStartClass = 'date_'
+        + viewStart.getFullYear() + '-'
+        + String(viewStart.getMonth() + 1).padStart(2, '0') + '-'
+        + String(viewStart.getDate()).padStart(2, '0');
+
+    function scrollToViewStart() {
+        const marker = container.querySelector('.' + viewStartClass);
+        if (! marker) return;
+        const targetLeft = marker.getBoundingClientRect().left - scrollEl.getBoundingClientRect().left + scrollEl.scrollLeft;
+        scrollEl.scrollLeft = Math.max(0, targetLeft);
+    }
+
+    requestAnimationFrame(function () {
+        scrollToViewStart();
+        requestAnimationFrame(scrollToViewStart);
     });
 }
 
