@@ -6,12 +6,26 @@
    filesystem path instead, which bypasses that resolution entirely. */
 @import '../../node_modules/frappe-gantt/dist/frappe-gantt.css';
 
+/* Inter, self-hosted via the @fontsource/inter npm package (bundled through
+   Vite, same "install it, don't CDN it" pattern as intl-tel-input) rather
+   than a Google Fonts CDN call. Only the weights the UI_Screens typography
+   table actually specifies (400/500/600) are loaded. */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* UIX spec border-radius scale (badges/pills, form inputs/small cards,
+       main panels/company cards/modals — round(50%) is Tailwind's built-in
+       rounded-full, no override needed). */
+    --radius-sm: 5px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
 }
 
 /* intl-tel-input: match the app's UIX styling (teal accent, gray-300 borders, 8px radius). */
@@ -67,3 +81,32 @@
 .gantt .bar-wrapper.gantt-project-3 .bar { fill: #d97706; }
 .gantt .bar-wrapper.gantt-project-4 .bar { fill: #db2777; }
 .gantt .bar-wrapper.gantt-project-5 .bar { fill: #0891b2; }
+
+/* Invisible task app.js adds purely to fix the calendar's date-range bounds
+   (see renderGanttView) — hide its bar, its row still takes up height. */
+.gantt .bar-wrapper.gantt-bounds-phantom { display: none; }
+
+/* Manila-folder company tabs (<x-company-tabs>). Trapezoid via clip-path:
+   the first declaration (sharp corners) is the fallback for browsers that
+   don't understand the "round" polygon suffix — since an unsupported value
+   invalidates the whole clip-path, it's simply skipped and the sharp-corner
+   version above it stays in effect, so this degrades safely instead of
+   losing the trapezoid shape entirely. */
+.folder-tab {
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100% round 5px);
+    background-color: #F3F4F6;
+    color: #4B5563;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+/* Actual colors live here, not in each tab's inline style, so this rule's
+   normal cascade specificity can win over the base rule above — an inline
+   background-color/color would always beat this regardless of selector
+   specificity, which is why the per-company values are passed through as
+   custom properties (--tab-accent-bg/text) instead. */
+.folder-tab--active,
+.folder-tab:not(.folder-tab--active):hover {
+    background-color: var(--tab-accent-bg);
+    color: var(--tab-accent-text);
+}

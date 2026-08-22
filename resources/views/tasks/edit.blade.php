@@ -9,17 +9,17 @@
     <div class="mt-2 flex items-center justify-between">
         <h1 class="text-[14px] font-medium text-[#1F2937]">Edit task</h1>
         @if ($task->trashed())
-            <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">Inactive</span>
+            <span class="rounded-sm bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">Inactive</span>
         @endif
     </div>
 
     @if (session('status'))
-        <div class="mt-4 rounded-[8px] bg-[#E1F5EE] p-3 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-4 rounded-md bg-[#E1F5EE] p-3 text-[12px] text-[#085041]">{{ session('status') }}</div>
     @endif
 
     @if ($canEdit)
         @if ($errors->any())
-            <div class="mt-4 rounded-[8px] bg-red-50 p-3 text-[12px] text-red-700">
+            <div class="mt-4 rounded-md bg-red-50 p-3 text-[12px] text-red-700">
                 <ul class="list-disc pl-4">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -35,7 +35,7 @@
             <div>
                 <label for="project_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project</label>
                 <select id="project_id" name="project_id" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     @foreach ($projects as $proj)
                         <option value="{{ $proj->id }}" {{ (int) old('project_id', $task->project_id) === $proj->id ? 'selected' : '' }}>
                             {{ $proj->name }}
@@ -47,20 +47,20 @@
             <div>
                 <label for="department_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Department</label>
                 <select id="department_id" name="department_id" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                 </select>
             </div>
 
             <div>
                 <label for="title" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</label>
                 <input id="title" name="title" type="text" value="{{ old('title', $task->title) }}" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             </div>
 
             <div>
                 <label for="description" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</label>
                 <textarea id="description" name="description" rows="3"
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">{{ old('description', $task->description) }}</textarea>
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">{{ old('description', $task->description) }}</textarea>
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -68,7 +68,7 @@
                     <label for="priority" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority</label>
                     @php $priorityValue = old('priority', $task->priority->value); @endphp
                     <select id="priority" name="priority" required
-                        class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                         @foreach (\App\Enums\Priority::cases() as $priorityCase)
                             <option value="{{ $priorityCase->value }}" {{ $priorityValue === $priorityCase->value ? 'selected' : '' }}>{{ $priorityCase->label() }}</option>
                         @endforeach
@@ -79,7 +79,7 @@
                     <label for="status" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</label>
                     @php $statusValue = old('status', $task->status->value); @endphp
                     <select id="status" name="status" required
-                        class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                         @foreach (\App\Enums\TaskStatus::cases() as $statusCase)
                             <option value="{{ $statusCase->value }}" {{ $statusValue === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
                         @endforeach
@@ -91,19 +91,19 @@
                 <div>
                     <label for="assignee_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Assignee</label>
                     <select id="assignee_id" name="assignee_id"
-                        class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     </select>
                 </div>
 
                 <div>
                     <label for="due_date" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Due date</label>
                     <input id="due_date" name="due_date" type="date" value="{{ old('due_date', $task->due_date?->toDateString()) }}"
-                        class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                 </div>
             </div>
 
             <div class="flex items-center gap-3 pt-2">
-                <button type="submit" class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                     Save changes
                 </button>
                 <a href="{{ route('projects.index', $project->organization_id) }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
@@ -159,11 +159,11 @@
             </form>
         @endif
     @else
-        <div class="mt-6 space-y-3 rounded-[10px] border border-gray-200 p-4 text-[12px]">
+        <div class="mt-6 space-y-3 rounded-lg border border-gray-200 p-4 text-[12px]">
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Title</span><p class="mt-0.5 font-medium text-[#1F2937]">{{ $task->title }}</p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Description</span><p class="mt-0.5 text-gray-700">{{ $task->description ?: '—' }}</p></div>
-            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Priority</span><p class="mt-0.5 text-gray-700">{{ $task->priority->label() }}</p></div>
-            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Status</span><p class="mt-0.5 text-gray-700">{{ $task->status->label() }}</p></div>
+            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Priority</span><p class="mt-1"><x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge></p></div>
+            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Status</span><p class="mt-1"><x-badge :background="$task->status->badgeBackground()" :text="$task->status->badgeText()">{{ $task->status->label() }}</x-badge></p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Due date</span><p class="mt-0.5 text-gray-700">{{ $task->due_date?->format('M j, Y') ?? '—' }}</p></div>
         </div>
         <p class="mt-3 text-[11px] text-gray-500">You can view this task and toggle its subtasks, but only its assignee or a manager can edit it.</p>

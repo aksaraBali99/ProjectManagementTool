@@ -75,4 +75,77 @@ class Organization extends Model
     {
         return $this->hasMany(AccessPermission::class);
     }
+
+    /**
+     * Full pill treatment (background/text) per the UIX spec's Company
+     * colour table. The 3 named companies get the spec's exact hand-picked
+     * pair; any other accent_color (a future 4th+ company, or any of these
+     * 3 repainted via the colour picker on the Organizations edit form) is
+     * derived algorithmically from the accent itself, so picking a new
+     * colour is reflected immediately everywhere a company pill renders —
+     * not just for the 3 hardcoded pairs. Comparison is case-insensitive
+     * since <input type="color"> always submits lowercase hex.
+     */
+    public function badgeBackground(): string
+    {
+        if (! $this->accent_color) {
+            return '#F3F4F6';
+        }
+
+        return match (strtoupper($this->accent_color)) {
+            '#1D9E75' => '#E1F5EE',
+            '#534AB7' => '#EEEDFE',
+            '#BA7517' => '#FAEEDA',
+            default => self::mixWithWhite($this->accent_color, 0.85),
+        };
+    }
+
+    public function badgeText(): string
+    {
+        if (! $this->accent_color) {
+            return '#374151';
+        }
+
+        return match (strtoupper($this->accent_color)) {
+            '#1D9E75' => '#0F6E56',
+            '#534AB7' => '#3C3489',
+            '#BA7517' => '#854F0B',
+            default => self::mixWithBlack($this->accent_color, 0.35),
+        };
+    }
+
+    private static function mixWithWhite(string $hex, float $amount): string
+    {
+        [$r, $g, $b] = self::hexToRgb($hex);
+
+        return self::rgbToHex(
+            $r + (255 - $r) * $amount,
+            $g + (255 - $g) * $amount,
+            $b + (255 - $b) * $amount,
+        );
+    }
+
+    private static function mixWithBlack(string $hex, float $amount): string
+    {
+        [$r, $g, $b] = self::hexToRgb($hex);
+
+        return self::rgbToHex($r * (1 - $amount), $g * (1 - $amount), $b * (1 - $amount));
+    }
+
+    /**
+     * @return array{0: int, 1: int, 2: int}
+     */
+    private static function hexToRgb(string $hex): array
+    {
+        $hex = ltrim($hex, '#');
+
+        return [hexdec(substr($hex, 0, 2)), hexdec(substr($hex, 2, 2)), hexdec(substr($hex, 4, 2))];
+    }
+
+    private static function rgbToHex(float $r, float $g, float $b): string
+    {
+        $clamp = fn (float $value) => max(0, min(255, (int) round($value)));
+
+        return sprintf('#%02X%02X%02X', $clamp($r), $clamp($g), $clamp($b));
+    }
 }

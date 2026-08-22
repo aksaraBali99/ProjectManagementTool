@@ -18,7 +18,6 @@
             ['label' => 'Tasks', 'icon' => 'ti-checklist', 'route' => 'tasks.index', 'matches' => ['tasks.*', 'subtasks.*', 'comments.*'], 'can' => ['viewAny', \App\Models\Task::class]],
             ['label' => 'Documents', 'icon' => 'ti-files', 'route' => 'documents.index', 'matches' => ['documents.*']],
             ['label' => 'Access control', 'icon' => 'ti-shield-lock', 'route' => 'access-control.index', 'matches' => ['access-control.*'], 'can' => ['access-control.view']],
-            ['label' => 'Staff', 'icon' => 'ti-users', 'route' => null, 'matches' => []],
             [
                 'label' => 'Settings',
                 'icon' => 'ti-settings',
@@ -35,6 +34,16 @@
                 ],
             ],
         ];
+
+        // Every company-scoped page (Dashboard, Kanban, Calendar, Tasks,
+        // Documents, Access control) binds this same {organization?} route
+        // parameter, so the topbar can read "current company" directly from
+        // the route instead of every controller having to pass it in.
+        $topbarOrganization = request()->route('organization');
+        $topbarOrganization = $topbarOrganization instanceof \App\Models\Organization ? $topbarOrganization : null;
+        $topbarTeamMembers = $topbarOrganization
+            ? $topbarOrganization->members()->where('is_active', true)->orderBy('name')->get()
+            : collect();
     @endphp
 
     <div class="flex min-h-screen">
@@ -94,6 +103,18 @@
                     <span class="truncate text-[13px] font-medium text-gray-900">@yield('title', 'Solava')</span>
                 </div>
                 <div class="flex shrink-0 items-center gap-3 text-sm text-gray-600">
+                    @if ($topbarTeamMembers->isNotEmpty())
+                        <div class="hidden items-center sm:flex" aria-label="Team members in {{ $topbarOrganization->name }}">
+                            @foreach ($topbarTeamMembers->take(5) as $member)
+                                <x-avatar :user="$member" size="28px" class="-ml-2 border-2 border-white first:ml-0" />
+                            @endforeach
+                            @if ($topbarTeamMembers->count() > 5)
+                                <span class="-ml-2 flex h-[28px] w-[28px] items-center justify-center rounded-full border-2 border-white bg-gray-100 text-[10px] font-medium text-gray-600">
+                                    +{{ $topbarTeamMembers->count() - 5 }}
+                                </span>
+                            @endif
+                        </div>
+                    @endif
                     @php $unreadCount = auth()->user()->unreadNotifications()->count() @endphp
                     <a href="{{ route('notifications.index') }}" class="relative flex items-center hover:text-gray-900" aria-label="Notifications">
                         <i class="ti ti-bell text-[16px]"></i>
@@ -114,7 +135,7 @@
                 </div>
             </header>
 
-            <main class="min-w-0 flex-1 px-[18px] py-[14px]">
+            <main class="min-w-0 flex-1 px-5 py-4">
                 @yield('content')
             </main>
         </div>

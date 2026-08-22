@@ -9,7 +9,7 @@
     <h1 class="mt-2 text-[14px] font-medium text-[#1F2937]">Edit project</h1>
 
     @if (session('status'))
-        <div class="mt-4 rounded-[8px] bg-[#E1F5EE] p-3 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-4 rounded-md bg-[#E1F5EE] p-3 text-[12px] text-[#085041]">{{ session('status') }}</div>
     @endif
 
     <form method="POST" action="{{ route('projects.update', $project) }}" class="mt-6 space-y-4" id="edit-project-form" novalidate>
@@ -24,7 +24,7 @@
         <div>
             <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project name <span class="text-red-600">*</span></label>
             <input id="name" name="name" type="text" value="{{ old('name', $project->name) }}" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('name')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -33,7 +33,7 @@
         <div>
             <label for="description" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description <span class="text-red-600">*</span></label>
             <textarea id="description" name="description" rows="3" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">{{ old('description', $project->description) }}</textarea>
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">{{ old('description', $project->description) }}</textarea>
             @error('description')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -43,7 +43,7 @@
             <label for="client" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Client</label>
             @php $clientValue = old('client', $assignedClientId); @endphp
             <select id="client" name="client"
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                 <option value="" {{ ! $clientValue ? 'selected' : '' }}>Internal</option>
                 @foreach ($clientOptions as $clientUser)
                     <option value="{{ $clientUser->id }}" {{ (string) $clientValue === (string) $clientUser->id ? 'selected' : '' }}>{{ $clientUser->name }}</option>
@@ -59,7 +59,7 @@
             <div>
                 <label for="status" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</label>
                 <select id="status" name="status" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     @php $statusValue = old('status', $project->status->value); @endphp
                     @foreach (\App\Enums\ProjectStatus::cases() as $statusCase)
                         <option value="{{ $statusCase->value }}" {{ $statusValue === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
@@ -74,7 +74,7 @@
                 <label for="priority" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority</label>
                 @php $priorityValue = old('priority', $project->priority->value); @endphp
                 <select id="priority" name="priority" required
-                    class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     @foreach (\App\Enums\Priority::cases() as $priorityCase)
                         <option value="{{ $priorityCase->value }}" {{ $priorityValue === $priorityCase->value ? 'selected' : '' }}>{{ $priorityCase->label() }}</option>
                     @endforeach
@@ -94,7 +94,7 @@
             <div id="staff-rows" class="mt-2 space-y-2">
                 @forelse ($selectedStaff as $staffId)
                     <div class="flex items-center gap-2">
-                        <select name="staff[]" class="staff-select flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        <select name="staff[]" class="staff-select flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                             <option value="">Select staff…</option>
                             @foreach ($members as $member)
                                 <option value="{{ $member->id }}" {{ (int) $staffId === $member->id ? 'selected' : '' }}>{{ $member->name }}</option>
@@ -104,7 +104,7 @@
                     </div>
                 @empty
                     <div class="flex items-center gap-2">
-                        <select name="staff[]" class="staff-select flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        <select name="staff[]" class="staff-select flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                             <option value="">Select staff…</option>
                             @foreach ($members as $member)
                                 <option value="{{ $member->id }}">{{ $member->name }}</option>
@@ -124,7 +124,7 @@
         </div>
 
         <div class="flex items-center gap-3 pt-2">
-            <button type="submit" class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+            <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                 Save changes
             </button>
             <a href="{{ route('projects.index', $organization) }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
@@ -152,7 +152,7 @@
 
             const select = document.createElement('select');
             select.name = 'staff[]';
-            select.className = 'staff-select flex-1 rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]';
+            select.className = 'staff-select flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]';
             select.innerHTML = '<option value="">Select staff…</option>';
             members.forEach(function (member) {
                 const option = document.createElement('option');

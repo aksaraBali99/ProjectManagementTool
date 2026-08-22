@@ -9,16 +9,7 @@
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">{{ $emptyMessage ?? "You don't have access to any companies yet." }}</p>
     @else
-        <div class="mt-4 flex gap-1 border-b border-gray-200">
-            @foreach ($organizations as $tab)
-                @php $isActiveTab = $organization && $organization->id === $tab->id @endphp
-                <a href="{{ route('kanban', $tab) }}"
-                   style="{{ $isActiveTab ? 'border-color: '.$tab->accent_color : '' }}"
-                   class="border-b-2 px-4 py-2 text-[12px] {{ $isActiveTab ? 'font-medium text-[#1F2937]' : 'border-transparent text-gray-500 hover:text-gray-700' }}">
-                    {{ $tab->name }}
-                </a>
-            @endforeach
-        </div>
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="kanban" />
 
         {{-- Below md, columns become a horizontally scroll-snapping row
              (each column ~85% of the viewport, so the next one peeks in as
@@ -29,38 +20,36 @@
              style to get there. --}}
         <div id="kanban-board" class="mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:snap-none md:overflow-visible">
             @foreach ($columns as $column)
-                <div class="kanban-column w-[85vw] shrink-0 snap-center rounded-[10px] border border-gray-200 bg-white sm:w-[320px] md:min-w-0 md:flex-1 md:snap-align-none" data-status="{{ $column['status']->value }}">
+                <div class="kanban-column w-[85vw] shrink-0 snap-center rounded-lg border border-gray-200 sm:w-[320px] md:min-w-0 md:flex-1 md:snap-align-none"
+                     style="background-color: {{ $column['status']->badgeBackground() }}" data-status="{{ $column['status']->value }}">
                     <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-                        <span class="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">{{ $column['status']->label() }}</span>
+                        <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">{{ $column['status']->label() }}</span>
                         <span class="text-[10px] text-gray-400">{{ $column['tasks']->count() }}</span>
                     </div>
                     <div class="kanban-column-body min-h-[80px] space-y-2 p-2">
                         @forelse ($column['tasks'] as $item)
                             @php [$task, $canEdit] = [$item['task'], $item['canEdit']] @endphp
-                            <div class="kanban-card rounded-[8px] border border-gray-200 bg-white p-2 {{ $canEdit ? 'cursor-move' : '' }}"
+                            <div class="kanban-card flex items-start justify-between gap-2 rounded-md border border-gray-200 p-2 {{ $canEdit ? 'cursor-move' : '' }}"
+                                 style="background-color: {{ $task->priority->badgeBackground() }}"
                                  draggable="{{ $canEdit ? 'true' : 'false' }}" data-task-id="{{ $task->id }}">
-                                <a href="{{ route('tasks.edit', $task) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline">{{ $task->title }}</a>
-                                <p class="mt-1 text-[10px] text-gray-500">
-                                    {{ $task->project->name }}
-                                    @if ($task->assignee) &middot; {{ $task->assignee->name }} @endif
-                                    @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
-                                </p>
-                                <div class="mt-1.5 flex items-center justify-between gap-2">
-                                    @if ($task->priority === \App\Enums\Priority::High)
-                                        <span class="rounded-[5px] bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $task->priority->label() }}</span>
-                                    @elseif ($task->priority === \App\Enums\Priority::Medium)
-                                        <span class="rounded-[5px] bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">{{ $task->priority->label() }}</span>
-                                    @else
-                                        <span class="rounded-[5px] bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">{{ $task->priority->label() }}</span>
-                                    @endif
+                                <div class="min-w-0 flex-1">
+                                    <a href="{{ route('tasks.edit', $task) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline">{{ $task->title }}</a>
+                                    <p class="mt-1 text-[10px] text-gray-500">
+                                        {{ $task->project->name }}
+                                        @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
+                                    </p>
+                                    <div class="mt-1.5 flex items-center justify-between gap-2">
+                                        <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
 
-                                    <select class="kanban-status-select rounded-[6px] border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"
-                                            data-task-id="{{ $task->id }}" {{ $canEdit ? '' : 'disabled' }}>
-                                        @foreach (\App\Enums\TaskStatus::cases() as $statusOption)
-                                            <option value="{{ $statusOption->value }}" {{ $task->status === $statusOption ? 'selected' : '' }}>{{ $statusOption->label() }}</option>
-                                        @endforeach
-                                    </select>
+                                        <select class="kanban-status-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"
+                                                data-task-id="{{ $task->id }}" {{ $canEdit ? '' : 'disabled' }}>
+                                            @foreach (\App\Enums\TaskStatus::cases() as $statusOption)
+                                                <option value="{{ $statusOption->value }}" {{ $task->status === $statusOption ? 'selected' : '' }}>{{ $statusOption->label() }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
+                                <x-avatar :user="$task->assignee" size="32px" class="shrink-0" />
                             </div>
                         @empty
                             <p class="py-4 text-center text-[11px] text-gray-400">No tasks</p>

@@ -77,7 +77,7 @@ test('the Audit Trail page shows a readable description of what changed, not raw
     $response = $this->actingAs($this->owner)->get('/audit-trail');
 
     $response->assertOk();
-    $response->assertSee('Status changed from Pending to In progress');
+    $response->assertSee('Status changed from Pending to Active');
     $response->assertDontSee('{&quot;status&quot;', false);
     $response->assertDontSee('&quot;old&quot;', false);
 });

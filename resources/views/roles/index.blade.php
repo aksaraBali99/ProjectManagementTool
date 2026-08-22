@@ -42,11 +42,11 @@
                             @endif
                         </td>
                         <td class="py-1 text-gray-600 md:table-cell md:px-4 md:py-3">
-                            <span class="mb-0.5 block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Description</span>
+                            <span class="mb-0.5 block text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Description</span>
                             {{ $role->description }}
                         </td>
                         <td class="flex items-center justify-between gap-2 py-1 text-gray-600 md:table-cell md:px-4 md:py-3">
-                            <span class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-400 md:hidden">Users</span>
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Users</span>
                             {{ $role->users_count }}
                         </td>
                         <td class="py-1 text-right md:table-cell md:px-4 md:py-3">

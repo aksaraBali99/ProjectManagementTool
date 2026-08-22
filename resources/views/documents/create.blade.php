@@ -17,7 +17,7 @@
         <div>
             <label for="name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name <span class="text-red-600">*</span></label>
             <input id="name" name="name" type="text" value="{{ old('name') }}" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('name')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -27,7 +27,7 @@
             <label for="link" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Document link <span class="text-red-600">*</span></label>
             <input id="link" name="link" type="url" value="{{ old('link') }}" required
                 placeholder="https://…"
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('link')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -36,7 +36,7 @@
         <div>
             <label for="access_level" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Access level <span class="text-red-600">*</span></label>
             <select id="access_level" name="access_level" required
-                class="mt-1 block w-full rounded-[8px] border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                 @foreach (\App\Enums\DocumentAccessLevel::cases() as $level)
                     <option value="{{ $level->value }}" {{ old('access_level') === $level->value ? 'selected' : '' }}>{{ $level->label() }}</option>
                 @endforeach
@@ -47,7 +47,7 @@
         </div>
 
         <div class="flex items-center gap-3 pt-2">
-            <button type="submit" class="rounded-[8px] bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+            <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
                 Add document
             </button>
             <a href="{{ route('documents.index', $organization) }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
