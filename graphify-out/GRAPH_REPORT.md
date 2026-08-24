@@ -1,16 +1,16 @@
 # Graph Report - ProjectManagementTool  (2026-08-24)
 
 ## Corpus Check
-- 223 files · ~66,776 words
+- 223 files · ~66,875 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 905 nodes · 1961 edges · 132 communities (104 shown, 28 thin omitted)
+- 905 nodes · 1963 edges · 131 communities (104 shown, 27 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 116 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9b45b00c`
+- Built from commit: `c43ebb43`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,7 +18,7 @@
 - NotificationEventType.php
 - Illuminate\Support\Collection
 - .boardOrganizationIds
-- Illuminate\View\View
+- Controller
 - Comment
 - Organization
 - composer.json
@@ -55,18 +55,17 @@
 - Role
 - StoreProjectRequest
 - DepartmentPolicy
+- UpdateDepartmentRequest
+- UpdateProjectRequest
 - NotificationSettingPolicy
-- PermissionManagementController.php
-- Illuminate\Database\Eloquent\Builder
 - StoreDepartmentRequest
 - StoreUserRequest
 - Illuminate\Http\RedirectResponse
 - TaskStatus.php
 - UpdateUserRequest
+- Illuminate\Database\Eloquent\Builder
 - CalendarController.php
-- UpdateDepartmentRequest
 - UpdateRoleRequest
-- UpdateProjectRequest
 
 ## God Nodes (most connected - your core abstractions)
 1. `User` - 140 edges
@@ -95,15 +94,15 @@
 ## Import Cycles
 - None detected.
 
-## Communities (132 total, 28 thin omitted)
+## Communities (131 total, 27 thin omitted)
 
-### Community 3 - "Illuminate\View\View"
+### Community 3 - "Controller"
 Cohesion: 0.11
-Nodes (10): AccessControlController, AnalyticsController, AuthenticatedSessionController, Controller, DepartmentManagementController, KanbanController, NotificationController, RoleManagementController (+2 more)
+Nodes (7): AnalyticsController, AuthenticatedSessionController, Controller, NotificationController, PermissionManagementController, RoleManagementController, SettingsController
 
 ### Community 5 - "Organization"
-Cohesion: 0.14
-Nodes (3): DocumentController, OrganizationManagementController, Organization
+Cohesion: 0.12
+Nodes (7): AccessControlController, DepartmentManagementController, DocumentController, KanbanController, OrganizationManagementController, Organization, Illuminate\View\View
 
 ### Community 6 - "composer.json"
 Cohesion: 0.04
@@ -196,16 +195,16 @@ Nodes (4): isAssignableStaffForProject(), StoreTaskRequest, UpdateTaskRequest, I
 ## Knowledge Gaps
 - **106 isolated node(s):** `$schema`, `name`, `type`, `description`, `laravel` (+101 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **28 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **27 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `NotificationEventType.php`, `Illuminate\Support\Collection`, `.boardOrganizationIds`, `Illuminate\View\View`, `Subtask`, `AuditEventNotifier`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `OrgMember`, `Task`, `LoginRequest`, `AuditLog`, `Illuminate\Http\Request`, `CommentPolicy`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Role`, `DepartmentPolicy`, `NotificationSettingPolicy`, `Illuminate\Database\Eloquent\Builder`, `Illuminate\Http\RedirectResponse`?**
+- **Why does `User` connect `User` to `NotificationEventType.php`, `Illuminate\Support\Collection`, `.boardOrganizationIds`, `Controller`, `Organization`, `Subtask`, `AuditEventNotifier`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `OrgMember`, `Task`, `LoginRequest`, `AuditLog`, `Illuminate\Http\Request`, `CommentPolicy`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Role`, `DepartmentPolicy`, `NotificationSettingPolicy`, `Illuminate\Http\RedirectResponse`, `Illuminate\Database\Eloquent\Builder`?**
   _High betweenness centrality (0.139) - this node is a cross-community bridge._
-- **Why does `Organization` connect `Organization` to `Illuminate\Support\Collection`, `.boardOrganizationIds`, `Illuminate\View\View`, `TaskManagementController`, `Task`, `Illuminate\Http\Request`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Role`, `StoreDepartmentRequest`, `StoreUserRequest`, `Illuminate\Http\RedirectResponse`, `User`, `OrgMember`, `CalendarController.php`?**
+- **Why does `Organization` connect `Organization` to `Illuminate\Support\Collection`, `.boardOrganizationIds`, `Controller`, `TaskManagementController`, `Task`, `Illuminate\Http\Request`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Role`, `StoreDepartmentRequest`, `StoreUserRequest`, `Illuminate\Http\RedirectResponse`, `User`, `OrgMember`, `CalendarController.php`?**
   _High betweenness centrality (0.062) - this node is a cross-community bridge._
-- **Why does `Task` connect `Task` to `Illuminate\View\View`, `Comment`, `TaskManagementController`, `Subtask`, `Illuminate\Http\Request`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Database\Eloquent\Builder`, `Illuminate\Http\RedirectResponse`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `OrgMember`, `CalendarController.php`?**
+- **Why does `Task` connect `Task` to `Controller`, `Comment`, `Organization`, `TaskManagementController`, `Subtask`, `Illuminate\Http\Request`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Http\RedirectResponse`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `OrgMember`, `CalendarController.php`, `Illuminate\Database\Eloquent\Builder`?**
   _High betweenness centrality (0.034) - this node is a cross-community bridge._
 - **Are the 11 inferred relationships involving `User` (e.g. with `.index()` and `.__invoke()`) actually correct?**
   _`User` has 11 INFERRED edges - model-reasoned connections that need verification._
