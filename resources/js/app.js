@@ -271,15 +271,29 @@ function setupTaskListResizer(handle, taskListEl, onResize) {
         });
     }
 
-    function onMouseMove(e) {
-        const newWidth = Math.min(GANTT_TASK_LIST_MAX_WIDTH, Math.max(GANTT_TASK_LIST_MIN_WIDTH, startWidth + (e.clientX - startX)));
+    function resizeTo(clientX) {
+        const newWidth = Math.min(GANTT_TASK_LIST_MAX_WIDTH, Math.max(GANTT_TASK_LIST_MIN_WIDTH, startWidth + (clientX - startX)));
         taskListEl.style.width = newWidth + 'px';
         scheduleResize();
     }
 
-    function onMouseUp() {
-        // A throttled resize from the last mousemove can still be queued
-        // when the button comes up (mouseup isn't itself rAF-gated) — left
+    function onMouseMove(e) {
+        resizeTo(e.clientX);
+    }
+
+    // Touch has no hover/cursor concept and delivers coordinates via
+    // e.touches rather than e.clientX directly; preventDefault here is what
+    // stops the page/task-list from scrolling underneath the drag instead of
+    // resizing (the listener is registered non-passive for exactly this).
+    function onTouchMove(e) {
+        if (e.touches.length !== 1) return;
+        e.preventDefault();
+        resizeTo(e.touches[0].clientX);
+    }
+
+    function endDrag() {
+        // A throttled resize from the last move can still be queued when
+        // the drag ends (mouseup/touchend isn't itself rAF-gated) — left
         // pending, it would fire after this function's own render call and
         // read a scrollLeft/columnWidth pairing from mid-render, landing the
         // final scroll position on the wrong date. Canceling it guarantees
@@ -291,7 +305,10 @@ function setupTaskListResizer(handle, taskListEl, onResize) {
         document.body.style.removeProperty('cursor');
         document.body.style.removeProperty('user-select');
         document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', endDrag);
+        document.removeEventListener('touchcancel', endDrag);
         onResize();
     }
 
@@ -301,9 +318,18 @@ function setupTaskListResizer(handle, taskListEl, onResize) {
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
         document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('mouseup', endDrag);
         e.preventDefault();
     });
+
+    handle.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1) return;
+        startX = e.touches[0].clientX;
+        startWidth = taskListEl.getBoundingClientRect().width;
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', endDrag);
+        document.addEventListener('touchcancel', endDrag);
+    }, { passive: true });
 }
 
 function renderGanttView(container, taskListEl, tasks, subtasksByTask, expandedTaskIds, view, periodOffset, preserveScroll) {

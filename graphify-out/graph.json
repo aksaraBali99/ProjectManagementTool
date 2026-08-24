@@ -186,6 +186,32 @@
       "norm_label": "departmentpolicy"
     },
     {
+      "label": "UpdateDepartmentRequest",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
+      "source_location": "L8",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest",
+      "community": 112,
+      "community_name": "UpdateDepartmentRequest",
+      "norm_label": "updatedepartmentrequest"
+    },
+    {
+      "label": "UpdateProjectRequest",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Projects/UpdateProjectRequest.php",
+      "source_location": "L12",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_requests_projects_updateprojectrequest_updateprojectrequest",
+      "community": 113,
+      "community_name": "UpdateProjectRequest",
+      "norm_label": "updateprojectrequest"
+    },
+    {
       "label": "NotificationSettingPolicy",
       "file_type": "code",
       "source_file": "app/Policies/NotificationSettingPolicy.php",
@@ -194,22 +220,9 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "app_policies_notificationsettingpolicy_notificationsettingpolicy",
-      "community": 112,
+      "community": 114,
       "community_name": "NotificationSettingPolicy",
       "norm_label": "notificationsettingpolicy"
-    },
-    {
-      "label": "PermissionManagementController",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L12",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller",
-      "community": 113,
-      "community_name": "PermissionManagementController.php",
-      "norm_label": "permissionmanagementcontroller"
     },
     {
       "label": "StoreDepartmentRequest",
@@ -329,19 +342,6 @@
       "norm_label": "calendarcontroller"
     },
     {
-      "label": "UpdateDepartmentRequest",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
-      "source_location": "L8",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest",
-      "community": 127,
-      "community_name": "UpdateDepartmentRequest",
-      "norm_label": "updatedepartmentrequest"
-    },
-    {
       "label": "AppServiceProvider",
       "file_type": "code",
       "source_file": "app/Providers/AppServiceProvider.php",
@@ -368,19 +368,6 @@
       "norm_label": "updaterolerequest"
     },
     {
-      "label": "UpdateProjectRequest",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/UpdateProjectRequest.php",
-      "source_location": "L12",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_updateprojectrequest_updateprojectrequest",
-      "community": 133,
-      "community_name": "UpdateProjectRequest",
-      "norm_label": "updateprojectrequest"
-    },
-    {
       "label": "TestCase",
       "file_type": "code",
       "source_file": "tests/TestCase.php",
@@ -394,19 +381,6 @@
       "norm_label": "testcase"
     },
     {
-      "label": "AccessControlController",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/AccessControlController.php",
-      "source_location": "L15",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_accesscontrolcontroller_accesscontrolcontroller",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "accesscontrolcontroller"
-    },
-    {
       "label": "AnalyticsController",
       "file_type": "code",
       "source_file": "app/Http/Controllers/AnalyticsController.php",
@@ -416,7 +390,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_analyticscontroller_analyticscontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "analyticscontroller"
     },
     {
@@ -429,7 +403,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_auth_authenticatedsessioncontroller_authenticatedsessioncontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "authenticatedsessioncontroller"
     },
     {
@@ -442,34 +416,8 @@
       "_origin": "ast",
       "id": "app_http_controllers_controller_controller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "controller"
-    },
-    {
-      "label": "DepartmentManagementController",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/DepartmentManagementController.php",
-      "source_location": "L13",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_departmentmanagementcontroller_departmentmanagementcontroller",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "departmentmanagementcontroller"
-    },
-    {
-      "label": "KanbanController",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/KanbanController.php",
-      "source_location": "L12",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_kanbancontroller_kanbancontroller",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "kanbancontroller"
     },
     {
       "label": "NotificationController",
@@ -481,8 +429,21 @@
       "_origin": "ast",
       "id": "app_http_controllers_notificationcontroller_notificationcontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "notificationcontroller"
+    },
+    {
+      "label": "PermissionManagementController",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
+      "source_location": "L13",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller",
+      "community": 3,
+      "community_name": "Controller",
+      "norm_label": "permissionmanagementcontroller"
     },
     {
       "label": "RoleManagementController",
@@ -494,7 +455,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_rolemanagementcontroller_rolemanagementcontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "rolemanagementcontroller"
     },
     {
@@ -507,7 +468,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_settingscontroller_settingscontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "settingscontroller"
     },
     {
@@ -537,6 +498,32 @@
       "norm_label": "commentobserver"
     },
     {
+      "label": "AccessControlController",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/AccessControlController.php",
+      "source_location": "L15",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_accesscontrolcontroller_accesscontrolcontroller",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": "accesscontrolcontroller"
+    },
+    {
+      "label": "DepartmentManagementController",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/DepartmentManagementController.php",
+      "source_location": "L13",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_departmentmanagementcontroller_departmentmanagementcontroller",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": "departmentmanagementcontroller"
+    },
+    {
       "label": "DocumentController",
       "file_type": "code",
       "source_file": "app/Http/Controllers/DocumentController.php",
@@ -548,6 +535,19 @@
       "community": 5,
       "community_name": "Organization",
       "norm_label": "documentcontroller"
+    },
+    {
+      "label": "KanbanController",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/KanbanController.php",
+      "source_location": "L12",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_kanbancontroller_kanbancontroller",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": "kanbancontroller"
     },
     {
       "label": "OrganizationManagementController",
@@ -1993,6 +1993,78 @@
       "norm_label": ".viewany()"
     },
     {
+      "label": ".attributes()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
+      "source_location": "L33",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_attributes",
+      "community": 112,
+      "community_name": "UpdateDepartmentRequest",
+      "norm_label": ".attributes()"
+    },
+    {
+      "label": ".authorize()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
+      "source_location": "L10",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_authorize",
+      "community": 112,
+      "community_name": "UpdateDepartmentRequest",
+      "norm_label": ".authorize()"
+    },
+    {
+      "label": ".rules()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
+      "source_location": "L15",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_rules",
+      "community": 112,
+      "community_name": "UpdateDepartmentRequest",
+      "norm_label": ".rules()"
+    },
+    {
+      "label": ".authorize()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Projects/UpdateProjectRequest.php",
+      "source_location": "L14",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_projects_updateprojectrequest_updateprojectrequest_authorize",
+      "community": 113,
+      "community_name": "UpdateProjectRequest",
+      "norm_label": ".authorize()"
+    },
+    {
+      "label": ".prepareForValidation()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Projects/UpdateProjectRequest.php",
+      "source_location": "L19",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_projects_updateprojectrequest_updateprojectrequest_prepareforvalidation",
+      "community": 113,
+      "community_name": "UpdateProjectRequest",
+      "norm_label": ".prepareforvalidation()"
+    },
+    {
+      "label": ".rules()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Projects/UpdateProjectRequest.php",
+      "source_location": "L27",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_projects_updateprojectrequest_updateprojectrequest_rules",
+      "community": 113,
+      "community_name": "UpdateProjectRequest",
+      "norm_label": ".rules()"
+    },
+    {
       "label": ".create()",
       "file_type": "code",
       "source_file": "app/Policies/NotificationSettingPolicy.php",
@@ -2000,7 +2072,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_policies_notificationsettingpolicy_notificationsettingpolicy_create",
-      "community": 112,
+      "community": 114,
       "community_name": "NotificationSettingPolicy",
       "norm_label": ".create()"
     },
@@ -2012,7 +2084,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_policies_notificationsettingpolicy_notificationsettingpolicy_delete",
-      "community": 112,
+      "community": 114,
       "community_name": "NotificationSettingPolicy",
       "norm_label": ".delete()"
     },
@@ -2024,57 +2096,9 @@
       "_callable": true,
       "_origin": "ast",
       "id": "app_policies_notificationsettingpolicy_notificationsettingpolicy_update",
-      "community": 112,
+      "community": 114,
       "community_name": "NotificationSettingPolicy",
       "norm_label": ".update()"
-    },
-    {
-      "label": ".edit()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L23",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_edit",
-      "community": 113,
-      "community_name": "PermissionManagementController.php",
-      "norm_label": ".edit()"
-    },
-    {
-      "label": ".rolesInDisplayOrder()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L67",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_rolesindisplayorder",
-      "community": 113,
-      "community_name": "PermissionManagementController.php",
-      "norm_label": ".rolesindisplayorder()"
-    },
-    {
-      "label": ".scopeAssignableInCompany()",
-      "file_type": "code",
-      "source_file": "app/Models/Role.php",
-      "source_location": "L42",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_models_role_role_scopeassignableincompany",
-      "community": 114,
-      "community_name": "Illuminate\\Database\\Eloquent\\Builder",
-      "norm_label": ".scopeassignableincompany()"
-    },
-    {
-      "label": ".scopeVisibleTo()",
-      "file_type": "code",
-      "source_file": "app/Models/Task.php",
-      "source_location": "L75",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_models_task_task_scopevisibleto",
-      "community": 114,
-      "community_name": "Illuminate\\Database\\Eloquent\\Builder",
-      "norm_label": ".scopevisibleto()"
     },
     {
       "label": ".attributes()",
@@ -2428,7 +2452,7 @@
       "label": ".update()",
       "file_type": "code",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L43",
+      "source_location": "L44",
       "_callable": true,
       "_origin": "ast",
       "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_update",
@@ -2797,6 +2821,30 @@
       "norm_label": ".withvalidator()"
     },
     {
+      "label": ".scopeAssignableInCompany()",
+      "file_type": "code",
+      "source_file": "app/Models/Role.php",
+      "source_location": "L42",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_role_role_scopeassignableincompany",
+      "community": 120,
+      "community_name": "Illuminate\\Database\\Eloquent\\Builder",
+      "norm_label": ".scopeassignableincompany()"
+    },
+    {
+      "label": ".scopeVisibleTo()",
+      "file_type": "code",
+      "source_file": "app/Models/Task.php",
+      "source_location": "L75",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_task_task_scopevisibleto",
+      "community": 120,
+      "community_name": "Illuminate\\Database\\Eloquent\\Builder",
+      "norm_label": ".scopevisibleto()"
+    },
+    {
       "label": "label()",
       "file_type": "code",
       "source_file": "app/Enums/DocumentAccessLevel.php",
@@ -2867,42 +2915,6 @@
       "community": 122,
       "community_name": "CalendarController.php",
       "norm_label": ".__invoke()"
-    },
-    {
-      "label": ".attributes()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
-      "source_location": "L33",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_attributes",
-      "community": 127,
-      "community_name": "UpdateDepartmentRequest",
-      "norm_label": ".attributes()"
-    },
-    {
-      "label": ".authorize()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
-      "source_location": "L10",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_authorize",
-      "community": 127,
-      "community_name": "UpdateDepartmentRequest",
-      "norm_label": ".authorize()"
-    },
-    {
-      "label": ".rules()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
-      "source_location": "L15",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_rules",
-      "community": 127,
-      "community_name": "UpdateDepartmentRequest",
-      "norm_label": ".rules()"
     },
     {
       "label": "down()",
@@ -2987,42 +2999,6 @@
       "community": 132,
       "community_name": "UpdateRoleRequest",
       "norm_label": ".withvalidator()"
-    },
-    {
-      "label": ".authorize()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/UpdateProjectRequest.php",
-      "source_location": "L14",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_updateprojectrequest_updateprojectrequest_authorize",
-      "community": 133,
-      "community_name": "UpdateProjectRequest",
-      "norm_label": ".authorize()"
-    },
-    {
-      "label": ".prepareForValidation()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/UpdateProjectRequest.php",
-      "source_location": "L19",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_updateprojectrequest_updateprojectrequest_prepareforvalidation",
-      "community": 133,
-      "community_name": "UpdateProjectRequest",
-      "norm_label": ".prepareforvalidation()"
-    },
-    {
-      "label": ".rules()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/UpdateProjectRequest.php",
-      "source_location": "L27",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_updateprojectrequest_updateprojectrequest_rules",
-      "community": 133,
-      "community_name": "UpdateProjectRequest",
-      "norm_label": ".rules()"
     },
     {
       "label": "something()",
@@ -3517,18 +3493,6 @@
       "norm_label": "up()"
     },
     {
-      "label": ".index()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/AccessControlController.php",
-      "source_location": "L17",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_accesscontrolcontroller_accesscontrolcontroller_index",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": ".index()"
-    },
-    {
       "label": ".__invoke()",
       "file_type": "code",
       "source_file": "app/Http/Controllers/AnalyticsController.php",
@@ -3537,7 +3501,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_analyticscontroller_analyticscontroller_invoke",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": ".__invoke()"
     },
     {
@@ -3549,56 +3513,8 @@
       "_origin": "ast",
       "id": "app_http_controllers_auth_authenticatedsessioncontroller_authenticatedsessioncontroller_create",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": ".create()"
-    },
-    {
-      "label": ".create()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/DepartmentManagementController.php",
-      "source_location": "L45",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_departmentmanagementcontroller_departmentmanagementcontroller_create",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": ".create()"
-    },
-    {
-      "label": ".edit()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/DepartmentManagementController.php",
-      "source_location": "L73",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_departmentmanagementcontroller_departmentmanagementcontroller_edit",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": ".edit()"
-    },
-    {
-      "label": ".index()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/DepartmentManagementController.php",
-      "source_location": "L15",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_departmentmanagementcontroller_departmentmanagementcontroller_index",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": ".index()"
-    },
-    {
-      "label": ".__invoke()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/KanbanController.php",
-      "source_location": "L14",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_kanbancontroller_kanbancontroller_invoke",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": ".__invoke()"
     },
     {
       "label": ".index()",
@@ -3609,8 +3525,32 @@
       "_origin": "ast",
       "id": "app_http_controllers_notificationcontroller_notificationcontroller_index",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": ".index()"
+    },
+    {
+      "label": ".edit()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
+      "source_location": "L24",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_edit",
+      "community": 3,
+      "community_name": "Controller",
+      "norm_label": ".edit()"
+    },
+    {
+      "label": ".rolesInDisplayOrder()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
+      "source_location": "L68",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_rolesindisplayorder",
+      "community": 3,
+      "community_name": "Controller",
+      "norm_label": ".rolesindisplayorder()"
     },
     {
       "label": ".edit()",
@@ -3621,7 +3561,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_rolemanagementcontroller_rolemanagementcontroller_edit",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": ".edit()"
     },
     {
@@ -3633,7 +3573,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_rolemanagementcontroller_rolemanagementcontroller_index",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": ".index()"
     },
     {
@@ -3645,7 +3585,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_settingscontroller_settingscontroller_invoke",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": ".__invoke()"
     },
     {
@@ -4048,7 +3988,7 @@
       "label": "initAnalyticsCharts()",
       "file_type": "code",
       "source_file": "resources/js/app.js",
-      "source_location": "L487",
+      "source_location": "L513",
       "_callable": true,
       "_origin": "ast",
       "id": "resources_js_app_initanalyticscharts",
@@ -4060,7 +4000,7 @@
       "label": "initGanttChart()",
       "file_type": "code",
       "source_file": "resources/js/app.js",
-      "source_location": "L429",
+      "source_location": "L455",
       "_callable": true,
       "_origin": "ast",
       "id": "resources_js_app_initganttchart",
@@ -4084,7 +4024,7 @@
       "label": "renderGanttView()",
       "file_type": "code",
       "source_file": "resources/js/app.js",
-      "source_location": "L309",
+      "source_location": "L335",
       "_callable": true,
       "_origin": "ast",
       "id": "resources_js_app_renderganttview",
@@ -4117,6 +4057,54 @@
       "norm_label": "setuptasklistresizer()"
     },
     {
+      "label": ".index()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/AccessControlController.php",
+      "source_location": "L17",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_accesscontrolcontroller_accesscontrolcontroller_index",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": ".index()"
+    },
+    {
+      "label": ".create()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/DepartmentManagementController.php",
+      "source_location": "L45",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_departmentmanagementcontroller_departmentmanagementcontroller_create",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": ".create()"
+    },
+    {
+      "label": ".edit()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/DepartmentManagementController.php",
+      "source_location": "L73",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_departmentmanagementcontroller_departmentmanagementcontroller_edit",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": ".edit()"
+    },
+    {
+      "label": ".index()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/DepartmentManagementController.php",
+      "source_location": "L15",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_departmentmanagementcontroller_departmentmanagementcontroller_index",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": ".index()"
+    },
+    {
       "label": ".create()",
       "file_type": "code",
       "source_file": "app/Http/Controllers/DocumentController.php",
@@ -4139,6 +4127,18 @@
       "community": 5,
       "community_name": "Organization",
       "norm_label": ".index()"
+    },
+    {
+      "label": ".__invoke()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/KanbanController.php",
+      "source_location": "L14",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_kanbancontroller_kanbancontroller_invoke",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": ".__invoke()"
     },
     {
       "label": ".create()",
@@ -5164,7 +5164,7 @@
       "label": "validProjectPayload()",
       "file_type": "code",
       "source_file": "tests/Feature/Projects/ProjectManagementTest.php",
-      "source_location": "L41",
+      "source_location": "L42",
       "_callable": true,
       "_origin": "ast",
       "id": "tests_feature_projects_projectmanagementtest_validprojectpayload",
@@ -5188,7 +5188,7 @@
       "label": "makeClientOnProject()",
       "file_type": "code",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L65",
+      "source_location": "L66",
       "_callable": true,
       "_origin": "ast",
       "id": "tests_feature_tasks_taskmanagementtest_makeclientonproject",
@@ -5200,7 +5200,7 @@
       "label": "makeStaffWithDepartmentAccess()",
       "file_type": "code",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L47",
+      "source_location": "L48",
       "_callable": true,
       "_origin": "ast",
       "id": "tests_feature_tasks_taskmanagementtest_makestaffwithdepartmentaccess",
@@ -6516,37 +6516,37 @@
       "norm_label": "departmentpolicy.php"
     },
     {
+      "label": "UpdateDepartmentRequest.php",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_requests_departments_updatedepartmentrequest",
+      "community": 112,
+      "community_name": "UpdateDepartmentRequest",
+      "norm_label": "updatedepartmentrequest.php"
+    },
+    {
+      "label": "UpdateProjectRequest.php",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Projects/UpdateProjectRequest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_requests_projects_updateprojectrequest",
+      "community": 113,
+      "community_name": "UpdateProjectRequest",
+      "norm_label": "updateprojectrequest.php"
+    },
+    {
       "label": "NotificationSettingPolicy.php",
       "file_type": "code",
       "source_file": "app/Policies/NotificationSettingPolicy.php",
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_policies_notificationsettingpolicy",
-      "community": 112,
+      "community": 114,
       "community_name": "NotificationSettingPolicy",
       "norm_label": "notificationsettingpolicy.php"
-    },
-    {
-      "label": "PermissionManagementController.php",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller",
-      "community": 113,
-      "community_name": "PermissionManagementController.php",
-      "norm_label": "permissionmanagementcontroller.php"
-    },
-    {
-      "label": "Illuminate\\Database\\Eloquent\\Builder",
-      "file_type": "code",
-      "source_file": "",
-      "source_location": "",
-      "_origin": "ast",
-      "id": "illuminate_database_eloquent_builder",
-      "community": 114,
-      "community_name": "Illuminate\\Database\\Eloquent\\Builder",
-      "norm_label": "illuminate\\database\\eloquent\\builder"
     },
     {
       "label": "ValidatesCompanyRoles.php",
@@ -6780,6 +6780,17 @@
       "norm_label": "security vulnerabilities"
     },
     {
+      "label": "Illuminate\\Database\\Eloquent\\Builder",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "illuminate_database_eloquent_builder",
+      "community": 120,
+      "community_name": "Illuminate\\Database\\Eloquent\\Builder",
+      "norm_label": "illuminate\\database\\eloquent\\builder"
+    },
+    {
       "label": "DocumentAccessLevel.php",
       "file_type": "code",
       "source_file": "app/Enums/DocumentAccessLevel.php",
@@ -6835,6 +6846,17 @@
       "norm_label": "analytics.blade.php"
     },
     {
+      "label": "chart.js",
+      "file_type": "code",
+      "source_file": "chart.js",
+      "confidence": "EXTRACTED",
+      "_origin": "ast",
+      "id": "chart_js_chart_js",
+      "community": 124,
+      "community_name": "chart.js",
+      "norm_label": "chart.js"
+    },
+    {
       "label": "badge.blade.php",
       "file_type": "code",
       "source_file": "resources/views/components/badge.blade.php",
@@ -6855,17 +6877,6 @@
       "community": 126,
       "community_name": "dot.blade.php",
       "norm_label": "dot.blade.php"
-    },
-    {
-      "label": "UpdateDepartmentRequest.php",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_requests_departments_updatedepartmentrequest",
-      "community": 127,
-      "community_name": "UpdateDepartmentRequest",
-      "norm_label": "updatedepartmentrequest.php"
     },
     {
       "label": "2026_08_22_140120_add_start_date_to_tasks_and_subtasks_tables.php",
@@ -6943,28 +6954,6 @@
       "community": 132,
       "community_name": "UpdateRoleRequest",
       "norm_label": "updaterolerequest.php"
-    },
-    {
-      "label": "UpdateProjectRequest.php",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/UpdateProjectRequest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_requests_projects_updateprojectrequest",
-      "community": 133,
-      "community_name": "UpdateProjectRequest",
-      "norm_label": "updateprojectrequest.php"
-    },
-    {
-      "label": "chart.js",
-      "file_type": "code",
-      "source_file": "chart.js",
-      "confidence": "EXTRACTED",
-      "_origin": "ast",
-      "id": "chart_js_chart_js",
-      "community": 135,
-      "community_name": "chart.js",
-      "norm_label": "chart.js"
     },
     {
       "label": "Illuminate\\Foundation\\Testing\\TestCase",
@@ -7319,17 +7308,6 @@
       "norm_label": "2026_08_17_001100_create_subtasks_table.php"
     },
     {
-      "label": "AccessControlController.php",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/AccessControlController.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_controllers_accesscontrolcontroller",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "accesscontrolcontroller.php"
-    },
-    {
       "label": "AuthenticatedSessionController.php",
       "file_type": "code",
       "source_file": "app/Http/Controllers/Auth/AuthenticatedSessionController.php",
@@ -7337,7 +7315,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_auth_authenticatedsessioncontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "authenticatedsessioncontroller.php"
     },
     {
@@ -7348,30 +7326,8 @@
       "_origin": "ast",
       "id": "app_http_controllers_controller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "controller.php"
-    },
-    {
-      "label": "DepartmentManagementController.php",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/DepartmentManagementController.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_controllers_departmentmanagementcontroller",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "departmentmanagementcontroller.php"
-    },
-    {
-      "label": "KanbanController.php",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/KanbanController.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_controllers_kanbancontroller",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "kanbancontroller.php"
     },
     {
       "label": "NotificationController.php",
@@ -7381,8 +7337,19 @@
       "_origin": "ast",
       "id": "app_http_controllers_notificationcontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "notificationcontroller.php"
+    },
+    {
+      "label": "PermissionManagementController.php",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_controllers_permissionmanagementcontroller",
+      "community": 3,
+      "community_name": "Controller",
+      "norm_label": "permissionmanagementcontroller.php"
     },
     {
       "label": "RoleManagementController.php",
@@ -7392,7 +7359,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_rolemanagementcontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "rolemanagementcontroller.php"
     },
     {
@@ -7403,7 +7370,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_settingscontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "settingscontroller.php"
     },
     {
@@ -7414,7 +7381,7 @@
       "_origin": "ast",
       "id": "app_http_controllers_taskmanagementcontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "taskmanagementcontroller.php"
     },
     {
@@ -7425,19 +7392,8 @@
       "_origin": "ast",
       "id": "app_http_controllers_usermanagementcontroller",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "usermanagementcontroller.php"
-    },
-    {
-      "label": "Illuminate\\View\\View",
-      "file_type": "code",
-      "source_file": "",
-      "source_location": "",
-      "_origin": "ast",
-      "id": "illuminate_view_view",
-      "community": 3,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "illuminate\\view\\view"
     },
     {
       "label": "web.php",
@@ -7447,7 +7403,7 @@
       "_origin": "ast",
       "id": "routes_web",
       "community": 3,
-      "community_name": "Illuminate\\View\\View",
+      "community_name": "Controller",
       "norm_label": "web.php"
     },
     {
@@ -7806,7 +7762,7 @@
       "label": "CHART_PALETTE",
       "file_type": "code",
       "source_file": "resources/js/app.js",
-      "source_location": "L480",
+      "source_location": "L506",
       "_origin": "ast",
       "id": "resources_js_app_chart_palette",
       "community": 47,
@@ -7869,6 +7825,28 @@
       "norm_label": "config/app.php"
     },
     {
+      "label": "AccessControlController.php",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/AccessControlController.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_controllers_accesscontrolcontroller",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": "accesscontrolcontroller.php"
+    },
+    {
+      "label": "DepartmentManagementController.php",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/DepartmentManagementController.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_controllers_departmentmanagementcontroller",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": "departmentmanagementcontroller.php"
+    },
+    {
       "label": "DocumentController.php",
       "file_type": "code",
       "source_file": "app/Http/Controllers/DocumentController.php",
@@ -7880,6 +7858,17 @@
       "norm_label": "documentcontroller.php"
     },
     {
+      "label": "KanbanController.php",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/KanbanController.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_controllers_kanbancontroller",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": "kanbancontroller.php"
+    },
+    {
       "label": "OrganizationManagementController.php",
       "file_type": "code",
       "source_file": "app/Http/Controllers/OrganizationManagementController.php",
@@ -7889,6 +7878,17 @@
       "community": 5,
       "community_name": "Organization",
       "norm_label": "organizationmanagementcontroller.php"
+    },
+    {
+      "label": "Illuminate\\View\\View",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "illuminate_view_view",
+      "community": 5,
+      "community_name": "Organization",
+      "norm_label": "illuminate\\view\\view"
     },
     {
       "label": "cache.php",
@@ -10704,7 +10704,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_edit",
@@ -11952,7 +11952,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "resources/js/app.js",
-      "source_location": "L448",
+      "source_location": "L474",
       "weight": 1.0,
       "_origin": "ast",
       "source": "resources_js_app_initganttchart",
@@ -11964,7 +11964,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "resources/js/app.js",
-      "source_location": "L455",
+      "source_location": "L481",
       "weight": 1.0,
       "_origin": "ast",
       "source": "resources_js_app_initganttchart",
@@ -11976,7 +11976,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "resources/js/app.js",
-      "source_location": "L312",
+      "source_location": "L338",
       "weight": 1.0,
       "_origin": "ast",
       "source": "resources_js_app_renderganttview",
@@ -11988,7 +11988,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "resources/js/app.js",
-      "source_location": "L331",
+      "source_location": "L357",
       "weight": 1.0,
       "_origin": "ast",
       "source": "resources_js_app_renderganttview",
@@ -12000,7 +12000,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "resources/js/app.js",
-      "source_location": "L349",
+      "source_location": "L375",
       "weight": 1.0,
       "_origin": "ast",
       "source": "resources_js_app_renderganttview",
@@ -12012,7 +12012,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "resources/js/app.js",
-      "source_location": "L357",
+      "source_location": "L383",
       "weight": 1.0,
       "_origin": "ast",
       "source": "resources_js_app_renderganttview",
@@ -12024,7 +12024,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "resources/js/app.js",
-      "source_location": "L391",
+      "source_location": "L417",
       "weight": 1.0,
       "_origin": "ast",
       "source": "resources_js_app_renderganttview",
@@ -12133,7 +12133,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L68",
+      "source_location": "L69",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest_makeclientonproject",
@@ -12145,7 +12145,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L50",
+      "source_location": "L51",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest_makestaffwithdepartmentaccess",
@@ -13572,7 +13572,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L10",
+      "source_location": "L11",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller",
@@ -18976,7 +18976,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_projects_projectmanagementtest",
-      "target": "app_models_task",
+      "target": "app_models_role",
       "confidence_score": 1.0
     },
     {
@@ -18988,7 +18988,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_projects_projectmanagementtest",
-      "target": "app_models_user",
+      "target": "app_models_task",
       "confidence_score": 1.0
     },
     {
@@ -19000,7 +19000,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_projects_projectmanagementtest",
-      "target": "database_seeders_permissionseeder",
+      "target": "app_models_user",
       "confidence_score": 1.0
     },
     {
@@ -19009,6 +19009,18 @@
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Projects/ProjectManagementTest.php",
       "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tests_feature_projects_projectmanagementtest",
+      "target": "database_seeders_permissionseeder",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/Feature/Projects/ProjectManagementTest.php",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_projects_projectmanagementtest",
@@ -19084,7 +19096,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_projects_projectmanagementtest",
-      "target": "app_models_project",
+      "target": "app_models_permission",
       "confidence_score": 1.0
     },
     {
@@ -19096,7 +19108,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_projects_projectmanagementtest",
-      "target": "app_models_role",
+      "target": "app_models_project",
       "confidence_score": 1.0
     },
     {
@@ -19336,7 +19348,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest",
-      "target": "app_models_role",
+      "target": "app_models_project_project",
       "confidence_score": 1.0
     },
     {
@@ -19348,7 +19360,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest",
-      "target": "app_models_subtask",
+      "target": "app_models_role",
       "confidence_score": 1.0
     },
     {
@@ -19360,7 +19372,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest",
-      "target": "app_models_task",
+      "target": "app_models_subtask",
       "confidence_score": 1.0
     },
     {
@@ -19372,7 +19384,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest",
-      "target": "app_models_user_user",
+      "target": "app_models_task",
       "confidence_score": 1.0
     },
     {
@@ -19384,7 +19396,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest",
-      "target": "database_seeders_permissionseeder",
+      "target": "app_models_user_user",
       "confidence_score": 1.0
     },
     {
@@ -19393,6 +19405,18 @@
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
       "source_location": "L15",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "tests_feature_tasks_taskmanagementtest",
+      "target": "database_seeders_permissionseeder",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
+      "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest",
@@ -19480,7 +19504,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest",
-      "target": "app_models_project_project",
+      "target": "app_models_permission",
       "confidence_score": 1.0
     },
     {
@@ -20099,7 +20123,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L43",
+      "source_location": "L44",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -22343,7 +22367,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L65",
+      "source_location": "L66",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -22355,7 +22379,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L65",
+      "source_location": "L66",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -22367,7 +22391,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L47",
+      "source_location": "L48",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -22379,7 +22403,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L47",
+      "source_location": "L48",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -22907,7 +22931,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L23",
+      "source_location": "L24",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -22919,7 +22943,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L43",
+      "source_location": "L44",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -24156,7 +24180,7 @@
       "context": "return_type",
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L65",
+      "source_location": "L66",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest_makeclientonproject",
@@ -24168,7 +24192,7 @@
       "context": "return_type",
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L47",
+      "source_location": "L48",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest_makestaffwithdepartmentaccess",
@@ -24565,7 +24589,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L12",
+      "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller",
@@ -27051,7 +27075,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "resources/js/app.js",
-      "source_location": "L309",
+      "source_location": "L335",
       "weight": 1.0,
       "_origin": "ast",
       "source": "resources_js_app",
@@ -27062,33 +27086,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "resources/js/app.js",
-      "source_location": "L429",
+      "source_location": "L455",
       "weight": 1.0,
       "_origin": "ast",
       "source": "resources_js_app",
       "target": "resources_js_app_initganttchart",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "resources/js/app.js",
-      "source_location": "L480",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "resources_js_app",
-      "target": "resources_js_app_chart_palette",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "resources/js/app.js",
-      "source_location": "L487",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "resources_js_app",
-      "target": "resources_js_app_initanalyticscharts",
       "confidence_score": 1.0
     },
     {
@@ -27100,6 +27102,28 @@
       "_origin": "ast",
       "source": "resources_js_app",
       "target": "resources_js_app_initphoneinputs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "resources/js/app.js",
+      "source_location": "L506",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "resources_js_app",
+      "target": "resources_js_app_chart_palette",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "resources/js/app.js",
+      "source_location": "L513",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "resources_js_app",
+      "target": "resources_js_app_initanalyticscharts",
       "confidence_score": 1.0
     },
     {
@@ -27271,7 +27295,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Projects/ProjectManagementTest.php",
-      "source_location": "L41",
+      "source_location": "L42",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_projects_projectmanagementtest",
@@ -27293,7 +27317,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L47",
+      "source_location": "L48",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest",
@@ -27304,7 +27328,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L65",
+      "source_location": "L66",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest",
@@ -27733,7 +27757,7 @@
       "relation": "inherits",
       "confidence": "EXTRACTED",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L12",
+      "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller",
@@ -28679,7 +28703,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L23",
+      "source_location": "L24",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller",
@@ -28690,7 +28714,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L43",
+      "source_location": "L44",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller",
@@ -28701,7 +28725,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L67",
+      "source_location": "L68",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller",
@@ -32389,7 +32413,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_edit",
@@ -32401,7 +32425,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L71",
+      "source_location": "L72",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_rolesindisplayorder",
@@ -32413,7 +32437,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L50",
+      "source_location": "L51",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_update",
@@ -32425,7 +32449,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L61",
+      "source_location": "L62",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_update",
@@ -33337,7 +33361,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L71",
+      "source_location": "L72",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest_makeclientonproject",
@@ -33349,7 +33373,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L53",
+      "source_location": "L54",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest_makestaffwithdepartmentaccess",
@@ -33361,7 +33385,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "tests/Feature/Tasks/TaskManagementTest.php",
-      "source_location": "L55",
+      "source_location": "L56",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_feature_tasks_taskmanagementtest_makestaffwithdepartmentaccess",
@@ -33369,5 +33393,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "9b45b00c8c5565200e2f198be8ea2fe346d7798b"
+  "built_at_commit": "c43ebb43176090c555d4fd5667d1c0bbb6fc6dfe"
 }

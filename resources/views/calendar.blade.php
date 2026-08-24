@@ -36,7 +36,7 @@
                 <div class="flex">
                     <div id="gantt-task-list" class="shrink-0 overflow-x-auto overflow-y-hidden bg-white"></div>
                     <div id="gantt-task-list-resizer" role="separator" aria-orientation="vertical" aria-label="Resize task list column"
-                         class="w-1 shrink-0 cursor-col-resize border-x border-gray-200 bg-gray-50 hover:bg-[#1D9E75]/20"></div>
+                         class="w-1 shrink-0 touch-none cursor-col-resize border-x border-gray-200 bg-gray-50 hover:bg-[#1D9E75]/20"></div>
                     <div id="gantt-container" class="min-w-0 flex-1" data-tasks='@json($ganttTasks)' data-subtasks='@json($subtasksByTask)'></div>
                 </div>
             @endif
