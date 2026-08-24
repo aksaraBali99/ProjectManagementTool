@@ -119,7 +119,7 @@
                 if (matches.length === 0) return;
 
                 dropdown = document.createElement('div');
-                dropdown.className = 'mention-dropdown absolute z-20 mt-1 max-h-40 w-56 overflow-y-auto rounded-md border border-gray-200 bg-white text-[12px] shadow-lg';
+                dropdown.className = 'mention-dropdown absolute z-20 w-56 overflow-y-auto rounded-md border border-gray-200 bg-white text-[12px] shadow-lg';
 
                 matches.forEach(function (user) {
                     const item = document.createElement('button');
@@ -143,8 +143,29 @@
                     parent.style.position = 'relative';
                 }
                 parent.appendChild(dropdown);
+
+                // Flip above the textarea when there isn't enough room below
+                // to show the list on screen (a comment box near the bottom
+                // of the page, or a scrolled-down task-list drilldown row)
+                // — otherwise the dropdown would render partly or fully off
+                // the bottom of the viewport with no way to reach the rest
+                // of it. dropdown.scrollHeight here is its natural height,
+                // read before any max-height constraint is applied.
+                const margin = 4;
+                const edgePadding = 8;
+                const textareaRect = textarea.getBoundingClientRect();
+                const spaceBelow = window.innerHeight - textareaRect.bottom - margin - edgePadding;
+                const spaceAbove = textareaRect.top - margin - edgePadding;
+                const placeAbove = spaceBelow < dropdown.scrollHeight && spaceAbove > spaceBelow;
+
+                dropdown.style.maxHeight = Math.max(80, placeAbove ? spaceAbove : spaceBelow) + 'px';
                 dropdown.style.left = textarea.offsetLeft + 'px';
-                dropdown.style.top = (textarea.offsetTop + textarea.offsetHeight) + 'px';
+
+                if (placeAbove) {
+                    dropdown.style.top = (textarea.offsetTop - margin - dropdown.offsetHeight) + 'px';
+                } else {
+                    dropdown.style.top = (textarea.offsetTop + textarea.offsetHeight + margin) + 'px';
+                }
             }
 
             textarea.addEventListener('input', function () {
