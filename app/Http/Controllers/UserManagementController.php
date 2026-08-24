@@ -5,11 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Users\StoreUserRequest;
 use App\Http\Requests\Users\UpdateUserPasswordRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
+use App\Models\AccessPermission;
+use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -31,10 +35,17 @@ class UserManagementController extends Controller
     {
         Gate::authorize('create', User::class);
 
+        $organizations = Organization::orderBy('name')->get();
+
         return view('users.create', [
-            'organizations' => Organization::orderBy('name')->get(),
+            'organizations' => $organizations,
             'assignableRoles' => Role::assignableInCompany()->orderBy('name')->get(),
             'canGrantSuperAdmin' => auth()->user()->isOwner(),
+            'currentRoles' => collect(),
+            'isTargetOwner' => false,
+            'isTargetSuperAdmin' => false,
+            'departmentsByOrganization' => $this->departmentsByOrganization($organizations),
+            'allowedDepartmentIds' => [],
         ]);
     }
 
@@ -42,18 +53,24 @@ class UserManagementController extends Controller
     {
         Gate::authorize('create', User::class);
 
-        $user = User::create([
-            'username' => $request->string('username'),
-            'password' => $request->string('password'),
-            'name' => $request->string('name'),
-            'employee_id' => $request->string('employee_id'),
-            'email' => $request->string('email'),
-            'phone' => $request->string('phone'),
-            'is_active' => true,
-        ]);
+        // User fields, org_members rows, and access_permissions rows are
+        // one save from the admin's point of view (three tabs of the same
+        // form) — either all of it lands, or none of it does.
+        DB::transaction(function () use ($request) {
+            $user = User::create([
+                'username' => $request->string('username'),
+                'password' => $request->string('password'),
+                'name' => $request->string('name'),
+                'employee_id' => $request->string('employee_id'),
+                'email' => $request->string('email'),
+                'phone' => $request->string('phone'),
+                'is_active' => true,
+            ]);
 
-        $this->syncCompanyRoles($user, $request->input('roles', []));
-        $this->syncSuperAdminGrant($user, $request);
+            $this->syncCompanyRoles($user, $request->input('roles', []));
+            $this->syncSuperAdminGrant($user, $request);
+            $this->syncDepartmentAccess($user, $request->input('roles', []), $request->input('access_permissions', []));
+        });
 
         return redirect()->route('users.index')->with('status', 'User created.');
     }
@@ -84,6 +101,8 @@ class UserManagementController extends Controller
             'isTargetSuperAdmin' => $user->roles()->where('slug', Role::SUPER_ADMIN)->exists(),
             'canGrantSuperAdmin' => auth()->user()->isOwner(),
             'globalRoles' => $user->roles()->whereIn('slug', Role::GLOBAL_SLUGS)->pluck('name'),
+            'departmentsByOrganization' => $this->departmentsByOrganization($organizations),
+            'allowedDepartmentIds' => $user->accessPermissions()->where('allowed', true)->pluck('department_id')->all(),
         ]);
     }
 
@@ -91,20 +110,23 @@ class UserManagementController extends Controller
     {
         Gate::authorize('update', $user);
 
-        $user->update([
-            'username' => $request->string('username'),
-            'name' => $request->string('name'),
-            'employee_id' => $request->string('employee_id'),
-            'email' => $request->string('email'),
-            'phone' => $request->string('phone'),
-        ]);
-
         $isTargetOwner = $user->roles()->where('slug', Role::OWNER)->exists();
 
-        if (! $isTargetOwner) {
-            $this->syncCompanyRoles($user, $request->input('roles', []));
-            $this->syncSuperAdminGrant($user, $request);
-        }
+        DB::transaction(function () use ($request, $user, $isTargetOwner) {
+            $user->update([
+                'username' => $request->string('username'),
+                'name' => $request->string('name'),
+                'employee_id' => $request->string('employee_id'),
+                'email' => $request->string('email'),
+                'phone' => $request->string('phone'),
+            ]);
+
+            if (! $isTargetOwner) {
+                $this->syncCompanyRoles($user, $request->input('roles', []));
+                $this->syncSuperAdminGrant($user, $request);
+                $this->syncDepartmentAccess($user, $request->input('roles', []), $request->input('access_permissions', []));
+            }
+        });
 
         return redirect()->route('users.index')->with('status', 'User updated.');
     }
@@ -169,5 +191,58 @@ class UserManagementController extends Controller
         } else {
             $user->roles()->detach($superAdminId);
         }
+    }
+
+    /**
+     * Full replace of this user's access_permissions rows on every save,
+     * scoped to companies the JUST-SUBMITTED roles mark as staff — a role
+     * change away from staff in the same save silently drops that
+     * company's department grants rather than leaving orphaned rows a
+     * later staff reassignment would resurrect. Submitted department IDs
+     * for a non-staff company are ignored rather than rejected, the same
+     * defense-in-depth pattern as CommentController::syncMentions()
+     * filtering against a server-derived eligible set instead of trusting
+     * the client's tab-visibility logic.
+     *
+     * @param  array<int|string, string>  $roles  organization_id => 'none' or a company-assignable role slug
+     * @param  array<int, int|string>  $departmentIds
+     */
+    private function syncDepartmentAccess(User $user, array $roles, array $departmentIds): void
+    {
+        AccessPermission::where('user_id', $user->id)->delete();
+
+        $staffOrgIds = collect($roles)
+            ->filter(fn ($role) => $role === Role::STAFF)
+            ->keys()
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (empty($staffOrgIds) || empty($departmentIds)) {
+            return;
+        }
+
+        $departments = Department::whereIn('id', $departmentIds)
+            ->whereIn('organization_id', $staffOrgIds)
+            ->where('is_active', true)
+            ->get(['id', 'organization_id']);
+
+        foreach ($departments as $department) {
+            AccessPermission::create([
+                'user_id' => $user->id,
+                'organization_id' => $department->organization_id,
+                'department_id' => $department->id,
+                'allowed' => true,
+            ]);
+        }
+    }
+
+    /**
+     * @return array<int, Collection<int, array{id: int, name: string, color: string}>>
+     */
+    private function departmentsByOrganization(Collection $organizations): array
+    {
+        return $organizations->mapWithKeys(fn (Organization $organization) => [
+            $organization->id => $organization->departments()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'color']),
+        ])->all();
     }
 }

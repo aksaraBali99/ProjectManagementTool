@@ -33,6 +33,8 @@ class StoreUserRequest extends FormRequest
             'roles' => ['required', 'array'],
             'roles.*' => ['required', Rule::in(array_merge(['none'], $assignableSlugs))],
             'grant_super_admin' => ['sometimes', 'boolean'],
+            'access_permissions' => ['sometimes', 'array'],
+            'access_permissions.*' => ['integer', 'exists:departments,id'],
         ];
     }
 

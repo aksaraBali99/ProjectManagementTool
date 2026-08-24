@@ -52,6 +52,8 @@ class UpdateUserRequest extends FormRequest
             $rules['roles'] = ['required', 'array'];
             $rules['roles.*'] = ['required', Rule::in(array_merge(['none'], $assignableSlugs))];
             $rules['grant_super_admin'] = ['sometimes', 'boolean'];
+            $rules['access_permissions'] = ['sometimes', 'array'];
+            $rules['access_permissions.*'] = ['integer', 'exists:departments,id'];
         }
 
         return $rules;
