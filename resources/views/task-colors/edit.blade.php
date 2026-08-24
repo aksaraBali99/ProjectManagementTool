@@ -59,12 +59,59 @@
             </div>
         </form>
     </div>
+
+    <div class="mt-8">
+        <h2 class="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority Colors</h2>
+
+        <form method="POST" action="{{ route('task-colors.update-priority') }}" class="mt-2">
+            @csrf
+            @method('PUT')
+
+            <div class="space-y-2">
+                @foreach ($priorityColors as $color)
+                    @php
+                        $bg = old('priority_colors.'.$color['value'].'.background_color', $color['background_color']);
+                        $text = old('priority_colors.'.$color['value'].'.text_color', $color['text_color']);
+                    @endphp
+                    <div class="task-color-row flex flex-wrap items-center gap-3 rounded-md border border-gray-200 px-3 py-3" data-value="{{ $color['value'] }}">
+                        <span class="w-24 shrink-0 text-[12px] font-medium text-[#1F2937]">{{ $color['label'] }}</span>
+
+                        <label class="flex items-center gap-1.5 text-[10px] text-gray-500">
+                            Background
+                            <input type="color" class="task-color-bg h-7 w-10 cursor-pointer rounded border border-gray-300 p-0"
+                                name="priority_colors[{{ $color['value'] }}][background_color]" value="{{ $bg }}">
+                        </label>
+
+                        <label class="flex items-center gap-1.5 text-[10px] text-gray-500">
+                            Text
+                            <input type="color" class="task-color-text h-7 w-10 cursor-pointer rounded border border-gray-300 p-0"
+                                name="priority_colors[{{ $color['value'] }}][text_color]" value="{{ $text }}">
+                        </label>
+
+                        <x-badge class="task-color-preview" :background="$bg" :text="$text">{{ $color['label'] }}</x-badge>
+
+                        <span class="task-color-contrast-warning text-[10px] text-amber-600" style="display: none;"></span>
+                    </div>
+                @endforeach
+            </div>
+
+            @error('priority_colors')
+                <p class="mt-2 text-[11px] text-red-600">{{ $message }}</p>
+            @enderror
+
+            <div class="mt-4">
+                <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                    Save priority colors
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
-{{-- Shared by every .task-color-row on this page, present or future
-     (Priority Colors reuses the exact same row markup/classes) — live
-     preview swatch + a non-blocking WCAG AA contrast warning (ratio below
-     4.5:1, the threshold for normal-size text), computed client-side so
+{{-- Shared by every .task-color-row on this page — both the Status and
+     Priority sections above reuse the exact same row markup/classes —
+     live preview swatch + a non-blocking WCAG AA contrast warning (ratio
+     below 4.5:1, the threshold for normal-size text), computed client-side so
      nothing round-trips to the server before saving. --}}
 <script>
     (function () {

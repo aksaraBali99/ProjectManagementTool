@@ -39,10 +39,10 @@
             @foreach (\App\Enums\Priority::cases() as $priority)
                 @php $group = $priorityGroups[$priority->value] ?? collect() @endphp
                 <div class="rounded-lg border border-gray-200 bg-white">
-                    <div class="flex items-center justify-between border-b-2 px-3 py-2" style="border-color: {{ $priority->dotColor() }}">
+                    <div class="flex items-center justify-between border-b-2 px-3 py-2" style="border-color: {{ $priority->badgeText() }}">
                         <span class="flex items-center gap-1.5">
-                            <x-dot :color="$priority->dotColor()" size="8px" />
-                            <span class="text-[10px] font-medium uppercase tracking-[0.06em]" style="color: {{ $priority->dotColor() }}">{{ $priority->label() }}</span>
+                            <x-dot :color="$priority->badgeText()" size="8px" />
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em]" style="color: {{ $priority->badgeText() }}">{{ $priority->label() }}</span>
                         </span>
                         <span class="text-[10px] text-gray-400">{{ $group->count() }}</span>
                     </div>
@@ -50,7 +50,7 @@
                         @forelse ($group as $task)
                             <a href="{{ route('tasks.edit', $task) }}"
                                class="block rounded-md border-l-4 px-4 py-2 hover:opacity-90"
-                               style="border-left-color: {{ $priority->dotColor() }}; background-color: {{ $priority->badgeBackground() }};">
+                               style="border-left-color: {{ $priority->badgeText() }}; background-color: {{ $priority->badgeBackground() }};">
                                 <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
                                 <p class="mt-0.5 flex items-center justify-between text-[10px]">
                                     <span style="color: {{ $task->department->badgeText() }}">{{ $task->department->name }}</span>

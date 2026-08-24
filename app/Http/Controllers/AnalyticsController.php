@@ -51,6 +51,7 @@ class AnalyticsController extends Controller
         $priorityCounts = collect(Priority::cases())->map(fn (Priority $priority) => [
             'label' => $priority->label(),
             'count' => Task::whereIn('organization_id', $organizationIds)->where('priority', $priority->value)->count(),
+            'color' => $priority->badgeBackground(),
         ]);
 
         $overdueCount = Task::whereIn('organization_id', $organizationIds)
