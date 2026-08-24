@@ -3,7 +3,6 @@
 namespace App\Enums;
 
 use App\Models\TaskStatusColor;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 enum TaskStatus: string
@@ -38,7 +37,7 @@ enum TaskStatus: string
      */
     public function badgeBackground(): string
     {
-        return self::colorRow($this)?->background_color ?? match ($this) {
+        return self::colorRow($this)['background_color'] ?? match ($this) {
             self::Pending => '#F1EFE8',
             self::InProgress => '#E1F5EE',
             self::InReview => '#FAEEDA',
@@ -48,7 +47,7 @@ enum TaskStatus: string
 
     public function badgeText(): string
     {
-        return self::colorRow($this)?->text_color ?? match ($this) {
+        return self::colorRow($this)['text_color'] ?? match ($this) {
             self::Pending => '#5F5E5A',
             self::InProgress => '#0F6E56',
             self::InReview => '#854F0B',
@@ -56,17 +55,38 @@ enum TaskStatus: string
         };
     }
 
-    private static function colorRow(self $status): ?TaskStatusColor
+    /**
+     * @return array{background_color: string, text_color: string}|null
+     */
+    private static function colorRow(self $status): ?array
     {
-        return self::allColors()->get($status->value);
+        return self::allColors()[$status->value] ?? null;
     }
 
     /**
-     * @return Collection<string, TaskStatusColor>
+     * Cached as a plain array, deliberately not the Eloquent models/
+     * Collection themselves — the 'database' cache driver serializes
+     * whatever it's given, and unserializing a cached model instance can
+     * come back as __PHP_Incomplete_Class if the model class isn't already
+     * resolvable at that exact moment (autoloader/classmap state at
+     * request time — cheap to hit in practice, e.g. right after a deploy).
+     * A plain array of strings has no class to resolve, so this can't happen.
+     *
+     * @return array<string, array{background_color: string, text_color: string}>
      */
-    private static function allColors(): Collection
+    private static function allColors(): array
     {
-        return Cache::rememberForever(self::COLOR_CACHE_KEY, fn () => TaskStatusColor::all()->keyBy('status'));
+        return Cache::rememberForever(
+            self::COLOR_CACHE_KEY,
+            fn () => TaskStatusColor::query()
+                ->get(['status', 'background_color', 'text_color'])
+                ->keyBy('status')
+                ->map(fn (TaskStatusColor $color) => [
+                    'background_color' => $color->background_color,
+                    'text_color' => $color->text_color,
+                ])
+                ->all()
+        );
     }
 
     /**
