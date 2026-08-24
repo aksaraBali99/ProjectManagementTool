@@ -10,7 +10,7 @@
     "semantic_hash": ""
   },
   "app/Providers/AppServiceProvider.php": {
-    "mtime": 1787572840.02587,
+    "mtime": 1787575962.8160777,
     "ast_hash": "a4f793628f28b0fd4b2caf97c7d80a1c",
     "semantic_hash": ""
   },
@@ -120,7 +120,7 @@
     "semantic_hash": ""
   },
   "resources/js/app.js": {
-    "mtime": 1787572998.2500184,
+    "mtime": 1787575962.8575563,
     "ast_hash": "669d3065f8d042cfe1193041c5629e5e",
     "semantic_hash": ""
   },
@@ -130,7 +130,7 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1787574349.4075935,
+    "mtime": 1787575962.8672574,
     "ast_hash": "4d4e002f71eb3948b038bdcd4932471d",
     "semantic_hash": ""
   },
@@ -405,7 +405,7 @@
     "semantic_hash": ""
   },
   "resources/views/dashboard.blade.php": {
-    "mtime": 1787574271.7594962,
+    "mtime": 1787575962.8612554,
     "ast_hash": "658dc927dd23b8562f78e8edc4e1dde0",
     "semantic_hash": ""
   },
@@ -555,7 +555,7 @@
     "semantic_hash": ""
   },
   "resources/views/layouts/authenticated.blade.php": {
-    "mtime": 1787572951.0927315,
+    "mtime": 1787575962.862273,
     "ast_hash": "31faf82b4e4c28e98294cb82054e949d",
     "semantic_hash": ""
   },
@@ -585,7 +585,7 @@
     "semantic_hash": ""
   },
   "resources/views/settings/index.blade.php": {
-    "mtime": 1787572969.0151725,
+    "mtime": 1787575962.8642602,
     "ast_hash": "a2b1ac66fcbddf8d8654f27e6d62b1ac",
     "semantic_hash": ""
   },
@@ -845,8 +845,8 @@
     "semantic_hash": ""
   },
   "app/Enums/Priority.php": {
-    "mtime": 1787574249.9997842,
-    "ast_hash": "9e8e781b6d069ac2d095da97cbb1fe14",
+    "mtime": 1787575962.7947526,
+    "ast_hash": "1100f6464317f53db57d10ba7a96d5bf",
     "semantic_hash": ""
   },
   "app/Enums/ProjectStatus.php": {
@@ -855,8 +855,8 @@
     "semantic_hash": ""
   },
   "app/Enums/TaskStatus.php": {
-    "mtime": 1787572788.786087,
-    "ast_hash": "59a5cdf6029619fe0bfda16674c9ef27",
+    "mtime": 1787575962.80578,
+    "ast_hash": "bfd877ff816d7075b8e6b093c5cfdedd",
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/Concerns/ValidatesCompanyRoles.php": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "resources/views/kanban.blade.php": {
-    "mtime": 1787406506.9475024,
-    "ast_hash": "2f0a9d15dcd951a161151cd499b34d33",
+    "mtime": 1787577000.0943134,
+    "ast_hash": "3c7ba80d7a53b76c5669a1c51b5f477f",
     "semantic_hash": ""
   },
   "tests/Feature/Dashboard/DashboardTest.php": {
@@ -900,8 +900,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Kanban/KanbanTest.php": {
-    "mtime": 1787314752.0785127,
-    "ast_hash": "44794dac94c46bb731a7e6749a6302a8",
+    "mtime": 1787577126.040525,
+    "ast_hash": "8da5e61e7725ba28bd073081b7a8c6c4",
     "semantic_hash": ""
   },
   "app/Enums/BoardAccessDeniedReason.php": {
@@ -1065,7 +1065,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/AnalyticsController.php": {
-    "mtime": 1787574431.6181865,
+    "mtime": 1787575962.80578,
     "ast_hash": "c6b34feec3ad1d478006f529c76760b6",
     "semantic_hash": ""
   },
@@ -1075,7 +1075,7 @@
     "semantic_hash": ""
   },
   "resources/views/analytics.blade.php": {
-    "mtime": 1787574438.0094345,
+    "mtime": 1787575962.8587146,
     "ast_hash": "19b7662470eaccab86de414465116b67",
     "semantic_hash": ""
   },
@@ -1150,52 +1150,52 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskColorController.php": {
-    "mtime": 1787574408.2721007,
+    "mtime": 1787575962.80578,
     "ast_hash": "efaaab9614691895fc41f900e7cf365e",
     "semantic_hash": ""
   },
   "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php": {
-    "mtime": 1787572883.1767046,
+    "mtime": 1787575962.8102117,
     "ast_hash": "b866da24601a275ae1adc3fb0b37db33",
     "semantic_hash": ""
   },
   "app/Models/TaskStatusColor.php": {
-    "mtime": 1787572766.8273895,
+    "mtime": 1787575962.8140664,
     "ast_hash": "2cef6359b1a8a1b96a7c3187ce896f8b",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_24_150000_create_task_status_colors_table.php": {
-    "mtime": 1787572762.4151597,
+    "mtime": 1787575962.8160777,
     "ast_hash": "fa93570e720f6f327865b43261c18704",
     "semantic_hash": ""
   },
   "resources/views/task-colors/edit.blade.php": {
-    "mtime": 1787574423.4802525,
+    "mtime": 1787575962.8652573,
     "ast_hash": "312881c457449cc134082661d77b5949",
     "semantic_hash": ""
   },
   "tests/Feature/TaskColors/TaskStatusColorTest.php": {
-    "mtime": 1787573116.0498767,
+    "mtime": 1787575962.8692575,
     "ast_hash": "b4e7f5e9801aa7bdd078a26af6fcb750",
     "semantic_hash": ""
   },
   "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php": {
-    "mtime": 1787574403.2928066,
+    "mtime": 1787575962.8102117,
     "ast_hash": "3e167f73683e0237bc7916088336ea0e",
     "semantic_hash": ""
   },
   "app/Models/TaskPriorityColor.php": {
-    "mtime": 1787574236.900266,
+    "mtime": 1787575962.8102117,
     "ast_hash": "bbe4089b7ebe78330cc08ea9802e254a",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_24_160000_create_task_priority_colors_table.php": {
-    "mtime": 1787574232.1728573,
+    "mtime": 1787575962.81809,
     "ast_hash": "b7e4dadf7342a88ae52eccb5ae0b9bb4",
     "semantic_hash": ""
   },
   "tests/Feature/TaskColors/TaskPriorityColorTest.php": {
-    "mtime": 1787574512.0656178,
+    "mtime": 1787575962.868258,
     "ast_hash": "e707bd6d371daf5a76088178ba94cd4c",
     "semantic_hash": ""
   }
