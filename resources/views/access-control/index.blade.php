@@ -4,9 +4,27 @@
 
 @section('content')
 <div>
-    <h1 class="text-[14px] font-medium text-[#1F2937]">Access control</h1>
-    <p class="mt-1 text-[10px] uppercase tracking-[0.06em] text-gray-500">
-        Grant staff access to departments, per company
+    <div class="flex items-start justify-between gap-3">
+        <div>
+            <h1 class="text-[14px] font-medium text-[#1F2937]">Access control</h1>
+            <p class="mt-1 text-[10px] uppercase tracking-[0.06em] text-gray-500">
+                Grant staff access to departments, per company
+            </p>
+        </div>
+        @if ($organizations->isNotEmpty() && $departments->isNotEmpty())
+            <button type="button" id="access-control-edit-toggle"
+                class="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
+                Edit
+            </button>
+        @endif
+    </div>
+
+    <p id="access-control-view-only-note" class="mt-2 text-[11px] text-gray-500">
+        View-only — for at-a-glance visibility. Click Edit to make changes, or
+        <a href="{{ route('users.index') }}" class="text-[#1D9E75] hover:underline">edit an individual user's department access</a> instead.
+    </p>
+    <p id="access-control-editing-note" class="mt-2 text-[11px] text-[#0F6E56]" style="display: none;">
+        Editing — each toggle saves immediately.
     </p>
 
     @if (session('status'))
@@ -49,13 +67,14 @@
                                             <input type="hidden" name="department_id" value="{{ $department->id }}">
                                             <input type="hidden" name="user_id" value="{{ $staff->id }}">
                                             <input type="hidden" name="allowed" value="0">
-                                            <label class="relative inline-flex cursor-pointer items-center">
+                                            <label class="access-control-toggle-label relative inline-flex cursor-not-allowed items-center opacity-60">
                                                 <input
                                                     type="checkbox"
                                                     name="allowed"
                                                     value="1"
-                                                    class="peer sr-only"
+                                                    class="access-control-toggle peer sr-only"
                                                     {{ $grid[$staff->id][$department->id] ? 'checked' : '' }}
+                                                    disabled
                                                     onchange="this.closest('form').submit()"
                                                 >
                                                 <span class="block h-4 w-7 rounded-full bg-[#CCCCCA] transition-colors peer-checked:bg-[#1D9E75]"></span>
@@ -78,4 +97,34 @@
         @endif
     @endif
 </div>
+
+<script>
+    (function () {
+        const editBtn = document.getElementById('access-control-edit-toggle');
+        if (! editBtn) return;
+
+        const toggles = document.querySelectorAll('.access-control-toggle');
+        const labels = document.querySelectorAll('.access-control-toggle-label');
+        const viewOnlyNote = document.getElementById('access-control-view-only-note');
+        const editingNote = document.getElementById('access-control-editing-note');
+        let editing = false;
+
+        function render() {
+            toggles.forEach(function (toggle) { toggle.disabled = ! editing; });
+            labels.forEach(function (label) {
+                label.classList.toggle('cursor-pointer', editing);
+                label.classList.toggle('cursor-not-allowed', ! editing);
+                label.classList.toggle('opacity-60', ! editing);
+            });
+            viewOnlyNote.style.display = editing ? 'none' : '';
+            editingNote.style.display = editing ? '' : 'none';
+            editBtn.textContent = editing ? 'Done editing' : 'Edit';
+        }
+
+        editBtn.addEventListener('click', function () {
+            editing = ! editing;
+            render();
+        });
+    })();
+</script>
 @endsection

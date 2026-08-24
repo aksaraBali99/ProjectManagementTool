@@ -84,6 +84,18 @@ test('the matrix renders with a scrollable container and a sticky first column f
     $response->assertSee('sticky left-0', false);
 });
 
+test('the matrix defaults to view-only, with every toggle rendered disabled and an Edit button present', function () {
+    $staff = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $staff->id, 'role_id' => $this->roles['staff']->id]);
+
+    $response = $this->actingAs($this->owner)->get("/access-control/{$this->orgA->id}");
+
+    $response->assertOk();
+    $response->assertSee('id="access-control-edit-toggle"', false);
+    $response->assertSee('class="access-control-toggle peer sr-only"', false);
+    expect($response->getContent())->toContain('disabled');
+});
+
 test('toggling a permission on for a user with no org_members row in that company creates one with role staff', function () {
     $staff = User::factory()->create();
 
