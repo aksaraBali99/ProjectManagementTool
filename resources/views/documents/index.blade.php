@@ -3,7 +3,7 @@
 @section('title', 'Documents — Solava')
 
 @section('content')
-<div>
+<div class="flex flex-1 flex-col">
     <div class="flex items-center justify-between">
         <h1 class="text-[14px] font-medium text-[#1F2937]">Documents</h1>
         @if ($organization && $canManage)

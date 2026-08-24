@@ -15,9 +15,14 @@
     same "folder body" the tab and seam already use — so whatever's inside
     (a table, a Kanban board, ...) reads as a sheet of paper sitting inside
     a colored folder rather than a colored tab floating over a plain white
-    page. The wrapper's height follows its content, same as any normal
-    block. Self-closing usage (no slot) is unaffected, for any caller not
-    migrated to this yet.
+    page. That wrapper is flex-1 and stretches to the bottom of the page
+    (not just hugging its content's height) — this only actually reaches
+    the page bottom if every ancestor between it and <main> in
+    layouts/authenticated.blade.php is also a flex column with flex-1 on
+    whichever child needs to grow, which is why each page's own outermost
+    <div> is `flex flex-1 flex-col` rather than a plain block div. Self-
+    closing usage (no slot) is unaffected, for any caller not migrated to
+    this yet.
 --}}
 @props(['organizations', 'active', 'route', 'query' => ''])
 
@@ -52,10 +57,10 @@
 
 @if ($slot->isNotEmpty())
     @if ($active)
-        <div class="rounded-b-lg p-3" style="background-color: {{ $active->badgeBackground() }};">
+        <div class="flex min-h-0 flex-1 flex-col rounded-b-lg p-3" style="background-color: {{ $active->badgeBackground() }};">
             {{ $slot }}
         </div>
     @else
-        {{ $slot }}
+        <div class="min-h-0 flex-1">{{ $slot }}</div>
     @endif
 @endif

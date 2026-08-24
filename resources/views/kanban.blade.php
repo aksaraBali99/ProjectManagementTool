@@ -3,7 +3,7 @@
 @section('title', 'Kanban — Solava')
 
 @section('content')
-<div>
+<div class="flex flex-1 flex-col">
     <h1 class="text-[14px] font-medium text-[#1F2937]">Kanban</h1>
 
     @if ($organizations->isEmpty())
