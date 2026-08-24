@@ -9,9 +9,8 @@
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">{{ $emptyMessage ?? "You don't have access to any companies yet." }}</p>
     @else
-        <x-company-tabs :organizations="$organizations" :active="$organization" route="dashboard" />
-
-        <div class="mt-4 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2]">
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="dashboard">
+        <div class="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2]">
             <div class="flex items-center justify-between border-b border-[#FCA5A5] px-3 py-2">
                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-[#B91C1C]">Active</span>
                 <span class="text-[10px] text-[#B91C1C]">{{ $activeTasks->count() }}</span>
@@ -122,6 +121,7 @@
             </div>
         </div>
         @endif
+        </x-company-tabs>
     @endif
 </div>
 @endsection

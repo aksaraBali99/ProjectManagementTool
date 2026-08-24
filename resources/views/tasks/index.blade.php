@@ -29,23 +29,22 @@
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">You don't have access to any companies yet.</p>
     @else
-        <div class="flex items-start justify-between">
-            <x-company-tabs :organizations="$organizations" :active="$organization" route="tasks.index" :query="$showInactive ? 'show_inactive=1' : ''" />
-
-            <label class="mt-4 flex items-center gap-1.5 text-[11px] text-gray-600">
+        <div class="mt-4 flex justify-end">
+            <label class="flex items-center gap-1.5 text-[11px] text-gray-600">
                 <input type="checkbox" {{ $showInactive ? 'checked' : '' }}
                     onchange="window.location = '{{ route('tasks.index', $organization) }}' + (this.checked ? '?show_inactive=1' : '')">
                 Show inactive tasks
             </label>
         </div>
 
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="tasks.index" :query="$showInactive ? 'show_inactive=1' : ''">
         {{-- Below md, the table becomes a stack of row-cards: each <tr>
              is a bordered block instead of a table row, and every <td>
              carries its own inline label (md:hidden) since the column
              headers themselves are hidden below md rather than repeated
              per row. At md and up this reverts to a normal table, unchanged
              from before. --}}
-        <div class="mt-4 overflow-hidden rounded-lg border border-gray-200 md:overflow-x-auto">
+        <div class="overflow-hidden rounded-lg border border-gray-200 md:overflow-x-auto">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
                 <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
@@ -158,6 +157,7 @@
                 </tbody>
             </table>
         </div>
+        </x-company-tabs>
     @endif
 </div>
 

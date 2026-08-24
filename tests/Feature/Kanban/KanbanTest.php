@@ -368,3 +368,20 @@ test('a column\'s status color applies only to its header, not the whole column,
     expect($headerMatch)->not->toBeEmpty();
     expect($headerMatch[1])->toBe(TaskStatus::Pending->badgeBackground());
 });
+
+test('the whole board sits inside a pale wash of the active company\'s own color', function () {
+    $response = $this->actingAs($this->owner)->get("/kanban/{$this->orgA->id}");
+    $html = $response->getContent();
+
+    $response->assertOk();
+
+    preg_match('/<div class="rounded-b-lg p-3" style="background-color: ([^;"]+);">/', $html, $wrapperMatch);
+    expect($wrapperMatch)->not->toBeEmpty();
+    expect($wrapperMatch[1])->toBe($this->orgA->badgeBackground());
+
+    // The wrapper's tint sits behind #kanban-board, not the other way
+    // around — confirms the board is nested inside it, not a sibling.
+    $wrapperPos = strpos($html, $wrapperMatch[0]);
+    $boardPos = strpos($html, 'id="kanban-board"');
+    expect($boardPos)->toBeGreaterThan($wrapperPos);
+});

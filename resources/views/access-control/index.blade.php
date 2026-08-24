@@ -34,12 +34,11 @@
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">No active companies yet — add one under Settings → Companies.</p>
     @else
-        <x-company-tabs :organizations="$organizations" :active="$organization" route="access-control.index" />
-
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="access-control.index">
         @if ($departments->isEmpty())
-            <p class="mt-6 text-[12px] text-gray-500">{{ $organization->name }} has no active departments yet.</p>
+            <p class="text-[12px] text-gray-500">{{ $organization->name }} has no active departments yet.</p>
         @else
-            <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200">
+            <div class="overflow-x-auto rounded-lg border border-gray-200">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -95,6 +94,7 @@
                 </table>
             </div>
         @endif
+        </x-company-tabs>
     @endif
 </div>
 

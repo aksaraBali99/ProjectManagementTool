@@ -21,9 +21,8 @@
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">You don't have access to any companies yet.</p>
     @else
-        <x-company-tabs :organizations="$organizations" :active="$organization" route="projects.index" />
-
-        <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="projects.index">
+        <div class="overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
                 <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
@@ -76,6 +75,7 @@
                 </tbody>
             </table>
         </div>
+        </x-company-tabs>
     @endif
 </div>
 @endsection

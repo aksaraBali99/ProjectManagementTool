@@ -447,3 +447,18 @@ test('a staff member granted create_edit_projects can create and edit a project 
         'organization_id' => $this->orgB->id,
     ]))->assertForbidden();
 });
+
+test('the projects table sits inside a pale wash of the active company\'s own color', function () {
+    $response = $this->actingAs($this->owner)->get("/projects/{$this->orgA->id}");
+    $html = $response->getContent();
+
+    $response->assertOk();
+
+    preg_match('/<div class="rounded-b-lg p-3" style="background-color: ([^;"]+);">/', $html, $wrapperMatch);
+    expect($wrapperMatch)->not->toBeEmpty();
+    expect($wrapperMatch[1])->toBe($this->orgA->badgeBackground());
+
+    $wrapperPos = strpos($html, $wrapperMatch[0]);
+    $tablePos = strpos($html, '<table');
+    expect($tablePos)->toBeGreaterThan($wrapperPos);
+});
