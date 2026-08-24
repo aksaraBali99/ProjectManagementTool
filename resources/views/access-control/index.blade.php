@@ -1,12 +1,12 @@
 @extends('layouts.authenticated')
 
-@section('title', 'Department Access — Solava')
+@section('title', 'Access control — Solava')
 
 @section('content')
 <div>
     <div class="flex items-start justify-between gap-3">
         <div>
-            <h1 class="text-[14px] font-medium text-[#1F2937]">Department Access</h1>
+            <h1 class="text-[14px] font-medium text-[#1F2937]">Access control</h1>
             <p class="mt-1 text-[10px] uppercase tracking-[0.06em] text-gray-500">
                 Grant staff access to departments, per company
             </p>

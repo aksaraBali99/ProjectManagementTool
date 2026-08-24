@@ -17,7 +17,7 @@
             ['label' => 'Projects', 'icon' => 'ti-folder', 'route' => 'projects.index', 'matches' => ['projects.*']],
             ['label' => 'Tasks', 'icon' => 'ti-checklist', 'route' => 'tasks.index', 'matches' => ['tasks.*', 'subtasks.*', 'comments.*'], 'can' => ['viewAny', \App\Models\Task::class]],
             ['label' => 'Documents', 'icon' => 'ti-files', 'route' => 'documents.index', 'matches' => ['documents.*']],
-            ['label' => 'Department Access', 'icon' => 'ti-shield-lock', 'route' => 'access-control.index', 'matches' => ['access-control.*'], 'can' => ['access-control.view']],
+            ['label' => 'Access control', 'icon' => 'ti-shield-lock', 'route' => 'access-control.index', 'matches' => ['access-control.*'], 'can' => ['access-control.view']],
             [
                 'label' => 'Settings',
                 'icon' => 'ti-settings',
