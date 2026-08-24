@@ -36,7 +36,18 @@
                 <div class="flex">
                     <div id="gantt-task-list" class="shrink-0 overflow-x-auto overflow-y-hidden bg-white"></div>
                     <div id="gantt-task-list-resizer" role="separator" aria-orientation="vertical" aria-label="Resize task list column"
-                         class="w-1 shrink-0 touch-none cursor-col-resize border-x border-gray-200 bg-gray-50 hover:bg-[#1D9E75]/20"></div>
+                         class="group relative w-1 shrink-0 touch-none cursor-col-resize border-x border-gray-200 bg-gray-50 hover:bg-[#1D9E75]/20">
+                        <span class="pointer-events-none absolute left-1/2 top-1/2 z-10 flex h-8 w-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-400 shadow-sm group-hover:border-[#1D9E75] group-hover:text-[#1D9E75]">
+                            <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor" aria-hidden="true">
+                                <circle cx="2" cy="2" r="1.3" />
+                                <circle cx="6" cy="2" r="1.3" />
+                                <circle cx="2" cy="7" r="1.3" />
+                                <circle cx="6" cy="7" r="1.3" />
+                                <circle cx="2" cy="12" r="1.3" />
+                                <circle cx="6" cy="12" r="1.3" />
+                            </svg>
+                        </span>
+                    </div>
                     <div id="gantt-container" class="min-w-0 flex-1" data-tasks='@json($ganttTasks)' data-subtasks='@json($subtasksByTask)'></div>
                 </div>
             @endif
