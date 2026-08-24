@@ -351,3 +351,20 @@ test('revoking the view_kanban permission from Client removes their Kanban acces
     expect($client->projectsAsClient()->pluck('projects.id')->all())->toBe([$this->projectA->id]);
     $response->assertSee('You have no access for this page.');
 });
+
+test('a column\'s status color applies only to its header, not the whole column, which stays white', function () {
+    $response = $this->actingAs($this->owner)->get("/kanban/{$this->orgA->id}");
+    $html = $response->getContent();
+
+    $response->assertOk();
+
+    // The column wrapper itself carries bg-white and no inline
+    // background-color — only its header div does.
+    preg_match('/class="kanban-column [^"]*"[^>]*data-status="pending"/', $html, $columnMatch);
+    expect($columnMatch)->not->toBeEmpty();
+    expect($columnMatch[0])->toContain('bg-white')->not->toContain('style=');
+
+    preg_match('/<div class="flex items-center justify-between rounded-t-lg border-b border-gray-200 px-3 py-2"\s+style="background-color: ([^;"]+)/', $html, $headerMatch);
+    expect($headerMatch)->not->toBeEmpty();
+    expect($headerMatch[1])->toBe(TaskStatus::Pending->badgeBackground());
+});
