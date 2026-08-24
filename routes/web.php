@@ -19,6 +19,7 @@ use App\Http\Controllers\ProjectManagementController;
 use App\Http\Controllers\RoleManagementController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SubtaskController;
+use App\Http\Controllers\TaskColorController;
 use App\Http\Controllers\TaskDocumentController;
 use App\Http\Controllers\TaskManagementController;
 use App\Http\Controllers\UserManagementController;
@@ -42,6 +43,8 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/settings', SettingsController::class)->name('settings.index');
     Route::get('/audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail.index');
     Route::get('/analytics', AnalyticsController::class)->name('analytics.index');
+    Route::get('/task-colors', [TaskColorController::class, 'edit'])->name('task-colors.edit');
+    Route::put('/task-colors/status', [TaskColorController::class, 'updateStatus'])->name('task-colors.update-status');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 

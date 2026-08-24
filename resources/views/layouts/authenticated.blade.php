@@ -31,6 +31,7 @@
                     ['label' => 'Departments', 'route' => 'departments.index', 'matches' => ['departments.*'], 'can' => ['viewAny', \App\Models\Department::class]],
                     ['label' => 'Roles', 'route' => 'roles.index', 'matches' => ['roles.*'], 'can' => ['viewAny', \App\Models\Role::class]],
                     ['label' => 'Audit trail', 'route' => 'audit-trail.index', 'matches' => ['audit-trail.*'], 'can' => ['viewAny', \App\Models\AuditLog::class]],
+                    ['label' => 'Status & Priority Colors', 'route' => 'task-colors.edit', 'matches' => ['task-colors.*'], 'can' => ['task-colors.view']],
                 ],
             ],
         ];

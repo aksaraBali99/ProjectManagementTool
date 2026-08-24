@@ -30,5 +30,10 @@ class AppServiceProvider extends ServiceProvider
         // an operational one — rides the same manage_settings Administration
         // bundle as the Audit Trail, rather than a dedicated permission.
         Gate::define('analytics.view', fn (User $user) => $user->hasPermission('manage_settings'));
+
+        // Status & Priority Colors: a global (not org-scoped) admin
+        // settings page — same manage_settings bundle as Analytics/Audit
+        // Trail.
+        Gate::define('task-colors.view', fn (User $user) => $user->hasPermission('manage_settings'));
     }
 }

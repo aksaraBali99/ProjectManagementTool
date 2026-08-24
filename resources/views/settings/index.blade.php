@@ -12,7 +12,8 @@
             || auth()->user()->can('viewAny', App\Models\Department::class)
             || auth()->user()->can('viewAny', App\Models\Role::class)
             || auth()->user()->can('viewAny', App\Models\AuditLog::class)
-            || auth()->user()->can('analytics.view');
+            || auth()->user()->can('analytics.view')
+            || auth()->user()->can('task-colors.view');
     @endphp
 
     <div class="mt-6 space-y-2">
@@ -88,6 +89,17 @@
                 <span>
                     <span class="block text-sm font-medium text-gray-900">Analytics</span>
                     <span class="block text-xs text-gray-500">Cross-company task completion, status, priority, and staff workload</span>
+                </span>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+        @endcan
+
+        @can('task-colors.view')
+            <a href="{{ route('task-colors.edit') }}"
+               class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50">
+                <span>
+                    <span class="block text-sm font-medium text-gray-900">Status & Priority Colors</span>
+                    <span class="block text-xs text-gray-500">Customize the colors used for task statuses and priorities app-wide</span>
                 </span>
                 <i class="ti ti-chevron-right text-gray-400"></i>
             </a>

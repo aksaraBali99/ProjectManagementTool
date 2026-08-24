@@ -45,6 +45,7 @@ class AnalyticsController extends Controller
         $statusCounts = collect(TaskStatus::cases())->map(fn (TaskStatus $status) => [
             'label' => $status->label(),
             'count' => Task::whereIn('organization_id', $organizationIds)->where('status', $status->value)->count(),
+            'color' => $status->badgeBackground(),
         ]);
 
         $priorityCounts = collect(Priority::cases())->map(fn (Priority $priority) => [
