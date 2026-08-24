@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Subtask;
@@ -115,7 +116,7 @@ test('a staff user cannot create a task', function () {
 test('a staff user granted create_edit_tasks can create a task only in a department they have access to', function () {
     $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
     Role::where('slug', 'staff')->firstOrFail()->permissions()->attach(
-        \App\Models\Permission::where('slug', 'create_edit_tasks')->firstOrFail()->id
+        Permission::where('slug', 'create_edit_tasks')->firstOrFail()->id
     );
 
     $this->actingAs($staff)->get('/tasks/create')->assertOk();

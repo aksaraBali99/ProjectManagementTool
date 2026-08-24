@@ -5,6 +5,7 @@ use App\Enums\ProjectStatus;
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -422,7 +423,7 @@ test('a staff member without create_edit_projects cannot see or use the Add Proj
 
 test('a staff member granted create_edit_projects can create and edit a project in their org', function () {
     $this->roles['staff']->permissions()->attach(
-        \App\Models\Permission::where('slug', 'create_edit_projects')->firstOrFail()->id
+        Permission::where('slug', 'create_edit_projects')->firstOrFail()->id
     );
 
     $index = $this->actingAs($this->staffInA)->get("/projects/{$this->orgA->id}");
