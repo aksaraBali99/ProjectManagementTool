@@ -536,6 +536,13 @@ async function initAnalyticsCharts() {
         const values = JSON.parse(canvas.dataset.chartValues || '[]');
         const suffix = canvas.dataset.chartSuffix || '';
         const horizontal = canvas.dataset.chartHorizontal === '1';
+        // Status/priority breakdown charts pass their own per-slice colors
+        // (the same admin-configurable Status & Priority Colors settings
+        // every badge elsewhere reads) — anything without that attribute
+        // (completion-by-company, staff workload) still cycles the generic
+        // palette by index, since those aren't a fixed enum of colored
+        // categories.
+        const explicitColors = canvas.dataset.chartColors ? JSON.parse(canvas.dataset.chartColors) : null;
 
         new Chart(canvas, {
             type: type,
@@ -543,7 +550,7 @@ async function initAnalyticsCharts() {
                 labels: labels,
                 datasets: [{
                     data: values,
-                    backgroundColor: labels.map(function (_, i) { return CHART_PALETTE[i % CHART_PALETTE.length]; }),
+                    backgroundColor: explicitColors || labels.map(function (_, i) { return CHART_PALETTE[i % CHART_PALETTE.length]; }),
                 }],
             },
             options: {

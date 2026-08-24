@@ -36,6 +36,7 @@
                     data-chart-type="doughnut"
                     data-chart-labels='@json($statusCounts->pluck('label'))'
                     data-chart-values='@json($statusCounts->pluck('count'))'
+                    data-chart-colors='@json($statusCounts->pluck('color'))'
                 ></canvas></div>
             @endif
         </div>
