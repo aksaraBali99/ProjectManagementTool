@@ -3,7 +3,7 @@
 @section('title', 'Departments — Solava')
 
 @section('content')
-<div class="mx-auto max-w-4xl">
+<div class="mx-auto flex w-full max-w-4xl flex-1 flex-col">
     <a href="{{ route('settings.index') }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← Settings</a>
 
     <div class="mt-2 flex items-center justify-between">

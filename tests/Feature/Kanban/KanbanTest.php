@@ -369,13 +369,13 @@ test('a column\'s status color applies only to its header, not the whole column,
     expect($headerMatch[1])->toBe(TaskStatus::Pending->badgeBackground());
 });
 
-test('the whole board sits inside a pale wash of the active company\'s own color', function () {
+test('the whole board sits inside a pale wash of the active company\'s own color, stretched to fill the page', function () {
     $response = $this->actingAs($this->owner)->get("/kanban/{$this->orgA->id}");
     $html = $response->getContent();
 
     $response->assertOk();
 
-    preg_match('/<div class="rounded-b-lg p-3" style="background-color: ([^;"]+);">/', $html, $wrapperMatch);
+    preg_match('/<div class="flex min-h-0 flex-1 flex-col rounded-b-lg p-3" style="background-color: ([^;"]+);">/', $html, $wrapperMatch);
     expect($wrapperMatch)->not->toBeEmpty();
     expect($wrapperMatch[1])->toBe($this->orgA->badgeBackground());
 
