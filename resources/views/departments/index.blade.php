@@ -3,7 +3,7 @@
 @section('title', 'Departments — Solava')
 
 @section('content')
-<div class="mx-auto max-w-4xl">
+<div class="mx-auto flex w-full max-w-4xl flex-1 flex-col">
     <a href="{{ route('settings.index') }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← Settings</a>
 
     <div class="mt-2 flex items-center justify-between">
@@ -21,9 +21,8 @@
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">No active companies yet.</p>
     @else
-        <x-company-tabs :organizations="$organizations" :active="$organization" route="departments.index" />
-
-        <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="departments.index">
+        <div class="overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
                 <thead class="hidden bg-gray-50 md:table-header-group">
                     <tr>
@@ -75,6 +74,7 @@
                 </tbody>
             </table>
         </div>
+        </x-company-tabs>
     @endif
 </div>
 @endsection

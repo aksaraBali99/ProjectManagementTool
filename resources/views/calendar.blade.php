@@ -3,17 +3,16 @@
 @section('title', 'Calendar — Solava')
 
 @section('content')
-<div>
+<div class="flex flex-1 flex-col">
     <h1 class="text-[14px] font-medium text-[#1F2937]">Calendar</h1>
     <p class="mt-1 text-[11px] text-gray-500">Tasks positioned by due date, grouped by project (color-coded). Tasks with no due date aren't shown here. Use + to show or hide a task's subtasks; click a bar to open its task. Drag the column divider to resize the task list, or scroll it to read a long name.</p>
 
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">{{ $emptyMessage ?? "You don't have access to any companies yet." }}</p>
     @else
-        <x-company-tabs :organizations="$organizations" :active="$organization" route="calendar" />
-
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="calendar">
         @if (! empty($ganttTasks))
-            <div class="mt-4 flex items-center justify-end gap-2">
+            <div class="flex items-center justify-end gap-2">
                 <button type="button" id="calendar-prev" aria-label="Previous"
                         class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] text-gray-600 hover:bg-gray-50 focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
                     &larr;
@@ -52,6 +51,7 @@
                 </div>
             @endif
         </div>
+        </x-company-tabs>
     @endif
 </div>
 @endsection

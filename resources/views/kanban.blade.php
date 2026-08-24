@@ -3,14 +3,13 @@
 @section('title', 'Kanban — Solava')
 
 @section('content')
-<div>
+<div class="flex flex-1 flex-col">
     <h1 class="text-[14px] font-medium text-[#1F2937]">Kanban</h1>
 
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">{{ $emptyMessage ?? "You don't have access to any companies yet." }}</p>
     @else
-        <x-company-tabs :organizations="$organizations" :active="$organization" route="kanban" />
-
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="kanban">
         {{-- Below md, columns become a horizontally scroll-snapping row
              (each column ~85% of the viewport, so the next one peeks in as
              a scroll affordance) rather than squeezing N columns into
@@ -18,7 +17,7 @@
              columns side by side via flex-1, same visual result as the
              old fixed-N-column grid but without needing a per-count inline
              style to get there. --}}
-        <div id="kanban-board" class="mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:snap-none md:overflow-visible">
+        <div id="kanban-board" class="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:snap-none md:overflow-visible">
             @foreach ($columns as $column)
                 <div class="kanban-column w-[85vw] shrink-0 snap-center rounded-lg border border-gray-200 bg-white sm:w-[320px] md:min-w-0 md:flex-1 md:snap-align-none"
                      data-status="{{ $column['status']->value }}">
@@ -59,6 +58,7 @@
                 </div>
             @endforeach
         </div>
+        </x-company-tabs>
     @endif
 </div>
 
