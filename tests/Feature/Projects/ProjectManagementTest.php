@@ -409,3 +409,40 @@ test('a management user can template a project from a company they only have sta
     $submit->assertRedirect("/projects/{$this->orgA->id}");
     $this->assertDatabaseHas('projects', ['organization_id' => $this->orgA->id, 'name' => 'Org B Project (Copy)']);
 });
+
+test('a staff member without create_edit_projects cannot see or use the Add Project page', function () {
+    $this->actingAs($this->staffInA)->get('/projects/create')->assertForbidden();
+    $this->actingAs($this->staffInA)->post('/projects', validProjectPayload([
+        'organization_id' => $this->orgA->id,
+    ]))->assertForbidden();
+
+    $index = $this->actingAs($this->staffInA)->get("/projects/{$this->orgA->id}");
+    $index->assertOk()->assertDontSee('Add project');
+});
+
+test('a staff member granted create_edit_projects can create and edit a project in their org', function () {
+    $this->roles['staff']->permissions()->attach(
+        \App\Models\Permission::where('slug', 'create_edit_projects')->firstOrFail()->id
+    );
+
+    $index = $this->actingAs($this->staffInA)->get("/projects/{$this->orgA->id}");
+    $index->assertOk()->assertSee('Add project');
+
+    $response = $this->actingAs($this->staffInA)->post('/projects', validProjectPayload([
+        'organization_id' => $this->orgA->id,
+    ]));
+    $response->assertRedirect("/projects/{$this->orgA->id}");
+    $project = Project::where('name', 'Website revamp')->firstOrFail();
+
+    $edit = $this->actingAs($this->staffInA)->put("/projects/{$project->id}", validProjectPayload([
+        'name' => 'Website revamp v2',
+    ]));
+    $edit->assertRedirect("/projects/{$this->orgA->id}");
+    expect($project->fresh()->name)->toBe('Website revamp v2');
+
+    // Still can't touch a company they're not a staff member of.
+    $this->actingAs($this->staffInA)->get('/projects/create')->assertOk();
+    $this->actingAs($this->staffInA)->post('/projects', validProjectPayload([
+        'organization_id' => $this->orgB->id,
+    ]))->assertForbidden();
+});

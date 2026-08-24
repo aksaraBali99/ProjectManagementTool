@@ -100,7 +100,7 @@ class TaskManagementController extends Controller
     {
         $project = Project::findOrFail($request->integer('project_id'));
 
-        Gate::authorize('create', [Task::class, $project->organization_id]);
+        Gate::authorize('create', [Task::class, $project->organization_id, $request->integer('department_id')]);
 
         $task = DB::transaction(function () use ($request, $project) {
             $task = Task::create([
@@ -237,12 +237,20 @@ class TaskManagementController extends Controller
      */
     private function cascadingOptions(Collection $projects): array
     {
+        $user = auth()->user();
         $organizationIds = $projects->pluck('organization_id')->unique()->values();
 
+        // Management/global roles see every active department; a staff
+        // member only sees the departments they've actually been granted,
+        // so the dropdown can't offer a department store()'s Gate check
+        // would then reject.
         $departmentsByOrganization = Department::whereIn('organization_id', $organizationIds)
             ->where('is_active', true)
             ->orderBy('name')
             ->get()
+            ->filter(fn (Department $department) => $user->isSuperAdmin() || $user->isOwner()
+                || $user->isManagementInOrg($department->organization_id)
+                || $user->hasDepartmentAccess($department->organization_id, $department->id))
             ->groupBy('organization_id')
             ->map(fn ($departments) => $departments->map(fn ($d) => ['id' => $d->id, 'name' => $d->name])->values())
             ->all();

@@ -244,7 +244,11 @@ class User extends Authenticatable
      * The organization IDs this user can manage projects/tasks in —
      * super admins and owners can manage any active company; management
      * users are limited to active companies where they hold the
-     * management role via org_members.
+     * management role via org_members; staff are included only where
+     * they've been granted create_edit_projects (org-wide) or
+     * create_edit_tasks (and hold at least one department grant there) —
+     * this is a coarse pre-filter for the create/edit pages, the actual
+     * per-action authority is still each policy's create()/update().
      *
      * @return array<int, int>
      */
@@ -254,10 +258,33 @@ class User extends Authenticatable
             return Organization::where('is_active', true)->pluck('id')->all();
         }
 
-        return $this->orgMemberships()
+        $memberships = $this->orgMemberships()
             ->whereHas('organization', fn ($query) => $query->where('is_active', true))
-            ->whereHas('role', fn ($query) => $query->where('slug', Role::MANAGEMENT))
+            ->with('role')
+            ->get();
+
+        return $memberships
+            ->filter(function (OrgMember $membership) {
+                if ($membership->role->slug === Role::MANAGEMENT) {
+                    return true;
+                }
+
+                if ($membership->role->slug !== Role::STAFF) {
+                    return false;
+                }
+
+                $organizationId = $membership->organization_id;
+
+                if ($this->hasPermission('create_edit_projects', $organizationId)) {
+                    return true;
+                }
+
+                return $this->hasPermission('create_edit_tasks', $organizationId)
+                    && $this->allowedDepartmentIds($organizationId)->isNotEmpty();
+            })
             ->pluck('organization_id')
+            ->unique()
+            ->values()
             ->all();
     }
 
