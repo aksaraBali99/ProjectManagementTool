@@ -38,7 +38,7 @@ class ProjectPolicy
             return false;
         }
 
-        return $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId);
+        return $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId) || $user->isStaffInOrg($organizationId);
     }
 
     public function update(User $user, Project $project): bool
@@ -47,6 +47,6 @@ class ProjectPolicy
             return false;
         }
 
-        return $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($project->organization_id);
+        return $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($project->organization_id) || $user->isStaffInOrg($project->organization_id);
     }
 }

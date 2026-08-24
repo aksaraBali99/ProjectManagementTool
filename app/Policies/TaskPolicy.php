@@ -70,27 +70,49 @@ class TaskPolicy
         return $user->isClientOnProject($task->project_id);
     }
 
-    public function create(User $user, int $organizationId): bool
+    /**
+     * $departmentId is only known once a department's actually been picked
+     * (store()'s server-side check) — page-load / button-visibility calls
+     * omit it and fall back to "does this staff member have ANY department
+     * grant in this org", since the specific department isn't chosen yet.
+     */
+    public function create(User $user, int $organizationId, ?int $departmentId = null): bool
     {
         if (! $user->hasPermission('create_edit_tasks', $organizationId)) {
             return false;
         }
 
-        return $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId);
+        if ($user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId)) {
+            return true;
+        }
+
+        if (! $user->isStaffInOrg($organizationId)) {
+            return false;
+        }
+
+        return $departmentId !== null
+            ? $user->hasDepartmentAccess($organizationId, $departmentId)
+            : $user->allowedDepartmentIds($organizationId)->isNotEmpty();
     }
 
     /**
-     * Two independent ways in: management-tier (gated by create_edit_tasks,
-     * since that's the role-capability this represents), or being the
-     * task's assignee (an identity/ownership check, not a role capability
-     * — deliberately NOT gated by create_edit_tasks, since staff never hold
-     * that permission but must still be able to edit tasks assigned to them).
+     * Three independent ways in: management-tier (gated by create_edit_tasks),
+     * staff holding create_edit_tasks AND department access to the task's
+     * own department, or being the task's assignee (an identity/ownership
+     * check, not a role capability — deliberately NOT gated by
+     * create_edit_tasks, since staff without that permission must still be
+     * able to edit tasks assigned to them).
      */
     public function update(User $user, Task $task): bool
     {
-        if ($user->hasPermission('create_edit_tasks', $task->organization_id)
-            && ($user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($task->organization_id))) {
-            return true;
+        if ($user->hasPermission('create_edit_tasks', $task->organization_id)) {
+            if ($user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($task->organization_id)) {
+                return true;
+            }
+
+            if ($user->isStaffInOrg($task->organization_id) && $user->hasDepartmentAccess($task->organization_id, $task->department_id)) {
+                return true;
+            }
         }
 
         return $task->assignee_id === $user->id;

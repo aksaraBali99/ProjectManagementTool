@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Subtask;
@@ -110,6 +111,48 @@ test('a staff user cannot create a task', function () {
         'priority' => 'medium',
         'status' => 'pending',
     ])->assertForbidden();
+});
+
+test('a staff user granted create_edit_tasks can create a task only in a department they have access to', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    Role::where('slug', 'staff')->firstOrFail()->permissions()->attach(
+        Permission::where('slug', 'create_edit_tasks')->firstOrFail()->id
+    );
+
+    $this->actingAs($staff)->get('/tasks/create')->assertOk();
+
+    $response = $this->actingAs($staff)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Staff-created task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $response->assertRedirect();
+    $task = Task::where('title', 'Staff-created task')->firstOrFail();
+    $this->assertDatabaseHas('tasks', ['title' => 'Staff-created task', 'department_id' => $this->deptA->id]);
+
+    // A department they DON'T have access to is still rejected, even
+    // though the org-level permission is granted.
+    $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Other', 'color' => '#000000']);
+    $this->actingAs($staff)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $otherDept->id,
+        'title' => 'Should be blocked',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertForbidden();
+
+    // They can also edit the task they just created.
+    $edit = $this->actingAs($staff)->put("/tasks/{$task->id}", [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Staff-created task, edited',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $edit->assertRedirect();
+    expect($task->fresh()->title)->toBe('Staff-created task, edited');
 });
 
 test('submitting a department that does not belong to the selected project company is rejected', function () {
