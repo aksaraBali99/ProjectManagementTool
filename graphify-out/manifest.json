@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1787572856.2099698,
-    "ast_hash": "3c03b5eff9128b5963ab1c6d0894beb2",
+    "mtime": 1787574349.4075935,
+    "ast_hash": "4d4e002f71eb3948b038bdcd4932471d",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -405,8 +405,8 @@
     "semantic_hash": ""
   },
   "resources/views/dashboard.blade.php": {
-    "mtime": 1787406506.9277549,
-    "ast_hash": "7fdff9066bd16c413e766c89cd185d66",
+    "mtime": 1787574271.7594962,
+    "ast_hash": "658dc927dd23b8562f78e8edc4e1dde0",
     "semantic_hash": ""
   },
   "resources/views/layouts/app.blade.php": {
@@ -845,8 +845,8 @@
     "semantic_hash": ""
   },
   "app/Enums/Priority.php": {
-    "mtime": 1787406506.7646725,
-    "ast_hash": "a3285fb41de7f7fc2de3bdb9a8ec2bb7",
+    "mtime": 1787574249.9997842,
+    "ast_hash": "9e8e781b6d069ac2d095da97cbb1fe14",
     "semantic_hash": ""
   },
   "app/Enums/ProjectStatus.php": {
@@ -1065,8 +1065,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/AnalyticsController.php": {
-    "mtime": 1787572978.388381,
-    "ast_hash": "02b9dbc61a665502669b983fb07d027a",
+    "mtime": 1787574431.6181865,
+    "ast_hash": "c6b34feec3ad1d478006f529c76760b6",
     "semantic_hash": ""
   },
   "app/Http/Controllers/CalendarController.php": {
@@ -1075,8 +1075,8 @@
     "semantic_hash": ""
   },
   "resources/views/analytics.blade.php": {
-    "mtime": 1787572989.2033992,
-    "ast_hash": "98ef8d95c08c48fd335951c7e3cf8e9d",
+    "mtime": 1787574438.0094345,
+    "ast_hash": "19b7662470eaccab86de414465116b67",
     "semantic_hash": ""
   },
   "resources/views/calendar.blade.php": {
@@ -1150,8 +1150,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskColorController.php": {
-    "mtime": 1787572891.571357,
-    "ast_hash": "1f3f6847ff74d040d297c785f00e96ea",
+    "mtime": 1787574408.2721007,
+    "ast_hash": "efaaab9614691895fc41f900e7cf365e",
     "semantic_hash": ""
   },
   "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php": {
@@ -1170,13 +1170,33 @@
     "semantic_hash": ""
   },
   "resources/views/task-colors/edit.blade.php": {
-    "mtime": 1787572938.6815183,
-    "ast_hash": "38b5e5f2c578ba150ce9d3eb5b3de5d1",
+    "mtime": 1787574423.4802525,
+    "ast_hash": "312881c457449cc134082661d77b5949",
     "semantic_hash": ""
   },
   "tests/Feature/TaskColors/TaskStatusColorTest.php": {
     "mtime": 1787573116.0498767,
     "ast_hash": "b4e7f5e9801aa7bdd078a26af6fcb750",
+    "semantic_hash": ""
+  },
+  "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php": {
+    "mtime": 1787574403.2928066,
+    "ast_hash": "3e167f73683e0237bc7916088336ea0e",
+    "semantic_hash": ""
+  },
+  "app/Models/TaskPriorityColor.php": {
+    "mtime": 1787574236.900266,
+    "ast_hash": "bbe4089b7ebe78330cc08ea9802e254a",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_24_160000_create_task_priority_colors_table.php": {
+    "mtime": 1787574232.1728573,
+    "ast_hash": "b7e4dadf7342a88ae52eccb5ae0b9bb4",
+    "semantic_hash": ""
+  },
+  "tests/Feature/TaskColors/TaskPriorityColorTest.php": {
+    "mtime": 1787574512.0656178,
+    "ast_hash": "e707bd6d371daf5a76088178ba94cd4c",
     "semantic_hash": ""
   }
 }

@@ -50,6 +50,7 @@
                     data-chart-type="doughnut"
                     data-chart-labels='@json($priorityCounts->pluck('label'))'
                     data-chart-values='@json($priorityCounts->pluck('count'))'
+                    data-chart-colors='@json($priorityCounts->pluck('color'))'
                 ></canvas></div>
             @endif
         </div>

@@ -45,6 +45,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/analytics', AnalyticsController::class)->name('analytics.index');
     Route::get('/task-colors', [TaskColorController::class, 'edit'])->name('task-colors.edit');
     Route::put('/task-colors/status', [TaskColorController::class, 'updateStatus'])->name('task-colors.update-status');
+    Route::put('/task-colors/priority', [TaskColorController::class, 'updatePriority'])->name('task-colors.update-priority');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 
