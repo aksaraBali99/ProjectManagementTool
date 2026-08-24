@@ -31,7 +31,7 @@ class NotificationSettingsResolver
 {
     /**
      * @return list<string> resolved NotificationChannel values; empty
-     *                       means this user should not be notified.
+     *                      means this user should not be notified.
      */
     public function resolveChannels(User $user, NotificationEventType $eventType, AuditLog $auditLog): array
     {

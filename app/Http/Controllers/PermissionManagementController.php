@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -62,14 +63,14 @@ class PermissionManagementController extends Controller
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Role>
+     * @return Collection<int, Role>
      */
     private function rolesInDisplayOrder()
     {
         $order = [Role::SUPER_ADMIN, Role::OWNER, Role::MANAGEMENT, Role::STAFF, Role::CLIENT];
 
         return Role::whereIn('slug', $order)->get()
-            ->sortBy(fn (\App\Models\Role $role) => array_search($role->slug, $order))
+            ->sortBy(fn (Role $role) => array_search($role->slug, $order))
             ->values();
     }
 }
