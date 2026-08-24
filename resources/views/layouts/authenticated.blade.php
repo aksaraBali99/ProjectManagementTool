@@ -14,6 +14,7 @@
             ['label' => 'Dashboard', 'icon' => 'ti-layout-dashboard', 'route' => 'dashboard', 'matches' => ['dashboard']],
             ['label' => 'Kanban', 'icon' => 'ti-layout-kanban', 'route' => 'kanban', 'matches' => ['kanban']],
             ['label' => 'Calendar', 'icon' => 'ti-calendar', 'route' => 'calendar', 'matches' => ['calendar']],
+            ['label' => 'Analytics', 'icon' => 'ti-chart-bar', 'route' => 'analytics.index', 'matches' => ['analytics.*'], 'can' => ['analytics.view']],
             ['label' => 'Projects', 'icon' => 'ti-folder', 'route' => 'projects.index', 'matches' => ['projects.*']],
             ['label' => 'Tasks', 'icon' => 'ti-checklist', 'route' => 'tasks.index', 'matches' => ['tasks.*', 'subtasks.*', 'comments.*'], 'can' => ['viewAny', \App\Models\Task::class]],
             ['label' => 'Documents', 'icon' => 'ti-files', 'route' => 'documents.index', 'matches' => ['documents.*']],
@@ -30,7 +31,6 @@
                     ['label' => 'Departments', 'route' => 'departments.index', 'matches' => ['departments.*'], 'can' => ['viewAny', \App\Models\Department::class]],
                     ['label' => 'Roles', 'route' => 'roles.index', 'matches' => ['roles.*'], 'can' => ['viewAny', \App\Models\Role::class]],
                     ['label' => 'Audit trail', 'route' => 'audit-trail.index', 'matches' => ['audit-trail.*'], 'can' => ['viewAny', \App\Models\AuditLog::class]],
-                    ['label' => 'Analytics', 'route' => 'analytics.index', 'matches' => ['analytics.*'], 'can' => ['analytics.view']],
                 ],
             ],
         ];
