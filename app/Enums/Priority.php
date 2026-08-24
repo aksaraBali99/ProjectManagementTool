@@ -3,7 +3,6 @@
 namespace App\Enums;
 
 use App\Models\TaskPriorityColor;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 enum Priority: string
@@ -31,7 +30,7 @@ enum Priority: string
      */
     public function badgeBackground(): string
     {
-        return self::colorRow($this)?->background_color ?? match ($this) {
+        return self::colorRow($this)['background_color'] ?? match ($this) {
             self::High => '#FDEAEA',
             self::Medium => '#FEF5E7',
             self::Low => '#FEFCE6',
@@ -40,24 +39,43 @@ enum Priority: string
 
     public function badgeText(): string
     {
-        return self::colorRow($this)?->text_color ?? match ($this) {
+        return self::colorRow($this)['text_color'] ?? match ($this) {
             self::High => '#A32D2D',
             self::Medium => '#854F0B',
             self::Low => '#706910',
         };
     }
 
-    private static function colorRow(self $priority): ?TaskPriorityColor
+    /**
+     * @return array{background_color: string, text_color: string}|null
+     */
+    private static function colorRow(self $priority): ?array
     {
-        return self::allColors()->get($priority->value);
+        return self::allColors()[$priority->value] ?? null;
     }
 
     /**
-     * @return Collection<string, TaskPriorityColor>
+     * Cached as a plain array, deliberately not the Eloquent models/
+     * Collection themselves — see TaskStatus::allColors()'s docblock for
+     * why (the 'database' cache driver's serialize/unserialize round trip
+     * can come back as __PHP_Incomplete_Class for a cached model instance
+     * depending on autoloader/classmap state at the moment it's read back).
+     *
+     * @return array<string, array{background_color: string, text_color: string}>
      */
-    private static function allColors(): Collection
+    private static function allColors(): array
     {
-        return Cache::rememberForever(self::COLOR_CACHE_KEY, fn () => TaskPriorityColor::all()->keyBy('priority'));
+        return Cache::rememberForever(
+            self::COLOR_CACHE_KEY,
+            fn () => TaskPriorityColor::query()
+                ->get(['priority', 'background_color', 'text_color'])
+                ->keyBy('priority')
+                ->map(fn (TaskPriorityColor $color) => [
+                    'background_color' => $color->background_color,
+                    'text_color' => $color->text_color,
+                ])
+                ->all()
+        );
     }
 
     /** Called from the Status & Priority Colors settings page after saving. */
