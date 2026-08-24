@@ -68,27 +68,9 @@
                         $children = collect($item['children'] ?? [])->filter(
                             fn ($child) => ! isset($child['can']) || auth()->user()->can(...$child['can'])
                         );
-                        $hasChildren = $children->isNotEmpty();
-                        $anyChildActive = $children->contains(
-                            fn ($child) => collect($child['matches'])->contains(fn ($pattern) => request()->routeIs($pattern))
-                        );
                     @endphp
 
-                    @if ($hasChildren && $itemAllowed)
-                        {{-- A group toggles its children open/closed rather than
-                             navigating — collapsed by default, except when one
-                             of its own children is the current page, so the
-                             active item is never hidden behind a closed group
-                             the visitor would have no reason to think to open. --}}
-                        <button type="button"
-                           class="nav-group-toggle flex w-full items-center justify-between gap-2 border-r-2 px-4 py-2 text-xs {{ $active || $anyChildActive ? 'border-[#1D9E75] bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
-                            <span class="flex items-center gap-2">
-                                <i class="ti {{ $item['icon'] }}"></i>
-                                {{ $item['label'] }}
-                            </span>
-                            <i class="ti ti-chevron-down nav-group-chevron text-[12px] transition-transform {{ $anyChildActive ? 'rotate-180' : '' }}"></i>
-                        </button>
-                    @elseif ($item['route'] && $itemAllowed)
+                    @if ($item['route'] && $itemAllowed)
                         <a href="{{ route($item['route']) }}"
                            class="flex items-center gap-2 border-r-2 px-4 py-2 text-xs {{ $active ? 'border-[#1D9E75] bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
                             <i class="ti {{ $item['icon'] }}"></i>
@@ -101,17 +83,13 @@
                         </span>
                     @endif
 
-                    @if ($hasChildren)
-                        <div class="nav-group-children" style="{{ $anyChildActive ? '' : 'display: none;' }}">
-                            @foreach ($children as $child)
-                                @php $childActive = collect($child['matches'])->contains(fn ($pattern) => request()->routeIs($pattern)) @endphp
-                                <a href="{{ route($child['route']) }}"
-                                   class="flex items-center border-r-2 py-2 pl-10 pr-4 text-xs {{ $childActive ? 'border-[#1D9E75] bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
-                                    {{ $child['label'] }}
-                                </a>
-                            @endforeach
-                        </div>
-                    @endif
+                    @foreach ($children as $child)
+                        @php $childActive = collect($child['matches'])->contains(fn ($pattern) => request()->routeIs($pattern)) @endphp
+                        <a href="{{ route($child['route']) }}"
+                           class="flex items-center border-r-2 py-2 pl-10 pr-4 text-xs {{ $childActive ? 'border-[#1D9E75] bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
+                            {{ $child['label'] }}
+                        </a>
+                    @endforeach
                 @endforeach
             </nav>
         </aside>
@@ -179,17 +157,6 @@
                 sidebar.classList.add('-translate-x-full');
                 backdrop.classList.add('hidden');
             }
-
-            document.querySelectorAll('.nav-group-toggle').forEach(function (toggle) {
-                const children = toggle.nextElementSibling;
-                const chevron = toggle.querySelector('.nav-group-chevron');
-
-                toggle.addEventListener('click', function () {
-                    const isOpen = children.style.display !== 'none';
-                    children.style.display = isOpen ? 'none' : '';
-                    chevron.classList.toggle('rotate-180', ! isOpen);
-                });
-            });
 
             openBtn.addEventListener('click', openSidebar);
             closeBtn.addEventListener('click', closeSidebar);
