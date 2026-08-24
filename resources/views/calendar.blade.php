@@ -3,7 +3,7 @@
 @section('title', 'Calendar — Solava')
 
 @section('content')
-<div class="flex flex-1 flex-col">
+<div>
     <h1 class="text-[14px] font-medium text-[#1F2937]">Calendar</h1>
     <p class="mt-1 text-[11px] text-gray-500">Tasks positioned by due date, grouped by project (color-coded). Tasks with no due date aren't shown here. Use + to show or hide a task's subtasks; click a bar to open its task. Drag the column divider to resize the task list, or scroll it to read a long name.</p>
 

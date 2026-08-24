@@ -3,7 +3,7 @@
 @section('title', 'Department Access — Solava')
 
 @section('content')
-<div class="flex flex-1 flex-col">
+<div>
     <div class="flex items-start justify-between gap-3">
         <div>
             <h1 class="text-[14px] font-medium text-[#1F2937]">Department Access</h1>

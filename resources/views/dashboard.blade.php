@@ -3,7 +3,7 @@
 @section('title', 'Dashboard — Solava')
 
 @section('content')
-<div class="flex flex-1 flex-col">
+<div>
     <h1 class="text-[14px] font-medium text-[#1F2937]">Dashboard</h1>
 
     @if ($organizations->isEmpty())
