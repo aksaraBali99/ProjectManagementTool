@@ -8,12 +8,13 @@ use App\Services\AuditEventNotifier;
 
 /**
  * Same pattern as TaskObserver — see its docblock for the auth()->check()
- * guard rationale, and for why AuditEventNotifier is invoked from here too
- * (no subtask action currently maps to a NotificationEventType, so
- * notify() is presently a no-op for these, but wiring it in uniformly
- * means a future notifiable subtask event needs no observer changes). A
- * subtask's own organization_id has to be read off its parent task, since
- * Subtask doesn't carry that column itself.
+ * guard rationale, and for why AuditEventNotifier is invoked from here too.
+ * subtask.created/subtask.reassigned feed the TaskAssigned event type (see
+ * NotificationEventType::matchingAuditActions()) so "notify me when I'm
+ * assigned" covers subtask assignment the same as task assignment; every
+ * other subtask action still maps to no event type, so notify() stays a
+ * no-op for those. A subtask's own organization_id has to be read off its
+ * parent task, since Subtask doesn't carry that column itself.
  */
 class SubtaskObserver
 {

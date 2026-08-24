@@ -700,6 +700,26 @@ test('the task edit page shows the comments section', function () {
     $response->assertSee('Visible comment');
 });
 
+test('the new-subtask row has a start date field with a To label between it and the due date, matching an existing row', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $task->subtasks()->create(['title' => 'Existing subtask', 'start_date' => '2026-01-01', 'due_date' => '2026-01-05']);
+
+    $response = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit");
+
+    $response->assertOk();
+    $response->assertSee('class="new-subtask-start-date', false);
+    // One "To" label for the existing row, one for the new-subtask row, and
+    // one inside the JS template used to render a subtask added via AJAX.
+    expect(substr_count($response->getContent(), '<span class="shrink-0 text-[10px] text-gray-400">To</span>'))->toBe(3);
+});
+
 test('a user can edit and delete their own comment', function () {
     $task = Task::create([
         'organization_id' => $this->orgA->id,

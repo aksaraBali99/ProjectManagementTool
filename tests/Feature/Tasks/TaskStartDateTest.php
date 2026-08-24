@@ -150,3 +150,18 @@ test('a subtask start_date is manually editable', function () {
 
     expect($subtask->fresh()->start_date->toDateString())->toBe('2026-02-01');
 });
+
+test('a new subtask can be created with a start_date via the Add subtask form', function () {
+    $task = makeTaskForStartDateTest($this->projectA, $this->deptA);
+
+    $response = $this->actingAs($this->management)->postJson("/tasks/{$task->id}/subtasks", [
+        'title' => 'Sub with a start date',
+        'start_date' => '2026-03-01',
+        'due_date' => '2026-03-10',
+    ]);
+
+    $response->assertCreated();
+    $subtask = $task->subtasks()->firstOrFail();
+    expect($subtask->start_date->toDateString())->toBe('2026-03-01')
+        ->and($subtask->due_date->toDateString())->toBe('2026-03-10');
+});
