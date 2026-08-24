@@ -194,7 +194,7 @@
     <div class="mt-6">
         <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Comments</span>
         <div class="mt-2">
-            @include('tasks._comments', ['task' => $task])
+            @include('tasks._comments', ['task' => $task, 'mentionableUsers' => collect($staffByProject[$task->project_id] ?? [])->reject(fn ($member) => $member['id'] === auth()->id())->values()])
         </div>
     </div>
 </div>

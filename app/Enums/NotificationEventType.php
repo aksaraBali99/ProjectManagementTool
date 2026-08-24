@@ -30,8 +30,11 @@ enum NotificationEventType: string
 
     /**
      * The audit_log 'action' value(s) that mean this event happened.
-     * TaskAssigned matches both a fresh assignment at creation time and a
-     * later reassignment — either way, someone became the assignee.
+     * TaskAssigned matches a fresh assignment or reassignment on either a
+     * task or one of its subtasks — "assigned to me" means the same thing
+     * either way, and NotificationSettingsResolver::isNewAssignee() reads
+     * the same 'assignee_id' changes shape regardless of entity_type, so
+     * no other part of the pipeline needs to know which one fired.
      *
      * @return array<int, string>
      */
@@ -39,7 +42,7 @@ enum NotificationEventType: string
     {
         return match ($this) {
             self::TaskStatusChanged => ['task.status_changed'],
-            self::TaskAssigned => ['task.created', 'task.reassigned'],
+            self::TaskAssigned => ['task.created', 'task.reassigned', 'subtask.created', 'subtask.reassigned'],
             self::CommentAdded => ['comment.created'],
             self::TaskPriorityChanged => ['task.priority_changed'],
         };

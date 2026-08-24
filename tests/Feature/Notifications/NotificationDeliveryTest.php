@@ -147,6 +147,76 @@ test('a user with no personal rule for an event correctly receives notifications
     expect($this->recipient->fresh()->notifications()->count())->toBe(1);
 });
 
+test('assigning a subtask notifies the assignee via the same task_assigned event as task assignment', function () {
+    $this->projectA->staff()->attach($this->recipient->id);
+
+    NotificationSetting::create([
+        'owner_id' => $this->recipient->id,
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+        'recipients' => null,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/subtasks", [
+        'title' => 'Sub with an assignee',
+        'assignee_id' => $this->recipient->id,
+    ])->assertCreated();
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(1);
+
+    $notification = $this->recipient->fresh()->notifications()->first();
+    expect($notification->data['entity_type'])->toBe('subtask')
+        ->and($notification->data['message'])->toContain('Sub with an assignee');
+});
+
+test('reassigning a subtask notifies only the new assignee, not the previous one', function () {
+    $this->projectA->staff()->attach($this->recipient->id);
+    $previousAssignee = User::factory()->create();
+    $this->projectA->staff()->attach($previousAssignee->id);
+    OrgMember::create([
+        'organization_id' => $this->orgA->id,
+        'user_id' => $previousAssignee->id,
+        'role_id' => Role::where('slug', 'staff')->first()->id,
+    ]);
+
+    foreach ([$this->recipient, $previousAssignee] as $user) {
+        NotificationSetting::create([
+            'owner_id' => $user->id,
+            'event_type' => 'task_assigned',
+            'channel' => 'in_app',
+            'recipients' => null,
+            'is_active' => true,
+        ]);
+    }
+
+    $subtask = $this->task->subtasks()->create(['title' => 'Sub', 'assignee_id' => $previousAssignee->id]);
+    $previousAssignee->notifications()->delete();
+
+    $this->actingAs($this->management)->putJson("/subtasks/{$subtask->id}", [
+        'assignee_id' => $this->recipient->id,
+    ])->assertOk();
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(1)
+        ->and($previousAssignee->fresh()->notifications()->count())->toBe(0);
+});
+
+test('creating a subtask with no assignee sends no task_assigned notification', function () {
+    NotificationSetting::create([
+        'owner_id' => $this->recipient->id,
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+        'recipients' => null,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/subtasks", [
+        'title' => 'Unassigned sub',
+    ])->assertCreated();
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(0);
+});
+
 test('a user matching two different admin rules for the same event_type receives exactly one notification, not two', function () {
     NotificationSetting::create([
         'owner_id' => $this->management->id,

@@ -2,14 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Models\Comment;
 use App\Models\Task;
+use App\Models\User;
+use App\Notifications\MentionedInCommentNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class CommentController extends Controller
 {
+    use ValidatesTaskAssignment;
+
     public function index(Task $task): JsonResponse
     {
         Gate::authorize('view', $task);
@@ -40,12 +45,16 @@ class CommentController extends Controller
 
         $data = $request->validate([
             'body' => ['required', 'string', 'max:2000'],
+            'mentioned_user_ids' => ['sometimes', 'array'],
+            'mentioned_user_ids.*' => ['integer'],
         ]);
 
         $comment = $task->comments()->create([
             'user_id' => auth()->id(),
             'body' => $data['body'],
         ]);
+
+        $this->syncMentions($comment, $task, $data['mentioned_user_ids'] ?? []);
 
         return response()->json([
             'comment' => [
@@ -66,9 +75,13 @@ class CommentController extends Controller
 
         $data = $request->validate([
             'body' => ['required', 'string', 'max:2000'],
+            'mentioned_user_ids' => ['sometimes', 'array'],
+            'mentioned_user_ids.*' => ['integer'],
         ]);
 
-        $comment->update($data);
+        $comment->update(['body' => $data['body']]);
+
+        $this->syncMentions($comment, $comment->task, $data['mentioned_user_ids'] ?? []);
 
         return response()->json(['comment' => ['id' => $comment->id, 'body' => $comment->body]]);
     }
@@ -80,5 +93,35 @@ class CommentController extends Controller
         $comment->delete();
 
         return response()->json(['deleted' => true]);
+    }
+
+    /**
+     * Validates the submitted mention IDs against who's actually eligible
+     * for this task (the same project_staff/project_clients set the
+     * Assignee dropdown offers — ValidatesTaskAssignment's own definition
+     * of "eligible"), then syncs the pivot and notifies only newly
+     * attached rows. sync()'s 'attached' list is what makes "mention the
+     * same person twice" and "re-save an unchanged mention on edit" both
+     * notify at most once — a dedupe already handled by the pivot itself,
+     * not something this method needs to track separately.
+     */
+    private function syncMentions(Comment $comment, Task $task, array $mentionedIds): void
+    {
+        $eligibleIds = collect($mentionedIds)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->filter(fn ($id) => $id !== $comment->user_id && $this->isAssignableStaffForProject($task->project, $id))
+            ->values()
+            ->all();
+
+        $result = $comment->mentionedUsers()->sync($eligibleIds);
+
+        if (empty($result['attached'])) {
+            return;
+        }
+
+        User::whereIn('id', $result['attached'])->get()->each(
+            fn (User $user) => $user->notify(new MentionedInCommentNotification($task))
+        );
     }
 }

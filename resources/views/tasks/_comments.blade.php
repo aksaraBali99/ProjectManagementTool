@@ -26,8 +26,8 @@
         @endforelse
     </div>
 
-    <div class="mt-2 flex items-start gap-2">
-        <textarea class="new-comment-body flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" rows="2" placeholder="Add a comment…"></textarea>
+    <div class="mt-2 flex items-start gap-2" style="position: relative;">
+        <textarea class="new-comment-body flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" rows="2" placeholder="Add a comment… type @ to mention someone"></textarea>
         <button type="button" class="post-comment-btn rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
             Post
         </button>
@@ -43,6 +43,170 @@
         const postBtn = container.querySelector('.post-comment-btn');
         const errorEl = container.querySelector('.comment-error');
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const mentionableUsers = @json($mentionableUsers ?? []);
+
+        // Plain-textarea @mention autocomplete: no caret-pixel tracking (the
+        // dropdown just anchors below the textarea — precise enough for a
+        // comment box this small), and no contenteditable/rich-text markup —
+        // a picked name is inserted as literal "@Full Name " text. Mentioned
+        // IDs are tracked per textarea instance as they're picked, but a
+        // literal-text-still-present check at read time (getMentionedUserIds)
+        // is what keeps the list correct after edits — deleting the "@Name"
+        // text drops it from what's submitted, without needing to re-parse
+        // the whole body. Reused for both the "new comment" box and any
+        // "edit comment" box.
+        function setupMentionAutocomplete(textarea) {
+            const mentioned = new Map(); // user id -> the literal "@Name" text inserted for it
+
+            // Edit mode starts from an existing body with no picker
+            // history — seed from whichever mentionable names already
+            // appear in the text, longest name first so "Jo" can't shadow
+            // a "Jo Ann" match starting at the same position.
+            mentionableUsers.slice().sort(function (a, b) {
+                return b.name.length - a.name.length;
+            }).forEach(function (user) {
+                if (textarea.value.indexOf('@' + user.name) !== -1) {
+                    mentioned.set(user.id, '@' + user.name);
+                }
+            });
+
+            let dropdown = null;
+
+            function closeDropdown() {
+                if (dropdown) {
+                    dropdown.remove();
+                    dropdown = null;
+                }
+            }
+
+            function activeQuery() {
+                const caret = textarea.selectionStart;
+                const value = textarea.value;
+                const uptoCaret = value.slice(0, caret);
+                const at = uptoCaret.lastIndexOf('@');
+                if (at === -1) return null;
+
+                const between = uptoCaret.slice(at + 1);
+                if (/\s/.test(between)) return null;
+
+                const before = at === 0 ? '' : value[at - 1];
+                if (before && ! /\s/.test(before)) return null;
+
+                return { at: at, query: between };
+            }
+
+            function selectMention(user, at) {
+                const caret = textarea.selectionStart;
+                const value = textarea.value;
+                const display = '@' + user.name + ' ';
+
+                textarea.value = value.slice(0, at) + display + value.slice(caret);
+                const newCaret = at + display.length;
+                textarea.focus();
+                textarea.setSelectionRange(newCaret, newCaret);
+                mentioned.set(user.id, '@' + user.name);
+                closeDropdown();
+            }
+
+            function highlightOption(options, index) {
+                options.forEach(function (option, i) {
+                    option.classList.toggle('bg-gray-50', i === index);
+                });
+            }
+
+            function renderDropdown(matches, at) {
+                closeDropdown();
+                if (matches.length === 0) return;
+
+                dropdown = document.createElement('div');
+                dropdown.className = 'mention-dropdown absolute z-20 mt-1 max-h-40 w-56 overflow-y-auto rounded-md border border-gray-200 bg-white text-[12px] shadow-lg';
+
+                matches.forEach(function (user) {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'mention-option block w-full px-3 py-1.5 text-left hover:bg-gray-50';
+                    item.textContent = user.name;
+                    // mousedown, not click: fires before the textarea blurs,
+                    // so selectionStart/selectionEnd still point where the
+                    // user left them when selectMention reads them.
+                    item.addEventListener('mousedown', function (event) {
+                        event.preventDefault();
+                        selectMention(user, at);
+                    });
+                    dropdown.appendChild(item);
+                });
+
+                highlightOption(Array.prototype.slice.call(dropdown.querySelectorAll('.mention-option')), 0);
+
+                const parent = textarea.parentElement;
+                if (getComputedStyle(parent).position === 'static') {
+                    parent.style.position = 'relative';
+                }
+                parent.appendChild(dropdown);
+                dropdown.style.left = textarea.offsetLeft + 'px';
+                dropdown.style.top = (textarea.offsetTop + textarea.offsetHeight) + 'px';
+            }
+
+            textarea.addEventListener('input', function () {
+                const q = activeQuery();
+                if (! q) {
+                    closeDropdown();
+                    return;
+                }
+
+                const query = q.query.toLowerCase();
+                const matches = mentionableUsers.filter(function (user) {
+                    return user.name.toLowerCase().indexOf(query) !== -1;
+                }).slice(0, 6);
+
+                renderDropdown(matches, q.at);
+            });
+
+            textarea.addEventListener('keydown', function (event) {
+                if (! dropdown) return;
+
+                const options = Array.prototype.slice.call(dropdown.querySelectorAll('.mention-option'));
+                if (options.length === 0) return;
+
+                let activeIndex = options.findIndex(function (option) {
+                    return option.classList.contains('bg-gray-50');
+                });
+                if (activeIndex === -1) activeIndex = 0;
+
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    highlightOption(options, (activeIndex + 1) % options.length);
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    highlightOption(options, (activeIndex - 1 + options.length) % options.length);
+                } else if (event.key === 'Enter' || event.key === 'Tab') {
+                    event.preventDefault();
+                    options[activeIndex].dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                } else if (event.key === 'Escape') {
+                    closeDropdown();
+                }
+            });
+
+            // Delayed so a mousedown-selected option's own handler still
+            // runs (and can call preventDefault/read the caret) before the
+            // dropdown that owns it gets torn down.
+            textarea.addEventListener('blur', function () {
+                setTimeout(closeDropdown, 150);
+            });
+
+            return {
+                getMentionedUserIds: function () {
+                    const ids = [];
+                    mentioned.forEach(function (display, id) {
+                        if (textarea.value.indexOf(display) !== -1) ids.push(id);
+                    });
+                    return ids;
+                },
+                reset: function () {
+                    mentioned.clear();
+                },
+            };
+        }
 
         function escapeHtml(value) {
             const div = document.createElement('div');
@@ -134,6 +298,7 @@
                     textarea.value = currentBody;
                     bodyText.replaceWith(textarea);
                     row.querySelector('.comment-actions').style.display = 'none';
+                    const editMentions = setupMentionAutocomplete(textarea);
 
                     const controls = document.createElement('div');
                     controls.className = 'comment-edit-controls mt-1 flex items-center gap-2';
@@ -160,7 +325,7 @@
                         const newBody = textarea.value.trim();
                         if (newBody === '') return;
 
-                        requestOrThrow('/comments/' + row.dataset.commentId, 'PUT', { body: newBody }, 'Failed to save comment.')
+                        requestOrThrow('/comments/' + row.dataset.commentId, 'PUT', { body: newBody, mentioned_user_ids: editMentions.getMentionedUserIds() }, 'Failed to save comment.')
                             .then(function (response) {
                                 return response.json();
                             })
@@ -190,6 +355,8 @@
 
         listEl.querySelectorAll('[data-comment-id]').forEach(wireComment);
 
+        const newCommentMentions = setupMentionAutocomplete(bodyInput);
+
         postBtn.addEventListener('click', function () {
             const body = bodyInput.value.trim();
             if (body === '') return;
@@ -197,7 +364,7 @@
             errorEl.style.display = 'none';
             postBtn.disabled = true;
 
-            requestOrThrow('/tasks/' + taskId + '/comments', 'POST', { body: body }, 'Failed to post comment.')
+            requestOrThrow('/tasks/' + taskId + '/comments', 'POST', { body: body, mentioned_user_ids: newCommentMentions.getMentionedUserIds() }, 'Failed to post comment.')
                 .then(function (response) {
                     return response.json();
                 })
@@ -208,6 +375,7 @@
                     listEl.appendChild(item);
                     wireComment(item);
                     bodyInput.value = '';
+                    newCommentMentions.reset();
                 })
                 .catch(function (error) {
                     errorEl.textContent = error.message;
