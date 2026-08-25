@@ -16,7 +16,7 @@ trait HidesInactiveFromNonAdmins
 
             $user = Auth::user();
 
-            if ($user->isSuperAdmin() || $user->isOwner()) {
+            if ($user->hasGlobalRole()) {
                 return;
             }
 

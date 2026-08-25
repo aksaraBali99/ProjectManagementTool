@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasEnumValues;
+
 enum ImportValidationStatus: string
 {
+    use HasEnumValues;
+
     case Valid = 'valid';
     case Warning = 'warning';
     case Error = 'error';
@@ -15,13 +19,5 @@ enum ImportValidationStatus: string
             self::Warning => 'Warning',
             self::Error => 'Error',
         };
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public static function values(): array
-    {
-        return array_column(self::cases(), 'value');
     }
 }

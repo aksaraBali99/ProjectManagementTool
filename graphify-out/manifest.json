@@ -235,8 +235,8 @@
     "semantic_hash": ""
   },
   "app/Models/Concerns/BelongsToOrganization.php": {
-    "mtime": 1786958813.2029307,
-    "ast_hash": "487026f9aee650c6982ba9d36838ae6d",
+    "mtime": 1787660048.6916072,
+    "ast_hash": "bdc3f39bef8a9b5e692590c2fb186c69",
     "semantic_hash": ""
   },
   "app/Models/Department.php": {
@@ -640,8 +640,8 @@
     "semantic_hash": ""
   },
   "app/Models/Concerns/HidesInactiveFromNonAdmins.php": {
-    "mtime": 1787063249.4249358,
-    "ast_hash": "6adc8fc76b0bed803acdab047c76b613",
+    "mtime": 1787660065.297884,
+    "ast_hash": "bb48016a79e42df6ac6c2ce6c49e6e49",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_18_000200_add_is_active_to_organizations_and_departments.php": {
@@ -840,23 +840,23 @@
     "semantic_hash": ""
   },
   "app/Enums/DocumentAccessLevel.php": {
-    "mtime": 1787216778.6599016,
-    "ast_hash": "06b95ad2bf0ebf32cc025fd74f735622",
+    "mtime": 1787660091.5071,
+    "ast_hash": "cd698bf53d22b2e0cc75c99b7cbfd5e8",
     "semantic_hash": ""
   },
   "app/Enums/Priority.php": {
-    "mtime": 1787575962.7947526,
-    "ast_hash": "1100f6464317f53db57d10ba7a96d5bf",
+    "mtime": 1787660218.0339837,
+    "ast_hash": "332b715cde4a850ff5a379e998742bb7",
     "semantic_hash": ""
   },
   "app/Enums/ProjectStatus.php": {
-    "mtime": 1787216778.6619253,
-    "ast_hash": "b1f42d756b5229a452c1a5d475a2036b",
+    "mtime": 1787660171.377918,
+    "ast_hash": "bb75b14259344a1584926604081155ca",
     "semantic_hash": ""
   },
   "app/Enums/TaskStatus.php": {
-    "mtime": 1787575962.80578,
-    "ast_hash": "bfd877ff816d7075b8e6b093c5cfdedd",
+    "mtime": 1787660210.1675272,
+    "ast_hash": "fc09a0b4390172ad61d735fe84cce97d",
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/Concerns/ValidatesCompanyRoles.php": {
@@ -935,13 +935,13 @@
     "semantic_hash": ""
   },
   "app/Enums/NotificationChannel.php": {
-    "mtime": 1787297716.3716345,
-    "ast_hash": "ec74a23d7c91e9218d42ca3722476501",
+    "mtime": 1787660104.6147373,
+    "ast_hash": "2bc3bac2bebf911570783db2b1a4de9f",
     "semantic_hash": ""
   },
   "app/Enums/NotificationEventType.php": {
-    "mtime": 1787562531.6115599,
-    "ast_hash": "90dd259e1fd09efa6d90bb4f8b33d413",
+    "mtime": 1787660124.4388826,
+    "ast_hash": "bafffa0cee4f0b9445b70561aa7bed3b",
     "semantic_hash": ""
   },
   "app/Http/Controllers/AuditTrailController.php": {
@@ -1210,12 +1210,12 @@
     "semantic_hash": ""
   },
   "app/Services/Import/ImportSheetSchema.php": {
-    "mtime": 1787655898.6989324,
+    "mtime": 1787658309.1233535,
     "ast_hash": "8c911897934c260d2c069e6702959efb",
     "semantic_hash": ""
   },
   "app/Services/Import/ImportTemplateBuilder.php": {
-    "mtime": 1787655996.700302,
+    "mtime": 1787658309.1233535,
     "ast_hash": "811387630a91807d440080ca9e215f1f",
     "semantic_hash": ""
   },
@@ -1225,7 +1225,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Import/TemplateGenerationTest.php": {
-    "mtime": 1787656090.6181343,
+    "mtime": 1787658309.1619825,
     "ast_hash": "d6af7a1a90609648ad8f9f840733f29b",
     "semantic_hash": ""
   },
@@ -1235,18 +1235,18 @@
     "semantic_hash": ""
   },
   "app/Enums/ImportBatchStatus.php": {
-    "mtime": 1787654125.9814181,
-    "ast_hash": "a576b394ae10e02126c9b02e08ab3fd3",
+    "mtime": 1787660145.3795774,
+    "ast_hash": "64ba91cd4bb39f8b6c14a4dd9fc25329",
     "semantic_hash": ""
   },
   "app/Enums/ImportRowAction.php": {
-    "mtime": 1787654125.9844165,
-    "ast_hash": "1cdc410a0d1961c9b411366c229ad52d",
+    "mtime": 1787660154.9759407,
+    "ast_hash": "deb140741e8d27efed361ad9373b193a",
     "semantic_hash": ""
   },
   "app/Enums/ImportValidationStatus.php": {
-    "mtime": 1787654125.9874165,
-    "ast_hash": "6e16fd14231e5b5875c36aaec424e72e",
+    "mtime": 1787660165.1424987,
+    "ast_hash": "c5c5fc6be0bdf2bb2dd5deb58f580e54",
     "semantic_hash": ""
   },
   "app/Models/ImportBatch.php": {
@@ -1422,6 +1422,16 @@
   "tests/Feature/Import/ImportFieldFormatValidationTest.php": {
     "mtime": 1787654126.2089102,
     "ast_hash": "ca0a81626849fc21edb3cbf3b1d47ad3",
+    "semantic_hash": ""
+  },
+  "app/Enums/Concerns/HasAdminConfigurableColors.php": {
+    "mtime": 1787660199.4337962,
+    "ast_hash": "312b1d555a1c9af32eb2960a6e86cc26",
+    "semantic_hash": ""
+  },
+  "app/Enums/Concerns/HasEnumValues.php": {
+    "mtime": 1787660073.798375,
+    "ast_hash": "2d0dd2938d07176c1f78a971884946b3",
     "semantic_hash": ""
   }
 }
