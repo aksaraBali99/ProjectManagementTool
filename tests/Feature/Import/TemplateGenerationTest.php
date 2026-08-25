@@ -1,11 +1,13 @@
 <?php
 
 use App\Models\Department;
+use App\Models\ImportBatch;
 use App\Models\Organization;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Http\UploadedFile;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -94,4 +96,44 @@ test('Companies and Departments tabs list existing live data with encoded IDs', 
     $departments = $spreadsheet->getSheetByName('Departments');
     expect($departments->getCell('B3')->getValue())->toBe('Live Test Dept');
     expect($departments->getCell('C3')->getValue())->toBe('Live Test Co');
+});
+
+test('every tab other than Companies/Departments starts empty — no fabricated example row that could get imported by accident', function () {
+    $spreadsheet = downloadTemplateSpreadsheet($this->owner);
+
+    foreach (['Users', 'Company Roles', 'Projects', 'Tasks', 'Subtasks', 'Task Documents', 'Task Comments'] as $sheetName) {
+        $sheet = $spreadsheet->getSheetByName($sheetName);
+        // Row 3 is the first data row (row 1 = header, row 2 = legend) —
+        // it must be entirely blank, not a populated illustrative example.
+        expect($sheet->getCell('A3')->getValue())->toBeNull();
+    }
+});
+
+test('uploading a freshly-downloaded, completely unmodified template imports nothing but the real existing companies/departments', function () {
+    Organization::create(['name' => 'Real Co', 'slug' => 'real-co', 'accent_color' => '#1D9E75']);
+
+    $downloadResponse = $this->actingAs($this->owner)->get('/import/template');
+    $downloadResponse->assertOk();
+
+    $path = tempnam(sys_get_temp_dir(), 'solava-import-template').'.xlsx';
+    file_put_contents($path, $downloadResponse->streamedContent());
+    $uploadedFile = new UploadedFile($path, 'Solava_Import_Template.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
+
+    $this->actingAs($this->owner)->post('/import/upload', ['file' => $uploadedFile]);
+    unlink($path);
+
+    $batch = ImportBatch::firstOrFail();
+
+    // Companies: exactly the one real company, resolved as an update
+    // (unchanged), not an extra fabricated row.
+    $companyRows = $batch->importRows()->where('sheet_name', 'Companies')->get();
+    expect($companyRows)->toHaveCount(1);
+    expect($companyRows->first()->raw_data['name'])->toBe('Real Co');
+
+    // Every other tab: nothing to import at all, since nothing was typed
+    // into them and there's no example row left behind to be mistaken
+    // for real data.
+    foreach (['Users', 'Company Roles', 'Projects', 'Tasks', 'Subtasks', 'Task Documents', 'Task Comments'] as $sheetName) {
+        expect($batch->importRows()->where('sheet_name', $sheetName)->count())->toBe(0);
+    }
 });

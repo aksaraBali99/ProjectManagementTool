@@ -26,14 +26,15 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  *
  * Companies/Departments are fully listed (small, bounded counts — a
  * handful of companies, a few departments each) so their hidden ID column
- * can drive rename/update detection on upload. Users/Company Roles/
- * Projects/Tasks/Subtasks/Task Documents/Task Comments instead get exactly
- * one illustrative example row each (unbounded in a mature company —
- * dumping every existing task/user into the sheet would make it enormous
- * and isn't needed for a "fill in new/changed rows" tool). Those example
- * rows are mutually consistent (same Task Ref chain, same example company)
- * and, where a real company/department already exists, reference it
- * directly so the template is importable as-is as a smoke test.
+ * can drive rename/update detection on upload. Every other tab (Users,
+ * Company Roles, Projects, Tasks, Subtasks, Task Documents, Task Comments)
+ * starts genuinely EMPTY below the header/legend rows — deliberately no
+ * fabricated example row. The upload parser treats every non-blank row
+ * from row 3 down as real data with nothing to distinguish "illustrative
+ * placeholder" from "the user's actual input", so a populated example row
+ * would silently get imported for real if someone forgot to delete it
+ * before uploading. A worked example lives in each tab's legend text
+ * instead (prose, never parsed as data) — see ImportSheetSchema::legend().
  */
 class ImportTemplateBuilder
 {
@@ -61,8 +62,6 @@ class ImportTemplateBuilder
 
     private const LEGEND_FILL_COLOR = 'E1F5EE';
 
-    private const HINT_FONT_COLOR = '9CA3AF';
-
     // The legend row is merged wider than the sheet's own data columns
     // (Companies only has 2, for example) purely so the instructional text
     // gets more horizontal room to wrap into — fewer wrapped lines means a
@@ -87,18 +86,13 @@ class ImportTemplateBuilder
         $organizations = Organization::orderBy('id')->get(['id', 'name']);
         $departments = Department::with('organization:id,name')->orderBy('id')->get(['id', 'name', 'organization_id']);
 
-        $exampleOrganizationName = $organizations->first()->name ?? 'Example Company';
-        $exampleDepartmentName = $departments
-            ->firstWhere('organization_id', $organizations->first()->id ?? null)
-            ->name ?? 'Example Department';
-
         $this->buildCompaniesSheet($spreadsheet, $organizations);
         $this->buildDepartmentsSheet($spreadsheet, $departments);
         $this->buildReferenceSheet($spreadsheet);
         $this->buildUsersSheet($spreadsheet);
-        $this->buildCompanyRolesSheet($spreadsheet, $exampleOrganizationName);
-        $this->buildProjectsSheet($spreadsheet, $exampleOrganizationName);
-        $this->buildTasksSheet($spreadsheet, $exampleOrganizationName, $exampleDepartmentName);
+        $this->buildCompanyRolesSheet($spreadsheet);
+        $this->buildProjectsSheet($spreadsheet);
+        $this->buildTasksSheet($spreadsheet);
         $this->buildSubtasksSheet($spreadsheet);
         $this->buildTaskDocumentsSheet($spreadsheet);
         $this->buildTaskCommentsSheet($spreadsheet);
@@ -127,7 +121,6 @@ class ImportTemplateBuilder
             $row++;
         }
 
-        $this->addHintRow($sheet, $row, 'B', '< add a new company here, leave column A blank >');
         $this->setColumnWidths($sheet, ['A' => 16, 'B' => 32]);
     }
 
@@ -146,7 +139,6 @@ class ImportTemplateBuilder
             $row++;
         }
 
-        $this->addHintRow($sheet, $row, 'B', '< add a new department here, leave column A blank >');
         $this->addListValidation($sheet, 'C', 4, self::DATA_VALIDATION_LAST_ROW, 'Companies!$B$3:$B$500');
         $this->setColumnWidths($sheet, ['A' => 16, 'B' => 24, 'C' => 24]);
     }
@@ -184,62 +176,46 @@ class ImportTemplateBuilder
         $this->applyLegendRow($sheet, 'Users', $lastColumn);
         $this->freezePane($sheet);
 
-        $sheet->fromArray(['jdoe', 'Jane Doe', 'Employee', '', 'jane.doe@example.com', '+6281234567890', ''], null, 'A3');
-        $sheet->fromArray(['client.acme', 'Acme Corp Contact', 'Client', '', 'contact@acmecorp.com', '+6281111111111', ''], null, 'A4');
-
-        $this->addListValidation($sheet, 'C', 5, self::DATA_VALIDATION_LAST_ROW, 'Reference!$E$2:$E$3');
+        $this->addListValidation($sheet, 'C', 3, self::DATA_VALIDATION_LAST_ROW, 'Reference!$E$2:$E$3');
         $this->setColumnWidths($sheet, ['A' => 16, 'B' => 22, 'C' => 12, 'D' => 20, 'E' => 26, 'F' => 20, 'G' => 20]);
     }
 
-    private function buildCompanyRolesSheet(Spreadsheet $spreadsheet, string $exampleOrganizationName): void
+    private function buildCompanyRolesSheet(Spreadsheet $spreadsheet): void
     {
         $sheet = $this->addSheet($spreadsheet, 'Company Roles');
         $lastColumn = $this->applyHeaderRow($sheet, 'Company Roles');
         $this->applyLegendRow($sheet, 'Company Roles', $lastColumn);
         $this->freezePane($sheet);
 
-        $sheet->fromArray(['jdoe', $exampleOrganizationName, 'Staff'], null, 'A3');
-        $sheet->fromArray(['client.acme', $exampleOrganizationName, 'Client'], null, 'A4');
-
-        $this->addListValidation($sheet, 'B', 5, self::DATA_VALIDATION_LAST_ROW, 'Companies!$B$3:$B$500');
-        $this->addListValidation($sheet, 'C', 5, self::DATA_VALIDATION_LAST_ROW, 'Reference!$D$2:$D$4');
+        $this->addListValidation($sheet, 'B', 3, self::DATA_VALIDATION_LAST_ROW, 'Companies!$B$3:$B$500');
+        $this->addListValidation($sheet, 'C', 3, self::DATA_VALIDATION_LAST_ROW, 'Reference!$D$2:$D$4');
         $this->setColumnWidths($sheet, ['A' => 16, 'B' => 24, 'C' => 14]);
     }
 
-    private function buildProjectsSheet(Spreadsheet $spreadsheet, string $exampleOrganizationName): void
+    private function buildProjectsSheet(Spreadsheet $spreadsheet): void
     {
         $sheet = $this->addSheet($spreadsheet, 'Projects');
         $lastColumn = $this->applyHeaderRow($sheet, 'Projects');
         $this->applyLegendRow($sheet, 'Projects', $lastColumn);
         $this->freezePane($sheet);
 
-        $sheet->fromArray([
-            '', 'Example Project', 'Short description of the project.', $exampleOrganizationName, '',
-            ProjectStatus::Open->label(), Priority::Medium->label(), 'jdoe',
-        ], null, 'A3');
-
-        $this->addListValidation($sheet, 'D', 4, self::DATA_VALIDATION_LAST_ROW, 'Companies!$B$3:$B$500');
-        $this->addListValidation($sheet, 'F', 4, self::DATA_VALIDATION_LAST_ROW, 'Reference!$C$2:$C$3');
-        $this->addListValidation($sheet, 'G', 4, self::DATA_VALIDATION_LAST_ROW, 'Reference!$A$2:$A$4');
+        $this->addListValidation($sheet, 'D', 3, self::DATA_VALIDATION_LAST_ROW, 'Companies!$B$3:$B$500');
+        $this->addListValidation($sheet, 'F', 3, self::DATA_VALIDATION_LAST_ROW, 'Reference!$C$2:$C$3');
+        $this->addListValidation($sheet, 'G', 3, self::DATA_VALIDATION_LAST_ROW, 'Reference!$A$2:$A$4');
         $this->setColumnWidths($sheet, ['A' => 16, 'B' => 24, 'C' => 34, 'D' => 22, 'E' => 20, 'F' => 12, 'G' => 12, 'H' => 26]);
     }
 
-    private function buildTasksSheet(Spreadsheet $spreadsheet, string $exampleOrganizationName, string $exampleDepartmentName): void
+    private function buildTasksSheet(Spreadsheet $spreadsheet): void
     {
         $sheet = $this->addSheet($spreadsheet, 'Tasks');
         $lastColumn = $this->applyHeaderRow($sheet, 'Tasks');
         $this->applyLegendRow($sheet, 'Tasks', $lastColumn);
         $this->freezePane($sheet);
 
-        $sheet->fromArray([
-            1, 'Example Project', $exampleOrganizationName, $exampleDepartmentName, 'Example Task',
-            'Short description of the task.', '', '', Priority::Medium->label(), TaskStatus::Pending->label(), 'jdoe',
-        ], null, 'A3');
-
-        $this->addListValidation($sheet, 'C', 4, self::DATA_VALIDATION_LAST_ROW, 'Companies!$B$3:$B$500');
-        $this->addListValidation($sheet, 'D', 4, self::DATA_VALIDATION_LAST_ROW, 'Departments!$B$3:$B$500');
-        $this->addListValidation($sheet, 'I', 4, self::DATA_VALIDATION_LAST_ROW, 'Reference!$A$2:$A$4');
-        $this->addListValidation($sheet, 'J', 4, self::DATA_VALIDATION_LAST_ROW, 'Reference!$B$2:$B$5');
+        $this->addListValidation($sheet, 'C', 3, self::DATA_VALIDATION_LAST_ROW, 'Companies!$B$3:$B$500');
+        $this->addListValidation($sheet, 'D', 3, self::DATA_VALIDATION_LAST_ROW, 'Departments!$B$3:$B$500');
+        $this->addListValidation($sheet, 'I', 3, self::DATA_VALIDATION_LAST_ROW, 'Reference!$A$2:$A$4');
+        $this->addListValidation($sheet, 'J', 3, self::DATA_VALIDATION_LAST_ROW, 'Reference!$B$2:$B$5');
         $this->setColumnWidths($sheet, ['A' => 12, 'B' => 20, 'C' => 20, 'D' => 18, 'E' => 26, 'F' => 30, 'G' => 16, 'H' => 16, 'I' => 10, 'J' => 12, 'K' => 20]);
     }
 
@@ -249,8 +225,6 @@ class ImportTemplateBuilder
         $lastColumn = $this->applyHeaderRow($sheet, 'Subtasks');
         $this->applyLegendRow($sheet, 'Subtasks', $lastColumn);
         $this->freezePane($sheet);
-
-        $sheet->fromArray([1, 'Example Subtask', '', '', ''], null, 'A3');
 
         $this->setColumnWidths($sheet, ['A' => 12, 'B' => 26, 'C' => 20, 'D' => 20, 'E' => 26]);
     }
@@ -262,8 +236,6 @@ class ImportTemplateBuilder
         $this->applyLegendRow($sheet, 'Task Documents', $lastColumn);
         $this->freezePane($sheet);
 
-        $sheet->fromArray([1, 'Example Document', 'https://example.com/document'], null, 'A3');
-
         $this->setColumnWidths($sheet, ['A' => 12, 'B' => 28, 'C' => 34]);
     }
 
@@ -273,8 +245,6 @@ class ImportTemplateBuilder
         $lastColumn = $this->applyHeaderRow($sheet, 'Task Comments');
         $this->applyLegendRow($sheet, 'Task Comments', $lastColumn);
         $this->freezePane($sheet);
-
-        $sheet->fromArray([1, 'Example comment.'], null, 'A3');
 
         $this->setColumnWidths($sheet, ['A' => 12, 'B' => 50]);
     }
@@ -364,12 +334,6 @@ class ImportTemplateBuilder
             $sheet->setCellValue("{$column}{$row}", $value);
             $row++;
         }
-    }
-
-    private function addHintRow(Worksheet $sheet, int $row, string $column, string $text): void
-    {
-        $sheet->setCellValue("{$column}{$row}", $text);
-        $sheet->getStyle("{$column}{$row}")->getFont()->setItalic(true)->getColor()->setRGB(self::HINT_FONT_COLOR);
     }
 
     /** @param array<string, int> $widths column letter => width */
