@@ -56,15 +56,13 @@
                     <h2 class="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-600">{{ $sheetName }} ({{ $rows->count() }})</h2>
                 </div>
                 <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                    <thead class="hidden bg-white md:table-header-group">
-                        <tr>
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Row</th>
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Action</th>
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Data</th>
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Message</th>
-                        </tr>
-                    </thead>
+                    <x-table-header bg="white">
+                        <x-th>Row</x-th>
+                        <x-th>Action</x-th>
+                        <x-th>Status</x-th>
+                        <x-th>Data</x-th>
+                        <x-th>Message</x-th>
+                    </x-table-header>
                     <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                         @foreach ($rows as $row)
                             @php

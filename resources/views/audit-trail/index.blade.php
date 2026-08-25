@@ -86,16 +86,14 @@
 
     <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
         <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-            <thead class="hidden bg-gray-50 md:table-header-group">
-                <tr>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">When</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Who</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Company</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Action</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Entity</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">What changed</th>
-                </tr>
-            </thead>
+            <x-table-header>
+                <x-th>When</x-th>
+                <x-th>Who</x-th>
+                <x-th>Company</x-th>
+                <x-th>Action</x-th>
+                <x-th>Entity</x-th>
+                <x-th>What changed</x-th>
+            </x-table-header>
             <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                 @forelse ($entries as $entry)
                     <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
@@ -133,9 +131,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr class="block md:table-row">
-                        <td colspan="6" class="block px-3 py-6 text-center text-[12px] text-gray-500 md:table-cell">No audit entries match these filters.</td>
-                    </tr>
+                    <x-empty-table-row colspan="6" py="6">No audit entries match these filters.</x-empty-table-row>
                 @endforelse
             </tbody>
         </table>

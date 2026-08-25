@@ -24,15 +24,13 @@
         <x-company-tabs :organizations="$organizations" :active="$organization" route="departments.index">
         <div class="overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                <thead class="hidden bg-gray-50 md:table-header-group">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Name</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Color</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Tasks</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
-                        <th class="px-3 py-2 text-right text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Actions</th>
-                    </tr>
-                </thead>
+                <x-table-header>
+                    <x-th>Name</x-th>
+                    <x-th>Color</x-th>
+                    <x-th>Tasks</x-th>
+                    <x-th>Status</x-th>
+                    <x-th align="right">Actions</x-th>
+                </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($departments as $department)
                         <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
@@ -67,9 +65,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="block md:table-row">
-                            <td colspan="5" class="block px-3 py-4 text-center text-[12px] text-gray-500 md:table-cell">No departments yet.</td>
-                        </tr>
+                        <x-empty-table-row colspan="5">No departments yet.</x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>

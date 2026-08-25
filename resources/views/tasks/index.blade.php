@@ -46,22 +46,20 @@
              from before. --}}
         <div class="overflow-hidden rounded-lg border border-gray-200 md:overflow-x-auto">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                <thead class="hidden bg-gray-50 md:table-header-group">
-                    <tr>
-                        <th class="w-8 px-3 py-2"></th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Title</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Project</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Department</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Assignee</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Priority</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Due</th>
-                        @if ($showInactive)
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Active</th>
-                        @endif
-                        <th class="px-3 py-2 text-right text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Actions</th>
-                    </tr>
-                </thead>
+                <x-table-header>
+                    <th class="w-8 px-3 py-2"></th>
+                    <x-th>Title</x-th>
+                    <x-th>Project</x-th>
+                    <x-th>Department</x-th>
+                    <x-th>Assignee</x-th>
+                    <x-th>Priority</x-th>
+                    <x-th>Status</x-th>
+                    <x-th>Due</x-th>
+                    @if ($showInactive)
+                        <x-th>Active</x-th>
+                    @endif
+                    <x-th align="right">Actions</x-th>
+                </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($tasks as $task)
                         @php
@@ -150,9 +148,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="block md:table-row">
-                            <td colspan="{{ $showInactive ? 9 : 8 }}" class="block px-3 py-4 text-center text-[12px] text-gray-500 md:table-cell">No tasks yet.</td>
-                        </tr>
+                        <x-empty-table-row :colspan="$showInactive ? 9 : 8">No tasks yet.</x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>

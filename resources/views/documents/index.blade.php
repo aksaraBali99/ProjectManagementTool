@@ -24,13 +24,11 @@
         <x-company-tabs :organizations="$organizations" :active="$organization" route="documents.index">
         <div class="overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                <thead class="hidden bg-gray-50 md:table-header-group">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Name</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Access level</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Uploaded by</th>
-                    </tr>
-                </thead>
+                <x-table-header>
+                    <x-th>Name</x-th>
+                    <x-th>Access level</x-th>
+                    <x-th>Uploaded by</x-th>
+                </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($documents as $document)
                         <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
@@ -56,9 +54,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="block md:table-row">
-                            <td colspan="3" class="block px-3 py-6 text-center text-[12px] text-gray-500 md:table-cell">No documents yet.</td>
-                        </tr>
+                        <x-empty-table-row colspan="3" py="6">No documents yet.</x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>

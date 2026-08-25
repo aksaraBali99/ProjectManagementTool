@@ -120,16 +120,14 @@
 
         <div class="mt-3 overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                <thead class="hidden bg-gray-50 md:table-header-group">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Event</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Channel</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Recipients</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Configured by</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
-                        <th class="px-3 py-2 text-right text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Actions</th>
-                    </tr>
-                </thead>
+                <x-table-header>
+                    <x-th>Event</x-th>
+                    <x-th>Channel</x-th>
+                    <x-th>Recipients</x-th>
+                    <x-th>Configured by</x-th>
+                    <x-th>Status</x-th>
+                    <x-th align="right">Actions</x-th>
+                </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($rules as $rule)
                         <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
@@ -172,9 +170,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="block md:table-row">
-                            <td colspan="6" class="block px-3 py-6 text-center text-[12px] text-gray-500 md:table-cell">No team rules configured yet.</td>
-                        </tr>
+                        <x-empty-table-row colspan="6" py="6">No team rules configured yet.</x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>

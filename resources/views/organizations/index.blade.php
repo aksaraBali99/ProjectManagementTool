@@ -20,16 +20,14 @@
 
     <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
         <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-            <thead class="hidden bg-gray-50 md:table-header-group">
-                <tr>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Name</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Accent</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Departments</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Projects</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
-                    <th class="px-3 py-2 text-right text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Actions</th>
-                </tr>
-            </thead>
+            <x-table-header>
+                <x-th>Name</x-th>
+                <x-th>Accent</x-th>
+                <x-th>Departments</x-th>
+                <x-th>Projects</x-th>
+                <x-th>Status</x-th>
+                <x-th align="right">Actions</x-th>
+            </x-table-header>
             <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                 @foreach ($organizations as $organization)
                     <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
