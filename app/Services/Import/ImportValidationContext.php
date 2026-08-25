@@ -53,6 +53,9 @@ class ImportValidationContext
     /** @var array<string, array<string, string>> username => existing DB roles by normalized company name, memoized */
     public array $existingRolesCache = [];
 
+    /** @var array<string, bool> username => whether User::where('username', ...)->exists(), memoized */
+    public array $usernameExistsCache = [];
+
     public function normalize(string $value): string
     {
         return mb_strtolower(trim($value));

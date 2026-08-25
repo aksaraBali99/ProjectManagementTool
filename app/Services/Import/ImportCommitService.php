@@ -507,46 +507,75 @@ class ImportCommitService
     private function resolveOrganizationId(string $companyName, ImportCommitResolution $resolution): int
     {
         $key = $resolution->normalize($companyName);
-        if (isset($resolution->organizationIdsByName[$key])) {
-            return $resolution->organizationIdsByName[$key];
-        }
 
-        return Organization::where('name', $companyName)->value('id');
+        return $this->resolveId(
+            $resolution->organizationIdsByName[$key] ?? null,
+            "org:{$key}",
+            $resolution,
+            fn () => Organization::where('name', $companyName)->value('id'),
+        );
     }
 
     private function resolveDepartmentId(string $companyName, string $departmentName, ImportCommitResolution $resolution): int
     {
         $key = $resolution->departmentKey($companyName, $departmentName);
-        if (isset($resolution->departmentIdsByKey[$key])) {
-            return $resolution->departmentIdsByKey[$key];
-        }
 
-        return Department::withoutGlobalScopes()
-            ->whereHas('organization', fn ($query) => $query->where('name', $companyName))
-            ->where('name', $departmentName)
-            ->value('id');
+        return $this->resolveId(
+            $resolution->departmentIdsByKey[$key] ?? null,
+            "dept:{$key}",
+            $resolution,
+            fn () => Department::withoutGlobalScopes()
+                ->whereHas('organization', fn ($query) => $query->where('name', $companyName))
+                ->where('name', $departmentName)
+                ->value('id'),
+        );
     }
 
     private function resolveProjectId(string $companyName, string $projectName, ImportCommitResolution $resolution): int
     {
         $key = $resolution->projectKey($companyName, $projectName);
-        if (isset($resolution->projectIdsByKey[$key])) {
-            return $resolution->projectIdsByKey[$key];
-        }
 
-        return Project::withoutGlobalScopes()
-            ->whereHas('organization', fn ($query) => $query->where('name', $companyName))
-            ->where('name', $projectName)
-            ->value('id');
+        return $this->resolveId(
+            $resolution->projectIdsByKey[$key] ?? null,
+            "project:{$key}",
+            $resolution,
+            fn () => Project::withoutGlobalScopes()
+                ->whereHas('organization', fn ($query) => $query->where('name', $companyName))
+                ->where('name', $projectName)
+                ->value('id'),
+        );
     }
 
     private function resolveUserId(string $username, ImportCommitResolution $resolution): ?int
     {
-        if (isset($resolution->userIdsByUsername[$username])) {
-            return $resolution->userIdsByUsername[$username];
+        $key = $resolution->normalize($username);
+
+        return $this->resolveId(
+            $resolution->userIdsByUsername[$username] ?? null,
+            "user:{$key}",
+            $resolution,
+            fn () => User::where('username', $username)->value('id'),
+        );
+    }
+
+    /**
+     * Shared by all four resolve*Id() methods above: return the id already
+     * known from this commit (something written moments earlier in the
+     * SAME commit), or fall back to a DB lookup — memoized per cache key
+     * so a name referenced many times across a large file only triggers
+     * one fallback query.
+     */
+    private function resolveId(?int $mapped, string $cacheKey, ImportCommitResolution $resolution, \Closure $fallbackQuery): ?int
+    {
+        if ($mapped !== null) {
+            return $mapped;
         }
 
-        return User::where('username', $username)->value('id');
+        if (! array_key_exists($cacheKey, $resolution->fallbackIdCache)) {
+            $resolution->fallbackIdCache[$cacheKey] = $fallbackQuery();
+        }
+
+        return $resolution->fallbackIdCache[$cacheKey];
     }
 
     /**
