@@ -8,18 +8,18 @@
 
     <div class="mt-2 flex items-center justify-between">
         <h1 class="text-xl font-semibold text-gray-900">Roles</h1>
-        <a href="{{ route('roles.permissions.edit') }}" class="rounded-md bg-[#1D9E75] px-4 py-2 text-sm font-medium text-white hover:bg-[#0F6E56]">
+        <a href="{{ route('roles.permissions.edit') }}" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
             Manage permissions
         </a>
     </div>
     <p class="mt-1 text-sm text-gray-500">
         System roles power the app's access rules and can't be created or deleted here — only their name and
         description can be edited. What each role can actually do is configured under
-        <a href="{{ route('roles.permissions.edit') }}" class="text-[#1D9E75] hover:underline">Manage permissions</a>.
+        <a href="{{ route('roles.permissions.edit') }}" class="text-brand-600 hover:underline">Manage permissions</a>.
     </p>
 
     @if (session('status'))
-        <div class="mt-4 rounded-md bg-[#E1F5EE] p-3 text-sm text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-4 rounded-md bg-brand-50 p-3 text-sm text-brand-800">{{ session('status') }}</div>
     @endif
 
     <div class="mt-6 overflow-hidden rounded-lg border border-gray-200">
@@ -50,7 +50,7 @@
                             {{ $role->users_count }}
                         </td>
                         <td class="py-1 text-right md:table-cell md:px-4 md:py-3">
-                            <a href="{{ route('roles.edit', $role) }}" class="text-[#1D9E75] hover:underline">Edit</a>
+                            <a href="{{ route('roles.edit', $role) }}" class="text-brand-600 hover:underline">Edit</a>
                         </td>
                     </tr>
                 @endforeach

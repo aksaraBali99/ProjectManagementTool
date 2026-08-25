@@ -4,7 +4,7 @@
     <p class="mt-2 text-[12px] text-gray-600">You have unsaved changes. It will be lost if you leave this page. Continue?</p>
     <div class="mt-4 flex items-center justify-end gap-3">
         <button type="button" id="{{ $guardId }}-stay" class="rounded-md border border-gray-300 px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">No</button>
-        <button type="button" id="{{ $guardId }}-leave" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">Yes</button>
+        <button type="button" id="{{ $guardId }}-leave" class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">Yes</button>
     </div>
 </dialog>
 

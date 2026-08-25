@@ -15,7 +15,7 @@
             @endif
             @if ($organization && $canCreate)
                 <a href="{{ route('tasks.create', $organization->projects()->orderBy('name')->first()) }}"
-                   class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                   class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                     + Add task
                 </a>
             @endif
@@ -23,7 +23,7 @@
     </div>
 
     @if (session('status'))
-        <div class="mt-3 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-3 rounded-md bg-brand-50 px-3 py-2 text-[12px] text-brand-800">{{ session('status') }}</div>
     @endif
 
     @if ($organizations->isEmpty())
@@ -119,7 +119,7 @@
                             @endif
                             <td class="flex items-center justify-end gap-2 py-1 text-[11px] md:table-cell md:px-3 md:py-2.5 md:text-right">
                                 @if ($canEditTask)
-                                    <a href="{{ route('tasks.edit', $task) }}" class="text-[#1D9E75] hover:underline">Edit</a>
+                                    <a href="{{ route('tasks.edit', $task) }}" class="text-brand-600 hover:underline">Edit</a>
                                 @endif
                                 @if ($canDeactivateTask)
                                     <form method="POST" action="{{ route('tasks.toggle-active', $task) }}" class="inline">
@@ -183,19 +183,19 @@
             <div>
                 <label for="document-name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</label>
                 <input id="document-name" name="name" type="text" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
             </div>
 
             <div>
                 <label for="document-link" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Link</label>
                 <input id="document-link" name="link" type="url" required placeholder="https://…"
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
             </div>
 
             <div>
                 <label for="document-access" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Access level</label>
                 <select id="document-access" name="access_level" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                     @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
                         <option value="{{ $accessCase->value }}" {{ $accessCase === \App\Enums\DocumentAccessLevel::Internal ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
                     @endforeach
@@ -207,7 +207,7 @@
                     class="text-[12px] text-gray-600 hover:underline">
                     Cancel
                 </button>
-                <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                     Add document
                 </button>
             </div>

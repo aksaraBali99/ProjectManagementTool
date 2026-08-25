@@ -41,7 +41,7 @@
                                     <div class="mt-1.5 flex items-center justify-between gap-2">
                                         <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
 
-                                        <select class="kanban-status-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"
+                                        <select class="kanban-status-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
                                                 data-task-id="{{ $task->id }}" {{ $canEdit ? '' : 'disabled' }}>
                                             @foreach (\App\Enums\TaskStatus::cases() as $statusOption)
                                                 <option value="{{ $statusOption->value }}" {{ $task->status === $statusOption ? 'selected' : '' }}>{{ $statusOption->label() }}</option>

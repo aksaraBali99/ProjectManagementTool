@@ -9,13 +9,13 @@
     <div class="mt-2 flex items-center justify-between">
         <h1 class="text-[14px] font-medium text-[#1F2937]">Companies</h1>
         <a href="{{ route('organizations.create') }}"
-           class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+           class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
             + Add company
         </a>
     </div>
 
     @if (session('status'))
-        <div class="mt-3 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-3 rounded-md bg-brand-50 px-3 py-2 text-[12px] text-brand-800">{{ session('status') }}</div>
     @endif
 
     <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
@@ -58,7 +58,7 @@
                             @endif
                         </td>
                         <td class="flex items-center justify-end gap-2 py-1 text-[11px] md:table-cell md:px-3 md:py-2.5 md:text-right">
-                            <a href="{{ route('organizations.edit', $organization) }}" class="text-[#1D9E75] hover:underline">Edit</a>
+                            <a href="{{ route('organizations.edit', $organization) }}" class="text-brand-600 hover:underline">Edit</a>
                             <form method="POST" action="{{ route('organizations.toggle-active', $organization) }}" class="inline">
                                 @csrf
                                 @method('PATCH')

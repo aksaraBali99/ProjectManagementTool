@@ -26,6 +26,19 @@
     --radius-sm: 5px;
     --radius-md: 8px;
     --radius-lg: 10px;
+
+    /* Solava's brand green — previously typed out as a literal hex in
+       ~340 Tailwind arbitrary-value classes (bg-[#1D9E75], hover:bg-[#0F6E56],
+       ...) scattered across every page. Named on Tailwind's shade scale so
+       existing utility prefixes (bg-, text-, border-, ring-, hover:, focus:)
+       keep working unchanged, just swapped to brand-*. Per-entity accent
+       colors (company/status/priority badges) stay dynamic — those are
+       genuinely data-driven, not this fixed brand palette, so they're
+       intentionally left as inline style="" bindings, not tokenized here. */
+    --color-brand-50: #E1F5EE;
+    --color-brand-600: #1D9E75;
+    --color-brand-700: #0F6E56;
+    --color-brand-800: #085041;
 }
 
 /* intl-tel-input: match the app's UIX styling (teal accent, gray-300 borders, 8px radius). */

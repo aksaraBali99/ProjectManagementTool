@@ -15,7 +15,7 @@
             The template's Companies and Departments tabs are generated from what's in Solava right now, so any renames you make there are detected as updates instead of duplicates.
         </p>
         <a href="{{ route('import.template') }}"
-           class="mt-3 inline-block rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+           class="mt-3 inline-block rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
             Download Template
         </a>
     </div>
@@ -35,7 +35,7 @@
             @enderror
 
             <button type="submit"
-                class="mt-3 rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                class="mt-3 rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                 Upload & Validate
             </button>
         </form>
