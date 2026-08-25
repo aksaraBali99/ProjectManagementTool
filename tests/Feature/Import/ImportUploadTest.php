@@ -17,6 +17,14 @@ beforeEach(function () {
     $this->staff = User::factory()->create();
 });
 
+test('the import index page shows an upload form', function () {
+    $response = $this->actingAs($this->owner)->get('/import');
+
+    $response->assertOk();
+    $response->assertSee(route('import.upload'), false);
+    $response->assertSee('type="file"', false);
+});
+
 test('a non-admin cannot upload an import file', function () {
     $file = buildImportTestFile([]);
 
