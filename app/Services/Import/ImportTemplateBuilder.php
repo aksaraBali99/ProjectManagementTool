@@ -49,11 +49,17 @@ class ImportTemplateBuilder
     // Excel.
     private const DATA_VALIDATION_LAST_ROW = 200;
 
-    private const HEADER_FONT_COLOR = '111827';
+    // Solava's brand green (the same accent used for primary buttons and
+    // the active sidebar border throughout the app) and its pale wash —
+    // ties the template's look back to the rest of the app instead of a
+    // generic black-on-white spreadsheet.
+    private const HEADER_FILL_COLOR = '1D9E75';
 
-    private const LEGEND_FONT_COLOR = '6B7280';
+    private const HEADER_FONT_COLOR = 'FFFFFF';
 
-    private const LEGEND_FILL_COLOR = 'F9FAFB';
+    private const LEGEND_FONT_COLOR = '0F6E56';
+
+    private const LEGEND_FILL_COLOR = 'E1F5EE';
 
     private const HINT_FONT_COLOR = '9CA3AF';
 
@@ -63,6 +69,16 @@ class ImportTemplateBuilder
     // shorter row height, and the reader isn't stuck reading a tall,
     // narrow column of text squeezed into 2-11 columns.
     private const LEGEND_MERGE_COLUMN_COUNT = 30;
+
+    // Beyond just relying on Excel's column-width-based auto-wrap, the
+    // legend text is manually word-wrapped to this many characters per
+    // line — keeps every line a predictable, easy-to-read length
+    // regardless of the merged range's actual pixel width, and lets the
+    // row height be computed exactly from the resulting line count instead
+    // of guessed.
+    private const LEGEND_LINE_LENGTH = 70;
+
+    private const LEGEND_LINE_HEIGHT = 13;
 
     public function build(): Spreadsheet
     {
@@ -284,21 +300,30 @@ class ImportTemplateBuilder
             $lastColumn = $column['column'];
         }
 
-        $sheet->getStyle("A1:{$lastColumn}1")->getFont()->setBold(true)->getColor()->setRGB(self::HEADER_FONT_COLOR);
-        $sheet->getRowDimension(1)->setRowHeight(30);
-        $sheet->getStyle("A1:{$lastColumn}1")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        $style = $sheet->getStyle("A1:{$lastColumn}1");
+        $style->getFont()->setBold(true)->setSize(10)->getColor()->setRGB(self::HEADER_FONT_COLOR);
+        $style->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::HEADER_FILL_COLOR);
+        $style->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getRowDimension(1)->setRowHeight(36);
 
         return $lastColumn;
     }
 
-    /** Merges row 2 across every data column and writes the sheet's instructional legend text into it. */
+    /**
+     * Merges row 2 across a wide fixed range and writes the sheet's
+     * instructional legend text into it, manually word-wrapped to
+     * LEGEND_LINE_LENGTH characters per line so the row height can be
+     * computed exactly from the resulting line count.
+     */
     private function applyLegendRow(Worksheet $sheet, string $sheetName, string $lastColumn): void
     {
         $mergeColumnCount = max(self::LEGEND_MERGE_COLUMN_COUNT, Coordinate::columnIndexFromString($lastColumn));
         $mergeLastColumn = Coordinate::stringFromColumnIndex($mergeColumnCount);
 
         $sheet->mergeCells("A2:{$mergeLastColumn}2");
-        $sheet->setCellValue('A2', ImportSheetSchema::legend($sheetName));
+
+        $wrapped = wordwrap(ImportSheetSchema::legend($sheetName), self::LEGEND_LINE_LENGTH, "\n");
+        $sheet->setCellValue('A2', $wrapped);
 
         $style = $sheet->getStyle('A2');
         $style->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
@@ -306,7 +331,8 @@ class ImportTemplateBuilder
         $style->getFill()->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setRGB(self::LEGEND_FILL_COLOR);
 
-        $sheet->getRowDimension(2)->setRowHeight(50);
+        $lineCount = substr_count($wrapped, "\n") + 1;
+        $sheet->getRowDimension(2)->setRowHeight($lineCount * self::LEGEND_LINE_HEIGHT + 10);
     }
 
     private function freezePane(Worksheet $sheet): void
