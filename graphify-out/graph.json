@@ -134,6 +134,19 @@
       "norm_label": "notificationcontroller"
     },
     {
+      "label": "PermissionManagementController",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
+      "source_location": "L13",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller",
+      "community": 107,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": "permissionmanagementcontroller"
+    },
+    {
       "label": "RoleManagementController",
       "file_type": "code",
       "source_file": "app/Http/Controllers/RoleManagementController.php",
@@ -379,19 +392,6 @@
       "community": 11,
       "community_name": "Illuminate\\Http\\Request",
       "norm_label": "dashboardcontroller"
-    },
-    {
-      "label": "PermissionManagementController",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L13",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller",
-      "community": 11,
-      "community_name": "Illuminate\\Http\\Request",
-      "norm_label": "permissionmanagementcontroller"
     },
     {
       "label": "EnsureBelongsToOrganization",
@@ -1645,6 +1645,30 @@
     {
       "label": ".edit()",
       "file_type": "code",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
+      "source_location": "L24",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_edit",
+      "community": 107,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": ".edit()"
+    },
+    {
+      "label": ".rolesInDisplayOrder()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
+      "source_location": "L68",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_rolesindisplayorder",
+      "community": 107,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": ".rolesindisplayorder()"
+    },
+    {
+      "label": ".edit()",
+      "file_type": "code",
       "source_file": "app/Http/Controllers/RoleManagementController.php",
       "source_location": "L20",
       "_callable": true,
@@ -2229,30 +2253,6 @@
       "community": 11,
       "community_name": "Illuminate\\Http\\Request",
       "norm_label": ".staffinorg()"
-    },
-    {
-      "label": ".edit()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L24",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_edit",
-      "community": 11,
-      "community_name": "Illuminate\\Http\\Request",
-      "norm_label": ".edit()"
-    },
-    {
-      "label": ".rolesInDisplayOrder()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L68",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller_permissionmanagementcontroller_rolesindisplayorder",
-      "community": 11,
-      "community_name": "Illuminate\\Http\\Request",
-      "norm_label": ".rolesindisplayorder()"
     },
     {
       "label": ".handle()",
@@ -7310,6 +7310,28 @@
       "norm_label": "notificationsettingscontroller.php"
     },
     {
+      "label": "PermissionManagementController.php",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/PermissionManagementController.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_controllers_permissionmanagementcontroller",
+      "community": 107,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": "permissionmanagementcontroller.php"
+    },
+    {
+      "label": "ProjectManagementController.php",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/ProjectManagementController.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_controllers_projectmanagementcontroller",
+      "community": 107,
+      "community_name": "Illuminate\\View\\View",
+      "norm_label": "projectmanagementcontroller.php"
+    },
+    {
       "label": "RoleManagementController.php",
       "file_type": "code",
       "source_file": "app/Http/Controllers/RoleManagementController.php",
@@ -7341,17 +7363,6 @@
       "community": 107,
       "community_name": "Illuminate\\View\\View",
       "norm_label": "taskcolorcontroller.php"
-    },
-    {
-      "label": "TaskManagementController.php",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/TaskManagementController.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_controllers_taskmanagementcontroller",
-      "community": 107,
-      "community_name": "Illuminate\\View\\View",
-      "norm_label": "taskmanagementcontroller.php"
     },
     {
       "label": "Illuminate\\View\\View",
@@ -7451,17 +7462,6 @@
       "community": 11,
       "community_name": "Illuminate\\Http\\Request",
       "norm_label": "collection"
-    },
-    {
-      "label": "PermissionManagementController.php",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/PermissionManagementController.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_controllers_permissionmanagementcontroller",
-      "community": 11,
-      "community_name": "Illuminate\\Http\\Request",
-      "norm_label": "permissionmanagementcontroller.php"
     },
     {
       "label": "Illuminate\\Http\\Request",
@@ -7992,15 +7992,15 @@
       "norm_label": "chart.js"
     },
     {
-      "label": "ProjectManagementController.php",
+      "label": "TaskManagementController.php",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/ProjectManagementController.php",
+      "source_file": "app/Http/Controllers/TaskManagementController.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_http_controllers_projectmanagementcontroller",
+      "id": "app_http_controllers_taskmanagementcontroller",
       "community": 134,
       "community_name": "Illuminate\\Support\\Collection",
-      "norm_label": "projectmanagementcontroller.php"
+      "norm_label": "taskmanagementcontroller.php"
     },
     {
       "label": "Illuminate\\Support\\Collection",
@@ -38212,5 +38212,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "709cd6207c84db3c763e6f80fad0c6174215a0e1"
+  "built_at_commit": "74e7f8d8fe8b6f258ae71aeafd56e18075cc884c"
 }

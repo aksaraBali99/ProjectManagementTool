@@ -76,7 +76,7 @@ class ImportTemplateBuilder
     // regardless of the merged range's actual pixel width, and lets the
     // row height be computed exactly from the resulting line count instead
     // of guessed.
-    private const LEGEND_LINE_LENGTH = 70;
+    private const LEGEND_LINE_LENGTH = 250;
 
     private const LEGEND_LINE_HEIGHT = 13;
 

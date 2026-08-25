@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `709cd620`
+- Built from commit: `74e7f8d8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -128,8 +128,8 @@ Cohesion: 0.15
 Nodes (12): Diagram editing & preview, Docs, Generate diagrams (GitHub Copilot required), Install / update this pack, LM Tools — call these for every diagram interaction, Mermaid AI Skills, Mermaid Chart cloud, @mermaid-chart slash commands (+4 more)
 
 ### Community 11 - "Illuminate\Http\Request"
-Cohesion: 0.22
-Nodes (5): AuditTrailController, DashboardController, Collection, PermissionManagementController, Illuminate\Http\Request
+Cohesion: 0.33
+Nodes (4): AuditTrailController, DashboardController, Collection, Illuminate\Http\Request
 
 ### Community 12 - "LARAVEL_README.md"
 Cohesion: 0.25
@@ -184,8 +184,8 @@ Cohesion: 0.16
 Nodes (6): Project, ProjectPolicy, makeProjectMember(), makeClientForDocumentList(), makeClientForDocuments(), makeClientOnProject()
 
 ### Community 107 - "Illuminate\View\View"
-Cohesion: 0.11
-Nodes (10): AnalyticsController, AuthenticatedSessionController, Controller, DepartmentManagementController, KanbanController, NotificationController, RoleManagementController, SettingsController (+2 more)
+Cohesion: 0.10
+Nodes (11): AnalyticsController, AuthenticatedSessionController, Controller, DepartmentManagementController, KanbanController, NotificationController, PermissionManagementController, RoleManagementController (+3 more)
 
 ### Community 109 - "Role"
 Cohesion: 0.05
@@ -215,7 +215,7 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.129) - this node is a cross-community bridge._
 - **Why does `Organization` connect `Organization` to `Illuminate\Validation\Validator`, `.boardOrganizationIds`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\Support\Collection`, `CalendarController.php`, `Illuminate\Http\Request`, `Illuminate\View\View`, `TaskManagementController`, `Role`, `UserManagementController`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `ImportTemplateBuilder`, `StoreDepartmentRequest`, `Illuminate\Http\RedirectResponse`, `Document`, `User`, `OrgMember`, `Project`?**
   _High betweenness centrality (0.061) - this node is a cross-community bridge._
-- **Why does `Task` connect `Task` to `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Comment`, `Illuminate\Database\Eloquent\Relations\HasMany`, `CalendarController.php`, `Subtask`, `Illuminate\Http\Request`, `Illuminate\View\View`, `TaskManagementController`, `Role`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Http\RedirectResponse`, `Document`, `OrgMember`, `Illuminate\Http\JsonResponse`?**
+- **Why does `Task` connect `Task` to `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Comment`, `Illuminate\Support\Collection`, `CalendarController.php`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Subtask`, `Illuminate\Http\Request`, `Illuminate\View\View`, `TaskManagementController`, `Role`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Http\RedirectResponse`, `Document`, `OrgMember`, `Illuminate\Http\JsonResponse`?**
   _High betweenness centrality (0.029) - this node is a cross-community bridge._
 - **Are the 12 inferred relationships involving `User` (e.g. with `.index()` and `.__invoke()`) actually correct?**
   _`User` has 12 INFERRED edges - model-reasoned connections that need verification._
