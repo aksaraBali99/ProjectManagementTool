@@ -10,6 +10,7 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentManagementController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\KanbanController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationSettingsController;
@@ -130,4 +131,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     // registration order, so /tasks/create would otherwise be swallowed by
     // {organization?} here (same ordering Departments/Projects rely on).
     Route::get('/tasks/{organization?}', [TaskManagementController::class, 'index'])->name('tasks.index');
+
+    Route::get('/import', [ImportController::class, 'index'])->name('import.index');
+    Route::get('/import/template', [ImportController::class, 'downloadTemplate'])->name('import.template');
 });
