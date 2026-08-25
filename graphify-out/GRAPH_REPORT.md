@@ -1,7 +1,7 @@
 # Graph Report - ProjectManagementTool  (2026-08-25)
 
 ## Corpus Check
-- 245 files · ~78,172 words
+- 245 files · ~78,246 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7bb3bd1f`
+- Built from commit: `429f5543`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -26,7 +26,7 @@
 - scripts
 - package.json
 - Mermaid AI Skills
-- StoreTaskRequest
+- Illuminate\Http\Request
 - LARAVEL_README.md
 - AppServiceProvider.php
 - Pest.php
@@ -64,9 +64,9 @@
 - UpdateTaskStatusColorsRequest
 - Illuminate\Http\RedirectResponse
 - Document
-- UpdateTaskRequest
+- StoreTaskRequest
 - AuditLogPolicy.php
-- Illuminate\Http\Request
+- UpdateTaskRequest
 - Illuminate\Support\Collection
 - CalendarController.php
 
@@ -127,6 +127,10 @@ Nodes (29): concurrently, @fontsource/inter, frappe-gantt, intl-tel-input, @lara
 Cohesion: 0.15
 Nodes (12): Diagram editing & preview, Docs, Generate diagrams (GitHub Copilot required), Install / update this pack, LM Tools — call these for every diagram interaction, Mermaid AI Skills, Mermaid Chart cloud, @mermaid-chart slash commands (+4 more)
 
+### Community 11 - "Illuminate\Http\Request"
+Cohesion: 0.33
+Nodes (4): AuditTrailController, DashboardController, Collection, Illuminate\Http\Request
+
 ### Community 12 - "LARAVEL_README.md"
 Cohesion: 0.25
 Nodes (7): About Laravel, Agentic Development, Code of Conduct, Contributing, Learning Laravel, License, Security Vulnerabilities
@@ -180,8 +184,8 @@ Cohesion: 0.16
 Nodes (6): Project, ProjectPolicy, makeProjectMember(), makeClientForDocumentList(), makeClientForDocuments(), makeClientOnProject()
 
 ### Community 107 - "Illuminate\View\View"
-Cohesion: 0.11
-Nodes (10): AnalyticsController, AuthenticatedSessionController, Controller, DepartmentManagementController, KanbanController, NotificationController, RoleManagementController, SettingsController (+2 more)
+Cohesion: 0.10
+Nodes (11): AnalyticsController, AuthenticatedSessionController, Controller, DepartmentManagementController, KanbanController, NotificationController, PermissionManagementController, RoleManagementController (+3 more)
 
 ### Community 109 - "Role"
 Cohesion: 0.05
@@ -199,10 +203,6 @@ Nodes (3): GoogleAuthController, NotificationSettingsController, Illuminate\Http
 Cohesion: 0.28
 Nodes (4): TaskDocumentController, Document, makeDocumentForList(), makeDocument()
 
-### Community 133 - "Illuminate\Http\Request"
-Cohesion: 0.22
-Nodes (5): AuditTrailController, DashboardController, Collection, PermissionManagementController, Illuminate\Http\Request
-
 ## Knowledge Gaps
 - **108 isolated node(s):** `$schema`, `name`, `type`, `description`, `laravel` (+103 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -211,11 +211,11 @@ Nodes (5): AuditTrailController, DashboardController, Collection, PermissionMana
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `Illuminate\Database\Eloquent\Relations\BelongsTo`, `.boardOrganizationIds`, `UpdateUserRequest`, `Organization`, `Illuminate\Http\Request`, `Illuminate\Support\Collection`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Subtask`, `ImportTemplateBuilder`, `AuditLog`, `OrgMember`, `Task`, `Illuminate\Http\JsonResponse`, `Project`, `CommentPolicy`, `Illuminate\View\View`, `Role`, `LoginRequest`, `UserManagementController`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Http\RedirectResponse`, `Document`, `AuditLogPolicy.php`?**
+- **Why does `User` connect `User` to `Illuminate\Database\Eloquent\Relations\BelongsTo`, `.boardOrganizationIds`, `UpdateUserRequest`, `Organization`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\Support\Collection`, `Subtask`, `Illuminate\Http\Request`, `ImportTemplateBuilder`, `AuditLog`, `OrgMember`, `Task`, `Illuminate\Http\JsonResponse`, `Project`, `CommentPolicy`, `Illuminate\View\View`, `Role`, `LoginRequest`, `UserManagementController`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Http\RedirectResponse`, `Document`, `AuditLogPolicy.php`?**
   _High betweenness centrality (0.129) - this node is a cross-community bridge._
-- **Why does `Organization` connect `Organization` to `Illuminate\Validation\Validator`, `.boardOrganizationIds`, `Illuminate\Http\Request`, `Illuminate\Support\Collection`, `CalendarController.php`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\View\View`, `TaskManagementController`, `Role`, `UserManagementController`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `ImportTemplateBuilder`, `StoreDepartmentRequest`, `Illuminate\Http\RedirectResponse`, `Document`, `User`, `OrgMember`, `Project`?**
+- **Why does `Organization` connect `Organization` to `Illuminate\Validation\Validator`, `.boardOrganizationIds`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\Support\Collection`, `CalendarController.php`, `Illuminate\Http\Request`, `Illuminate\View\View`, `TaskManagementController`, `Role`, `UserManagementController`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `ImportTemplateBuilder`, `StoreDepartmentRequest`, `Illuminate\Http\RedirectResponse`, `Document`, `User`, `OrgMember`, `Project`?**
   _High betweenness centrality (0.061) - this node is a cross-community bridge._
-- **Why does `Task` connect `Task` to `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Illuminate\Http\Request`, `Comment`, `CalendarController.php`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Subtask`, `Illuminate\View\View`, `TaskManagementController`, `Role`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Http\RedirectResponse`, `Document`, `OrgMember`, `Illuminate\Http\JsonResponse`?**
+- **Why does `Task` connect `Task` to `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Comment`, `Illuminate\Support\Collection`, `CalendarController.php`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Subtask`, `Illuminate\Http\Request`, `Illuminate\View\View`, `TaskManagementController`, `Role`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `Illuminate\Http\RedirectResponse`, `Document`, `OrgMember`, `Illuminate\Http\JsonResponse`?**
   _High betweenness centrality (0.029) - this node is a cross-community bridge._
 - **Are the 12 inferred relationships involving `User` (e.g. with `.index()` and `.__invoke()`) actually correct?**
   _`User` has 12 INFERRED edges - model-reasoned connections that need verification._

@@ -9,6 +9,7 @@ use App\Models\Department;
 use App\Models\Organization;
 use App\Models\Role;
 use Illuminate\Support\Collection;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -55,6 +56,13 @@ class ImportTemplateBuilder
     private const LEGEND_FILL_COLOR = 'F9FAFB';
 
     private const HINT_FONT_COLOR = '9CA3AF';
+
+    // The legend row is merged wider than the sheet's own data columns
+    // (Companies only has 2, for example) purely so the instructional text
+    // gets more horizontal room to wrap into — fewer wrapped lines means a
+    // shorter row height, and the reader isn't stuck reading a tall,
+    // narrow column of text squeezed into 2-11 columns.
+    private const LEGEND_MERGE_COLUMN_COUNT = 30;
 
     public function build(): Spreadsheet
     {
@@ -286,7 +294,10 @@ class ImportTemplateBuilder
     /** Merges row 2 across every data column and writes the sheet's instructional legend text into it. */
     private function applyLegendRow(Worksheet $sheet, string $sheetName, string $lastColumn): void
     {
-        $sheet->mergeCells("A2:{$lastColumn}2");
+        $mergeColumnCount = max(self::LEGEND_MERGE_COLUMN_COUNT, Coordinate::columnIndexFromString($lastColumn));
+        $mergeLastColumn = Coordinate::stringFromColumnIndex($mergeColumnCount);
+
+        $sheet->mergeCells("A2:{$mergeLastColumn}2");
         $sheet->setCellValue('A2', ImportSheetSchema::legend($sheetName));
 
         $style = $sheet->getStyle('A2');
