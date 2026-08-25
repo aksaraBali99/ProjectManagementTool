@@ -1,6 +1,14 @@
 <?php
 
+use App\Models\ImportBatch;
+use App\Models\User;
+use App\Services\Import\ImportSheetSchema;
+use App\Services\Import\ImportValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
 /*
@@ -47,4 +55,65 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Builds a minimal .xlsx test fixture for the Import feature — one row
+ * per array entry, per sheet, mapped through ImportSheetSchema so column
+ * letters never need to be hardcoded in individual tests.
+ *
+ * @param  array<string, array<int, array<string, mixed>>>  $sheetsData  sheet name => rows, each row keyed by field name
+ */
+function buildImportTestFile(array $sheetsData): UploadedFile
+{
+    $spreadsheet = new Spreadsheet;
+    $spreadsheet->removeSheetByIndex(0);
+
+    foreach (ImportSheetSchema::sheetOrder() as $sheetName) {
+        $sheet = new Worksheet($spreadsheet, $sheetName);
+        $spreadsheet->addSheet($sheet);
+
+        $columns = ImportSheetSchema::columns($sheetName);
+        $rows = $sheetsData[$sheetName] ?? [];
+
+        $rowNumber = 3;
+        foreach ($rows as $rowData) {
+            foreach ($columns as $column) {
+                $value = $rowData[$column['field']] ?? null;
+                if ($value !== null) {
+                    $sheet->setCellValue("{$column['column']}{$rowNumber}", $value);
+                }
+            }
+            $rowNumber++;
+        }
+    }
+
+    $path = tempnam(sys_get_temp_dir(), 'solava-import-test').'.xlsx';
+    (new Xlsx($spreadsheet))->save($path);
+
+    return new UploadedFile($path, 'test-import.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
+}
+
+/**
+ * Builds a fixture via buildImportTestFile(), creates an ImportBatch owned
+ * by $uploader, and runs the real ImportValidator against it — the direct
+ * (non-HTTP) path most validation-rule tests should use, so they can
+ * assert on import_rows without going through the upload endpoint each
+ * time.
+ *
+ * @param  array<string, array<int, array<string, mixed>>>  $sheetsData
+ */
+function runImportValidation(array $sheetsData, User $uploader): ImportBatch
+{
+    $file = buildImportTestFile($sheetsData);
+
+    $batch = ImportBatch::create([
+        'uploaded_by' => $uploader->id,
+        'file_name' => 'test-import.xlsx',
+        'status' => 'pending_review',
+    ]);
+
+    app(ImportValidator::class)->validate($batch, $file->getRealPath());
+
+    return $batch->fresh();
 }

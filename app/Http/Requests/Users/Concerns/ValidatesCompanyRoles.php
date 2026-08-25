@@ -2,8 +2,7 @@
 
 namespace App\Http\Requests\Users\Concerns;
 
-use App\Models\Organization;
-use App\Models\Role;
+use App\Support\CompanyRoleRules;
 use Illuminate\Validation\Validator;
 
 /**
@@ -18,31 +17,8 @@ trait ValidatesCompanyRoles
      */
     protected function validateCompanyRoles(Validator $validator, array $roles, bool $grantingSuperAdmin): void
     {
-        $validOrgIds = Organization::query()->pluck('id')->map(fn ($id) => (string) $id)->all();
-        foreach (array_keys($roles) as $organizationId) {
-            if (! in_array((string) $organizationId, $validOrgIds, true)) {
-                $validator->errors()->add('roles', 'One of the selected companies is invalid.');
-
-                return;
-            }
-        }
-
-        $clientOrgIds = collect($roles)->filter(fn ($role) => $role === Role::CLIENT)->keys();
-
-        if ($clientOrgIds->count() > 1) {
-            $validator->errors()->add('roles', 'A user can only be assigned the Client role in one company.');
-
-            return;
-        }
-
-        if ($clientOrgIds->isNotEmpty() && collect($roles)->except($clientOrgIds)->contains(fn ($role) => $role !== 'none')) {
-            $validator->errors()->add('roles', 'A user assigned the Client role in one company cannot hold another role in a different company.');
-
-            return;
-        }
-
-        if (! $grantingSuperAdmin && ! collect($roles)->contains(fn ($role) => $role !== 'none')) {
-            $validator->errors()->add('roles', 'Assign this user a role in at least one company.');
+        if ($message = CompanyRoleRules::validateRoles($roles, $grantingSuperAdmin)) {
+            $validator->errors()->add('roles', $message);
         }
     }
 
@@ -58,12 +34,8 @@ trait ValidatesCompanyRoles
      */
     protected function validateSuperAdminGrant(Validator $validator, array $roles, bool $grantingSuperAdmin, bool $targetAlreadySuperAdmin): void
     {
-        if (! $grantingSuperAdmin || $targetAlreadySuperAdmin) {
-            return;
-        }
-
-        if (! collect($roles)->contains(fn ($role) => $role === Role::MANAGEMENT)) {
-            $validator->errors()->add('grant_super_admin', 'Grant Super Admin requires assigning this user the Management role in at least one company.');
+        if ($message = CompanyRoleRules::validateSuperAdminGrant($roles, $grantingSuperAdmin, $targetAlreadySuperAdmin)) {
+            $validator->errors()->add('grant_super_admin', $message);
         }
     }
 }

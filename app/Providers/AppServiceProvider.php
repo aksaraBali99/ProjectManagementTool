@@ -35,5 +35,10 @@ class AppServiceProvider extends ServiceProvider
         // settings page — same manage_settings bundle as Analytics/Audit
         // Trail.
         Gate::define('task-colors.view', fn (User $user) => $user->hasPermission('manage_settings'));
+
+        // Bulk Import: a global (not org-scoped) admin settings page — same
+        // manage_settings bundle as Analytics/Audit Trail/Status & Priority
+        // Colors.
+        Gate::define('import.view', fn (User $user) => $user->hasPermission('manage_settings'));
     }
 }

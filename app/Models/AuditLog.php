@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-#[Fillable(['organization_id', 'user_id', 'action', 'entity_type', 'entity_id', 'changes'])]
+#[Fillable(['organization_id', 'user_id', 'action', 'entity_type', 'entity_id', 'import_batch_id', 'changes'])]
 class AuditLog extends Model
 {
     protected $table = 'audit_log';
@@ -31,6 +31,16 @@ class AuditLog extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Null for the overwhelming majority of rows — only set on entries
+     * produced by a bulk Import commit, matched by the UUID string stored
+     * in both this column and changes['import_batch_id'].
+     */
+    public function importBatch(): BelongsTo
+    {
+        return $this->belongsTo(ImportBatch::class, 'import_batch_id', 'uuid');
     }
 
     /**

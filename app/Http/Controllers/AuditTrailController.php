@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\ImportBatch;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -15,7 +16,7 @@ class AuditTrailController extends Controller
     {
         Gate::authorize('viewAny', AuditLog::class);
 
-        $query = AuditLog::query()->with(['organization', 'user'])->orderByDesc('created_at')->orderByDesc('id');
+        $query = AuditLog::query()->with(['organization', 'user', 'importBatch'])->orderByDesc('created_at')->orderByDesc('id');
 
         if ($organizationId = $request->integer('organization_id')) {
             $query->where('organization_id', $organizationId);
@@ -41,6 +42,11 @@ class AuditTrailController extends Controller
             $query->whereDate('created_at', '<=', $dateTo);
         }
 
+        if ($importBatchId = $request->integer('import_batch_id')) {
+            $batchUuid = ImportBatch::find($importBatchId)?->uuid;
+            $query->where('import_batch_id', $batchUuid ?? '');
+        }
+
         $entries = $query->paginate(25)->withQueryString();
 
         $loggedUserIds = AuditLog::query()->distinct()->pluck('user_id');
@@ -51,7 +57,8 @@ class AuditTrailController extends Controller
             'entityTypes' => AuditLog::query()->distinct()->orderBy('entity_type')->pluck('entity_type'),
             'actions' => AuditLog::query()->distinct()->orderBy('action')->pluck('action'),
             'users' => User::whereIn('id', $loggedUserIds)->orderBy('name')->get(),
-            'filters' => $request->only(['organization_id', 'entity_type', 'user_id', 'action', 'date_from', 'date_to']),
+            'importBatches' => ImportBatch::whereNotNull('uuid')->orderByDesc('id')->limit(50)->get(),
+            'filters' => $request->only(['organization_id', 'entity_type', 'user_id', 'action', 'date_from', 'date_to', 'import_batch_id']),
         ]);
     }
 }
