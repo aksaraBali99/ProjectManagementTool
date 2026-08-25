@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "app/Models/AuditLog.php": {
-    "mtime": 1787297716.3866968,
-    "ast_hash": "36e39f05c3023d1691c2f56186bb9ea5",
+    "mtime": 1787638994.482509,
+    "ast_hash": "02c6dc2e7c495c3c0c82e270ac86f67f",
     "semantic_hash": ""
   },
   "app/Models/Comment.php": {
@@ -945,8 +945,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/AuditTrailController.php": {
-    "mtime": 1787297716.3751452,
-    "ast_hash": "4423c1fc0976bf62c0615c68bc61f22a",
+    "mtime": 1787638903.982373,
+    "ast_hash": "a95071dc502e91c6e7d75e4cf5509786",
     "semantic_hash": ""
   },
   "app/Http/Controllers/NotificationController.php": {
@@ -1005,8 +1005,8 @@
     "semantic_hash": ""
   },
   "resources/views/audit-trail/index.blade.php": {
-    "mtime": 1787406506.9127958,
-    "ast_hash": "0c4a96261b29c324eb4f6b37e1ec6f4c",
+    "mtime": 1787638950.9816768,
+    "ast_hash": "fbd1b67446c70b6a81e3c07de226c2ca",
     "semantic_hash": ""
   },
   "resources/views/notification-settings/index.blade.php": {
@@ -1232,6 +1232,51 @@
   "tests/Unit/Import/ImportIdCodecTest.php": {
     "mtime": 1787637207.8741941,
     "ast_hash": "9726d94feaf696d15e9d710b8a952f87",
+    "semantic_hash": ""
+  },
+  "app/Enums/ImportBatchStatus.php": {
+    "mtime": 1787638831.8865874,
+    "ast_hash": "a576b394ae10e02126c9b02e08ab3fd3",
+    "semantic_hash": ""
+  },
+  "app/Enums/ImportRowAction.php": {
+    "mtime": 1787638837.162994,
+    "ast_hash": "1cdc410a0d1961c9b411366c229ad52d",
+    "semantic_hash": ""
+  },
+  "app/Enums/ImportValidationStatus.php": {
+    "mtime": 1787638842.4317048,
+    "ast_hash": "6e16fd14231e5b5875c36aaec424e72e",
+    "semantic_hash": ""
+  },
+  "app/Models/ImportBatch.php": {
+    "mtime": 1787638868.9668617,
+    "ast_hash": "ac4adb7ffe232eab29c8557954113673",
+    "semantic_hash": ""
+  },
+  "app/Models/ImportRow.php": {
+    "mtime": 1787638874.1745594,
+    "ast_hash": "692c8b7018606719ef94032ab91eee27",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_25_010000_create_import_batches_table.php": {
+    "mtime": 1787638849.1538222,
+    "ast_hash": "c16086fbbba91adb6144e2429bc88e9b",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_25_010100_create_import_rows_table.php": {
+    "mtime": 1787638855.2035813,
+    "ast_hash": "bf7b7b4838c8227136927cac989cb94e",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_25_010200_add_import_batch_id_to_audit_log_table.php": {
+    "mtime": 1787638861.4823394,
+    "ast_hash": "b1ffac5c25510e175e2bd74a36d4af85",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Import/ImportBatchSchemaTest.php": {
+    "mtime": 1787638969.257918,
+    "ast_hash": "027530ee6a19709206fa3a7d5c443508",
     "semantic_hash": ""
   }
 }

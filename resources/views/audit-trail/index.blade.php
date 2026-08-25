@@ -51,6 +51,18 @@
         </div>
 
         <div>
+            <label for="import_batch_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Import batch</label>
+            <select id="import_batch_id" name="import_batch_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                <option value="">All batches</option>
+                @foreach ($importBatches as $batch)
+                    <option value="{{ $batch->id }}" {{ (string) ($filters['import_batch_id'] ?? '') === (string) $batch->id ? 'selected' : '' }}>
+                        Batch #{{ $batch->id }} ({{ $batch->created_at->format('M j, Y') }})
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div>
             <label for="date_from" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">From</label>
             <input id="date_from" name="date_from" type="date" value="{{ $filters['date_from'] ?? '' }}"
                 class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
@@ -102,7 +114,16 @@
                         </td>
                         <td class="flex items-center justify-between gap-2 py-1 text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
                             <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Action</span>
-                            {{ $entry->actionLabel() }}
+                            <span>
+                                {{ $entry->actionLabel() }}
+                                @if ($entry->importBatch)
+                                    {{-- Not yet a link to the review page — that route lands with
+                                         the Import feature's review-grid slice. --}}
+                                    <span class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-normal uppercase tracking-[0.04em] text-gray-500">
+                                        via import #{{ $entry->importBatch->id }}
+                                    </span>
+                                @endif
+                            </span>
                         </td>
                         <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                             <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Entity</span>
