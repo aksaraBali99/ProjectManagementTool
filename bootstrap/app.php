@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureBelongsToOrganization;
 use App\Http\Middleware\EnsureUserIsActive;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'active' => EnsureUserIsActive::class,
             'org.scope' => EnsureBelongsToOrganization::class,
         ]);
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command('imports:abandon-stale')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

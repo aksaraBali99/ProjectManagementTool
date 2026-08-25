@@ -20,8 +20,8 @@
     "semantic_hash": ""
   },
   "bootstrap/app.php": {
-    "mtime": 1786959901.853797,
-    "ast_hash": "619cd589d52cf32ab22cd9fcd90fac70",
+    "mtime": 1787651357.3550258,
+    "ast_hash": "a522c429041e6cd7e36097de3785c26a",
     "semantic_hash": ""
   },
   "bootstrap/providers.php": {
@@ -1407,6 +1407,16 @@
   "tests/Feature/Import/ImportCommitTest.php": {
     "mtime": 1787651177.276597,
     "ast_hash": "e3594ac6d472d6e3c70e6d6bb6f32324",
+    "semantic_hash": ""
+  },
+  "app/Console/Commands/AbandonStaleImportBatches.php": {
+    "mtime": 1787651347.987038,
+    "ast_hash": "01b9de86c3dc1cbbdb7a9bef8689a0ed",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Import/AbandonStaleImportBatchesTest.php": {
+    "mtime": 1787651369.281554,
+    "ast_hash": "cd3af6ed0a202e0c6591553b9e9d02c6",
     "semantic_hash": ""
   }
 }
