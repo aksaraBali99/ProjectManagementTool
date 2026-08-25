@@ -134,4 +134,6 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/import', [ImportController::class, 'index'])->name('import.index');
     Route::get('/import/template', [ImportController::class, 'downloadTemplate'])->name('import.template');
+    Route::post('/import/upload', [ImportController::class, 'upload'])->name('import.upload');
+    Route::get('/import/{batch}/review', [ImportController::class, 'review'])->name('import.review');
 });

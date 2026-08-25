@@ -11,6 +11,7 @@ use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Import\EmployeeIdGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,7 @@ class UserManagementController extends Controller
         return view('users.index', ['users' => $users]);
     }
 
-    public function create(): View
+    public function create(EmployeeIdGenerator $employeeIdGenerator): View
     {
         Gate::authorize('create', User::class);
 
@@ -46,6 +47,7 @@ class UserManagementController extends Controller
             'isTargetSuperAdmin' => false,
             'departmentsByOrganization' => $this->departmentsByOrganization($organizations),
             'allowedDepartmentIds' => [],
+            'suggestedEmployeeId' => $employeeIdGenerator->next('employee'),
         ]);
     }
 

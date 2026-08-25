@@ -117,11 +117,9 @@
                             <span>
                                 {{ $entry->actionLabel() }}
                                 @if ($entry->importBatch)
-                                    {{-- Not yet a link to the review page — that route lands with
-                                         the Import feature's review-grid slice. --}}
-                                    <span class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-normal uppercase tracking-[0.04em] text-gray-500">
+                                    <a href="{{ route('import.review', $entry->importBatch) }}" class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-normal uppercase tracking-[0.04em] text-gray-500 hover:bg-gray-200">
                                         via import #{{ $entry->importBatch->id }}
-                                    </span>
+                                    </a>
                                 @endif
                             </span>
                         </td>

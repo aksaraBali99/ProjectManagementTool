@@ -99,7 +99,7 @@
 
         <div>
             <label for="employee_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Employee ID <span class="text-red-600">*</span></label>
-            <input id="employee_id" name="employee_id" type="text" value="{{ old('employee_id', $isEdit ? $user->employee_id : '') }}" required
+            <input id="employee_id" name="employee_id" type="text" value="{{ old('employee_id', $isEdit ? $user->employee_id : ($suggestedEmployeeId ?? '')) }}" required
                 class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
             @error('employee_id')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
