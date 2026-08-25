@@ -66,14 +66,18 @@ class AnalyticsController extends Controller
             fn ($query) => $query->whereIn('organization_id', $organizationIds)->where('role_id', $staffRoleId)
         )->pluck('id');
 
-        $staffWorkload = Task::whereIn('organization_id', $organizationIds)
+        $workloadRows = Task::whereIn('organization_id', $organizationIds)
             ->where('status', '!=', TaskStatus::Completed->value)
             ->whereIn('assignee_id', $staffIds)
             ->selectRaw('assignee_id, count(*) as open_count')
             ->groupBy('assignee_id')
-            ->get()
+            ->get();
+
+        $namesByAssigneeId = User::whereIn('id', $workloadRows->pluck('assignee_id'))->pluck('name', 'id');
+
+        $staffWorkload = $workloadRows
             ->map(fn ($row) => [
-                'label' => User::find($row->assignee_id)?->name ?? 'Unknown',
+                'label' => $namesByAssigneeId[$row->assignee_id] ?? 'Unknown',
                 'count' => (int) $row->open_count,
             ])
             ->sortByDesc('count')

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TaskStatus;
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\Organization;
 use App\Models\Task;
 use Illuminate\Support\Carbon;
@@ -10,6 +11,8 @@ use Illuminate\View\View;
 
 class CalendarController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     /**
      * Frappe Gantt renders a flat list of bars, not swimlanes — there's no
      * native "group by project" concept in the library. Grouping is
@@ -39,9 +42,7 @@ class CalendarController extends Controller
             ]);
         }
 
-        if (! $organization || ! $organizations->contains('id', $organization->id)) {
-            $organization = $organizations->first();
-        }
+        $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
         // Only tasks with a due_date can be positioned on a timeline —
         // undated tasks have nothing to plot them by, so they're excluded

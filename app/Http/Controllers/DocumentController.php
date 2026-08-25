@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\DocumentAccessLevel;
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\Task;
@@ -15,6 +16,8 @@ use Illuminate\View\View;
 
 class DocumentController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function index(?Organization $organization = null): View
     {
         $user = auth()->user();
@@ -33,9 +36,7 @@ class DocumentController extends Controller
             ]);
         }
 
-        if (! $organization || ! $organizations->contains('id', $organization->id)) {
-            $organization = $organizations->first();
-        }
+        $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
         $documents = Document::where('organization_id', $organization->id)
             ->with('uploader')
@@ -63,9 +64,7 @@ class DocumentController extends Controller
             ->get();
         abort_if($organizations->isEmpty(), 403);
 
-        if (! $organization || ! $organizations->contains('id', $organization->id)) {
-            $organization = $organizations->first();
-        }
+        $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
         Gate::authorize('create', [Document::class, $organization->id]);
 

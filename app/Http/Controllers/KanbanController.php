@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\Organization;
 use App\Models\Task;
 use Illuminate\Support\Facades\Gate;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 
 class KanbanController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function __invoke(?Organization $organization = null): View
     {
         $user = auth()->user();
@@ -29,9 +32,7 @@ class KanbanController extends Controller
             ]);
         }
 
-        if (! $organization || ! $organizations->contains('id', $organization->id)) {
-            $organization = $organizations->first();
-        }
+        $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
         $tasks = Task::visibleTo($user, $organization->id)
             ->with(['project', 'department', 'assignee'])

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\AccessPermission;
 use App\Models\Organization;
 use App\Models\OrgMember;
@@ -14,6 +15,8 @@ use Illuminate\View\View;
 
 class AccessControlController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function index(?Organization $organization = null): View|RedirectResponse
     {
         Gate::authorize('access-control.view');
@@ -30,11 +33,7 @@ class AccessControlController extends Controller
             ]);
         }
 
-        $organization ??= $organizations->first();
-
-        if (! $organization->is_active) {
-            $organization = $organizations->first();
-        }
+        $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
         $departments = $organization->departments()->where('is_active', true)->orderBy('name')->get();
 
