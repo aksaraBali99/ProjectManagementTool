@@ -16,6 +16,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Rules\ValidPhoneNumber;
 use App\Support\CompanyRoleRules;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator as ValidatorFacade;
 use Illuminate\Validation\Rules\Password;
@@ -95,6 +96,12 @@ class ImportValidator
                 continue;
             }
 
+            if ($this->exceedsMaxLength($name)) {
+                $result[] = $this->errorRow('Companies', $row, 'Company Name must be 255 characters or fewer.');
+
+                continue;
+            }
+
             if ($idCode === null) {
                 $context->validCompanyNames[$context->companyKey($name)] = true;
                 $result[] = $this->row('Companies', $row, 'insert', 'valid');
@@ -135,6 +142,12 @@ class ImportValidator
 
             if (empty($name)) {
                 $result[] = $this->errorRow('Departments', $row, 'Department Name is required.');
+
+                continue;
+            }
+
+            if ($this->exceedsMaxLength($name)) {
+                $result[] = $this->errorRow('Departments', $row, 'Department Name must be 255 characters or fewer.');
 
                 continue;
             }
@@ -223,6 +236,18 @@ class ImportValidator
                 continue;
             }
 
+            if ($this->exceedsMaxLength($username) || $this->exceedsMaxLength($name)) {
+                $result[] = $this->errorRow('Users', $row, 'Username and Name must be 255 characters or fewer.');
+
+                continue;
+            }
+
+            if (! $this->isValidEmailFormat($email)) {
+                $result[] = $this->errorRow('Users', $row, 'Please enter a valid email address.');
+
+                continue;
+            }
+
             $existingByUsername = User::where('username', $username)->first();
             $existingByEmail = User::where('email', $email)->first();
 
@@ -265,6 +290,12 @@ class ImportValidator
 
             $employeeId = $cells['employee_id'];
             if (! empty($employeeId)) {
+                if ($this->exceedsMaxLength($employeeId)) {
+                    $result[] = $this->errorRow('Users', $row, 'Employee ID must be 255 characters or fewer.');
+
+                    continue;
+                }
+
                 $employeeIdTaken = User::where('employee_id', $employeeId)
                     ->when($existing, fn ($query) => $query->whereKeyNot($existing->id))
                     ->exists();
@@ -495,6 +526,12 @@ class ImportValidator
                 continue;
             }
 
+            if ($this->exceedsMaxLength($name)) {
+                $result[] = $this->errorRow('Projects', $row, 'Project Name must be 255 characters or fewer.');
+
+                continue;
+            }
+
             if (empty($companyName)) {
                 $result[] = $this->errorRow('Projects', $row, 'Company is required.');
 
@@ -633,6 +670,13 @@ class ImportValidator
                 continue;
             }
 
+            if ($this->exceedsMaxLength($title)) {
+                $result[] = $this->errorRow('Tasks', $row, 'Title must be 255 characters or fewer.');
+                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+
+                continue;
+            }
+
             $companyKey = $context->companyKey($companyName);
             $companyState = $this->companyState($companyName, $context);
             if ($companyState === 'blocked') {
@@ -685,6 +729,20 @@ class ImportValidator
 
             if (! $this->matchesLabel($cells['status'] ?? '', TaskStatus::cases())) {
                 $result[] = $this->errorRow('Tasks', $row, 'Status must be one of: '.collect(TaskStatus::cases())->map->label()->implode(', ').'.');
+                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+
+                continue;
+            }
+
+            if (! empty($cells['start_date']) && ! $this->isValidDateFormat($cells['start_date'])) {
+                $result[] = $this->errorRow('Tasks', $row, 'Start Date must be a valid date in DD/MM/YYYY format.');
+                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+
+                continue;
+            }
+
+            if (! empty($cells['due_date']) && ! $this->isValidDateFormat($cells['due_date'])) {
+                $result[] = $this->errorRow('Tasks', $row, 'Due Date must be a valid date in DD/MM/YYYY format.');
                 $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
 
                 continue;
@@ -754,6 +812,24 @@ class ImportValidator
                 continue;
             }
 
+            if ($this->exceedsMaxLength($cells['title'])) {
+                $result[] = $this->errorRow('Subtasks', $row, 'Subtask Title must be 255 characters or fewer.');
+
+                continue;
+            }
+
+            if (! empty($cells['start_date']) && ! $this->isValidDateFormat($cells['start_date'])) {
+                $result[] = $this->errorRow('Subtasks', $row, 'Start Date must be a valid date in DD/MM/YYYY format.');
+
+                continue;
+            }
+
+            if (! empty($cells['due_date']) && ! $this->isValidDateFormat($cells['due_date'])) {
+                $result[] = $this->errorRow('Subtasks', $row, 'Due Date must be a valid date in DD/MM/YYYY format.');
+
+                continue;
+            }
+
             $taskRefError = $this->checkTaskRef($cells['task_ref'] ?? null, $context, 'Subtasks', $row);
             if ($taskRefError !== null) {
                 $result[] = $taskRefError;
@@ -780,6 +856,18 @@ class ImportValidator
 
             if (empty($cells['name']) || empty($cells['link'])) {
                 $result[] = $this->errorRow('Task Documents', $row, 'Document Name and Document Link are required.');
+
+                continue;
+            }
+
+            if ($this->exceedsMaxLength($cells['name'])) {
+                $result[] = $this->errorRow('Task Documents', $row, 'Document Name must be 255 characters or fewer.');
+
+                continue;
+            }
+
+            if (! $this->isValidUrlFormat($cells['link'])) {
+                $result[] = $this->errorRow('Task Documents', $row, 'Document Link must be a valid URL, 2048 characters or fewer.');
 
                 continue;
             }
@@ -956,6 +1044,41 @@ class ImportValidator
         }
 
         return false;
+    }
+
+    /** Mirrors StoreUserRequest's email rules exactly (email:rfc,filter + the same regex) so a malformed address is caught the same way here as on the in-app Add User form. */
+    private function isValidEmailFormat(string $email): bool
+    {
+        return ValidatorFacade::make(['email' => $email], [
+            'email' => ['email:rfc,filter', 'regex:/^[^\s@]+@[^\s@]+\.[^\s@]+$/'],
+        ])->passes();
+    }
+
+    /** Mirrors DocumentController's 'link' rule (string|max:2048|url). */
+    private function isValidUrlFormat(string $url): bool
+    {
+        return ValidatorFacade::make(['url' => $url], ['url' => ['url', 'max:2048']])->passes();
+    }
+
+    private function exceedsMaxLength(string $value, int $max = 255): bool
+    {
+        return mb_strlen($value) > $max;
+    }
+
+    /**
+     * Parses a "DD/MM/YYYY" date strictly — createFromFormat() alone can
+     * silently overflow an invalid date (e.g. 31/02/2026 rolls into
+     * March) instead of failing, so the round-trip is checked too.
+     */
+    private function isValidDateFormat(string $value): bool
+    {
+        try {
+            $date = Carbon::createFromFormat('d/m/Y', $value);
+        } catch (\Exception) {
+            return false;
+        }
+
+        return $date !== false && $date->format('d/m/Y') === $value;
     }
 
     /**

@@ -1305,8 +1305,8 @@
     "semantic_hash": ""
   },
   "app/Services/Import/ImportValidator.php": {
-    "mtime": 1787640409.2986248,
-    "ast_hash": "4feba3c63adf40dadd18d5916bd99aba",
+    "mtime": 1787652534.2733433,
+    "ast_hash": "e04d5a74ba975fc255e63c0c4fbad1ed",
     "semantic_hash": ""
   },
   "app/Support/CompanyRoleRules.php": {
@@ -1417,6 +1417,11 @@
   "tests/Feature/Import/AbandonStaleImportBatchesTest.php": {
     "mtime": 1787651369.281554,
     "ast_hash": "cd3af6ed0a202e0c6591553b9e9d02c6",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Import/ImportFieldFormatValidationTest.php": {
+    "mtime": 1787652579.1176429,
+    "ast_hash": "ca0a81626849fc21edb3cbf3b1d47ad3",
     "semantic_hash": ""
   }
 }
