@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ImportBatchStatus;
 use App\Http\Requests\Import\UploadImportRequest;
 use App\Models\ImportBatch;
+use App\Services\Import\ImportCommitService;
 use App\Services\Import\ImportSheetSchema;
 use App\Services\Import\ImportTemplateBuilder;
 use App\Services\Import\ImportValidator;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -70,6 +73,21 @@ class ImportController extends Controller
             'errorCount' => $batch->importRows()->where('validation_status', 'error')->count(),
             'warningCount' => $batch->importRows()->where('validation_status', 'warning')->count(),
         ]);
+    }
+
+    public function commit(Request $request, ImportBatch $batch, ImportCommitService $service): View
+    {
+        Gate::authorize('import.view');
+
+        abort_unless($batch->status === ImportBatchStatus::PendingReview, 403, 'This batch is not pending review.');
+        abort_if($batch->importRows()->where('validation_status', 'error')->exists(), 422, 'Cannot commit while errors remain.');
+
+        $hasWarnings = $batch->importRows()->where('validation_status', 'warning')->exists();
+        abort_if($hasWarnings && ! $request->boolean('acknowledge_warnings'), 422, 'Acknowledge the warnings before committing.');
+
+        $summary = $service->commit($batch, auth()->user());
+
+        return view('import.summary', ['summary' => $summary]);
     }
 
     public function downloadTemplate(ImportTemplateBuilder $builder): StreamedResponse

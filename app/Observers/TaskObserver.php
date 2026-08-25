@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Enums\TaskStatus;
 use App\Models\AuditLog;
 use App\Models\Task;
+use App\Observers\Concerns\TagsImportBatch;
 use App\Services\AuditEventNotifier;
 
 /**
@@ -25,6 +26,8 @@ use App\Services\AuditEventNotifier;
  */
 class TaskObserver
 {
+    use TagsImportBatch;
+
     public function __construct(private readonly AuditEventNotifier $notifier) {}
 
     /**
@@ -111,9 +114,12 @@ class TaskObserver
             'action' => $action,
             'entity_type' => 'task',
             'entity_id' => $task->id,
-            'changes' => $changes,
+            'import_batch_id' => $this->currentImportBatchId(),
+            'changes' => $this->taggedChanges($changes),
         ]);
 
-        $this->notifier->notify($auditLog);
+        if (! $this->shouldSuppressNotification()) {
+            $this->notifier->notify($auditLog);
+        }
     }
 }

@@ -39,10 +39,14 @@
             </label>
         @endif
 
-        <button type="button" id="commit-button" disabled
-            class="ml-auto rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56] disabled:cursor-not-allowed disabled:opacity-40">
-            Commit Import
-        </button>
+        <form method="POST" action="{{ route('import.commit', $batch) }}" class="ml-auto">
+            @csrf
+            <input type="hidden" name="acknowledge_warnings" id="acknowledge-warnings-field" value="0">
+            <button type="submit" id="commit-button" disabled
+                class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56] disabled:cursor-not-allowed disabled:opacity-40">
+                Commit Import
+            </button>
+        </form>
     </div>
 
     @foreach ($rowsBySheet as $sheetName => $rows)
@@ -93,12 +97,15 @@
         (function () {
             var commitButton = document.getElementById('commit-button');
             var acknowledgeCheckbox = document.getElementById('acknowledge-warnings');
+            var acknowledgeField = document.getElementById('acknowledge-warnings-field');
             var errorCount = {{ $errorCount }};
             var warningCount = {{ $warningCount }};
 
             function refresh() {
-                var warningsClear = warningCount === 0 || (acknowledgeCheckbox && acknowledgeCheckbox.checked);
+                var acknowledged = acknowledgeCheckbox && acknowledgeCheckbox.checked;
+                var warningsClear = warningCount === 0 || acknowledged;
                 commitButton.disabled = errorCount > 0 || ! warningsClear;
+                acknowledgeField.value = acknowledged ? '1' : '0';
             }
 
             if (acknowledgeCheckbox) {

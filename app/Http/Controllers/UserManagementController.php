@@ -11,6 +11,7 @@ use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CompanyRoleSyncer;
 use App\Services\Import\EmployeeIdGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -156,22 +157,7 @@ class UserManagementController extends Controller
      */
     private function syncCompanyRoles(User $user, array $roles): void
     {
-        $roleIds = Role::assignableInCompany()->pluck('id', 'slug');
-
-        foreach ($roles as $organizationId => $slug) {
-            if ($slug === 'none') {
-                OrgMember::where('organization_id', $organizationId)
-                    ->where('user_id', $user->id)
-                    ->delete();
-
-                continue;
-            }
-
-            OrgMember::updateOrCreate(
-                ['organization_id' => $organizationId, 'user_id' => $user->id],
-                ['role_id' => $roleIds[$slug]],
-            );
-        }
+        app(CompanyRoleSyncer::class)->sync($user, $roles);
     }
 
     /**

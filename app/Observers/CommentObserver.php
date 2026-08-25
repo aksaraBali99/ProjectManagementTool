@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\AuditLog;
 use App\Models\Comment;
+use App\Observers\Concerns\TagsImportBatch;
 use App\Services\AuditEventNotifier;
 
 /**
@@ -16,6 +17,8 @@ use App\Services\AuditEventNotifier;
  */
 class CommentObserver
 {
+    use TagsImportBatch;
+
     public function __construct(private readonly AuditEventNotifier $notifier) {}
 
     public function created(Comment $comment): void
@@ -52,9 +55,12 @@ class CommentObserver
             'action' => $action,
             'entity_type' => 'comment',
             'entity_id' => $comment->id,
-            'changes' => $changes,
+            'import_batch_id' => $this->currentImportBatchId(),
+            'changes' => $this->taggedChanges($changes),
         ]);
 
-        $this->notifier->notify($auditLog);
+        if (! $this->shouldSuppressNotification()) {
+            $this->notifier->notify($auditLog);
+        }
     }
 }
