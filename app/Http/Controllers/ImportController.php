@@ -35,9 +35,9 @@ class ImportController extends Controller
         $rowCounts = $validator->countRows($file->getRealPath());
         $totalRows = array_sum($rowCounts);
 
-        if ($totalRows > ImportValidator::MAX_TOTAL_ROWS) {
+        if ($totalRows > ImportValidator::maxTotalRows()) {
             return back()->withErrors([
-                'file' => "This file has {$totalRows} rows across all tabs, over the ".ImportValidator::MAX_TOTAL_ROWS.'-row limit per import. Split it into smaller files and upload separately.',
+                'file' => "This file has {$totalRows} rows across all tabs, over the ".ImportValidator::maxTotalRows().'-row limit per import. Split it into smaller files and upload separately.',
             ]);
         }
 

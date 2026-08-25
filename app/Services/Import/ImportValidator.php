@@ -36,7 +36,11 @@ use Illuminate\Validation\Rules\Password;
  */
 class ImportValidator
 {
-    public const MAX_TOTAL_ROWS = 5000;
+    /** Config-driven (config/import.php) rather than a fixed constant, so the limit can be tuned per environment without a code deploy. */
+    public static function maxTotalRows(): int
+    {
+        return config('import.max_total_rows');
+    }
 
     public function __construct(
         private readonly ImportSpreadsheetParser $parser,
