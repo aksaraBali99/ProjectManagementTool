@@ -2,6 +2,7 @@
 
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\Import\ImportIdCodec;
 
 beforeEach(function () {
     $this->owner = createOwner();
@@ -67,6 +68,29 @@ test('the review page offers a way back to re-upload a corrected file', function
     $response->assertOk();
     $response->assertSee(route('import.index'), false);
     $response->assertSee('Re-upload a different file');
+});
+
+test('the review page hides No Change rows, showing only actionable ones', function () {
+    $organization = Organization::create(['name' => 'Existing Co', 'slug' => 'existing-co', 'accent_color' => '#1D9E75']);
+
+    $batch = runImportValidation([
+        'Companies' => [
+            ['id' => ImportIdCodec::encode(ImportIdCodec::COMPANY_PREFIX, $organization->id), 'name' => 'Existing Co'],
+            ['name' => 'Brand New Co'],
+        ],
+    ], $this->owner);
+
+    $noChangeRow = $batch->importRows()->where('sheet_name', 'Companies')->where('resolved_action', 'no_change')->firstOrFail();
+    $insertRow = $batch->importRows()->where('sheet_name', 'Companies')->where('resolved_action', 'insert')->firstOrFail();
+
+    $response = $this->actingAs($this->owner)->get("/import/{$batch->id}/review");
+
+    $response->assertOk();
+    $response->assertSee('Companies (1)');
+    $response->assertSee('Brand New Co');
+    $response->assertDontSee('Existing Co');
+    expect($noChangeRow)->not->toBeNull();
+    expect($insertRow)->not->toBeNull();
 });
 
 test('the review page never re-validates — it only reads what was already stored at upload time', function () {
