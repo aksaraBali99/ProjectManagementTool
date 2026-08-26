@@ -59,6 +59,16 @@ test('a batch with only warnings shows zero errors and is commit-eligible', func
     $response->assertSee('1 warning');
 });
 
+test('the review page offers a way back to re-upload a corrected file', function () {
+    $batch = runImportValidation(['Companies' => [['name' => 'New Co']]], $this->owner);
+
+    $response = $this->actingAs($this->owner)->get("/import/{$batch->id}/review");
+
+    $response->assertOk();
+    $response->assertSee(route('import.index'), false);
+    $response->assertSee('Re-upload a different file');
+});
+
 test('the review page never re-validates — it only reads what was already stored at upload time', function () {
     $batch = runImportValidation([
         'Companies' => [['name' => 'New Co']],
