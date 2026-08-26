@@ -2,17 +2,11 @@
 
 use App\Enums\ImportBatchStatus;
 use App\Models\ImportBatch;
-use App\Models\Role;
 use App\Models\User;
 use App\Services\Import\ImportValidator;
-use Database\Seeders\PermissionSeeder;
-use Database\Seeders\RoleSeeder;
 
 beforeEach(function () {
-    $this->seed([RoleSeeder::class, PermissionSeeder::class]);
-
-    $this->owner = User::factory()->create();
-    $this->owner->roles()->attach(Role::where('slug', 'owner')->first()->id);
+    $this->owner = createOwner();
 
     $this->staff = User::factory()->create();
 });
