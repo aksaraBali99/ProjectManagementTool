@@ -46,6 +46,26 @@ test('an exact (Project, Title) match updates the existing task rather than inse
     expect($row->validation_status->value)->toBe('valid');
 });
 
+test('an exact (Project, Title) match with identical field values is marked no_change', function () {
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Draft homepage copy',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $batch = runImportValidation([
+        'Tasks' => [validTaskRow()],
+    ], $this->owner);
+
+    $row = $batch->importRows()->where('sheet_name', 'Tasks')->firstOrFail();
+
+    expect($row->resolved_action->value)->toBe('no_change');
+    expect($row->validation_status->value)->toBe('valid');
+});
+
 test('a row with a title that doesn\'t exactly match an existing task inserts a new one instead of updating (title is effectively immutable via import)', function () {
     Task::create([
         'organization_id' => $this->orgA->id,

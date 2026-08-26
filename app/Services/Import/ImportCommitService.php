@@ -18,7 +18,6 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\CompanyRoleSyncer;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -320,9 +319,19 @@ class ImportCommitService
                     'priority' => $data['priority'] ? $this->resolveEnumValue(Priority::cases(), $data['priority']) : Priority::Medium->value,
                 ];
 
+                $before = null;
+
                 if ($idCode) {
                     $projectId = ImportIdCodec::decode(ImportIdCodec::PROJECT_PREFIX, $idCode);
                     $project = Project::withoutGlobalScopes()->findOrFail($projectId);
+                    $before = [
+                        'organization_id' => $project->organization_id,
+                        'name' => $project->name,
+                        'description' => $project->description,
+                        'is_external' => $project->is_external,
+                        'status' => $project->status->value,
+                        'priority' => $project->priority->value,
+                    ];
                     $project->update($attributes);
                     $kind = 'updated';
                     $action = 'project.updated';
@@ -339,10 +348,26 @@ class ImportCommitService
                     ->filter()
                     ->all();
 
-                $project->staff()->sync($staffIds);
-                $project->clients()->sync($clientUserId ? [$clientUserId] : []);
+                $staffSync = $project->staff()->sync($staffIds);
+                $clientSync = $project->clients()->sync($clientUserId ? [$clientUserId] : []);
+                $pivotsChanged = ! empty($staffSync['attached']) || ! empty($staffSync['detached'])
+                    || ! empty($clientSync['attached']) || ! empty($clientSync['detached']);
 
-                $this->writeAuditLog($importer, $batchUuid, $organizationId, $action, 'project', $project->id, $attributes);
+                $diff = $attributes;
+                if ($before !== null) {
+                    $diff = collect($attributes)
+                        ->filter(fn ($new, $key) => $before[$key] !== $new)
+                        ->mapWithKeys(fn ($new, $key) => [$key => ['old' => $before[$key], 'new' => $new]])
+                        ->all();
+
+                    if (empty($diff) && ! $pivotsChanged) {
+                        $kind = 'unchanged';
+                    }
+                }
+
+                if ($kind !== 'unchanged') {
+                    $this->writeAuditLog($importer, $batchUuid, $organizationId, $action, 'project', $project->id, $diff);
+                }
                 $summary->increment('Projects', $kind);
 
                 $resolution->projectIdsByKey[$resolution->projectKey($companyName, $name)] = $project->id;
@@ -500,6 +525,11 @@ class ImportCommitService
         return $batch->importRows()
             ->where('sheet_name', $sheetName)
             ->where('validation_status', '!=', 'error')
+            // A Subtask/Task Document/Task Comment can be 'blocked' with a
+            // 'valid' status — its own fields are fine, but its parent Task
+            // failed, so it still can't commit (there's no task to attach
+            // it to). Filtering on status alone would let it through.
+            ->where('resolved_action', '!=', 'blocked')
             ->orderBy('row_number')
             ->get();
     }
@@ -583,22 +613,12 @@ class ImportCommitService
      */
     private function resolveEnumValue(array $cases, string $label): string
     {
-        foreach ($cases as $case) {
-            if (strtolower($case->label()) === strtolower(trim($label))) {
-                return $case->value;
-            }
-        }
-
-        return $cases[0]->value;
+        return ImportFieldResolver::resolveEnumValue($cases, $label);
     }
 
     private function parseDate(?string $value): ?string
     {
-        if (empty($value)) {
-            return null;
-        }
-
-        return Carbon::createFromFormat('d/m/Y', $value)->format('Y-m-d');
+        return ImportFieldResolver::parseDate($value);
     }
 
     private function writeAuditLog(User $importer, string $batchUuid, int $organizationId, string $action, string $entityType, int $entityId, array $changes): void

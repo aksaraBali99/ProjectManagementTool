@@ -10,6 +10,7 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\Import\ImportCommitService;
+use App\Services\Import\ImportIdCodec;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
@@ -199,6 +200,61 @@ test('a later-stage failure marks the batch partially_committed and records comp
     expect($batch->status)->toBe(ImportBatchStatus::PartiallyCommitted);
     expect($batch->completed_stages)->toBe(['companies']);
     $this->assertDatabaseHas('organizations', ['name' => 'New Co']);
+});
+
+test('a blocked-but-valid Subtask/Document/Comment is skipped at commit, not attached to a nonexistent task', function () {
+    // The HTTP commit route would normally refuse this batch (the Tasks
+    // row's own error trips the "Cannot commit while errors remain"
+    // guard) — calling the service directly bypasses that, so this
+    // exercises commitEligibleRows()'s own defense: it excludes
+    // resolved_action='blocked' regardless of validation_status, which is
+    // what stops these rows reaching Task::find(null)->subtasks()->create().
+    $batch = runImportValidation([
+        'Tasks' => [[
+            // missing required Title -> this Task row fails its own validation
+            'task_ref' => '1',
+            'project_name' => 'Project A',
+            'company' => 'Org A',
+            'department' => 'Marketing',
+            'priority' => 'Medium',
+            'status' => 'Pending',
+        ]],
+        'Subtasks' => [['task_ref' => '1', 'title' => 'A subtask']],
+        'Task Documents' => [['task_ref' => '1', 'name' => 'Doc', 'link' => 'https://example.com']],
+        'Task Comments' => [['task_ref' => '1', 'body' => 'A comment']],
+    ], $this->owner);
+
+    $subtaskRow = $batch->importRows()->where('sheet_name', 'Subtasks')->firstOrFail();
+    expect($subtaskRow->resolved_action->value)->toBe('blocked');
+    expect($subtaskRow->validation_status->value)->toBe('valid');
+
+    app(ImportCommitService::class)->commit($batch, $this->owner);
+
+    $this->assertDatabaseCount('subtasks', 0);
+    $this->assertDatabaseCount('documents', 0);
+    $this->assertDatabaseCount('comments', 0);
+});
+
+test('committing a Projects row with no actual change is counted unchanged and writes no audit_log entry', function () {
+    $project = Project::create([
+        'organization_id' => $this->orgA->id,
+        'name' => 'Website Refresh',
+        'description' => 'Redesign the homepage.',
+    ]);
+
+    $batch = runImportValidation([
+        'Projects' => [[
+            'id' => ImportIdCodec::encode(ImportIdCodec::PROJECT_PREFIX, $project->id),
+            'name' => 'Website Refresh',
+            'description' => 'Redesign the homepage.',
+            'company' => 'Org A',
+        ]],
+    ], $this->owner);
+
+    $summary = app(ImportCommitService::class)->commit($batch, $this->owner);
+
+    expect($summary->countsBySheet['Projects'])->toBe(['unchanged' => 1]);
+    expect(AuditLog::where('entity_type', 'project')->where('entity_id', $project->id)->exists())->toBeFalse();
 });
 
 test('every created record writes an audit_log row tagged source=import with the batch uuid', function () {

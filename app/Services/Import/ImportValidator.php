@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Rules\ValidPhoneNumber;
 use App\Support\CompanyRoleRules;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator as ValidatorFacade;
 use Illuminate\Validation\Rules\Password;
@@ -114,7 +115,8 @@ class ImportValidator
             }
 
             $organizationId = ImportIdCodec::decode(ImportIdCodec::COMPANY_PREFIX, $idCode);
-            if ($organizationId === null || ! Organization::whereKey($organizationId)->exists()) {
+            $organization = $organizationId !== null ? Organization::find($organizationId) : null;
+            if ($organization === null) {
                 $context->blockedCompanyNames[$context->companyKey($name)] = true;
                 $result[] = $this->errorRow('Companies', $row, "ID \"{$idCode}\" does not match any existing company.");
 
@@ -122,7 +124,8 @@ class ImportValidator
             }
 
             $context->validCompanyNames[$context->companyKey($name)] = true;
-            $result[] = $this->row('Companies', $row, 'update', 'valid');
+            $action = $organization->name === $name ? 'no_change' : 'update';
+            $result[] = $this->row('Companies', $row, $action, 'valid');
         }
 
         return $result;
@@ -191,7 +194,8 @@ class ImportValidator
             }
 
             $departmentId = ImportIdCodec::decode(ImportIdCodec::DEPARTMENT_PREFIX, $idCode);
-            if ($departmentId === null || ! Department::withoutGlobalScopes()->whereKey($departmentId)->exists()) {
+            $department = $departmentId !== null ? Department::withoutGlobalScopes()->find($departmentId) : null;
+            if ($department === null) {
                 $context->blockedDepartmentKeys[$deptKey] = true;
                 $result[] = $this->errorRow('Departments', $row, "ID \"{$idCode}\" does not match any existing department.");
 
@@ -199,7 +203,9 @@ class ImportValidator
             }
 
             $context->validDepartmentKeys[$deptKey] = true;
-            $result[] = $this->row('Departments', $row, 'update', 'valid');
+            $targetOrganizationId = Organization::where('name', $companyName)->value('id');
+            $action = ($department->name === $name && $department->organization_id === $targetOrganizationId) ? 'no_change' : 'update';
+            $result[] = $this->row('Departments', $row, $action, 'valid');
         }
 
         return $result;
@@ -622,7 +628,8 @@ class ImportValidator
             }
 
             $projectId = ImportIdCodec::decode(ImportIdCodec::PROJECT_PREFIX, $idCode);
-            if ($projectId === null || ! Project::withoutGlobalScopes()->whereKey($projectId)->exists()) {
+            $project = $projectId !== null ? Project::withoutGlobalScopes()->find($projectId) : null;
+            if ($project === null) {
                 $context->blockedProjectKeys[$projectKey] = true;
                 $result[] = $this->errorRow('Projects', $row, "ID \"{$idCode}\" does not match any existing project.");
 
@@ -630,10 +637,41 @@ class ImportValidator
             }
 
             $context->validProjectKeys[$projectKey] = true;
-            $result[] = $this->row('Projects', $row, 'update', 'valid');
+            $action = $this->projectUnchanged($project, $name, $description, $companyName, $clientUsername, $cells, $staffUsernames) ? 'no_change' : 'update';
+            $result[] = $this->row('Projects', $row, $action, 'valid');
         }
 
         return $result;
+    }
+
+    /**
+     * @param  array<string, ?string>  $cells
+     * @param  Collection<int, string>  $staffUsernames
+     */
+    private function projectUnchanged(Project $project, string $name, string $description, string $companyName, ?string $clientUsername, array $cells, Collection $staffUsernames): bool
+    {
+        $targetOrganizationId = Organization::where('name', $companyName)->value('id');
+        $targetStatus = $cells['status'] ? ImportFieldResolver::resolveEnumValue(ProjectStatus::cases(), $cells['status']) : ProjectStatus::Open->value;
+        $targetPriority = $cells['priority'] ? ImportFieldResolver::resolveEnumValue(Priority::cases(), $cells['priority']) : Priority::Medium->value;
+
+        $currentClientUsername = $project->primaryClient()?->username;
+        $clientUnchanged = $this->normalizeUsername($currentClientUsername) === $this->normalizeUsername($clientUsername);
+
+        $currentStaffUsernames = $project->staff()->pluck('username')->map(fn ($u) => strtolower(trim($u)))->sort()->values()->all();
+        $targetStaffUsernames = $staffUsernames->map(fn ($u) => strtolower(trim($u)))->sort()->values()->all();
+
+        return $project->organization_id === $targetOrganizationId
+            && $project->name === $name
+            && $project->description === $description
+            && $project->status->value === $targetStatus
+            && $project->priority->value === $targetPriority
+            && $clientUnchanged
+            && $currentStaffUsernames === $targetStaffUsernames;
+    }
+
+    private function normalizeUsername(?string $username): string
+    {
+        return strtolower(trim((string) $username));
     }
 
     // -- Tasks --------------------------------------------------------
@@ -645,7 +683,7 @@ class ImportValidator
     private function validateTasks(array $rows, ImportValidationContext $context): array
     {
         $result = [];
-        $existingTitlesByProject = $this->prefetchExistingTaskTitles($rows, $context);
+        $existingTasksByProject = $this->prefetchExistingTasksByProject($rows, $context);
 
         foreach ($rows as $row) {
             $cells = $row['cells'];
@@ -772,13 +810,15 @@ class ImportValidator
                 }
             }
 
-            $existingTitles = $existingTitlesByProject[$context->projectKey($companyName, $projectName)] ?? [];
+            $existingTasks = $existingTasksByProject[$context->projectKey($companyName, $projectName)] ?? collect();
+            $existingTitles = $existingTasks->pluck('title')->all();
 
             $duplicateWarning = null;
             $action = 'insert';
 
             if (in_array($title, $existingTitles, true)) {
-                $action = 'update';
+                $existingTask = $existingTasks->firstWhere('title', $title);
+                $action = $this->taskUnchanged($existingTask, $departmentName, $assigneeUsername, $cells) ? 'no_change' : 'update';
             } else {
                 $duplicateWarning = $this->duplicateDetector->findSimilarTaskTitle($title, $existingTitles);
             }
@@ -938,12 +978,13 @@ class ImportValidator
         }
 
         if ($taskInfo['blocked']) {
-            // No inherited message here — the Tasks tab row already carries
-            // its own error, and repeating "parent task invalid" on every
-            // one of its Subtasks/Documents/Comments just adds noise. The
-            // row still can't commit: resolved_action stays 'blocked' and
-            // validation_status stays 'error', same as errorRow() below.
-            return $this->row($sheetName, $row, 'blocked', 'error');
+            // Own fields are fine at this point (checked before this call
+            // in every caller) — validation_status is 'valid', not 'error',
+            // so the row doesn't read as broken on the review grid. It
+            // still can't commit though: resolved_action stays 'blocked',
+            // and commitEligibleRows() excludes blocked rows regardless of
+            // status, so this never reaches the parent-less commit crash.
+            return $this->row($sheetName, $row, 'blocked', 'valid', "Data is valid, but blocked because its parent Task (Ref {$taskRefNumber}) is invalid.");
         }
 
         return null;
@@ -1062,26 +1103,42 @@ class ImportValidator
      * companies with identically-named projects could cross-match.
      *
      * @param  array<int, array{row_number: int, cells: array<string, ?string>}>  $rows
-     * @return array<string, array<int, string>> normalized "company|project" => existing task titles in that project
+     * @return array<string, Collection<int, Task>> normalized "company|project" => existing tasks in that project
      */
-    private function prefetchExistingTaskTitles(array $rows, ImportValidationContext $context): array
+    private function prefetchExistingTasksByProject(array $rows, ImportValidationContext $context): array
     {
         $pairs = collect($rows)
             ->map(fn ($row) => ['company' => $row['cells']['company'] ?? null, 'project' => $row['cells']['project_name'] ?? null])
             ->filter(fn ($pair) => ! empty($pair['company']) && ! empty($pair['project']))
             ->unique(fn ($pair) => $context->projectKey($pair['company'], $pair['project']));
 
-        $titlesByProject = [];
+        $tasksByProject = [];
         foreach ($pairs as $pair) {
-            $titlesByProject[$context->projectKey($pair['company'], $pair['project'])] = Task::withoutGlobalScopes()
+            $tasksByProject[$context->projectKey($pair['company'], $pair['project'])] = Task::withoutGlobalScopes()
                 ->whereHas('project', fn ($query) => $query->where('name', $pair['project'])
                     ->whereHas('organization', fn ($orgQuery) => $orgQuery->where('name', $pair['company']))
                 )
-                ->pluck('title')
-                ->all();
+                ->with(['department:id,name', 'assignee:id,username'])
+                ->get();
         }
 
-        return $titlesByProject;
+        return $tasksByProject;
+    }
+
+    private function taskUnchanged(Task $task, string $departmentName, ?string $assigneeUsername, array $cells): bool
+    {
+        $targetPriority = ImportFieldResolver::resolveEnumValue(Priority::cases(), $cells['priority']);
+        $targetStatus = ImportFieldResolver::resolveEnumValue(TaskStatus::cases(), $cells['status']);
+        $targetDueDate = ImportFieldResolver::parseDate($cells['due_date'] ?? null);
+        $targetStartDate = ImportFieldResolver::parseDate($cells['start_date'] ?? null);
+
+        return $task->department?->name === $departmentName
+            && $this->normalizeUsername($task->assignee?->username) === $this->normalizeUsername($assigneeUsername)
+            && (string) ($task->description ?? '') === (string) ($cells['description'] ?? '')
+            && $task->priority->value === $targetPriority
+            && $task->status->value === $targetStatus
+            && $task->due_date?->format('Y-m-d') === $targetDueDate
+            && $task->start_date?->format('Y-m-d') === $targetStartDate;
     }
 
     /**
