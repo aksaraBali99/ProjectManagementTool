@@ -938,7 +938,12 @@ class ImportValidator
         }
 
         if ($taskInfo['blocked']) {
-            return $this->errorRow($sheetName, $row, "Blocked: Task Ref {$taskRefNumber} failed validation on the Tasks tab.");
+            // No inherited message here — the Tasks tab row already carries
+            // its own error, and repeating "parent task invalid" on every
+            // one of its Subtasks/Documents/Comments just adds noise. The
+            // row still can't commit: resolved_action stays 'blocked' and
+            // validation_status stays 'error', same as errorRow() below.
+            return $this->row($sheetName, $row, 'blocked', 'error');
         }
 
         return null;

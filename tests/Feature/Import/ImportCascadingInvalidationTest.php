@@ -54,9 +54,14 @@ test('a failed Task row blocks its Subtask/Document/Comment rows by Task Ref', f
 
     expect($taskRow->validation_status->value)->toBe('error');
 
+    // Blocked, so still uncommittable, but no inherited "parent task
+    // invalid" message — the Tasks row already shows its own error, and
+    // repeating it on every one of its Subtasks/Documents/Comments is
+    // just noise.
     foreach ([$subtaskRow, $documentRow, $commentRow] as $row) {
         expect($row->resolved_action->value)->toBe('blocked');
-        expect($row->validation_message)->toContain('Blocked');
+        expect($row->validation_status->value)->toBe('error');
+        expect($row->validation_message)->toBeNull();
     }
 });
 
