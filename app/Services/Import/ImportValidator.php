@@ -36,7 +36,11 @@ use Illuminate\Validation\Rules\Password;
  */
 class ImportValidator
 {
-    public const MAX_TOTAL_ROWS = 5000;
+    /** Config-driven (config/import.php) rather than a fixed constant, so the limit can be tuned per environment without a code deploy. */
+    public static function maxTotalRows(): int
+    {
+        return config('import.max_total_rows');
+    }
 
     public function __construct(
         private readonly ImportSpreadsheetParser $parser,
@@ -160,7 +164,7 @@ class ImportValidator
 
             $companyState = $this->companyState($companyName, $context);
             if ($companyState === 'blocked') {
-                $result[] = $this->blockedRow('Departments', $row, "Blocked: referenced Company \"{$companyName}\" failed validation.");
+                $result[] = $this->errorRow('Departments', $row, "Blocked: referenced Company \"{$companyName}\" failed validation.");
 
                 continue;
             }
@@ -379,7 +383,7 @@ class ImportValidator
                 continue;
             }
             if (! $userInfo['valid']) {
-                $result[] = $this->blockedRow('Company Roles', $row, "Blocked: Username \"{$username}\" failed validation on the Users tab.");
+                $result[] = $this->errorRow('Company Roles', $row, "Blocked: Username \"{$username}\" failed validation on the Users tab.");
 
                 continue;
             }
@@ -387,7 +391,7 @@ class ImportValidator
             $companyKey = $context->companyKey($companyName);
             $companyState = $this->companyState($companyName, $context);
             if ($companyState === 'blocked') {
-                $result[] = $this->blockedRow('Company Roles', $row, "Blocked: referenced Company \"{$companyName}\" failed validation.");
+                $result[] = $this->errorRow('Company Roles', $row, "Blocked: referenced Company \"{$companyName}\" failed validation.");
 
                 continue;
             }
@@ -541,7 +545,7 @@ class ImportValidator
             $companyKey = $context->companyKey($companyName);
             $companyState = $this->companyState($companyName, $context);
             if ($companyState === 'blocked') {
-                $result[] = $this->blockedRow('Projects', $row, "Blocked: referenced Company \"{$companyName}\" failed validation.");
+                $result[] = $this->errorRow('Projects', $row, "Blocked: referenced Company \"{$companyName}\" failed validation.");
 
                 continue;
             }
@@ -641,6 +645,7 @@ class ImportValidator
     private function validateTasks(array $rows, ImportValidationContext $context): array
     {
         $result = [];
+        $existingTitlesByProject = $this->prefetchExistingTaskTitles($rows, $context);
 
         foreach ($rows as $row) {
             $cells = $row['cells'];
@@ -665,14 +670,14 @@ class ImportValidator
 
             if (empty($title) || empty($projectName) || empty($companyName) || empty($departmentName)) {
                 $result[] = $this->errorRow('Tasks', $row, 'Title, Project Name, Company, and Department are all required.');
-                $context->taskRefs[$taskRefNumber] = ['title' => (string) $title, 'companyName' => (string) $companyName, 'projectName' => (string) $projectName, 'blocked' => true];
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
 
             if ($this->exceedsMaxLength($title)) {
                 $result[] = $this->errorRow('Tasks', $row, 'Title must be 255 characters or fewer.');
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
@@ -680,70 +685,70 @@ class ImportValidator
             $companyKey = $context->companyKey($companyName);
             $companyState = $this->companyState($companyName, $context);
             if ($companyState === 'blocked') {
-                $result[] = $this->blockedRow('Tasks', $row, "Blocked: referenced Company \"{$companyName}\" failed validation.");
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $result[] = $this->errorRow('Tasks', $row, "Blocked: referenced Company \"{$companyName}\" failed validation.");
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
             if ($companyState === 'missing') {
                 $result[] = $this->errorRow('Tasks', $row, "Company \"{$companyName}\" does not exist.");
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
 
             $deptState = $this->departmentState($companyName, $departmentName, $context);
             if ($deptState === 'blocked') {
-                $result[] = $this->blockedRow('Tasks', $row, "Blocked: referenced Department \"{$departmentName}\" failed validation.");
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $result[] = $this->errorRow('Tasks', $row, "Blocked: referenced Department \"{$departmentName}\" failed validation.");
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
             if ($deptState === 'missing') {
                 $result[] = $this->errorRow('Tasks', $row, "Department \"{$departmentName}\" does not belong to \"{$companyName}\".");
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
 
             $projectState = $this->projectState($companyName, $projectName, $context);
             if ($projectState === 'blocked') {
-                $result[] = $this->blockedRow('Tasks', $row, "Blocked: referenced Project \"{$projectName}\" failed validation.");
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $result[] = $this->errorRow('Tasks', $row, "Blocked: referenced Project \"{$projectName}\" failed validation.");
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
             if ($projectState === 'missing') {
                 $result[] = $this->errorRow('Tasks', $row, "Project \"{$projectName}\" does not exist for \"{$companyName}\".");
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
 
             if (! $this->matchesLabel($cells['priority'] ?? '', Priority::cases())) {
                 $result[] = $this->errorRow('Tasks', $row, 'Priority must be one of: '.collect(Priority::cases())->map->label()->implode(', ').'.');
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
 
             if (! $this->matchesLabel($cells['status'] ?? '', TaskStatus::cases())) {
                 $result[] = $this->errorRow('Tasks', $row, 'Status must be one of: '.collect(TaskStatus::cases())->map->label()->implode(', ').'.');
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
 
             if (! empty($cells['start_date']) && ! $this->isValidDateFormat($cells['start_date'])) {
                 $result[] = $this->errorRow('Tasks', $row, 'Start Date must be a valid date in DD/MM/YYYY format.');
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
 
             if (! empty($cells['due_date']) && ! $this->isValidDateFormat($cells['due_date'])) {
                 $result[] = $this->errorRow('Tasks', $row, 'Due Date must be a valid date in DD/MM/YYYY format.');
-                $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                 continue;
             }
@@ -753,7 +758,7 @@ class ImportValidator
                 $userInfo = $this->resolveUsername($assigneeUsername, $context);
                 if (! $userInfo['exists'] || ! $userInfo['valid']) {
                     $result[] = $this->errorRow('Tasks', $row, "Assignee \"{$assigneeUsername}\" is not a valid user in this file or the database.");
-                    $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                    $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                     continue;
                 }
@@ -761,30 +766,24 @@ class ImportValidator
                 $belongsToCompany = array_key_exists($companyKey, $context->companyRolesByUsername[$assigneeUsername] ?? $this->existingRolesFor($assigneeUsername, $context));
                 if (! $belongsToCompany) {
                     $result[] = $this->errorRow('Tasks', $row, "Assignee \"{$assigneeUsername}\" does not belong to \"{$companyName}\".");
-                    $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => true];
+                    $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
 
                     continue;
                 }
             }
 
-            $existingTask = Task::withoutGlobalScopes()->whereHas('project', function ($query) use ($projectName) {
-                $query->where('name', $projectName);
-            })->where('title', $title)->first();
+            $existingTitles = $existingTitlesByProject[$context->projectKey($companyName, $projectName)] ?? [];
 
             $duplicateWarning = null;
             $action = 'insert';
 
-            if ($existingTask) {
+            if (in_array($title, $existingTitles, true)) {
                 $action = 'update';
             } else {
-                $existingTitles = Task::withoutGlobalScopes()
-                    ->whereHas('project', fn ($query) => $query->where('name', $projectName))
-                    ->pluck('title')
-                    ->all();
                 $duplicateWarning = $this->duplicateDetector->findSimilarTaskTitle($title, $existingTitles);
             }
 
-            $context->taskRefs[$taskRefNumber] = ['title' => $title, 'companyName' => $companyName, 'projectName' => $projectName, 'blocked' => false];
+            $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: false);
 
             $status = $duplicateWarning ? 'warning' : 'valid';
             $result[] = $this->row('Tasks', $row, $action, $status, $duplicateWarning);
@@ -939,7 +938,7 @@ class ImportValidator
         }
 
         if ($taskInfo['blocked']) {
-            return $this->blockedRow($sheetName, $row, "Blocked: Task Ref {$taskRefNumber} failed validation on the Tasks tab.");
+            return $this->errorRow($sheetName, $row, "Blocked: Task Ref {$taskRefNumber} failed validation on the Tasks tab.");
         }
 
         return null;
@@ -1027,7 +1026,57 @@ class ImportValidator
             return ['exists' => true, 'valid' => $context->usersSeen[$username]['valid']];
         }
 
-        return ['exists' => User::where('username', $username)->exists(), 'valid' => true];
+        $context->usernameExistsCache[$username] ??= User::where('username', $username)->exists();
+
+        return ['exists' => $context->usernameExistsCache[$username], 'valid' => true];
+    }
+
+    /**
+     * validateTasks() calls this on every branch (blocked or valid) so
+     * later sheets (Subtasks/Task Documents/Task Comments) can resolve
+     * this Task Ref via checkTaskRef() regardless of how this row turned
+     * out.
+     */
+    private function recordTaskRef(ImportValidationContext $context, int $taskRefNumber, ?string $title, ?string $companyName, ?string $projectName, bool $blocked): void
+    {
+        $context->taskRefs[$taskRefNumber] = [
+            'title' => (string) $title,
+            'companyName' => (string) $companyName,
+            'projectName' => (string) $projectName,
+            'blocked' => $blocked,
+        ];
+    }
+
+    /**
+     * One query per distinct (Company, Project) pair referenced on the
+     * Tasks tab, instead of one (or two) queries per row — a file with
+     * hundreds of task rows against a handful of projects previously ran
+     * hundreds of near-identical queries. Also fixes a latent scoping gap:
+     * the prior per-row lookup matched a task's title against ANY project
+     * with that name, not scoped to the row's own company, so two
+     * companies with identically-named projects could cross-match.
+     *
+     * @param  array<int, array{row_number: int, cells: array<string, ?string>}>  $rows
+     * @return array<string, array<int, string>> normalized "company|project" => existing task titles in that project
+     */
+    private function prefetchExistingTaskTitles(array $rows, ImportValidationContext $context): array
+    {
+        $pairs = collect($rows)
+            ->map(fn ($row) => ['company' => $row['cells']['company'] ?? null, 'project' => $row['cells']['project_name'] ?? null])
+            ->filter(fn ($pair) => ! empty($pair['company']) && ! empty($pair['project']))
+            ->unique(fn ($pair) => $context->projectKey($pair['company'], $pair['project']));
+
+        $titlesByProject = [];
+        foreach ($pairs as $pair) {
+            $titlesByProject[$context->projectKey($pair['company'], $pair['project'])] = Task::withoutGlobalScopes()
+                ->whereHas('project', fn ($query) => $query->where('name', $pair['project'])
+                    ->whereHas('organization', fn ($orgQuery) => $orgQuery->where('name', $pair['company']))
+                )
+                ->pluck('title')
+                ->all();
+        }
+
+        return $titlesByProject;
     }
 
     /**
@@ -1102,15 +1151,6 @@ class ImportValidator
      * @return array<string, mixed>
      */
     private function errorRow(string $sheetName, array $row, string $message): array
-    {
-        return $this->row($sheetName, $row, 'blocked', 'error', $message);
-    }
-
-    /**
-     * @param  array{row_number: int, cells: array<string, ?string>}  $row
-     * @return array<string, mixed>
-     */
-    private function blockedRow(string $sheetName, array $row, string $message): array
     {
         return $this->row($sheetName, $row, 'blocked', 'error', $message);
     }

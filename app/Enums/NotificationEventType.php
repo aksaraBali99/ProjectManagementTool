@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasEnumValues;
+
 /**
  * The curated set of notification-worthy events — deliberately a subset
  * of the raw audit_log 'action' strings (which also include things like
@@ -13,6 +15,8 @@ namespace App\Enums;
  */
 enum NotificationEventType: string
 {
+    use HasEnumValues;
+
     case TaskStatusChanged = 'task_status_changed';
     case TaskAssigned = 'task_assigned';
     case CommentAdded = 'comment_added';
@@ -46,13 +50,5 @@ enum NotificationEventType: string
             self::CommentAdded => ['comment.created'],
             self::TaskPriorityChanged => ['task.priority_changed'],
         };
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public static function values(): array
-    {
-        return array_column(self::cases(), 'value');
     }
 }

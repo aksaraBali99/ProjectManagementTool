@@ -11,20 +11,20 @@
     <div class="subtask-rows space-y-2">
         @foreach ($task->subtasks as $subtask)
             <div class="flex flex-wrap items-center gap-2" data-subtask-id="{{ $subtask->id }}">
-                <input type="checkbox" class="subtask-toggle rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]" {{ $subtask->is_done ? 'checked' : '' }}>
+                <input type="checkbox" class="subtask-toggle rounded border-gray-300 text-brand-600 focus:ring-brand-600" {{ $subtask->is_done ? 'checked' : '' }}>
                 <input type="text" value="{{ $subtask->title }}" {{ $canEdit ? '' : 'disabled' }}
-                    class="subtask-title-input min-w-[140px] flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent disabled:px-0">
-                <select class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent" {{ $canEdit ? '' : 'disabled' }}>
+                    class="subtask-title-input min-w-[140px] flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent disabled:px-0">
+                <select class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent" {{ $canEdit ? '' : 'disabled' }}>
                     <option value="">Unassigned</option>
                     @foreach ($staffOptions as $staff)
                         <option value="{{ $staff['id'] }}" {{ (int) $subtask->assignee_id === $staff['id'] ? 'selected' : '' }}>{{ $staff['name'] }}</option>
                     @endforeach
                 </select>
                 <input type="date" value="{{ $subtask->start_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }} title="Start date"
-                    class="subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent">
+                    class="subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent">
                 <span class="shrink-0 text-[10px] text-gray-400">To</span>
                 <input type="date" value="{{ $subtask->due_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }} title="Due date"
-                    class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75] disabled:border-transparent disabled:bg-transparent">
+                    class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent">
                 @if ($canEdit)
                     <button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>
                 @endif
@@ -38,16 +38,16 @@
 
     @if ($canEdit)
         <div class="mt-2 flex flex-wrap items-center gap-2">
-            <input type="text" class="new-subtask-title min-w-[140px] flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" placeholder="New subtask title">
-            <select class="new-subtask-assignee w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            <input type="text" class="new-subtask-title min-w-[140px] flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="New subtask title">
+            <select class="new-subtask-assignee w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 <option value="">Unassigned</option>
                 @foreach ($staffOptions as $staff)
                     <option value="{{ $staff['id'] }}" {{ (int) $task->assignee_id === $staff['id'] ? 'selected' : '' }}>{{ $staff['name'] }}</option>
                 @endforeach
             </select>
-            <input type="date" class="new-subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" title="Start date" value="{{ $task->start_date?->toDateString() }}">
+            <input type="date" class="new-subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" title="Start date" value="{{ $task->start_date?->toDateString() }}">
             <span class="shrink-0 text-[10px] text-gray-400">To</span>
-            <input type="date" class="new-subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" title="Due date" value="{{ $task->due_date?->toDateString() }}">
+            <input type="date" class="new-subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" title="Due date" value="{{ $task->due_date?->toDateString() }}">
             <button type="button" class="add-subtask-btn rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
                 Add
             </button>
@@ -219,7 +219,7 @@
         const staffOptions = @json($staffOptions);
 
         function buildAssigneeSelectHtml(selectedId) {
-            let html = '<select class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"><option value="">Unassigned</option>';
+            let html = '<select class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"><option value="">Unassigned</option>';
             staffOptions.forEach(function (staff) {
                 html += '<option value="' + staff.id + '"' + (String(staff.id) === String(selectedId) ? ' selected' : '') + '>' + staff.name + '</option>';
             });
@@ -252,12 +252,12 @@
                         const row = document.createElement('div');
                         row.className = 'flex flex-wrap items-center gap-2';
                         row.dataset.subtaskId = data.subtask.id;
-                        row.innerHTML = '<input type="checkbox" class="subtask-toggle rounded border-gray-300 text-[#1D9E75] focus:ring-1 focus:ring-[#1D9E75]">'
-                            + '<input type="text" value="' + data.subtask.title.replace(/"/g, '&quot;') + '" class="subtask-title-input min-w-[140px] flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
+                        row.innerHTML = '<input type="checkbox" class="subtask-toggle rounded border-gray-300 text-brand-600 focus:ring-1 focus:ring-brand-600">'
+                            + '<input type="text" value="' + data.subtask.title.replace(/"/g, '&quot;') + '" class="subtask-title-input min-w-[140px] flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">'
                             + buildAssigneeSelectHtml(data.subtask.assignee_id)
-                            + '<input type="date" value="' + (data.subtask.start_date || '') + '" title="Start date" class="subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
+                            + '<input type="date" value="' + (data.subtask.start_date || '') + '" title="Start date" class="subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">'
                             + '<span class="shrink-0 text-[10px] text-gray-400">To</span>'
-                            + '<input type="date" value="' + (data.subtask.due_date || '') + '" title="Due date" class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
+                            + '<input type="date" value="' + (data.subtask.due_date || '') + '" title="Due date" class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">'
                             + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>'
                             + '<span class="subtask-feedback text-[10px] text-gray-400"></span>';
                         rowsEl.appendChild(row);

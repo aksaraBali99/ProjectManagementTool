@@ -16,7 +16,7 @@
                 <p class="comment-body-text mt-1 text-[12px] text-gray-700">{{ $comment->body }}</p>
                 @if ($canEditComment)
                     <div class="comment-actions mt-1 flex items-center gap-2">
-                        <button type="button" class="edit-comment-btn text-[10px] text-[#1D9E75] hover:underline">Edit</button>
+                        <button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>
                         <button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>
                     </div>
                 @endif
@@ -27,7 +27,7 @@
     </div>
 
     <div class="mt-2 flex items-start gap-2" style="position: relative;">
-        <textarea class="new-comment-body flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]" rows="2" placeholder="Add a comment… type @ to mention someone"></textarea>
+        <textarea class="new-comment-body flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" rows="2" placeholder="Add a comment… type @ to mention someone"></textarea>
         <button type="button" class="post-comment-btn rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
             Post
         </button>
@@ -269,7 +269,7 @@
 
             const actionsHtml = comment.can_edit
                 ? '<div class="comment-actions mt-1 flex items-center gap-2">'
-                    + '<button type="button" class="edit-comment-btn text-[10px] text-[#1D9E75] hover:underline">Edit</button>'
+                    + '<button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>'
                     + '<button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>'
                     + '</div>'
                 : '';
@@ -314,7 +314,7 @@
                 editBtn.addEventListener('click', function () {
                     const currentBody = bodyText.textContent;
                     const textarea = document.createElement('textarea');
-                    textarea.className = 'comment-edit-textarea mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]';
+                    textarea.className = 'comment-edit-textarea mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600';
                     textarea.rows = 2;
                     textarea.value = currentBody;
                     bodyText.replaceWith(textarea);
@@ -323,7 +323,7 @@
 
                     const controls = document.createElement('div');
                     controls.className = 'comment-edit-controls mt-1 flex items-center gap-2';
-                    controls.innerHTML = '<button type="button" class="save-comment-btn text-[10px] font-medium text-[#1D9E75] hover:underline">Save</button>'
+                    controls.innerHTML = '<button type="button" class="save-comment-btn text-[10px] font-medium text-brand-600 hover:underline">Save</button>'
                         + '<button type="button" class="cancel-comment-btn text-[10px] text-gray-500 hover:underline">Cancel</button>';
                     textarea.insertAdjacentElement('afterend', controls);
                     textarea.focus();

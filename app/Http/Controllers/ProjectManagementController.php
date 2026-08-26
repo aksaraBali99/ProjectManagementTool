@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Requests\Projects\StoreProjectRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
 use App\Models\Organization;
@@ -15,6 +16,8 @@ use Illuminate\View\View;
 
 class ProjectManagementController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function index(?Organization $organization = null): View
     {
         Gate::authorize('viewAny', Project::class);
@@ -34,9 +37,7 @@ class ProjectManagementController extends Controller
             ]);
         }
 
-        if (! $organization || ! $organizations->contains('id', $organization->id)) {
-            $organization = $organizations->first();
-        }
+        $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
         $projects = Project::where('organization_id', $organization->id)
             ->withCount('tasks')
@@ -61,9 +62,7 @@ class ProjectManagementController extends Controller
 
         abort_if($manageableOrgs->isEmpty(), 403);
 
-        if (! $organization || ! $manageableOrgs->contains('id', $organization->id)) {
-            $organization = $manageableOrgs->first();
-        }
+        $organization = $this->resolveCurrentOrganization($manageableOrgs, $organization);
 
         Gate::authorize('create', [Project::class, $organization->id]);
 

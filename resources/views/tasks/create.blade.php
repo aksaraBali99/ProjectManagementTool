@@ -11,7 +11,7 @@
     @if ($projects->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">
             You need at least one project before you can add a task.
-            <a href="{{ route('projects.create') }}" class="text-[#1D9E75] hover:underline">Create a project</a>.
+            <a href="{{ route('projects.create') }}" class="text-brand-600 hover:underline">Create a project</a>.
         </p>
     @else
         @if ($errors->any())
@@ -30,7 +30,7 @@
             <div>
                 <label for="project_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project</label>
                 <select id="project_id" name="project_id" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                     @foreach ($projects as $proj)
                         <option value="{{ $proj->id }}" {{ (int) old('project_id', $project->id) === $proj->id ? 'selected' : '' }}>
                             {{ $proj->name }}
@@ -42,20 +42,20 @@
             <div>
                 <label for="department_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Department</label>
                 <select id="department_id" name="department_id" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 </select>
             </div>
 
             <div>
                 <label for="title" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</label>
                 <input id="title" name="title" type="text" value="{{ old('title') }}" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
             </div>
 
             <div>
                 <label for="description" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</label>
                 <textarea id="description" name="description" rows="3"
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">{{ old('description') }}</textarea>
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">{{ old('description') }}</textarea>
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -63,7 +63,7 @@
                     <label for="priority" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority</label>
                     @php $priorityValue = old('priority', \App\Enums\Priority::Medium->value); @endphp
                     <select id="priority" name="priority" required
-                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                         @foreach (\App\Enums\Priority::cases() as $priorityCase)
                             <option value="{{ $priorityCase->value }}" {{ $priorityValue === $priorityCase->value ? 'selected' : '' }}>{{ $priorityCase->label() }}</option>
                         @endforeach
@@ -74,7 +74,7 @@
                     <label for="status" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</label>
                     @php $statusValue = old('status', \App\Enums\TaskStatus::Pending->value); @endphp
                     <select id="status" name="status" required
-                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                         @foreach (\App\Enums\TaskStatus::cases() as $statusCase)
                             <option value="{{ $statusCase->value }}" {{ $statusValue === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
                         @endforeach
@@ -86,14 +86,14 @@
                 <div>
                     <label for="assignee_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Assignee</label>
                     <select id="assignee_id" name="assignee_id"
-                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                     </select>
                 </div>
 
                 <div>
                     <label for="due_date" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Due date</label>
                     <input id="due_date" name="due_date" type="date" value="{{ old('due_date') }}"
-                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 </div>
             </div>
 
@@ -106,24 +106,24 @@
                         <div class="flex items-center gap-2" data-subtask-row>
                             <input type="checkbox" disabled class="rounded border-gray-300 text-gray-300">
                             <input type="text" name="subtasks[{{ $index }}][title]" value="{{ $staged['title'] ?? '' }}" placeholder="Subtask title"
-                                class="subtask-title-input flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
-                            <select name="subtasks[{{ $index }}][assignee_id]" class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                                class="subtask-title-input flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                            <select name="subtasks[{{ $index }}][assignee_id]" class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                                 <option value="">Unassigned</option>
                             </select>
                             <input type="date" name="subtasks[{{ $index }}][due_date]" value="{{ $staged['due_date'] ?? '' }}"
-                                class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                                class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                             <button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Remove</button>
                         </div>
                     @endforeach
                 </div>
 
-                <button type="button" id="add-subtask-btn" class="mt-2 text-[11px] font-medium text-[#1D9E75] hover:underline">
+                <button type="button" id="add-subtask-btn" class="mt-2 text-[11px] font-medium text-brand-600 hover:underline">
                     + Add subtask
                 </button>
             </div>
 
             <div class="flex items-center gap-3 pt-2">
-                <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                     Create task
                 </button>
                 <a href="{{ route('projects.index') }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
@@ -191,9 +191,9 @@
                     row.className = 'flex items-center gap-2';
                     row.dataset.subtaskRow = '';
                     row.innerHTML = '<input type="checkbox" disabled class="rounded border-gray-300 text-gray-300">'
-                        + '<input type="text" name="subtasks[' + index + '][title]" placeholder="Subtask title" class="subtask-title-input flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
-                        + '<select name="subtasks[' + index + '][assignee_id]" class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]"></select>'
-                        + '<input type="date" name="subtasks[' + index + '][due_date]" class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">'
+                        + '<input type="text" name="subtasks[' + index + '][title]" placeholder="Subtask title" class="subtask-title-input flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">'
+                        + '<select name="subtasks[' + index + '][assignee_id]" class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></select>'
+                        + '<input type="date" name="subtasks[' + index + '][due_date]" class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">'
                         + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Remove</button>';
                     subtaskRows.appendChild(row);
 

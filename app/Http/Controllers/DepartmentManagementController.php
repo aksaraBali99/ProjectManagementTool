@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Requests\Departments\StoreDepartmentRequest;
 use App\Http\Requests\Departments\UpdateDepartmentRequest;
 use App\Models\Department;
 use App\Models\Organization;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class DepartmentManagementController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function index(?Organization $organization = null): View
     {
         Gate::authorize('viewAny', Department::class);
@@ -26,9 +30,7 @@ class DepartmentManagementController extends Controller
             ]);
         }
 
-        if (! $organization || ! $organizations->contains('id', $organization->id)) {
-            $organization = $organizations->first();
-        }
+        $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
         $departments = Department::where('organization_id', $organization->id)
             ->withCount('tasks')
@@ -55,13 +57,20 @@ class DepartmentManagementController extends Controller
 
         $organizationIds = $request->input('organization_ids');
 
-        foreach ($organizationIds as $organizationId) {
-            Department::create([
-                'organization_id' => $organizationId,
-                'name' => $request->string('name'),
-                'color' => $request->string('color'),
-            ]);
-        }
+        // A unique-constraint failure partway through (the same department
+        // name already exists for a later company in the list) previously
+        // left the earlier creates committed and the rest silently missing
+        // — wrapped so it's all-or-nothing, matching the equivalent
+        // multi-step write in UserManagementController.
+        DB::transaction(function () use ($request, $organizationIds) {
+            foreach ($organizationIds as $organizationId) {
+                Department::create([
+                    'organization_id' => $organizationId,
+                    'name' => $request->string('name'),
+                    'color' => $request->string('color'),
+                ]);
+            }
+        });
 
         $status = count($organizationIds) > 1
             ? 'Department created for '.count($organizationIds).' companies.'

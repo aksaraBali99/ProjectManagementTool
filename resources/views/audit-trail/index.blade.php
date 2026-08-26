@@ -12,7 +12,7 @@
     <form method="GET" action="{{ route('audit-trail.index') }}" class="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-3">
         <div>
             <label for="organization_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Company</label>
-            <select id="organization_id" name="organization_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            <select id="organization_id" name="organization_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 <option value="">All companies</option>
                 @foreach ($organizations as $org)
                     <option value="{{ $org->id }}" {{ (string) ($filters['organization_id'] ?? '') === (string) $org->id ? 'selected' : '' }}>{{ $org->name }}</option>
@@ -22,7 +22,7 @@
 
         <div>
             <label for="entity_type" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Entity</label>
-            <select id="entity_type" name="entity_type" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            <select id="entity_type" name="entity_type" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 <option value="">All entities</option>
                 @foreach ($entityTypes as $type)
                     <option value="{{ $type }}" {{ ($filters['entity_type'] ?? '') === $type ? 'selected' : '' }}>{{ ucfirst($type) }}</option>
@@ -32,7 +32,7 @@
 
         <div>
             <label for="user_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">User</label>
-            <select id="user_id" name="user_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            <select id="user_id" name="user_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 <option value="">All users</option>
                 @foreach ($users as $auditUser)
                     <option value="{{ $auditUser->id }}" {{ (string) ($filters['user_id'] ?? '') === (string) $auditUser->id ? 'selected' : '' }}>{{ $auditUser->name }}</option>
@@ -42,7 +42,7 @@
 
         <div>
             <label for="action" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Action</label>
-            <select id="action" name="action" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            <select id="action" name="action" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 <option value="">All actions</option>
                 @foreach ($actions as $actionOption)
                     <option value="{{ $actionOption }}" {{ ($filters['action'] ?? '') === $actionOption ? 'selected' : '' }}>{{ $actionOption }}</option>
@@ -52,7 +52,7 @@
 
         <div>
             <label for="import_batch_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Import batch</label>
-            <select id="import_batch_id" name="import_batch_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+            <select id="import_batch_id" name="import_batch_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 <option value="">All batches</option>
                 @foreach ($importBatches as $batch)
                     <option value="{{ $batch->id }}" {{ (string) ($filters['import_batch_id'] ?? '') === (string) $batch->id ? 'selected' : '' }}>
@@ -65,17 +65,17 @@
         <div>
             <label for="date_from" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">From</label>
             <input id="date_from" name="date_from" type="date" value="{{ $filters['date_from'] ?? '' }}"
-                class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
         </div>
 
         <div>
             <label for="date_to" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">To</label>
             <input id="date_to" name="date_to" type="date" value="{{ $filters['date_to'] ?? '' }}"
-                class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
         </div>
 
         <div class="flex items-center gap-2">
-            <button type="submit" class="rounded-md bg-[#1D9E75] px-3 py-1.5 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+            <button type="submit" class="rounded-md bg-brand-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-brand-700">
                 Filter
             </button>
             @if (array_filter($filters))
@@ -86,16 +86,14 @@
 
     <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
         <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-            <thead class="hidden bg-gray-50 md:table-header-group">
-                <tr>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">When</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Who</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Company</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Action</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Entity</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">What changed</th>
-                </tr>
-            </thead>
+            <x-table-header>
+                <x-th>When</x-th>
+                <x-th>Who</x-th>
+                <x-th>Company</x-th>
+                <x-th>Action</x-th>
+                <x-th>Entity</x-th>
+                <x-th>What changed</x-th>
+            </x-table-header>
             <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                 @forelse ($entries as $entry)
                     <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
@@ -133,9 +131,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr class="block md:table-row">
-                        <td colspan="6" class="block px-3 py-6 text-center text-[12px] text-gray-500 md:table-cell">No audit entries match these filters.</td>
-                    </tr>
+                    <x-empty-table-row colspan="6" py="6">No audit entries match these filters.</x-empty-table-row>
                 @endforelse
             </tbody>
         </table>

@@ -83,7 +83,7 @@
                              active item is never hidden behind a closed group
                              the visitor would have no reason to think to open. --}}
                         <button type="button"
-                           class="nav-group-toggle flex w-full items-center justify-between gap-2 border-r-2 px-4 py-2 text-xs {{ $active || $anyChildActive ? 'border-[#1D9E75] bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
+                           class="nav-group-toggle flex w-full items-center justify-between gap-2 border-r-2 px-4 py-2 text-xs {{ $active || $anyChildActive ? 'border-brand-600 bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
                             <span class="flex items-center gap-2">
                                 <i class="ti {{ $item['icon'] }}"></i>
                                 {{ $item['label'] }}
@@ -92,7 +92,7 @@
                         </button>
                     @elseif ($item['route'] && $itemAllowed)
                         <a href="{{ route($item['route']) }}"
-                           class="flex items-center gap-2 border-r-2 px-4 py-2 text-xs {{ $active ? 'border-[#1D9E75] bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
+                           class="flex items-center gap-2 border-r-2 px-4 py-2 text-xs {{ $active ? 'border-brand-600 bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
                             <i class="ti {{ $item['icon'] }}"></i>
                             {{ $item['label'] }}
                         </a>
@@ -108,7 +108,7 @@
                             @foreach ($children as $child)
                                 @php $childActive = collect($child['matches'])->contains(fn ($pattern) => request()->routeIs($pattern)) @endphp
                                 <a href="{{ route($child['route']) }}"
-                                   class="flex items-center border-r-2 py-2 pl-10 pr-4 text-xs {{ $childActive ? 'border-[#1D9E75] bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
+                                   class="flex items-center border-r-2 py-2 pl-10 pr-4 text-xs {{ $childActive ? 'border-brand-600 bg-gray-50 font-medium text-gray-900' : 'border-transparent text-gray-500 hover:bg-gray-50' }}">
                                     {{ $child['label'] }}
                                 </a>
                             @endforeach

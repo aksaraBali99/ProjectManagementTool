@@ -26,6 +26,16 @@ class ImportCommitResolution
     /** @var array<int, int> Task Ref => task_id */
     public array $taskIdsByRef = [];
 
+    /**
+     * Memoizes ImportCommitService's DB-fallback resolver lookups (a
+     * reference to something pre-existing, not newly written in this same
+     * commit) — a name mentioned many times across a large file would
+     * otherwise re-query on every mention.
+     *
+     * @var array<string, int|null>
+     */
+    public array $fallbackIdCache = [];
+
     public function normalize(string $value): string
     {
         return mb_strtolower(trim($value));

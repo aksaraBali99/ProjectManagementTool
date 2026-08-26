@@ -15,7 +15,7 @@
             @endif
             @if ($organization && $canCreate)
                 <a href="{{ route('tasks.create', $organization->projects()->orderBy('name')->first()) }}"
-                   class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                   class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                     + Add task
                 </a>
             @endif
@@ -23,7 +23,7 @@
     </div>
 
     @if (session('status'))
-        <div class="mt-3 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-3 rounded-md bg-brand-50 px-3 py-2 text-[12px] text-brand-800">{{ session('status') }}</div>
     @endif
 
     @if ($organizations->isEmpty())
@@ -46,22 +46,20 @@
              from before. --}}
         <div class="overflow-hidden rounded-lg border border-gray-200 md:overflow-x-auto">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                <thead class="hidden bg-gray-50 md:table-header-group">
-                    <tr>
-                        <th class="w-8 px-3 py-2"></th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Title</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Project</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Department</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Assignee</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Priority</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Due</th>
-                        @if ($showInactive)
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Active</th>
-                        @endif
-                        <th class="px-3 py-2 text-right text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Actions</th>
-                    </tr>
-                </thead>
+                <x-table-header>
+                    <th class="w-8 px-3 py-2"></th>
+                    <x-th>Title</x-th>
+                    <x-th>Project</x-th>
+                    <x-th>Department</x-th>
+                    <x-th>Assignee</x-th>
+                    <x-th>Priority</x-th>
+                    <x-th>Status</x-th>
+                    <x-th>Due</x-th>
+                    @if ($showInactive)
+                        <x-th>Active</x-th>
+                    @endif
+                    <x-th align="right">Actions</x-th>
+                </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($tasks as $task)
                         @php
@@ -119,7 +117,7 @@
                             @endif
                             <td class="flex items-center justify-end gap-2 py-1 text-[11px] md:table-cell md:px-3 md:py-2.5 md:text-right">
                                 @if ($canEditTask)
-                                    <a href="{{ route('tasks.edit', $task) }}" class="text-[#1D9E75] hover:underline">Edit</a>
+                                    <a href="{{ route('tasks.edit', $task) }}" class="text-brand-600 hover:underline">Edit</a>
                                 @endif
                                 @if ($canDeactivateTask)
                                     <form method="POST" action="{{ route('tasks.toggle-active', $task) }}" class="inline">
@@ -150,9 +148,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="block md:table-row">
-                            <td colspan="{{ $showInactive ? 9 : 8 }}" class="block px-3 py-4 text-center text-[12px] text-gray-500 md:table-cell">No tasks yet.</td>
-                        </tr>
+                        <x-empty-table-row :colspan="$showInactive ? 9 : 8">No tasks yet.</x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>
@@ -183,19 +179,19 @@
             <div>
                 <label for="document-name" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</label>
                 <input id="document-name" name="name" type="text" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
             </div>
 
             <div>
                 <label for="document-link" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Link</label>
                 <input id="document-link" name="link" type="url" required placeholder="https://…"
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
             </div>
 
             <div>
                 <label for="document-access" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Access level</label>
                 <select id="document-access" name="access_level" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                     @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
                         <option value="{{ $accessCase->value }}" {{ $accessCase === \App\Enums\DocumentAccessLevel::Internal ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
                     @endforeach
@@ -207,7 +203,7 @@
                     class="text-[12px] text-gray-600 hover:underline">
                     Cancel
                 </button>
-                <button type="submit" class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+                <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                     Add document
                 </button>
             </div>

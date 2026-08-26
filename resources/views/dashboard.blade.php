@@ -79,7 +79,7 @@
                     @foreach ($staffOptions as $staffMember)
                         <label class="flex items-center gap-1.5 text-[11px] text-gray-600">
                             <input type="checkbox" name="staff[]" value="{{ $staffMember->id }}" {{ in_array($staffMember->id, $selectedStaffIds) ? 'checked' : '' }}
-                                class="rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]">
+                                class="rounded border-gray-300 text-brand-600 focus:ring-brand-600">
                             {{ $staffMember->name }}
                         </label>
                     @endforeach
@@ -112,7 +112,7 @@
                             &middot; {{ $task->priority->label() }} &middot; {{ $task->status->label() }}
                         </p>
                         @if ($myViaSubtask)
-                            <p class="mt-0.5 text-[10px] font-medium text-[#1D9E75]">Your subtask: {{ $myViaSubtask->title }}</p>
+                            <p class="mt-0.5 text-[10px] font-medium text-brand-600">Your subtask: {{ $myViaSubtask->title }}</p>
                         @endif
                     </a>
                 @empty

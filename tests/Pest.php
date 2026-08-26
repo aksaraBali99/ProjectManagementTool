@@ -1,9 +1,12 @@
 <?php
 
 use App\Models\ImportBatch;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\Import\ImportSheetSchema;
 use App\Services\Import\ImportValidator;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -55,6 +58,21 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Seeds the real Role/Permission set (RoleSeeder + PermissionSeeder) and
+ * creates a User holding the "owner" role — the bootstrap most feature
+ * tests need before they can act as an authenticated admin.
+ */
+function createOwner(): User
+{
+    test()->seed([RoleSeeder::class, PermissionSeeder::class]);
+
+    $owner = User::factory()->create();
+    $owner->roles()->attach(Role::where('slug', 'owner')->first()->id);
+
+    return $owner;
 }
 
 /**

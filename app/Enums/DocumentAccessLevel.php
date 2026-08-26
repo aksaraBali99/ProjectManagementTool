@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasEnumValues;
+
 enum DocumentAccessLevel: string
 {
+    use HasEnumValues;
+
     case Private = 'private';
     case Internal = 'internal';
     case Public = 'public';
@@ -15,13 +19,5 @@ enum DocumentAccessLevel: string
             self::Internal => 'Internal',
             self::Public => 'Public',
         };
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public static function values(): array
-    {
-        return array_column(self::cases(), 'value');
     }
 }

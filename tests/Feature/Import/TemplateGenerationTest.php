@@ -3,20 +3,14 @@
 use App\Models\Department;
 use App\Models\ImportBatch;
 use App\Models\Organization;
-use App\Models\Role;
 use App\Models\User;
-use Database\Seeders\PermissionSeeder;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 beforeEach(function () {
-    $this->seed([RoleSeeder::class, PermissionSeeder::class]);
-
-    $this->owner = User::factory()->create();
-    $this->owner->roles()->attach(Role::where('slug', 'owner')->first()->id);
+    $this->owner = createOwner();
 
     $this->staff = User::factory()->create();
 });

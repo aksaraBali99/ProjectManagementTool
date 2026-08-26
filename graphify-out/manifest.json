@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DashboardController.php": {
-    "mtime": 1787283507.2165995,
-    "ast_hash": "a6783b8b3df18a0fcc9c9e7e4ec5741c",
+    "mtime": 1787662412.5686648,
+    "ast_hash": "82c10f6cce4ef22ae434e97306008d66",
     "semantic_hash": ""
   },
   "app/Http/Middleware/EnsureBelongsToOrganization.php": {
@@ -235,8 +235,8 @@
     "semantic_hash": ""
   },
   "app/Models/Concerns/BelongsToOrganization.php": {
-    "mtime": 1786958813.2029307,
-    "ast_hash": "487026f9aee650c6982ba9d36838ae6d",
+    "mtime": 1787660048.6916072,
+    "ast_hash": "bdc3f39bef8a9b5e692590c2fb186c69",
     "semantic_hash": ""
   },
   "app/Models/Department.php": {
@@ -450,8 +450,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DepartmentManagementController.php": {
-    "mtime": 1787125667.1990669,
-    "ast_hash": "6938dfcd8856eb935e6b0e25df765808",
+    "mtime": 1787662382.6139696,
+    "ast_hash": "157614f31b02f35390fccb234631c423",
     "semantic_hash": ""
   },
   "app/Http/Controllers/OrganizationManagementController.php": {
@@ -640,8 +640,8 @@
     "semantic_hash": ""
   },
   "app/Models/Concerns/HidesInactiveFromNonAdmins.php": {
-    "mtime": 1787063249.4249358,
-    "ast_hash": "6adc8fc76b0bed803acdab047c76b613",
+    "mtime": 1787660065.297884,
+    "ast_hash": "bb48016a79e42df6ac6c2ce6c49e6e49",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_18_000200_add_is_active_to_organizations_and_departments.php": {
@@ -650,13 +650,13 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/AccessControlController.php": {
-    "mtime": 1787065223.3119235,
-    "ast_hash": "aa1d8fc0d0566f878de277f1551b3b27",
+    "mtime": 1787662249.6543243,
+    "ast_hash": "b01ca2db89c922cdf87cae5b83e030f3",
     "semantic_hash": ""
   },
   "app/Http/Controllers/ProjectManagementController.php": {
-    "mtime": 1787232831.920519,
-    "ast_hash": "db1c33875fdeb1e2f4940ac69c981e54",
+    "mtime": 1787662525.6442246,
+    "ast_hash": "1e5bc1b906f2686d166ec8f2cca63904",
     "semantic_hash": ""
   },
   "app/Http/Requests/Projects/StoreProjectRequest.php": {
@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1787304774.9193892,
-    "ast_hash": "6815a6217e34f8bf4a410f3eba3850a0",
+    "mtime": 1787662506.433287,
+    "ast_hash": "2c3677c14aebcf86de64f2595fe43302",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1787550524.6413207,
-    "ast_hash": "b992d8fa5cef10f8279bf57f8814c568",
+    "mtime": 1787662484.8011515,
+    "ast_hash": "0722ec36f04bb457227518784c95b2dd",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -840,23 +840,23 @@
     "semantic_hash": ""
   },
   "app/Enums/DocumentAccessLevel.php": {
-    "mtime": 1787216778.6599016,
-    "ast_hash": "06b95ad2bf0ebf32cc025fd74f735622",
+    "mtime": 1787660091.5071,
+    "ast_hash": "cd698bf53d22b2e0cc75c99b7cbfd5e8",
     "semantic_hash": ""
   },
   "app/Enums/Priority.php": {
-    "mtime": 1787575962.7947526,
-    "ast_hash": "1100f6464317f53db57d10ba7a96d5bf",
+    "mtime": 1787660218.0339837,
+    "ast_hash": "332b715cde4a850ff5a379e998742bb7",
     "semantic_hash": ""
   },
   "app/Enums/ProjectStatus.php": {
-    "mtime": 1787216778.6619253,
-    "ast_hash": "b1f42d756b5229a452c1a5d475a2036b",
+    "mtime": 1787660171.377918,
+    "ast_hash": "bb75b14259344a1584926604081155ca",
     "semantic_hash": ""
   },
   "app/Enums/TaskStatus.php": {
-    "mtime": 1787575962.80578,
-    "ast_hash": "bfd877ff816d7075b8e6b093c5cfdedd",
+    "mtime": 1787660210.1675272,
+    "ast_hash": "fc09a0b4390172ad61d735fe84cce97d",
     "semantic_hash": ""
   },
   "app/Http/Requests/Users/Concerns/ValidatesCompanyRoles.php": {
@@ -885,8 +885,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/KanbanController.php": {
-    "mtime": 1787287845.4513726,
-    "ast_hash": "1fa273a8bc606887a4a9ee36ffa725a3",
+    "mtime": 1787662425.0853035,
+    "ast_hash": "011cf8eefec2245b0c941011937cf9b9",
     "semantic_hash": ""
   },
   "resources/views/kanban.blade.php": {
@@ -935,13 +935,13 @@
     "semantic_hash": ""
   },
   "app/Enums/NotificationChannel.php": {
-    "mtime": 1787297716.3716345,
-    "ast_hash": "ec74a23d7c91e9218d42ca3722476501",
+    "mtime": 1787660104.6147373,
+    "ast_hash": "2bc3bac2bebf911570783db2b1a4de9f",
     "semantic_hash": ""
   },
   "app/Enums/NotificationEventType.php": {
-    "mtime": 1787562531.6115599,
-    "ast_hash": "90dd259e1fd09efa6d90bb4f8b33d413",
+    "mtime": 1787660124.4388826,
+    "ast_hash": "bafffa0cee4f0b9445b70561aa7bed3b",
     "semantic_hash": ""
   },
   "app/Http/Controllers/AuditTrailController.php": {
@@ -1065,13 +1065,13 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/AnalyticsController.php": {
-    "mtime": 1787575962.80578,
-    "ast_hash": "c6b34feec3ad1d478006f529c76760b6",
+    "mtime": 1787662554.239689,
+    "ast_hash": "14057b06598917549a0932a0118cf39b",
     "semantic_hash": ""
   },
   "app/Http/Controllers/CalendarController.php": {
-    "mtime": 1787413256.596653,
-    "ast_hash": "8974a0a704b9d256ade2874ecd8270a4",
+    "mtime": 1787662462.9655619,
+    "ast_hash": "95ef24669682bed15260c9c920464a27",
     "semantic_hash": ""
   },
   "resources/views/analytics.blade.php": {
@@ -1200,8 +1200,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/ImportController.php": {
-    "mtime": 1787654125.9931362,
-    "ast_hash": "1a04d149a1162a414922cc7cdc8e2406",
+    "mtime": 1787662743.2485282,
+    "ast_hash": "0cf8ff676dd177bc51e788111140f5eb",
     "semantic_hash": ""
   },
   "app/Services/Import/ImportIdCodec.php": {
@@ -1210,12 +1210,12 @@
     "semantic_hash": ""
   },
   "app/Services/Import/ImportSheetSchema.php": {
-    "mtime": 1787655898.6989324,
+    "mtime": 1787658309.1233535,
     "ast_hash": "8c911897934c260d2c069e6702959efb",
     "semantic_hash": ""
   },
   "app/Services/Import/ImportTemplateBuilder.php": {
-    "mtime": 1787655996.700302,
+    "mtime": 1787658309.1233535,
     "ast_hash": "811387630a91807d440080ca9e215f1f",
     "semantic_hash": ""
   },
@@ -1225,7 +1225,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Import/TemplateGenerationTest.php": {
-    "mtime": 1787656090.6181343,
+    "mtime": 1787658309.1619825,
     "ast_hash": "d6af7a1a90609648ad8f9f840733f29b",
     "semantic_hash": ""
   },
@@ -1235,18 +1235,18 @@
     "semantic_hash": ""
   },
   "app/Enums/ImportBatchStatus.php": {
-    "mtime": 1787654125.9814181,
-    "ast_hash": "a576b394ae10e02126c9b02e08ab3fd3",
+    "mtime": 1787660145.3795774,
+    "ast_hash": "64ba91cd4bb39f8b6c14a4dd9fc25329",
     "semantic_hash": ""
   },
   "app/Enums/ImportRowAction.php": {
-    "mtime": 1787654125.9844165,
-    "ast_hash": "1cdc410a0d1961c9b411366c229ad52d",
+    "mtime": 1787660154.9759407,
+    "ast_hash": "deb140741e8d27efed361ad9373b193a",
     "semantic_hash": ""
   },
   "app/Enums/ImportValidationStatus.php": {
-    "mtime": 1787654125.9874165,
-    "ast_hash": "6e16fd14231e5b5875c36aaec424e72e",
+    "mtime": 1787660165.1424987,
+    "ast_hash": "c5c5fc6be0bdf2bb2dd5deb58f580e54",
     "semantic_hash": ""
   },
   "app/Models/ImportBatch.php": {
@@ -1280,8 +1280,8 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Import/UploadImportRequest.php": {
-    "mtime": 1787654126.0012996,
-    "ast_hash": "f18298e072ddb9ce5653fef6132223d2",
+    "mtime": 1787662762.6632469,
+    "ast_hash": "e0126ee4e975989b05b98990408d7b0c",
     "semantic_hash": ""
   },
   "app/Services/Import/DuplicateDetector.php": {
@@ -1300,13 +1300,13 @@
     "semantic_hash": ""
   },
   "app/Services/Import/ImportValidationContext.php": {
-    "mtime": 1787654126.062906,
-    "ast_hash": "0ba5ad8fb57ed69601d973c9c2c7fe11",
+    "mtime": 1787660493.765616,
+    "ast_hash": "6dae8bac29547722aa0c7daf3da43cb5",
     "semantic_hash": ""
   },
   "app/Services/Import/ImportValidator.php": {
-    "mtime": 1787654126.0665617,
-    "ast_hash": "e04d5a74ba975fc255e63c0c4fbad1ed",
+    "mtime": 1787662736.028368,
+    "ast_hash": "6c7ce1f5790a7b8c9abd6beb0f5fb2a6",
     "semantic_hash": ""
   },
   "app/Support/CompanyRoleRules.php": {
@@ -1365,8 +1365,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Import/ImportUploadTest.php": {
-    "mtime": 1787654126.220762,
-    "ast_hash": "ecf6045075ef8d14cf7e8194953baa3a",
+    "mtime": 1787662749.331561,
+    "ast_hash": "1f354cc8ebcdcd97c644d159c09c5c64",
     "semantic_hash": ""
   },
   "tests/Feature/Import/ImportUsersValidationTest.php": {
@@ -1385,13 +1385,13 @@
     "semantic_hash": ""
   },
   "app/Services/Import/ImportCommitResolution.php": {
-    "mtime": 1787654126.0450144,
-    "ast_hash": "6e7d1178d6959bf30a838b60894fc983",
+    "mtime": 1787662022.0669,
+    "ast_hash": "edf7abab708047eaf79fb91e0f2af3ba",
     "semantic_hash": ""
   },
   "app/Services/Import/ImportCommitService.php": {
-    "mtime": 1787654126.047029,
-    "ast_hash": "e805c870a74f74606c7729b050f94a13",
+    "mtime": 1787662038.9456997,
+    "ast_hash": "471327ffcc0e5b152e79db87b776b0bd",
     "semantic_hash": ""
   },
   "app/Services/Import/ImportCommitSummary.php": {
@@ -1422,6 +1422,31 @@
   "tests/Feature/Import/ImportFieldFormatValidationTest.php": {
     "mtime": 1787654126.2089102,
     "ast_hash": "ca0a81626849fc21edb3cbf3b1d47ad3",
+    "semantic_hash": ""
+  },
+  "app/Enums/Concerns/HasAdminConfigurableColors.php": {
+    "mtime": 1787660199.4337962,
+    "ast_hash": "312b1d555a1c9af32eb2960a6e86cc26",
+    "semantic_hash": ""
+  },
+  "app/Enums/Concerns/HasEnumValues.php": {
+    "mtime": 1787660073.798375,
+    "ast_hash": "2d0dd2938d07176c1f78a971884946b3",
+    "semantic_hash": ""
+  },
+  "app/Http/Controllers/Concerns/ResolvesCurrentOrganization.php": {
+    "mtime": 1787662237.4266694,
+    "ast_hash": "ef1357012b68728ca335fda39f0eef76",
+    "semantic_hash": ""
+  },
+  "config/import.php": {
+    "mtime": 1787662712.4233294,
+    "ast_hash": "db87a24deed04c32d033bff5928d481d",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_25_020000_add_project_id_title_index_to_tasks_table.php": {
+    "mtime": 1787662687.050434,
+    "ast_hash": "7264dce94442d91247cef2f9e27cc780",
     "semantic_hash": ""
   }
 }

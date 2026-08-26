@@ -1,16 +1,10 @@
 <?php
 
 use App\Models\Organization;
-use App\Models\Role;
 use App\Models\User;
-use Database\Seeders\PermissionSeeder;
-use Database\Seeders\RoleSeeder;
 
 beforeEach(function () {
-    $this->seed([RoleSeeder::class, PermissionSeeder::class]);
-
-    $this->owner = User::factory()->create();
-    $this->owner->roles()->attach(Role::where('slug', 'owner')->first()->id);
+    $this->owner = createOwner();
 
     $this->staff = User::factory()->create();
 

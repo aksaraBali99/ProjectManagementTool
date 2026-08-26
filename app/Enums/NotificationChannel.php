@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasEnumValues;
+
 enum NotificationChannel: string
 {
+    use HasEnumValues;
+
     case InApp = 'in_app';
     case Email = 'email';
 
@@ -13,13 +17,5 @@ enum NotificationChannel: string
             self::InApp => 'In-app',
             self::Email => 'Email',
         };
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public static function values(): array
-    {
-        return array_column(self::cases(), 'value');
     }
 }

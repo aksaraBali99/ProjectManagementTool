@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\Organization;
 use App\Models\Role;
 use App\Models\Task;
@@ -14,6 +15,8 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function __invoke(Request $request, ?Organization $organization = null): View
     {
         $user = auth()->user();
@@ -37,9 +40,7 @@ class DashboardController extends Controller
             ]);
         }
 
-        if (! $organization || ! $organizations->contains('id', $organization->id)) {
-            $organization = $organizations->first();
-        }
+        $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
         $tasks = Task::visibleTo($user, $organization->id)
             ->with(['project', 'department', 'assignee', 'subtasks'])

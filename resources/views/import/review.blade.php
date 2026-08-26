@@ -34,7 +34,7 @@
 
         @if ($warningCount > 0)
             <label class="flex items-center gap-1.5 text-[11px] text-gray-600">
-                <input type="checkbox" id="acknowledge-warnings" class="rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]">
+                <input type="checkbox" id="acknowledge-warnings" class="rounded border-gray-300 text-brand-600 focus:ring-brand-600">
                 I've reviewed the warnings above and want to proceed anyway
             </label>
         @endif
@@ -43,7 +43,7 @@
             @csrf
             <input type="hidden" name="acknowledge_warnings" id="acknowledge-warnings-field" value="0">
             <button type="submit" id="commit-button" disabled
-                class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56] disabled:cursor-not-allowed disabled:opacity-40">
+                class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40">
                 Commit Import
             </button>
         </form>
@@ -56,15 +56,13 @@
                     <h2 class="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-600">{{ $sheetName }} ({{ $rows->count() }})</h2>
                 </div>
                 <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                    <thead class="hidden bg-white md:table-header-group">
-                        <tr>
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Row</th>
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Action</th>
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Data</th>
-                            <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Message</th>
-                        </tr>
-                    </thead>
+                    <x-table-header bg="white">
+                        <x-th>Row</x-th>
+                        <x-th>Action</x-th>
+                        <x-th>Status</x-th>
+                        <x-th>Data</x-th>
+                        <x-th>Message</x-th>
+                    </x-table-header>
                     <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                         @foreach ($rows as $row)
                             @php

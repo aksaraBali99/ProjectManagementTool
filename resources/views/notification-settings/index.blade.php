@@ -9,7 +9,7 @@
     <h1 class="mt-2 text-[14px] font-medium text-[#1F2937]">Notification Settings</h1>
 
     @if (session('status'))
-        <div class="mt-4 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-4 rounded-md bg-brand-50 px-3 py-2 text-[12px] text-brand-800">{{ session('status') }}</div>
     @endif
 
     <h2 class="mt-6 text-[12px] font-semibold uppercase tracking-[0.05em] text-gray-500">My Notification Preferences</h2>
@@ -39,7 +39,7 @@
                                     <input type="checkbox"
                                         name="preferences[{{ $eventType->value }}][{{ $channel->value }}]"
                                         {{ $existing?->is_active ? 'checked' : '' }}
-                                        class="rounded border-gray-300 text-[#1D9E75] focus:ring-[#1D9E75]">
+                                        class="rounded border-gray-300 text-brand-600 focus:ring-brand-600">
                                 </td>
                             @endforeach
                         </tr>
@@ -48,7 +48,7 @@
             </table>
         </div>
 
-        <button type="submit" class="mt-3 rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+        <button type="submit" class="mt-3 rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
             Save my preferences
         </button>
     </form>
@@ -67,7 +67,7 @@
             <div class="flex flex-wrap items-end gap-3">
                 <div>
                     <label for="rule_event_type" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Event</label>
-                    <select id="rule_event_type" name="event_type" required class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    <select id="rule_event_type" name="event_type" required class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                         @foreach ($eventTypes as $eventType)
                             <option value="{{ $eventType->value }}">{{ $eventType->label() }}</option>
                         @endforeach
@@ -76,7 +76,7 @@
 
                 <div>
                     <label for="rule_channel" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Channel</label>
-                    <select id="rule_channel" name="channel" required class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                    <select id="rule_channel" name="channel" required class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                         @foreach ($channels as $channel)
                             <option value="{{ $channel->value }}">{{ $channel->label() }}</option>
                         @endforeach
@@ -86,20 +86,20 @@
 
             <div class="flex flex-wrap items-start gap-6">
                 <label class="flex items-center gap-1.5 text-[11px] text-gray-700">
-                    <input type="radio" name="recipient_type" value="users" checked class="text-[#1D9E75] focus:ring-[#1D9E75]">
+                    <input type="radio" name="recipient_type" value="users" checked class="text-brand-600 focus:ring-brand-600">
                     Specific users
                 </label>
-                <select name="user_ids[]" multiple size="4" class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                <select name="user_ids[]" multiple size="4" class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                     @foreach ($users as $option)
                         <option value="{{ $option->id }}">{{ $option->name }}</option>
                     @endforeach
                 </select>
 
                 <label class="flex items-center gap-1.5 text-[11px] text-gray-700">
-                    <input type="radio" name="recipient_type" value="role" class="text-[#1D9E75] focus:ring-[#1D9E75]">
+                    <input type="radio" name="recipient_type" value="role" class="text-brand-600 focus:ring-brand-600">
                     Everyone with a role
                 </label>
-                <select name="role" class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-[#1D9E75] focus:outline-none focus:ring-1 focus:ring-[#1D9E75]">
+                <select name="role" class="rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                     @foreach ($roles as $roleOption)
                         <option value="{{ $roleOption->slug }}">{{ $roleOption->name }}</option>
                     @endforeach
@@ -120,16 +120,14 @@
 
         <div class="mt-3 overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                <thead class="hidden bg-gray-50 md:table-header-group">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Event</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Channel</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Recipients</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Configured by</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
-                        <th class="px-3 py-2 text-right text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Actions</th>
-                    </tr>
-                </thead>
+                <x-table-header>
+                    <x-th>Event</x-th>
+                    <x-th>Channel</x-th>
+                    <x-th>Recipients</x-th>
+                    <x-th>Configured by</x-th>
+                    <x-th>Status</x-th>
+                    <x-th align="right">Actions</x-th>
+                </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($rules as $rule)
                         <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
@@ -162,7 +160,7 @@
                                 <form method="POST" action="{{ route('notification-settings.rules.toggle', $rule) }}" class="inline">
                                     @csrf
                                     @method('PATCH')
-                                    <button type="submit" class="text-[11px] text-[#1D9E75] hover:underline">{{ $rule->is_active ? 'Deactivate' : 'Activate' }}</button>
+                                    <button type="submit" class="text-[11px] text-brand-600 hover:underline">{{ $rule->is_active ? 'Deactivate' : 'Activate' }}</button>
                                 </form>
                                 <form method="POST" action="{{ route('notification-settings.rules.destroy', $rule) }}" class="ml-2 inline">
                                     @csrf
@@ -172,9 +170,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="block md:table-row">
-                            <td colspan="6" class="block px-3 py-6 text-center text-[12px] text-gray-500 md:table-cell">No team rules configured yet.</td>
-                        </tr>
+                        <x-empty-table-row colspan="6" py="6">No team rules configured yet.</x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>

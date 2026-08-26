@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TaskStatus;
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Requests\Tasks\StoreTaskRequest;
 use App\Http\Requests\Tasks\UpdateTaskRequest;
 use App\Models\Department;
@@ -21,6 +22,8 @@ use Illuminate\View\View;
 
 class TaskManagementController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function index(?Organization $organization = null): View
     {
         Gate::authorize('viewAny', Task::class);
@@ -42,9 +45,7 @@ class TaskManagementController extends Controller
             ]);
         }
 
-        if (! $organization || ! $organizations->contains('id', $organization->id)) {
-            $organization = $organizations->first();
-        }
+        $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
         $showInactive = request()->boolean('show_inactive');
 

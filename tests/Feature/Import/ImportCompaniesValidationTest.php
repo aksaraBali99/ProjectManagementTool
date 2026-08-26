@@ -1,17 +1,10 @@
 <?php
 
 use App\Models\Organization;
-use App\Models\Role;
-use App\Models\User;
 use App\Services\Import\ImportIdCodec;
-use Database\Seeders\PermissionSeeder;
-use Database\Seeders\RoleSeeder;
 
 beforeEach(function () {
-    $this->seed([RoleSeeder::class, PermissionSeeder::class]);
-
-    $this->owner = User::factory()->create();
-    $this->owner->roles()->attach(Role::where('slug', 'owner')->first()->id);
+    $this->owner = createOwner();
 });
 
 test('a blank ID Companies row is marked insert', function () {

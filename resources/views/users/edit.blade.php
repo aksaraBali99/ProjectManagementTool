@@ -9,7 +9,7 @@
     <h1 class="mt-2 text-[14px] font-medium text-[#1F2937]">Edit user</h1>
 
     @if (session('status'))
-        <div class="mt-4 rounded-md bg-[#E1F5EE] p-3 text-[12px] text-[#085041]">
+        <div class="mt-4 rounded-md bg-brand-50 p-3 text-[12px] text-brand-800">
             {{ session('status') }}
         </div>
     @endif
@@ -52,7 +52,7 @@
                     Cancel
                 </button>
                 <button type="submit" id="password-submit-btn" disabled
-                    class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56] disabled:cursor-not-allowed disabled:opacity-50">
+                    class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">
                     Save password
                 </button>
             </div>

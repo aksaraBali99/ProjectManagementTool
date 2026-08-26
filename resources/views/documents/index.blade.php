@@ -8,14 +8,14 @@
         <h1 class="text-[14px] font-medium text-[#1F2937]">Documents</h1>
         @if ($organization && $canManage)
             <a href="{{ route('documents.create', $organization) }}"
-               class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+               class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                 + Add new document
             </a>
         @endif
     </div>
 
     @if (session('status'))
-        <div class="mt-3 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-3 rounded-md bg-brand-50 px-3 py-2 text-[12px] text-brand-800">{{ session('status') }}</div>
     @endif
 
     @if ($organizations->isEmpty())
@@ -24,13 +24,11 @@
         <x-company-tabs :organizations="$organizations" :active="$organization" route="documents.index">
         <div class="overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                <thead class="hidden bg-gray-50 md:table-header-group">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Name</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Access level</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Uploaded by</th>
-                    </tr>
-                </thead>
+                <x-table-header>
+                    <x-th>Name</x-th>
+                    <x-th>Access level</x-th>
+                    <x-th>Uploaded by</x-th>
+                </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($documents as $document)
                         <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
@@ -56,9 +54,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="block md:table-row">
-                            <td colspan="3" class="block px-3 py-6 text-center text-[12px] text-gray-500 md:table-cell">No documents yet.</td>
-                        </tr>
+                        <x-empty-table-row colspan="3" py="6">No documents yet.</x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>

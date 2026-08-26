@@ -4,17 +4,10 @@ use App\Models\AuditLog;
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
 use App\Models\Organization;
-use App\Models\Role;
-use App\Models\User;
-use Database\Seeders\PermissionSeeder;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Str;
 
 beforeEach(function () {
-    $this->seed([RoleSeeder::class, PermissionSeeder::class]);
-
-    $this->owner = User::factory()->create();
-    $this->owner->roles()->attach(Role::where('slug', 'owner')->first()->id);
+    $this->owner = createOwner();
 
     $this->orgA = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
 });

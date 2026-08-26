@@ -2,17 +2,11 @@
 
 use App\Enums\ImportBatchStatus;
 use App\Models\ImportBatch;
-use App\Models\Role;
 use App\Models\User;
 use App\Services\Import\ImportValidator;
-use Database\Seeders\PermissionSeeder;
-use Database\Seeders\RoleSeeder;
 
 beforeEach(function () {
-    $this->seed([RoleSeeder::class, PermissionSeeder::class]);
-
-    $this->owner = User::factory()->create();
-    $this->owner->roles()->attach(Role::where('slug', 'owner')->first()->id);
+    $this->owner = createOwner();
 
     $this->staff = User::factory()->create();
 });
@@ -54,7 +48,7 @@ test('uploading a valid file creates a pending_review batch and import_rows for 
 });
 
 test('a file exceeding the row-count cap is rejected before any rows are written', function () {
-    $rows = array_fill(0, ImportValidator::MAX_TOTAL_ROWS + 1, ['name' => 'Company']);
+    $rows = array_fill(0, ImportValidator::maxTotalRows() + 1, ['name' => 'Company']);
     $file = buildImportTestFile(['Companies' => $rows]);
 
     $response = $this->actingAs($this->owner)->post('/import/upload', ['file' => $file]);

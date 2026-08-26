@@ -14,7 +14,7 @@ class UploadImportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'mimes:xlsx', 'max:10240'],
+            'file' => ['required', 'file', 'mimes:xlsx', 'max:'.config('import.max_upload_kb')],
         ];
     }
 }

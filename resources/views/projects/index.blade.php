@@ -8,14 +8,14 @@
         <h1 class="text-[14px] font-medium text-[#1F2937]">Projects</h1>
         @if ($organization && auth()->user()->can('create', [\App\Models\Project::class, $organization->id]))
             <a href="{{ route('projects.create', $organization) }}"
-               class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+               class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                 + Add project
             </a>
         @endif
     </div>
 
     @if (session('status'))
-        <div class="mt-3 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-3 rounded-md bg-brand-50 px-3 py-2 text-[12px] text-brand-800">{{ session('status') }}</div>
     @endif
 
     @if ($organizations->isEmpty())
@@ -24,16 +24,14 @@
         <x-company-tabs :organizations="$organizations" :active="$organization" route="projects.index">
         <div class="overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                <thead class="hidden bg-gray-50 md:table-header-group">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Name</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Client</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Priority</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Tasks</th>
-                        <th class="px-3 py-2 text-right text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Actions</th>
-                    </tr>
-                </thead>
+                <x-table-header>
+                    <x-th>Name</x-th>
+                    <x-th>Client</x-th>
+                    <x-th>Status</x-th>
+                    <x-th>Priority</x-th>
+                    <x-th>Tasks</x-th>
+                    <x-th align="right">Actions</x-th>
+                </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($projects as $project)
                         <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
@@ -60,7 +58,7 @@
                             </td>
                             <td class="flex items-center justify-end gap-2 py-1 text-[11px] md:table-cell md:px-3 md:py-2.5 md:text-right">
                                 @can('update', $project)
-                                    <a href="{{ route('projects.edit', $project) }}" class="text-[#1D9E75] hover:underline">Edit</a>
+                                    <a href="{{ route('projects.edit', $project) }}" class="text-brand-600 hover:underline">Edit</a>
                                 @endcan
                                 @if (! empty(auth()->user()->manageableOrganizationIds()))
                                     <a href="{{ route('projects.template', $project) }}" class="ml-3 text-gray-500 hover:underline">Use as template</a>
@@ -68,9 +66,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="block md:table-row">
-                            <td colspan="6" class="block px-3 py-4 text-center text-[12px] text-gray-500 md:table-cell">No projects yet.</td>
-                        </tr>
+                        <x-empty-table-row colspan="6">No projects yet.</x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>

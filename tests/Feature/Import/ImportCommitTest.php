@@ -10,15 +10,10 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\Import\ImportCommitService;
-use Database\Seeders\PermissionSeeder;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
-    $this->seed([RoleSeeder::class, PermissionSeeder::class]);
-
-    $this->owner = User::factory()->create();
-    $this->owner->roles()->attach(Role::where('slug', 'owner')->first()->id);
+    $this->owner = createOwner();
 
     $this->orgA = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
 });

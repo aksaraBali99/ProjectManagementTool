@@ -9,13 +9,13 @@
     <div class="mt-2 flex items-center justify-between">
         <h1 class="text-[14px] font-medium text-[#1F2937]">Departments</h1>
         <a href="{{ route('departments.create') }}"
-           class="rounded-md bg-[#1D9E75] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#0F6E56]">
+           class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
             + Add department
         </a>
     </div>
 
     @if (session('status'))
-        <div class="mt-3 rounded-md bg-[#E1F5EE] px-3 py-2 text-[12px] text-[#085041]">{{ session('status') }}</div>
+        <div class="mt-3 rounded-md bg-brand-50 px-3 py-2 text-[12px] text-brand-800">{{ session('status') }}</div>
     @endif
 
     @if ($organizations->isEmpty())
@@ -24,15 +24,13 @@
         <x-company-tabs :organizations="$organizations" :active="$organization" route="departments.index">
         <div class="overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
-                <thead class="hidden bg-gray-50 md:table-header-group">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Name</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Color</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Tasks</th>
-                        <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Status</th>
-                        <th class="px-3 py-2 text-right text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">Actions</th>
-                    </tr>
-                </thead>
+                <x-table-header>
+                    <x-th>Name</x-th>
+                    <x-th>Color</x-th>
+                    <x-th>Tasks</x-th>
+                    <x-th>Status</x-th>
+                    <x-th align="right">Actions</x-th>
+                </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($departments as $department)
                         <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
@@ -56,7 +54,7 @@
                                 @endif
                             </td>
                             <td class="flex items-center justify-end gap-2 py-1 text-[11px] md:table-cell md:px-3 md:py-2.5 md:text-right">
-                                <a href="{{ route('departments.edit', $department) }}" class="text-[#1D9E75] hover:underline">Edit</a>
+                                <a href="{{ route('departments.edit', $department) }}" class="text-brand-600 hover:underline">Edit</a>
                                 <form method="POST" action="{{ route('departments.toggle-active', $department) }}" class="inline">
                                     @csrf
                                     @method('PATCH')
@@ -67,9 +65,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="block md:table-row">
-                            <td colspan="5" class="block px-3 py-4 text-center text-[12px] text-gray-500 md:table-cell">No departments yet.</td>
-                        </tr>
+                        <x-empty-table-row colspan="5">No departments yet.</x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>

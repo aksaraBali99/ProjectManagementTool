@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasEnumValues;
+
 enum ImportRowAction: string
 {
+    use HasEnumValues;
+
     case Insert = 'insert';
     case Update = 'update';
     case NoChange = 'no_change';
@@ -26,13 +30,5 @@ enum ImportRowAction: string
             self::Blocked => 'Blocked',
             self::Sync => 'Sync',
         };
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public static function values(): array
-    {
-        return array_column(self::cases(), 'value');
     }
 }
