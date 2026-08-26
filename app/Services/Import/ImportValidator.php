@@ -876,6 +876,31 @@ class ImportValidator
                 continue;
             }
 
+            $assigneeUsername = $cells['assignee_username'] ?? null;
+            if (! empty($assigneeUsername)) {
+                $userInfo = $this->resolveUsername($assigneeUsername, $context);
+                if (! $userInfo['exists'] || ! $userInfo['valid']) {
+                    $result[] = $this->errorRow('Subtasks', $row, "Assignee \"{$assigneeUsername}\" is not a valid user in this file or the database.");
+
+                    continue;
+                }
+
+                // checkTaskRef() already confirmed task_ref is a resolvable
+                // digit string, so this is safe to re-derive here — a
+                // Subtask's assignee must belong to its parent Task's
+                // company, same rule Tasks itself applies to its own
+                // Assignee column.
+                $taskRefNumber = (int) $cells['task_ref'];
+                $companyName = $context->taskRefs[$taskRefNumber]['companyName'] ?? '';
+                $companyKey = $context->companyKey($companyName);
+                $belongsToCompany = array_key_exists($companyKey, $context->companyRolesByUsername[$assigneeUsername] ?? $this->existingRolesFor($assigneeUsername, $context));
+                if (! $belongsToCompany) {
+                    $result[] = $this->errorRow('Subtasks', $row, "Assignee \"{$assigneeUsername}\" does not belong to \"{$companyName}\".");
+
+                    continue;
+                }
+            }
+
             $result[] = $this->row('Subtasks', $row, 'insert', 'valid');
         }
 
