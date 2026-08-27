@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
 use App\Rules\ValidPhoneNumber;
@@ -9,6 +10,8 @@ use App\Services\Import\EmployeeIdGenerator;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Validator as ValidatorContract;
@@ -21,10 +24,15 @@ use Illuminate\Validation\Validator as ValidatorContract;
  * business/demo data — that's DatabaseSeeder's job for local dev, not
  * this command's. Interactive (not a plain `db:seed` run) because the
  * Owner's real identity has to differ per environment.
+ *
+ * `--reset-owner` is a separate mode entirely: break-glass recovery for
+ * when every owner/super_admin is locked out and there's no way in
+ * through the web UI. See "Emergency access recovery" in CLAUDE.md.
  */
 class BootstrapEnvironment extends Command
 {
-    protected $signature = 'solva:bootstrap';
+    protected $signature = 'solva:bootstrap
+        {--reset-owner : Break-glass recovery — reset an existing Owner/Super Admin\'s password instead of creating a new account}';
 
     protected $description = 'Seeds reference data (roles + permissions) and creates exactly one Owner account — no companies, departments, projects, or test users.';
 
@@ -35,6 +43,10 @@ class BootstrapEnvironment extends Command
 
     public function handle(): int
     {
+        if ($this->option('reset-owner')) {
+            return $this->handleResetOwner();
+        }
+
         $this->info('Solva environment bootstrap');
         $this->line('Seeds the 5 system roles + permissions, then creates one Owner account. Never touches companies, departments, projects, or tasks.');
         $this->newLine();
@@ -224,5 +236,143 @@ class BootstrapEnvironment extends Command
         $this->line("  Email:    {$user->email}");
         $this->newLine();
         $this->warn('The password you just entered was typed into this terminal session — treat it as sensitive. Clear your terminal scrollback/history now if this session is shared, logged, or recorded.');
+    }
+
+    // -- --reset-owner ------------------------------------------------
+
+    /**
+     * Break-glass recovery: reset an existing Owner/Super Admin's
+     * password with no dependency on a working web session — this has
+     * to be reachable purely via SSH + artisan even if the application
+     * itself is throwing errors, so it never touches HTTP/session state.
+     */
+    private function handleResetOwner(): int
+    {
+        $this->info('Solva owner recovery — reset an existing Owner/Super Admin\'s password');
+        $this->line('This resets the password on an EXISTING account. It cannot create a new owner.');
+        $this->newLine();
+
+        $candidates = User::whereHas('roles', fn ($query) => $query->whereIn('slug', Role::GLOBAL_SLUGS))
+            ->with('roles')
+            ->orderBy('username')
+            ->get();
+
+        if ($candidates->isEmpty()) {
+            $this->error('No account currently holds the Owner or Super Admin role — there is nothing to reset.');
+            $this->line('Run "php artisan solva:bootstrap" without --reset-owner to create the first owner instead.');
+
+            return self::FAILURE;
+        }
+
+        $this->line('Accounts currently holding Owner or Super Admin:');
+        foreach ($candidates as $index => $candidate) {
+            $roleNames = $candidate->roles->whereIn('slug', Role::GLOBAL_SLUGS)->pluck('name')->implode(', ');
+            $this->line(sprintf('  [%d] %s — %s <%s> (%s)', $index + 1, $candidate->username, $candidate->name, $candidate->email, $roleNames));
+        }
+        $this->newLine();
+
+        $target = $candidates[$this->askForAccountNumber($candidates) - 1];
+        $password = $this->promptForConfirmedPassword();
+
+        $this->newLine();
+        $this->line('About to reset the password for:');
+        $this->line("  Username: {$target->username}");
+        $this->line("  Email:    {$target->email}");
+        $this->newLine();
+        $this->warn('This is a break-glass recovery action and will be recorded in the Audit Trail.');
+
+        if ($this->ask('Type RESET to confirm') !== 'RESET') {
+            $this->warn('Aborted — password was not changed.');
+
+            return self::SUCCESS;
+        }
+
+        $this->applyPasswordReset($target, $password);
+
+        $this->newLine();
+        $this->info('Password reset.');
+        $this->line("  Username: {$target->username}");
+        $this->line("  Email:    {$target->email}");
+        $this->line('  This account must set a new password on next login.');
+        $this->newLine();
+        $this->warn('The password you just entered was typed into this terminal session — treat it as sensitive. Clear your terminal scrollback/history now if this session is shared, logged, or recorded.');
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @param  Collection<int, User>  $candidates
+     */
+    private function askForAccountNumber(Collection $candidates): int
+    {
+        while (true) {
+            $answer = $this->ask('Which account do you want to reset? Enter the number.');
+
+            if (ctype_digit((string) $answer) && (int) $answer >= 1 && (int) $answer <= $candidates->count()) {
+                return (int) $answer;
+            }
+
+            $this->error("Please enter a number between 1 and {$candidates->count()}.");
+        }
+    }
+
+    /**
+     * Same complexity rules as UpdateUserPasswordRequest (the in-app
+     * Change Password popup), including the 'confirmed' rule — Laravel
+     * matches a `password` field against `password_confirmation`
+     * automatically, so the two secret() prompts below are named to
+     * match that convention exactly.
+     */
+    private function promptForConfirmedPassword(): string
+    {
+        while (true) {
+            $password = $this->secret('New password (hidden input)');
+            $confirmation = $this->secret('Confirm new password (hidden input)');
+
+            $validator = Validator::make(
+                ['password' => $password, 'password_confirmation' => $confirmation],
+                ['password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()]],
+            );
+
+            if ($validator->passes()) {
+                return $password;
+            }
+
+            $this->error('Rejected — either the password does not meet the requirements, or the two entries did not match:');
+            foreach ($validator->errors()->get('password') as $message) {
+                $this->line("  - {$message}");
+            }
+        }
+    }
+
+    /**
+     * There's no authenticated web session to attribute this to (the
+     * whole point of this flag is recovering access when normal login is
+     * broken), so organization_id/user_id are left null rather than
+     * forcing an artificial value — the Audit Trail view already
+     * null-guards both. `source`/`triggered_from` in `changes` is what
+     * actually identifies this as a CLI recovery action, distinct from a
+     * normal in-app password change.
+     */
+    private function applyPasswordReset(User $target, string $password): void
+    {
+        DB::transaction(function () use ($target, $password) {
+            $target->update([
+                'password' => $password,
+                'must_change_password' => true,
+            ]);
+
+            AuditLog::create([
+                'organization_id' => null,
+                'user_id' => null,
+                'action' => 'user.password_reset_via_cli',
+                'entity_type' => 'user',
+                'entity_id' => $target->id,
+                'changes' => [
+                    'source' => 'cli_recovery',
+                    'triggered_from' => 'solva:bootstrap --reset-owner',
+                ],
+            ]);
+        });
     }
 }

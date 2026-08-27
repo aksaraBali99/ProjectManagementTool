@@ -36,7 +36,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 });
 
-Route::middleware(['auth', 'active'])->group(function () {
+Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::get('/dashboard/{organization?}', DashboardController::class)->name('dashboard');
     Route::get('/kanban/{organization?}', KanbanController::class)->name('kanban');

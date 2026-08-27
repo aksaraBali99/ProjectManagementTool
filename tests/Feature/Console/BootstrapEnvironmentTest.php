@@ -1,9 +1,11 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 test('a fresh environment seeds reference data and creates one owner holding both global roles', function () {
     $this->artisan('solva:bootstrap')
@@ -127,4 +129,100 @@ test('declining the final confirmation creates no owner account', function () {
     // Reference data is still seeded even when the owner creation itself
     // is declined at the last step.
     expect(Role::count())->toBe(5);
+});
+
+// -- --reset-owner --------------------------------------------------
+
+test('--reset-owner lists existing owner/super_admin accounts', function () {
+    $owner = createOwner();
+
+    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+        ->expectsOutputToContain("[1] {$owner->username} — {$owner->name} <{$owner->email}> (Owner)")
+        ->expectsQuestion('Which account do you want to reset? Enter the number.', '1')
+        ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Confirm new password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Type RESET to confirm', 'RESET')
+        ->assertExitCode(0);
+});
+
+test('selecting an account, providing a valid confirmed new password, and confirming updates the password and sets must_change_password', function () {
+    $owner = createOwner()->refresh();
+    expect($owner->must_change_password)->toBeFalse();
+
+    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+        ->expectsQuestion('Which account do you want to reset? Enter the number.', '1')
+        ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Confirm new password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Type RESET to confirm', 'RESET')
+        ->assertExitCode(0);
+
+    $owner->refresh();
+    expect(Hash::check('N3wStr0ng!Pass', $owner->password))->toBeTrue();
+    expect($owner->must_change_password)->toBeTrue();
+});
+
+test('resetting a password writes an audit_log entry tagged as a CLI recovery action', function () {
+    $owner = createOwner();
+
+    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+        ->expectsQuestion('Which account do you want to reset? Enter the number.', '1')
+        ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Confirm new password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Type RESET to confirm', 'RESET')
+        ->assertExitCode(0);
+
+    $entry = AuditLog::where('entity_type', 'user')
+        ->where('entity_id', $owner->id)
+        ->where('action', 'user.password_reset_via_cli')
+        ->firstOrFail();
+
+    expect($entry->user_id)->toBeNull();
+    expect($entry->organization_id)->toBeNull();
+    expect($entry->changes['source'])->toBe('cli_recovery');
+    expect($entry->changes['triggered_from'])->toBe('solva:bootstrap --reset-owner');
+});
+
+test('mismatched password confirmation is rejected — only a matching pair is ever applied', function () {
+    $owner = createOwner();
+    $originalPasswordHash = $owner->password;
+
+    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+        ->expectsQuestion('Which account do you want to reset? Enter the number.', '1')
+        ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Confirm new password (hidden input)', 'DoesNotMatch!1')
+        ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Confirm new password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Type RESET to confirm', 'RESET')
+        ->assertExitCode(0);
+
+    $owner->refresh();
+    expect($owner->password)->not->toBe($originalPasswordHash);
+    expect(Hash::check('N3wStr0ng!Pass', $owner->password))->toBeTrue();
+    // Only one audit_log entry — the mismatched attempt above never
+    // reached applyPasswordReset() at all, let alone wrote a row.
+    expect(AuditLog::where('entity_id', $owner->id)->where('action', 'user.password_reset_via_cli')->count())->toBe(1);
+});
+
+test('typing anything other than RESET at the final confirmation aborts without changing the password', function () {
+    $owner = createOwner();
+    $originalPasswordHash = $owner->password;
+
+    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+        ->expectsQuestion('Which account do you want to reset? Enter the number.', '1')
+        ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Confirm new password (hidden input)', 'N3wStr0ng!Pass')
+        ->expectsQuestion('Type RESET to confirm', 'yes')
+        ->assertExitCode(0);
+
+    $owner->refresh();
+    expect($owner->password)->toBe($originalPasswordHash);
+    expect($owner->must_change_password)->toBeFalse();
+    expect(AuditLog::where('entity_id', $owner->id)->where('action', 'user.password_reset_via_cli')->exists())->toBeFalse();
+});
+
+test('--reset-owner explains clearly when no owner/super_admin account exists, and cannot create one', function () {
+    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+        ->assertExitCode(1);
+
+    expect(User::count())->toBe(0);
 });
