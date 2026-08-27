@@ -34,6 +34,22 @@ test('a Companies row with a valid ID is matched and marked update', function ()
     expect($row->validation_status->value)->toBe('valid');
 });
 
+test('a Companies row with a valid ID but no actual change is marked no_change', function () {
+    $organization = Organization::create(['name' => 'Existing Co', 'slug' => 'existing-co', 'accent_color' => '#1D9E75']);
+
+    $batch = runImportValidation([
+        'Companies' => [[
+            'id' => ImportIdCodec::encode(ImportIdCodec::COMPANY_PREFIX, $organization->id),
+            'name' => 'Existing Co',
+        ]],
+    ], $this->owner);
+
+    $row = $batch->importRows()->where('sheet_name', 'Companies')->firstOrFail();
+
+    expect($row->resolved_action->value)->toBe('no_change');
+    expect($row->validation_status->value)->toBe('valid');
+});
+
 test('a Companies row with an unrecognized ID is a hard error', function () {
     $batch = runImportValidation([
         'Companies' => [[

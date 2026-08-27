@@ -39,14 +39,21 @@
             </label>
         @endif
 
-        <form method="POST" action="{{ route('import.commit', $batch) }}" class="ml-auto">
-            @csrf
-            <input type="hidden" name="acknowledge_warnings" id="acknowledge-warnings-field" value="0">
-            <button type="submit" id="commit-button" disabled
-                class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40">
-                Commit Import
-            </button>
-        </form>
+        <div class="ml-auto flex items-center gap-2">
+            <a href="{{ route('import.index') }}"
+               class="rounded-md border border-gray-300 bg-white px-4 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
+                Re-upload a different file
+            </a>
+
+            <form method="POST" action="{{ route('import.commit', $batch) }}">
+                @csrf
+                <input type="hidden" name="acknowledge_warnings" id="acknowledge-warnings-field" value="0">
+                <button type="submit" id="commit-button" disabled
+                    class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40">
+                    Commit Import
+                </button>
+            </form>
+        </div>
     </div>
 
     @foreach ($rowsBySheet as $sheetName => $rows)

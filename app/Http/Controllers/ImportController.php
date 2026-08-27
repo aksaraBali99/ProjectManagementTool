@@ -59,7 +59,14 @@ class ImportController extends Controller
     {
         Gate::authorize('import.view');
 
-        $rowsBySheet = $batch->importRows()->orderBy('row_number')->get()->groupBy('sheet_name');
+        // No Change rows carry nothing actionable — the reviewer only
+        // wants to see what's actually going to insert/update/sync, or
+        // what's blocked/errored.
+        $rowsBySheet = $batch->importRows()
+            ->where('resolved_action', '!=', 'no_change')
+            ->orderBy('row_number')
+            ->get()
+            ->groupBy('sheet_name');
 
         // Re-key in the canonical tab order rather than groupBy()'s
         // arbitrary insertion order, so the review grid always reads

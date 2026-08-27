@@ -73,3 +73,20 @@ test('a Department row with a valid ID matching an existing department is marked
 
     expect($row->resolved_action->value)->toBe('update');
 });
+
+test('a Department row with a valid ID but no actual change is marked no_change', function () {
+    $organization = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
+    $department = Department::create(['organization_id' => $organization->id, 'name' => 'Marketing', 'color' => '#000000']);
+
+    $batch = runImportValidation([
+        'Departments' => [[
+            'id' => ImportIdCodec::encode(ImportIdCodec::DEPARTMENT_PREFIX, $department->id),
+            'name' => 'Marketing',
+            'company' => 'Org A',
+        ]],
+    ], $this->owner);
+
+    $row = $batch->importRows()->where('sheet_name', 'Departments')->firstOrFail();
+
+    expect($row->resolved_action->value)->toBe('no_change');
+});

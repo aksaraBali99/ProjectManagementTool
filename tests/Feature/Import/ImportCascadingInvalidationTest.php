@@ -54,9 +54,17 @@ test('a failed Task row blocks its Subtask/Document/Comment rows by Task Ref', f
 
     expect($taskRow->validation_status->value)->toBe('error');
 
+    // Their own fields are fine, so validation_status is 'valid' (not
+    // 'error') — no red error styling for data that isn't actually wrong.
+    // resolved_action stays 'blocked' though, so they still can't commit:
+    // ImportCommitService::commitEligibleRows() excludes 'blocked' rows
+    // regardless of status, and the Tasks row's own error still blocks the
+    // whole batch from committing via the review page's error count.
     foreach ([$subtaskRow, $documentRow, $commentRow] as $row) {
         expect($row->resolved_action->value)->toBe('blocked');
-        expect($row->validation_message)->toContain('Blocked');
+        expect($row->validation_status->value)->toBe('valid');
+        expect($row->validation_message)->toContain('Data is valid');
+        expect($row->validation_message)->toContain('Task (Ref 1)');
     }
 });
 
