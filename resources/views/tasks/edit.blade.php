@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="mx-auto max-w-2xl">
-    <a href="{{ route('projects.index', $project->organization_id) }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← Projects</a>
+    <a href="{{ route('tasks.index', $task->organization_id) }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← Tasks</a>
 
     <div class="mt-2 flex items-center justify-between">
         <h1 class="text-[14px] font-medium text-[#1F2937]">Edit task</h1>

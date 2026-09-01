@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Priority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Requests\Tasks\StoreTaskRequest;
@@ -11,6 +12,7 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,16 +51,74 @@ class TaskManagementController extends Controller
 
         $showInactive = request()->boolean('show_inactive');
 
-        $query = Task::visibleTo($user, $organization->id)
-            ->with(['project', 'department', 'assignee', 'subtasks', 'comments.user']);
+        $visibleScope = fn () => Task::visibleTo($user, $organization->id);
+
+        $query = $visibleScope()->with(['project', 'department', 'assignee', 'subtasks', 'comments.user']);
 
         if ($showInactive) {
             $query->withTrashed();
         }
 
-        $tasks = $query->orderBy('due_date')->orderBy('title')->get();
+        $filters = request()->only(['q', 'project_id', 'department_id', 'assignee_id', 'priority', 'status', 'due_from', 'due_to']);
+
+        if ($search = trim((string) ($filters['q'] ?? ''))) {
+            $query->where('title', 'like', '%'.$search.'%');
+        }
+
+        if ($projectId = request()->integer('project_id')) {
+            $query->where('project_id', $projectId);
+        }
+
+        if ($departmentId = request()->integer('department_id')) {
+            $query->where('department_id', $departmentId);
+        }
+
+        if ($assigneeId = request()->string('assignee_id')->toString()) {
+            if ($assigneeId === 'unassigned') {
+                $query->whereNull('assignee_id');
+            } elseif (ctype_digit($assigneeId)) {
+                $query->where('assignee_id', (int) $assigneeId);
+            }
+        }
+
+        if ($priority = request()->string('priority')->toString()) {
+            $query->where('priority', $priority);
+        }
+
+        if ($status = request()->string('status')->toString()) {
+            $query->where('status', $status);
+        }
+
+        if ($dueFrom = request()->string('due_from')->toString()) {
+            $query->whereDate('due_date', '>=', $dueFrom);
+        }
+
+        if ($dueTo = request()->string('due_to')->toString()) {
+            $query->whereDate('due_date', '<=', $dueTo);
+        }
+
+        $sortable = ['title', 'project', 'department', 'assignee', 'priority', 'status', 'due_date', 'active'];
+        $sort = request()->string('sort')->toString();
+        $sort = in_array($sort, $sortable, true) ? $sort : 'due_date';
+        $direction = request()->string('direction')->toString() === 'desc' ? 'desc' : 'asc';
+
+        $tasks = $this->sortTasks($query->get(), $sort, $direction);
 
         $projectsInList = $tasks->pluck('project')->filter()->unique('id')->values();
+
+        // Filter option lists reflect what this user can actually see (same
+        // visibility scope as the list itself, ignoring the other filters so
+        // switching one filter doesn't prune the others' choices) rather
+        // than every project/department/user in the company, so a staff
+        // member never sees a department they don't have access to sitting
+        // in the dropdown.
+        $optionsScope = $visibleScope();
+        if ($showInactive) {
+            $optionsScope->withTrashed();
+        }
+        $optionProjectIds = (clone $optionsScope)->distinct()->pluck('project_id');
+        $optionDepartmentIds = (clone $optionsScope)->distinct()->pluck('department_id');
+        $optionAssigneeIds = (clone $optionsScope)->whereNotNull('assignee_id')->distinct()->pluck('assignee_id');
 
         return view('tasks.index', [
             'organizations' => $organizations,
@@ -68,7 +128,58 @@ class TaskManagementController extends Controller
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
             'canAddDocuments' => Gate::allows('create', [Document::class, $organization->id]),
             'staffByProject' => $this->staffOptionsByProject($projectsInList),
+            'filters' => $filters,
+            'sort' => $sort,
+            'direction' => $direction,
+            'filterProjects' => Project::whereIn('id', $optionProjectIds)->orderBy('name')->get(['id', 'name']),
+            'filterDepartments' => Department::whereIn('id', $optionDepartmentIds)->orderBy('name')->get(['id', 'name']),
+            'filterAssignees' => User::whereIn('id', $optionAssigneeIds)->orderBy('name')->get(['id', 'name']),
         ]);
+    }
+
+    /**
+     * Sorted at the collection level, not via the query builder, since
+     * project/department/assignee live on related models already eager-
+     * loaded for the drilldown rows — joining for those would duplicate
+     * what's already in memory. A missing value (no due date, no assignee)
+     * always sorts last regardless of direction; ties break on title so the
+     * list order stays stable and predictable.
+     */
+    private function sortTasks(Collection $tasks, string $sort, string $direction): Collection
+    {
+        $priorityRank = array_flip(array_map(fn ($case) => $case->value, Priority::cases()));
+        $statusRank = array_flip(array_map(fn ($case) => $case->value, TaskStatus::cases()));
+
+        $valueFor = function (Task $task) use ($sort, $priorityRank, $statusRank) {
+            return match ($sort) {
+                'project' => strtolower($task->project->name ?? ''),
+                'department' => strtolower($task->department->name ?? ''),
+                'assignee' => strtolower($task->assignee->name ?? ''),
+                'priority' => $priorityRank[$task->priority->value] ?? PHP_INT_MAX,
+                'status' => $statusRank[$task->status->value] ?? PHP_INT_MAX,
+                'active' => $task->trashed() ? 0 : 1,
+                'due_date' => $task->due_date?->timestamp,
+                default => strtolower($task->title),
+            };
+        };
+
+        return $tasks->sort(function (Task $a, Task $b) use ($valueFor, $direction) {
+            $valueA = $valueFor($a);
+            $valueB = $valueFor($b);
+
+            $missingA = $valueA === null || $valueA === '';
+            $missingB = $valueB === null || $valueB === '';
+            if ($missingA !== $missingB) {
+                return $missingA ? 1 : -1;
+            }
+
+            $result = $valueA <=> $valueB;
+            if ($direction === 'desc') {
+                $result = -$result;
+            }
+
+            return $result !== 0 ? $result : strtolower($a->title) <=> strtolower($b->title);
+        })->values();
     }
 
     public function create(?Project $project = null): View
