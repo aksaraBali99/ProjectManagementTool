@@ -655,8 +655,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/ProjectManagementController.php": {
-    "mtime": 1788248862.8586147,
-    "ast_hash": "251d722d8d0daea25d04d6f6a5164ac1",
+    "mtime": 1788254987.6637635,
+    "ast_hash": "e3d770718cb5472bc82f0fb02645a537",
     "semantic_hash": ""
   },
   "app/Http/Requests/Projects/StoreProjectRequest.php": {
@@ -685,8 +685,8 @@
     "semantic_hash": ""
   },
   "resources/views/projects/index.blade.php": {
-    "mtime": 1788248899.419889,
-    "ast_hash": "715ab5bf77508868cc859a3eeb25ea08",
+    "mtime": 1788255162.6021638,
+    "ast_hash": "cef0f5c55e57493c53cb4947a3f24e52",
     "semantic_hash": ""
   },
   "tests/Feature/AccessControl/AccessControlTest.php": {

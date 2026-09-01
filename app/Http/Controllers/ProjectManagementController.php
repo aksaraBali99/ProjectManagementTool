@@ -46,9 +46,21 @@ class ProjectManagementController extends Controller
         // once and policy-filtered here — everything downstream (the
         // filter option lists, the filters themselves, sorting) works off
         // this already-visible set rather than re-querying per filter.
+        //
+        // Both the count and the eager-loaded tasks (for the row drilldown)
+        // are scoped through Task::visibleTo() — the same visibility rule
+        // the Tasks list page itself uses — so a staff member never sees a
+        // "Tasks: 5" count or a drilldown row for a task outside their
+        // granted departments.
         $visibleProjects = Project::where('organization_id', $organization->id)
-            ->withCount('tasks')
-            ->with('clients')
+            ->withCount(['tasks' => fn ($query) => $query->visibleTo($user, $organization->id)])
+            ->with([
+                'clients',
+                'tasks' => fn ($query) => $query->visibleTo($user, $organization->id)
+                    ->with(['department', 'assignee'])
+                    ->orderBy('due_date')
+                    ->orderBy('title'),
+            ])
             ->get()
             ->filter(fn (Project $project) => $user->can('view', $project))
             ->values();

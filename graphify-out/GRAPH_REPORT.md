@@ -1,7 +1,7 @@
 # Graph Report - ProjectManagementTool  (2026-09-01)
 
 ## Corpus Check
-- 298 files · ~100,052 words
+- 298 files · ~100,502 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `bb83fd16`
+- Built from commit: `84712b4d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -70,7 +70,7 @@
 - require
 - CalendarController.php
 - StoreTaskRequest
-- extra
+- keywords
 - AuditEventMailNotification.php
 - psr-4
 - BootstrapEnvironment
@@ -129,7 +129,7 @@ Nodes (4): OrgMember, CompanyRoleSyncer, makeStaffForDocumentCreate(), joinOrg()
 
 ### Community 6 - "composer.json"
 Cohesion: 0.14
-Nodes (13): autoload-dev, psr-4, description, keywords, license, minimum-stability, name, prefer-stable (+5 more)
+Nodes (13): autoload-dev, psr-4, description, extra, laravel, dont-discover, license, minimum-stability (+5 more)
 
 ### Community 7 - "require-dev"
 Cohesion: 0.20
@@ -263,9 +263,9 @@ Nodes (8): AccessPermission, Role, RolePolicy, Illuminate\Database\Eloquent\Buil
 Cohesion: 0.29
 Nodes (7): require, giggsey/libphonenumber-for-php, laravel/framework, laravel/socialite, laravel/tinker, php, phpoffice/phpspreadsheet
 
-### Community 143 - "extra"
+### Community 143 - "keywords"
 Cohesion: 0.67
-Nodes (3): extra, laravel, dont-discover
+Nodes (3): keywords, framework, laravel
 
 ### Community 145 - "AuditEventMailNotification.php"
 Cohesion: 0.20

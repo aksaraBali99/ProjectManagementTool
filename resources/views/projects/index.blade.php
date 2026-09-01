@@ -105,6 +105,7 @@
         <div class="overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
                 <x-table-header>
+                    <th class="w-8 px-3 py-2"></th>
                     @foreach ([
                         'name' => 'Name',
                         'client' => 'Client',
@@ -126,8 +127,14 @@
                 </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
                     @forelse ($projects as $project)
-                        <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
-                            <td class="text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">{{ $project->name }}</td>
+                        <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0" data-drilldown-toggle="{{ $project->id }}">
+                            <td class="hidden md:table-cell md:px-3 md:py-2.5">
+                                <button type="button" class="drilldown-btn text-[11px] text-gray-500 hover:text-gray-700" data-target="{{ $project->id }}">+</button>
+                            </td>
+                            <td class="flex items-center justify-between gap-2 py-1 text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
+                                <button type="button" class="drilldown-btn text-[11px] text-gray-500 hover:text-gray-700 md:hidden" data-target="{{ $project->id }}">+</button>
+                                {{ $project->name }}
+                            </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Client</span>
                                 {{ $project->primaryClient()->name ?? 'Internal' }}
@@ -157,8 +164,60 @@
                                 @endif
                             </td>
                         </tr>
+                        <tr class="drilldown-row block border-t border-gray-100 md:table-row" data-drilldown="{{ $project->id }}" style="display: none;">
+                            <td class="hidden md:table-cell"></td>
+                            <td colspan="6" class="block bg-gray-50 px-3 py-3 md:table-cell">
+                                <div class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Tasks</div>
+                                @if ($project->tasks->isEmpty())
+                                    <p class="mt-1 text-[12px] text-gray-500">No tasks on this project yet.</p>
+                                @else
+                                    <div class="mt-2 overflow-hidden rounded-md border border-gray-200 bg-white">
+                                        <table class="w-full">
+                                            <x-table-header bg="gray-100">
+                                                <x-th>Title</x-th>
+                                                <x-th>Department</x-th>
+                                                <x-th>Assignee</x-th>
+                                                <x-th>Priority</x-th>
+                                                <x-th>Status</x-th>
+                                                <x-th>Due</x-th>
+                                            </x-table-header>
+                                            <tbody class="block divide-y divide-gray-100 md:table-row-group">
+                                                @foreach ($project->tasks as $task)
+                                                    <tr class="block px-3 py-2 md:table-row md:px-0 md:py-0">
+                                                        <td class="flex items-center justify-between gap-2 py-1 text-[11px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2">
+                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Title</span>
+                                                            <a href="{{ route('tasks.edit', $task) }}" class="hover:underline">{{ $task->title }}</a>
+                                                        </td>
+                                                        <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2">
+                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Department</span>
+                                                            <x-badge :background="$task->department->badgeBackground()" :text="$task->department->badgeText()">{{ $task->department->name }}</x-badge>
+                                                        </td>
+                                                        <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2">
+                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Assignee</span>
+                                                            {{ $task->assignee->name ?? 'Unassigned' }}
+                                                        </td>
+                                                        <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2">
+                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Priority</span>
+                                                            <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
+                                                        </td>
+                                                        <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2">
+                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Status</span>
+                                                            <x-badge :background="$task->status->badgeBackground()" :text="$task->status->badgeText()">{{ $task->status->label() }}</x-badge>
+                                                        </td>
+                                                        <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2">
+                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Due</span>
+                                                            {{ $task->due_date?->format('M j') ?? '—' }}
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
+                            </td>
+                        </tr>
                     @empty
-                        <x-empty-table-row colspan="6">
+                        <x-empty-table-row colspan="7">
                             {{ array_filter($filters) ? 'No projects match these filters.' : 'No projects yet.' }}
                         </x-empty-table-row>
                     @endforelse
@@ -168,4 +227,25 @@
         </x-company-tabs>
     @endif
 </div>
+
+<script>
+    (function () {
+        // Each row renders two .drilldown-btn copies (one for the desktop
+        // table layout, one inline in the mobile card layout) so only one
+        // is ever visible at a given breakpoint — sync both on click so
+        // neither shows stale +/− state if the viewport is later resized
+        // across md without a page reload.
+        document.querySelectorAll('.drilldown-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const target = document.querySelector('[data-drilldown="' + btn.dataset.target + '"]');
+                if (! target) return;
+                const isHidden = target.style.display === 'none';
+                target.style.display = isHidden ? '' : 'none';
+                document.querySelectorAll('.drilldown-btn[data-target="' + btn.dataset.target + '"]').forEach(function (twin) {
+                    twin.textContent = isHidden ? '−' : '+';
+                });
+            });
+        });
+    })();
+</script>
 @endsection
