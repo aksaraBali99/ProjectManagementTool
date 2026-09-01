@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureBelongsToOrganization;
+use App\Http\Middleware\EnsurePasswordHasBeenChanged;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
             'org.scope' => EnsureBelongsToOrganization::class,
+            'password.changed' => EnsurePasswordHasBeenChanged::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {

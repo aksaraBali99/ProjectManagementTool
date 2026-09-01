@@ -13,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 
-#[Fillable(['username', 'name', 'employee_id', 'email', 'phone', 'password', 'is_active', 'auth_provider', 'provider_id'])]
+#[Fillable(['username', 'name', 'employee_id', 'email', 'phone', 'password', 'must_change_password', 'is_active', 'auth_provider', 'provider_id'])]
 #[Hidden(['password'])]
 class User extends Authenticatable
 {
@@ -24,6 +24,7 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

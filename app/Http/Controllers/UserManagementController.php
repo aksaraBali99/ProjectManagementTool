@@ -138,7 +138,7 @@ class UserManagementController extends Controller
     {
         Gate::authorize('update', $user);
 
-        $user->update(['password' => $request->string('password')]);
+        $user->update(['password' => $request->string('password'), 'must_change_password' => false]);
 
         return redirect()->route('users.edit', $user)->with('status', 'Password changed.');
     }
