@@ -142,7 +142,7 @@
   "140": "require",
   "141": "CalendarController.php",
   "142": "StoreTaskRequest",
-  "143": "extra",
+  "143": "keywords",
   "144": "2026_08_27_010000_make_audit_log_user_and_organization_nullable.php",
   "145": "AuditEventMailNotification.php",
   "146": "psr-4",
