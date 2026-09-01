@@ -29,15 +29,128 @@
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">You don't have access to any companies yet.</p>
     @else
-        <div class="mt-4 flex justify-end">
-            <label class="flex items-center gap-1.5 text-[11px] text-gray-600">
+        @php
+            // Only carry org-agnostic state across a company-tab switch — a
+            // project/department/assignee filter is a set of IDs scoped to
+            // the *current* company, so it wouldn't mean the same thing (or
+            // might match nothing at all) after switching companies.
+            $tabQueryParts = array_filter([
+                'show_inactive' => $showInactive ? 1 : null,
+                'sort' => $sort !== 'due_date' ? $sort : null,
+                'direction' => $direction !== 'asc' ? $direction : null,
+                'q' => $filters['q'] ?? null,
+                'priority' => $filters['priority'] ?? null,
+                'status' => $filters['status'] ?? null,
+                'due_from' => $filters['due_from'] ?? null,
+                'due_to' => $filters['due_to'] ?? null,
+            ], fn ($value) => $value !== null && $value !== '');
+            $tabQuery = http_build_query($tabQueryParts);
+
+            $sortLink = function (string $column) use ($organization, $showInactive, $filters, $sort, $direction) {
+                $nextDirection = ($sort === $column && $direction === 'asc') ? 'desc' : 'asc';
+                $parts = array_filter(array_merge($filters, [
+                    'show_inactive' => $showInactive ? 1 : null,
+                    'sort' => $column,
+                    'direction' => $nextDirection,
+                ]), fn ($value) => $value !== null && $value !== '');
+
+                return [
+                    'href' => route('tasks.index', $organization).'?'.http_build_query($parts),
+                    'indicator' => $sort === $column ? ($direction === 'asc' ? '↑' : '↓') : '',
+                ];
+            };
+        @endphp
+
+        <form method="GET" action="{{ route('tasks.index', $organization) }}" class="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-3">
+            <input type="hidden" name="sort" value="{{ $sort }}">
+            <input type="hidden" name="direction" value="{{ $direction }}">
+
+            <div>
+                <label for="task-filter-q" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</label>
+                <input id="task-filter-q" name="q" type="text" value="{{ $filters['q'] ?? '' }}" placeholder="Search title…"
+                    class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+            </div>
+
+            <div>
+                <label for="task-filter-project" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project</label>
+                <select id="task-filter-project" name="project_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option value="">All projects</option>
+                    @foreach ($filterProjects as $filterProject)
+                        <option value="{{ $filterProject->id }}" {{ (string) ($filters['project_id'] ?? '') === (string) $filterProject->id ? 'selected' : '' }}>{{ $filterProject->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="task-filter-department" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Department</label>
+                <select id="task-filter-department" name="department_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option value="">All departments</option>
+                    @foreach ($filterDepartments as $filterDepartment)
+                        <option value="{{ $filterDepartment->id }}" {{ (string) ($filters['department_id'] ?? '') === (string) $filterDepartment->id ? 'selected' : '' }}>{{ $filterDepartment->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="task-filter-assignee" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Assignee</label>
+                <select id="task-filter-assignee" name="assignee_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option value="">All assignees</option>
+                    <option value="unassigned" {{ ($filters['assignee_id'] ?? '') === 'unassigned' ? 'selected' : '' }}>Unassigned</option>
+                    @foreach ($filterAssignees as $filterAssignee)
+                        <option value="{{ $filterAssignee->id }}" {{ (string) ($filters['assignee_id'] ?? '') === (string) $filterAssignee->id ? 'selected' : '' }}>{{ $filterAssignee->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="task-filter-priority" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority</label>
+                <select id="task-filter-priority" name="priority" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option value="">All priorities</option>
+                    @foreach (\App\Enums\Priority::cases() as $priorityCase)
+                        <option value="{{ $priorityCase->value }}" {{ ($filters['priority'] ?? '') === $priorityCase->value ? 'selected' : '' }}>{{ $priorityCase->label() }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="task-filter-status" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</label>
+                <select id="task-filter-status" name="status" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option value="">All statuses</option>
+                    @foreach (\App\Enums\TaskStatus::cases() as $statusCase)
+                        <option value="{{ $statusCase->value }}" {{ ($filters['status'] ?? '') === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="task-filter-due-from" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Due from</label>
+                <input id="task-filter-due-from" name="due_from" type="date" value="{{ $filters['due_from'] ?? '' }}"
+                    class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+            </div>
+
+            <div>
+                <label for="task-filter-due-to" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Due to</label>
+                <input id="task-filter-due-to" name="due_to" type="date" value="{{ $filters['due_to'] ?? '' }}"
+                    class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="submit" class="rounded-md bg-brand-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-brand-700">
+                    Filter
+                </button>
+                @if (array_filter($filters))
+                    <a href="{{ route('tasks.index', $organization).($showInactive ? '?show_inactive=1' : '') }}" class="text-[11px] text-gray-500 hover:underline">Clear</a>
+                @endif
+            </div>
+
+            <label class="ml-auto flex items-center gap-1.5 text-[11px] text-gray-600">
                 <input type="checkbox" {{ $showInactive ? 'checked' : '' }}
-                    onchange="window.location = '{{ route('tasks.index', $organization) }}' + (this.checked ? '?show_inactive=1' : '')">
+                    onchange="const params = new URLSearchParams(window.location.search); params.delete('show_inactive'); if (this.checked) { params.set('show_inactive', '1'); } window.location = '{{ route('tasks.index', $organization) }}' + (params.toString() ? '?' + params.toString() : '');">
                 Show inactive tasks
             </label>
-        </div>
+        </form>
 
-        <x-company-tabs :organizations="$organizations" :active="$organization" route="tasks.index" :query="$showInactive ? 'show_inactive=1' : ''">
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="tasks.index" :query="$tabQuery">
         {{-- Below md, the table becomes a stack of row-cards: each <tr>
              is a bordered block instead of a table row, and every <td>
              carries its own inline label (md:hidden) since the column
@@ -48,15 +161,35 @@
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
                 <x-table-header>
                     <th class="w-8 px-3 py-2"></th>
-                    <x-th>Title</x-th>
-                    <x-th>Project</x-th>
-                    <x-th>Department</x-th>
-                    <x-th>Assignee</x-th>
-                    <x-th>Priority</x-th>
-                    <x-th>Status</x-th>
-                    <x-th>Due</x-th>
+                    @foreach ([
+                        'title' => 'Title',
+                        'project' => 'Project',
+                        'department' => 'Department',
+                        'assignee' => 'Assignee',
+                        'priority' => 'Priority',
+                        'status' => 'Status',
+                        'due_date' => 'Due',
+                    ] as $column => $label)
+                        @php
+                            $link = $sortLink($column);
+                        @endphp
+                        <x-th>
+                            <a href="{{ $link['href'] }}" class="inline-flex items-center gap-1 hover:text-gray-700">
+                                {{ $label }}
+                                <span class="text-gray-400">{{ $link['indicator'] }}</span>
+                            </a>
+                        </x-th>
+                    @endforeach
                     @if ($showInactive)
-                        <x-th>Active</x-th>
+                        @php
+                            $link = $sortLink('active');
+                        @endphp
+                        <x-th>
+                            <a href="{{ $link['href'] }}" class="inline-flex items-center gap-1 hover:text-gray-700">
+                                Active
+                                <span class="text-gray-400">{{ $link['indicator'] }}</span>
+                            </a>
+                        </x-th>
                     @endif
                     <x-th align="right">Actions</x-th>
                 </x-table-header>
@@ -148,7 +281,9 @@
                             </td>
                         </tr>
                     @empty
-                        <x-empty-table-row :colspan="$showInactive ? 9 : 8">No tasks yet.</x-empty-table-row>
+                        <x-empty-table-row :colspan="$showInactive ? 9 : 8">
+                            {{ array_filter($filters) ? 'No tasks match these filters.' : 'No tasks yet.' }}
+                        </x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>
