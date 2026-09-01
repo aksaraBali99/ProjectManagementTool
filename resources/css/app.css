@@ -1,11 +1,5 @@
 @import 'tailwindcss';
 
-/* frappe-gantt's package.json "exports" field doesn't expose a subpath for
-   its CSS, so a bare `frappe-gantt/dist/frappe-gantt.css` import fails
-   Node/Vite's strict exports-map resolution — importing by relative
-   filesystem path instead, which bypasses that resolution entirely. */
-@import '../../node_modules/frappe-gantt/dist/frappe-gantt.css';
-
 /* Inter, self-hosted via the @fontsource/inter npm package (bundled through
    Vite, same "install it, don't CDN it" pattern as intl-tel-input) rather
    than a Google Fonts CDN call. Only the weights the UI_Screens typography
@@ -82,38 +76,6 @@
 
 .iti--invalid input {
     border-color: #f87171 !important; /* red-400, matches .field-error state elsewhere */
-}
-
-/* Frappe Gantt: no native "group by project" concept in the library, so
-   each project gets a distinct bar color instead — the closest visual
-   approximation of grouping it supports. Cycles through 6 colors;
-   CalendarController assigns classes by project in first-seen order. */
-.gantt .bar-wrapper.gantt-project-0 .bar { fill: #1d9e75; }
-.gantt .bar-wrapper.gantt-project-1 .bar { fill: #534ab7; }
-.gantt .bar-wrapper.gantt-project-2 .bar { fill: #2563eb; }
-.gantt .bar-wrapper.gantt-project-3 .bar { fill: #d97706; }
-.gantt .bar-wrapper.gantt-project-4 .bar { fill: #db2777; }
-.gantt .bar-wrapper.gantt-project-5 .bar { fill: #0891b2; }
-
-/* Invisible task app.js adds purely to fix the calendar's date-range bounds
-   (see renderGanttView) — hide its bar, its row still takes up height. */
-.gantt .bar-wrapper.gantt-bounds-phantom { display: none; }
-
-/* Drill-down subtask rows (app.js's buildDisplayRows) — same project
-   color family as their parent (custom_class only ever holds one class;
-   Frappe passes it straight to classList.add(), which throws on a
-   space-separated string), so subtask bars are identified by their id
-   prefix instead and visually receded so the parent task's own bar still
-   reads as the primary row. Bars never carry a text label (see
-   renderGanttView) — names live in the #gantt-task-list column instead. */
-.gantt .bar-wrapper[data-id^="subtask-"] { opacity: 0.6; }
-
-/* #gantt-task-list (app.js's renderTaskListColumn): resizable via the drag
-   handle, and its own overflow-x:auto is the scrollbar a too-long name
-   scrolls under rather than being clipped — thin here just keeps that
-   scrollbar from looking oversized next to the chart's own. */
-#gantt-task-list {
-    scrollbar-width: thin;
 }
 
 /* Manila-folder company tabs (<x-company-tabs>). Trapezoid via clip-path:
