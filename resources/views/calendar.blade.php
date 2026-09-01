@@ -116,7 +116,7 @@
                 @foreach ($weeks as $week)
                     <div class="grid grid-cols-7">
                         @foreach ($week as $day)
-                            <div class="group min-h-[110px] p-1.5
+                            <div class="min-h-[110px] p-1.5
                                 {{ ! $loop->last ? 'border-r border-gray-200' : '' }}
                                 {{ ! $loop->parent->last ? 'border-b border-gray-200' : '' }}">
                                 <div>
@@ -137,7 +137,7 @@
                                 </div>
                                 @if ($canCreate)
                                     <a href="{{ route('tasks.create', $defaultProject) }}?due_date={{ $day['date']->toDateString() }}"
-                                       class="mt-1 block text-[10px] text-gray-500 opacity-0 hover:text-gray-700 focus:opacity-100 group-hover:opacity-100">
+                                       class="mt-1 block text-[10px] text-gray-500 hover:text-gray-700">
                                         + Add task
                                     </a>
                                 @endif

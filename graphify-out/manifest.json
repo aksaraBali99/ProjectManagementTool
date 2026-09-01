@@ -1080,8 +1080,8 @@
     "semantic_hash": ""
   },
   "resources/views/calendar.blade.php": {
-    "mtime": 1788260141.6938903,
-    "ast_hash": "3041f75ebff9a3568d3249025543108e",
+    "mtime": 1788262056.3012094,
+    "ast_hash": "1e1da0c639dfb972a22bfe0c2b3693d7",
     "semantic_hash": ""
   },
   "tests/Feature/Analytics/AnalyticsTest.php": {
