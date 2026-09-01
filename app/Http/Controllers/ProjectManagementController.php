@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Priority;
+use App\Enums\ProjectStatus;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Requests\Projects\StoreProjectRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
@@ -39,19 +41,96 @@ class ProjectManagementController extends Controller
 
         $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
-        $projects = Project::where('organization_id', $organization->id)
+        // Visibility (who can see which projects at all) is a policy check,
+        // not a query scope, so the whole company's projects are loaded
+        // once and policy-filtered here — everything downstream (the
+        // filter option lists, the filters themselves, sorting) works off
+        // this already-visible set rather than re-querying per filter.
+        $visibleProjects = Project::where('organization_id', $organization->id)
             ->withCount('tasks')
             ->with('clients')
-            ->orderBy('name')
             ->get()
             ->filter(fn (Project $project) => $user->can('view', $project))
             ->values();
+
+        $filters = request()->only(['q', 'client_id', 'status', 'priority']);
+
+        $projects = $visibleProjects;
+
+        if ($search = trim((string) ($filters['q'] ?? ''))) {
+            $needle = strtolower($search);
+            $projects = $projects->filter(fn (Project $project) => str_contains(strtolower($project->name), $needle))->values();
+        }
+
+        if ($clientId = request()->string('client_id')->toString()) {
+            if ($clientId === 'internal') {
+                $projects = $projects->filter(fn (Project $project) => $project->clients->isEmpty())->values();
+            } elseif (ctype_digit($clientId)) {
+                $id = (int) $clientId;
+                $projects = $projects->filter(fn (Project $project) => $project->clients->contains('id', $id))->values();
+            }
+        }
+
+        if ($status = request()->string('status')->toString()) {
+            $projects = $projects->filter(fn (Project $project) => $project->status->value === $status)->values();
+        }
+
+        if ($priority = request()->string('priority')->toString()) {
+            $projects = $projects->filter(fn (Project $project) => $project->priority->value === $priority)->values();
+        }
+
+        $sortable = ['name', 'client', 'status', 'priority', 'tasks'];
+        $sort = request()->string('sort')->toString();
+        $sort = in_array($sort, $sortable, true) ? $sort : 'name';
+        $direction = request()->string('direction')->toString() === 'desc' ? 'desc' : 'asc';
+
+        $projects = $this->sortProjects($projects, $sort, $direction);
+
+        $filterClients = $visibleProjects->pluck('clients')->flatten()->unique('id')->sortBy('name')->values();
 
         return view('projects.index', [
             'organizations' => $organizations,
             'organization' => $organization,
             'projects' => $projects,
+            'filters' => $filters,
+            'sort' => $sort,
+            'direction' => $direction,
+            'filterClients' => $filterClients,
         ]);
+    }
+
+    /**
+     * Sorted at the collection level, not via the query builder, since
+     * visibility here is a policy check rather than a scope — the whole
+     * company's projects are already loaded into memory before the policy
+     * filter runs. Client sorts by the client's name, with "Internal"
+     * treated as a literal sortable value (not a missing one), since it's
+     * a deliberate category rather than an absence of data. Ties break on
+     * name so the list order stays stable and predictable.
+     */
+    private function sortProjects(Collection $projects, string $sort, string $direction): Collection
+    {
+        $statusRank = array_flip(array_map(fn ($case) => $case->value, ProjectStatus::cases()));
+        $priorityRank = array_flip(array_map(fn ($case) => $case->value, Priority::cases()));
+
+        $valueFor = function (Project $project) use ($sort, $statusRank, $priorityRank) {
+            return match ($sort) {
+                'client' => strtolower($project->primaryClient()->name ?? 'internal'),
+                'status' => $statusRank[$project->status->value] ?? PHP_INT_MAX,
+                'priority' => $priorityRank[$project->priority->value] ?? PHP_INT_MAX,
+                'tasks' => $project->tasks_count,
+                default => strtolower($project->name),
+            };
+        };
+
+        return $projects->sort(function (Project $a, Project $b) use ($valueFor, $direction) {
+            $result = $valueFor($a) <=> $valueFor($b);
+            if ($direction === 'desc') {
+                $result = -$result;
+            }
+
+            return $result !== 0 ? $result : strtolower($a->name) <=> strtolower($b->name);
+        })->values();
     }
 
     public function create(?Organization $organization = null): View
