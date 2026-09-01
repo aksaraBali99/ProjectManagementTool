@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 beforeEach(function () {
     $this->owner = createOwner();
@@ -50,6 +51,16 @@ function makeStaffOnCalendar(Organization $org, Department $department): User
     return $staff;
 }
 
+/**
+ * Flattens the controller's week-rows into a single list of day-cells, so a
+ * test can find "the cell for this date" without caring whether it's Month
+ * view's multiple rows or Week view's single row.
+ */
+function flattenCalendarCells(array $weeks): Collection
+{
+    return collect($weeks)->flatten(1);
+}
+
 test('the calendar only shows tasks in a staff user\'s granted departments, same as the Dashboard and Kanban', function () {
     $staff = makeStaffOnCalendar($this->orgA, $this->deptA);
     Task::create([
@@ -74,11 +85,8 @@ test('the calendar only shows tasks in a staff user\'s granted departments, same
     $response = $this->actingAs($staff)->get('/calendar/'.$this->orgA->id);
 
     $response->assertOk();
-    $ganttTasks = $response->viewData('ganttTasks');
-    $names = collect($ganttTasks)->pluck('name');
-
-    expect($names->contains(fn ($name) => str_contains($name, 'Visible task')))->toBeTrue()
-        ->and($names->contains(fn ($name) => str_contains($name, 'Hidden task')))->toBeFalse();
+    $response->assertSee('Visible task');
+    $response->assertDontSee('Hidden task');
 });
 
 test('tasks with no due date are excluded from the calendar', function () {
@@ -103,11 +111,12 @@ test('tasks with no due date are excluded from the calendar', function () {
     $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
 
     $response->assertOk();
-    $ganttTasks = $response->viewData('ganttTasks');
-    $names = collect($ganttTasks)->pluck('name');
+    $response->assertSee('Dated task');
+    $response->assertDontSee('Undated task');
 
-    expect($names->contains(fn ($name) => str_contains($name, 'Dated task')))->toBeTrue()
-        ->and($names->contains(fn ($name) => str_contains($name, 'Undated task')))->toBeFalse();
+    $cells = flattenCalendarCells($response->viewData('weeks'));
+    $allTaskTitles = $cells->flatMap(fn ($cell) => $cell['tasks']->pluck('title'));
+    expect($allTaskTitles)->not->toContain('Undated task');
 });
 
 test('the calendar is scoped to the selected company tab, and only lists active companies as tabs', function () {
@@ -144,7 +153,77 @@ test('the calendar is scoped to the selected company tab, and only lists active 
     expect($organizations->pluck('id')->all())->toBe([$this->orgA->id, $this->orgB->id]);
 });
 
-test('each gantt task carries the correct Edit Task URL for click-to-navigate', function () {
+test('a task with a due date appears in the correct date cell in Month view', function () {
+    $anchor = now()->startOfMonth()->addDays(14); // the 15th — clear of both month-start and month-end boundaries
+    $dueDate = $anchor->copy()->addDays(3);
+
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Placed task',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => $dueDate,
+    ]);
+
+    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id.'?date='.$anchor->toDateString());
+
+    $response->assertOk();
+    $cells = flattenCalendarCells($response->viewData('weeks'));
+
+    $matchingCell = $cells->firstWhere(fn ($cell) => $cell['date']->isSameDay($dueDate));
+    expect($matchingCell['tasks']->pluck('id')->all())->toBe([$task->id]);
+
+    $otherCellsWithTask = $cells->reject(fn ($cell) => $cell['date']->isSameDay($dueDate))
+        ->filter(fn ($cell) => $cell['tasks']->contains('id', $task->id));
+    expect($otherCellsWithTask)->toHaveCount(0);
+});
+
+test('a task with a due date appears in the correct date cell in Week view', function () {
+    $anchor = now()->startOfMonth()->addDays(14);
+    $dueDate = $anchor->copy()->addDays(2); // still inside the same displayed week
+
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Placed weekly task',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => $dueDate,
+    ]);
+
+    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id.'?view=week&date='.$anchor->toDateString());
+
+    $response->assertOk();
+    $weeks = $response->viewData('weeks');
+    expect($weeks)->toHaveCount(1); // Week view is always exactly one row
+
+    $cells = flattenCalendarCells($weeks);
+    $matchingCell = $cells->firstWhere(fn ($cell) => $cell['date']->isSameDay($dueDate));
+    expect($matchingCell['tasks']->pluck('id')->all())->toBe([$task->id]);
+});
+
+test('a task with no due date does not appear anywhere on the calendar grid', function () {
+    $anchor = now()->startOfMonth()->addDays(14);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'No due date task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id.'?date='.$anchor->toDateString());
+
+    $cells = flattenCalendarCells($response->viewData('weeks'));
+    $allTaskTitles = $cells->flatMap(fn ($cell) => $cell['tasks']->pluck('title'));
+    expect($allTaskTitles)->not->toContain('No due date task');
+});
+
+test('clicking a task on the calendar links to its Edit Task page', function () {
     $task = Task::create([
         'organization_id' => $this->orgA->id,
         'project_id' => $this->projectA->id,
@@ -157,8 +236,8 @@ test('each gantt task carries the correct Edit Task URL for click-to-navigate', 
 
     $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
 
-    $ganttTask = collect($response->viewData('ganttTasks'))->firstWhere('id', (string) $task->id);
-    expect($ganttTask['editUrl'])->toBe(route('tasks.edit', $task));
+    $response->assertOk();
+    $response->assertSee(route('tasks.edit', $task), false);
 });
 
 test('a user with no company membership at all sees the generic "no access" calendar message', function () {
@@ -170,132 +249,33 @@ test('a user with no company membership at all sees the generic "no access" cale
     $response->assertSee("You don't have access to any companies yet.");
 });
 
-test('a gantt bar spans from the task\'s start_date to its due_date when start_date is set', function () {
-    $task = Task::create([
-        'organization_id' => $this->orgA->id,
-        'project_id' => $this->projectA->id,
-        'department_id' => $this->deptA->id,
-        'title' => 'Spanning task',
-        'priority' => 'medium',
-        'status' => 'in_progress',
-        'due_date' => now()->addDays(10),
-        'start_date' => now()->subDays(3),
-    ]);
+test('the "+ Add task" affordance is hidden from a staff user who cannot create tasks', function () {
+    $staff = makeStaffOnCalendar($this->orgA, $this->deptA);
 
-    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
-
-    $ganttTask = collect($response->viewData('ganttTasks'))->firstWhere('id', (string) $task->id);
-    expect($ganttTask['start'])->toBe(now()->subDays(3)->toDateString())
-        ->and($ganttTask['end'])->toBe(now()->addDays(10)->toDateString());
-});
-
-test('a task with no start_date renders as a single-day bar at its due date, not a multi-day span', function () {
-    $task = Task::create([
-        'organization_id' => $this->orgA->id,
-        'project_id' => $this->projectA->id,
-        'department_id' => $this->deptA->id,
-        'title' => 'Not started yet',
-        'priority' => 'medium',
-        'status' => 'pending',
-        'due_date' => now()->addDays(10),
-    ]);
-
-    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
-
-    $ganttTask = collect($response->viewData('ganttTasks'))->firstWhere('id', (string) $task->id);
-    expect($ganttTask['start'])->toBe(now()->addDays(10)->toDateString())
-        ->and($ganttTask['end'])->toBe(now()->addDays(10)->toDateString());
-});
-
-test('a task whose start_date falls after its due_date renders as a single-day bar instead of being dropped', function () {
-    $task = Task::create([
-        'organization_id' => $this->orgA->id,
-        'project_id' => $this->projectA->id,
-        'department_id' => $this->deptA->id,
-        'title' => 'Due date pulled earlier',
-        'priority' => 'medium',
-        'status' => 'in_progress',
-        'due_date' => now()->subDays(5),
-        'start_date' => now(),
-    ]);
-
-    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
-
-    $ganttTask = collect($response->viewData('ganttTasks'))->firstWhere('id', (string) $task->id);
-    expect($ganttTask['start'])->toBe(now()->subDays(5)->toDateString())
-        ->and($ganttTask['end'])->toBe(now()->subDays(5)->toDateString());
-});
-
-test('the gantt-container data-tasks attribute is valid, parseable JSON even when a task title contains a double quote', function () {
-    Task::create([
-        'organization_id' => $this->orgA->id,
-        'project_id' => $this->projectA->id,
-        'department_id' => $this->deptA->id,
-        'title' => 'Say "hi" & <test>',
-        'priority' => 'medium',
-        'status' => 'pending',
-        'due_date' => now()->addDays(3),
-    ]);
-
-    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
+    $response = $this->actingAs($staff)->get('/calendar/'.$this->orgA->id);
 
     $response->assertOk();
-    preg_match("/data-tasks='(.*?)'/s", $response->getContent(), $matches);
-    expect($matches)->toHaveCount(2);
-
-    $decoded = json_decode($matches[1], true);
-    expect(json_last_error())->toBe(JSON_ERROR_NONE)
-        ->and($decoded[0]['name'])->toContain('Say "hi" & <test>');
+    $response->assertDontSee('+ Add task');
 });
 
-test('a gantt task carries its plottable subtask count for the drill-down affordance', function () {
-    $task = Task::create([
-        'organization_id' => $this->orgA->id,
-        'project_id' => $this->projectA->id,
-        'department_id' => $this->deptA->id,
-        'title' => 'Task with subtasks',
-        'priority' => 'medium',
-        'status' => 'pending',
-        'due_date' => now()->addDays(3),
-    ]);
-    $task->subtasks()->create(['title' => 'Dated subtask', 'due_date' => now()->addDays(2)]);
-    $task->subtasks()->create(['title' => 'Undated subtask']);
+test('the "+ Add task" affordance is shown to management, pre-filling the due date of the specific cell clicked', function () {
+    $anchor = now()->startOfMonth()->addDays(14);
+    $cellDate = $anchor->copy()->addDays(3);
 
-    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
+    $response = $this->actingAs($this->management)->get('/calendar/'.$this->orgA->id.'?date='.$anchor->toDateString());
 
-    $ganttTask = collect($response->viewData('ganttTasks'))->firstWhere('id', (string) $task->id);
-    expect($ganttTask['subtaskCount'])->toBe(1);
+    $response->assertOk();
+    $response->assertSee('+ Add task');
+
+    $expectedUrl = route('tasks.create', $this->projectA).'?due_date='.$cellDate->toDateString();
+    $response->assertSee($expectedUrl, false);
 });
 
-test('subtasksByTask carries a gantt bar per plottable subtask, keyed by parent task id', function () {
-    $task = Task::create([
-        'organization_id' => $this->orgA->id,
-        'project_id' => $this->projectA->id,
-        'department_id' => $this->deptA->id,
-        'title' => 'Parent task',
-        'priority' => 'medium',
-        'status' => 'pending',
-        'due_date' => now()->addDays(10),
-    ]);
-    $subtask = $task->subtasks()->create([
-        'title' => 'Drill-down subtask',
-        'start_date' => now()->subDays(1),
-        'due_date' => now()->addDays(5),
-        'is_done' => true,
-    ]);
-    $task->subtasks()->create(['title' => 'Undated subtask, excluded']);
+test('visiting the pre-filled Add Task link from the calendar sets the due date field', function () {
+    $dueDate = now()->addDays(5)->toDateString();
 
-    $response = $this->actingAs($this->owner)->get('/calendar/'.$this->orgA->id);
+    $response = $this->actingAs($this->management)->get('/tasks/create/'.$this->projectA->id.'?due_date='.$dueDate);
 
-    $subtasksByTask = $response->viewData('subtasksByTask');
-    expect($subtasksByTask)->toHaveKey($task->id)
-        ->and($subtasksByTask[$task->id])->toHaveCount(1);
-
-    $bar = $subtasksByTask[$task->id][0];
-    expect($bar['id'])->toBe('subtask-'.$subtask->id)
-        ->and($bar['name'])->toContain('Drill-down subtask')
-        ->and($bar['start'])->toBe(now()->subDays(1)->toDateString())
-        ->and($bar['end'])->toBe(now()->addDays(5)->toDateString())
-        ->and($bar['progress'])->toBe(100)
-        ->and($bar['editUrl'])->toBe(route('tasks.edit', $task));
+    $response->assertOk();
+    $response->assertSee('value="'.$dueDate.'"', false);
 });

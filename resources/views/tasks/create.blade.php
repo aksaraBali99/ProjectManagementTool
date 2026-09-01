@@ -92,7 +92,7 @@
 
                 <div>
                     <label for="due_date" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Due date</label>
-                    <input id="due_date" name="due_date" type="date" value="{{ old('due_date') }}"
+                    <input id="due_date" name="due_date" type="date" value="{{ old('due_date', $dueDate ?? '') }}"
                         class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 </div>
             </div>

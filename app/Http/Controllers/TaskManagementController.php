@@ -205,6 +205,10 @@ class TaskManagementController extends Controller
         return view('tasks.create', array_merge([
             'projects' => $projects,
             'project' => $project,
+            // Lets a calendar cell's "+ Add task" link pre-fill the Due
+            // Date field with that cell's date, so the user doesn't have
+            // to re-pick it after clicking through.
+            'dueDate' => request()->query('due_date'),
         ], $this->cascadingOptions($projects)));
     }
 
