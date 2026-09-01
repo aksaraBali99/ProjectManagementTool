@@ -21,15 +21,107 @@
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">You don't have access to any companies yet.</p>
     @else
-        <x-company-tabs :organizations="$organizations" :active="$organization" route="projects.index">
+        @php
+            // Only carry org-agnostic state across a company-tab switch — a
+            // client filter is a set of user IDs scoped to the *current*
+            // company's attached clients, so it wouldn't mean the same
+            // thing (or might match nothing at all) after switching
+            // companies.
+            $tabQueryParts = array_filter([
+                'sort' => $sort !== 'name' ? $sort : null,
+                'direction' => $direction !== 'asc' ? $direction : null,
+                'q' => $filters['q'] ?? null,
+                'status' => $filters['status'] ?? null,
+                'priority' => $filters['priority'] ?? null,
+            ], fn ($value) => $value !== null && $value !== '');
+            $tabQuery = http_build_query($tabQueryParts);
+
+            $sortLink = function (string $column) use ($organization, $filters, $sort, $direction) {
+                $nextDirection = ($sort === $column && $direction === 'asc') ? 'desc' : 'asc';
+                $parts = array_filter(array_merge($filters, [
+                    'sort' => $column,
+                    'direction' => $nextDirection,
+                ]), fn ($value) => $value !== null && $value !== '');
+
+                return [
+                    'href' => route('projects.index', $organization).'?'.http_build_query($parts),
+                    'indicator' => $sort === $column ? ($direction === 'asc' ? '↑' : '↓') : '',
+                ];
+            };
+        @endphp
+
+        <form method="GET" action="{{ route('projects.index', $organization) }}" class="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-3">
+            <input type="hidden" name="sort" value="{{ $sort }}">
+            <input type="hidden" name="direction" value="{{ $direction }}">
+
+            <div>
+                <label for="project-filter-q" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</label>
+                <input id="project-filter-q" name="q" type="text" value="{{ $filters['q'] ?? '' }}" placeholder="Search name…"
+                    class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+            </div>
+
+            <div>
+                <label for="project-filter-client" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Client</label>
+                <select id="project-filter-client" name="client_id" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option value="">All clients</option>
+                    <option value="internal" {{ ($filters['client_id'] ?? '') === 'internal' ? 'selected' : '' }}>Internal</option>
+                    @foreach ($filterClients as $filterClient)
+                        <option value="{{ $filterClient->id }}" {{ (string) ($filters['client_id'] ?? '') === (string) $filterClient->id ? 'selected' : '' }}>{{ $filterClient->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="project-filter-status" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status</label>
+                <select id="project-filter-status" name="status" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option value="">All statuses</option>
+                    @foreach (\App\Enums\ProjectStatus::cases() as $statusCase)
+                        <option value="{{ $statusCase->value }}" {{ ($filters['status'] ?? '') === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="project-filter-priority" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Priority</label>
+                <select id="project-filter-priority" name="priority" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <option value="">All priorities</option>
+                    @foreach (\App\Enums\Priority::cases() as $priorityCase)
+                        <option value="{{ $priorityCase->value }}" {{ ($filters['priority'] ?? '') === $priorityCase->value ? 'selected' : '' }}>{{ $priorityCase->label() }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="submit" class="rounded-md bg-brand-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-brand-700">
+                    Filter
+                </button>
+                @if (array_filter($filters))
+                    <a href="{{ route('projects.index', $organization) }}" class="text-[11px] text-gray-500 hover:underline">Clear</a>
+                @endif
+            </div>
+        </form>
+
+        <x-company-tabs :organizations="$organizations" :active="$organization" route="projects.index" :query="$tabQuery">
         <div class="overflow-hidden rounded-lg border border-gray-200">
             <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
                 <x-table-header>
-                    <x-th>Name</x-th>
-                    <x-th>Client</x-th>
-                    <x-th>Status</x-th>
-                    <x-th>Priority</x-th>
-                    <x-th>Tasks</x-th>
+                    @foreach ([
+                        'name' => 'Name',
+                        'client' => 'Client',
+                        'status' => 'Status',
+                        'priority' => 'Priority',
+                        'tasks' => 'Tasks',
+                    ] as $column => $label)
+                        @php
+                            $link = $sortLink($column);
+                        @endphp
+                        <x-th>
+                            <a href="{{ $link['href'] }}" class="inline-flex items-center gap-1 hover:text-gray-700">
+                                {{ $label }}
+                                <span class="text-gray-400">{{ $link['indicator'] }}</span>
+                            </a>
+                        </x-th>
+                    @endforeach
                     <x-th align="right">Actions</x-th>
                 </x-table-header>
                 <tbody class="block divide-y divide-gray-100 bg-white md:table-row-group">
@@ -66,7 +158,9 @@
                             </td>
                         </tr>
                     @empty
-                        <x-empty-table-row colspan="6">No projects yet.</x-empty-table-row>
+                        <x-empty-table-row colspan="6">
+                            {{ array_filter($filters) ? 'No projects match these filters.' : 'No projects yet.' }}
+                        </x-empty-table-row>
                     @endforelse
                 </tbody>
             </table>
