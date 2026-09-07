@@ -62,45 +62,6 @@ function makeTaskOnDashboard(Organization $org, Project $project, Department $de
     ]);
 }
 
-test('a staff user\'s Dashboard only shows tasks in their granted departments, correctly grouped by Priority enum value', function () {
-    $staff = makeStaffOnDashboard($this->orgA, $this->deptA);
-
-    $visibleHigh = makeTaskOnDashboard($this->orgA, $this->projectA, $this->deptA, 'Visible high task', Priority::High);
-    $visibleLow = makeTaskOnDashboard($this->orgA, $this->projectA, $this->deptA, 'Visible low task', Priority::Low);
-    $hiddenHigh = makeTaskOnDashboard($this->orgA, $this->projectA, $this->deptOther, 'Hidden high task', Priority::High);
-
-    $response = $this->actingAs($staff)->get('/dashboard/'.$this->orgA->id);
-
-    $response->assertOk();
-    $response->assertSee('Visible high task');
-    $response->assertSee('Visible low task');
-    $response->assertDontSee('Hidden high task');
-
-    $priorityGroups = $response->viewData('priorityGroups');
-    expect($priorityGroups[Priority::High->value]->pluck('id')->all())->toBe([$visibleHigh->id])
-        ->and($priorityGroups[Priority::Low->value]->pluck('id')->all())->toBe([$visibleLow->id])
-        ->and($priorityGroups[Priority::Medium->value])->toHaveCount(0);
-});
-
-test('a task assigned to a staff user outside their granted departments still appears on their Dashboard', function () {
-    $staff = makeStaffOnDashboard($this->orgA, $this->deptA);
-    $assignedElsewhere = Task::create([
-        'organization_id' => $this->orgA->id,
-        'project_id' => $this->projectA->id,
-        'department_id' => $this->deptOther->id,
-        'assignee_id' => $staff->id,
-        'title' => 'Assigned outside department',
-        'priority' => Priority::Medium,
-        'status' => 'pending',
-    ]);
-
-    $response = $this->actingAs($staff)->get('/dashboard/'.$this->orgA->id);
-
-    $response->assertOk();
-    $priorityGroups = $response->viewData('priorityGroups');
-    expect($priorityGroups[Priority::Medium->value]->pluck('id')->all())->toBe([$assignedElsewhere->id]);
-});
-
 test('the Active list only includes High-priority tasks that are In progress or In review', function () {
     $activeInProgress = makeTaskOnDashboard($this->orgA, $this->projectA, $this->deptA, 'High + in progress', Priority::High);
     $activeInProgress->update(['status' => 'in_progress']);
@@ -118,10 +79,9 @@ test('the Active list only includes High-priority tasks that are In progress or 
     $response = $this->actingAs($this->management)->get('/dashboard/'.$this->orgA->id);
 
     $response->assertOk();
-    // Priority-group membership is by priority alone (any status), so
-    // "High + pending" legitimately still appears in the High column —
-    // the Active list's own scoped viewData is the precise assertion here,
-    // not a page-wide assertSee/assertDontSee.
+    // "High + pending" is still a visible task on the Dashboard (just not
+    // an Active one), so the Active list's own scoped viewData is the
+    // precise assertion here, not a page-wide assertSee/assertDontSee.
     $activeTasks = $response->viewData('activeTasks');
     expect($activeTasks->pluck('id')->sort()->values()->all())
         ->toBe(collect([$activeInProgress->id, $activeInReview->id])->sort()->values()->all());
@@ -147,13 +107,15 @@ test('a client-role user gets a Dashboard tab for their project\'s company, scop
     $this->projectA->clients()->attach($client->id);
 
     $myProjectTask = makeTaskOnDashboard($this->orgA, $this->projectA, $this->deptA, 'My project task', Priority::High);
+    $myProjectTask->update(['status' => 'in_progress']);
 
     $otherProject = Project::create([
         'organization_id' => $this->orgA->id,
         'name' => 'Other project',
         'description' => 'd',
     ]);
-    makeTaskOnDashboard($this->orgA, $otherProject, $this->deptA, 'Other project task', Priority::High);
+    $otherProjectTask = makeTaskOnDashboard($this->orgA, $otherProject, $this->deptA, 'Other project task', Priority::High);
+    $otherProjectTask->update(['status' => 'in_progress']);
 
     $response = $this->actingAs($client)->get('/dashboard');
 
@@ -262,10 +224,10 @@ test('a staff user\'s MyTask includes a task where they are only a subtask\'s as
     $response = $this->actingAs($staff)->get('/dashboard/'.$this->orgA->id);
 
     $response->assertOk();
-    // The out-of-department task legitimately still appears elsewhere on
-    // the page (Priority groups use the general assignee/subtask-anywhere
-    // bypass) — myTasks specifically is the precise assertion here, same
-    // reasoning as the direct-assignee department test above.
+    // The out-of-department task is still visible on the general Dashboard
+    // task set (the assignee/subtask-anywhere bypass) — myTasks
+    // specifically is the precise assertion here, same reasoning as the
+    // direct-assignee department test above.
     expect($response->viewData('myTasks')->pluck('id')->all())->toBe([$taskWithMySubtask->id]);
     $response->assertSee('Your subtask: My subtask');
 });

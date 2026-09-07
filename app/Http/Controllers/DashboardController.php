@@ -30,7 +30,6 @@ class DashboardController extends Controller
             return view('dashboard', [
                 'organizations' => $organizations,
                 'organization' => null,
-                'priorityGroups' => collect(),
                 'activeTasks' => collect(),
                 'myTasks' => collect(),
                 'myTaskMode' => 'none',
@@ -46,10 +45,6 @@ class DashboardController extends Controller
             ->with(['project', 'department', 'assignee', 'subtasks'])
             ->get();
 
-        $priorityGroups = collect(Priority::cases())->mapWithKeys(
-            fn (Priority $priority) => [$priority->value => $tasks->where('priority', $priority)->sortBy('due_date')->values()]
-        );
-
         $activeStatuses = [TaskStatus::InProgress, TaskStatus::InReview];
         $activeTasks = $tasks
             ->filter(fn (Task $task) => in_array($task->status, $activeStatuses, true) && $task->priority === Priority::High)
@@ -61,7 +56,6 @@ class DashboardController extends Controller
         return view('dashboard', [
             'organizations' => $organizations,
             'organization' => $organization,
-            'priorityGroups' => $priorityGroups,
             'activeTasks' => $activeTasks,
             'myTasks' => $myTasks,
             'myTaskMode' => $myTaskMode,

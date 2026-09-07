@@ -34,39 +34,9 @@
             </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-            @foreach (\App\Enums\Priority::cases() as $priority)
-                @php $group = $priorityGroups[$priority->value] ?? collect() @endphp
-                <div class="rounded-lg border border-gray-200 bg-white">
-                    <div class="flex items-center justify-between border-b-2 px-3 py-2" style="border-color: {{ $priority->badgeText() }}">
-                        <span class="flex items-center gap-1.5">
-                            <x-dot :color="$priority->badgeText()" size="8px" />
-                            <span class="text-[10px] font-medium uppercase tracking-[0.06em]" style="color: {{ $priority->badgeText() }}">{{ $priority->label() }}</span>
-                        </span>
-                        <span class="text-[10px] text-gray-400">{{ $group->count() }}</span>
-                    </div>
-                    <div class="space-y-1.5 p-2">
-                        @forelse ($group as $task)
-                            <a href="{{ route('tasks.edit', $task) }}"
-                               class="block rounded-md border-l-4 px-4 py-2 hover:opacity-90"
-                               style="border-left-color: {{ $priority->badgeText() }}; background-color: {{ $priority->badgeBackground() }};">
-                                <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
-                                <p class="mt-0.5 flex items-center justify-between text-[10px]">
-                                    <span style="color: {{ $task->department->badgeText() }}">{{ $task->department->name }}</span>
-                                    <span style="color: {{ $task->status->badgeText() }}">{{ $task->status->label() }}</span>
-                                </p>
-                            </a>
-                        @empty
-                            <p class="py-4 text-center text-[11px] text-gray-400">No tasks</p>
-                        @endforelse
-                    </div>
-                </div>
-            @endforeach
-        </div>
-
         {{-- Client falls through to mode 'none': their entire visible task
-             set is already project-scoped and shown in full above (Active +
-             Priority groups), so a MyTask section here would just repeat it. --}}
+             set is already project-scoped and shown in full above (Active),
+             so a MyTask section here would just repeat it. --}}
         @if ($myTaskMode !== 'none')
         <div class="mt-4 rounded-lg border border-gray-200 bg-white">
             <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">

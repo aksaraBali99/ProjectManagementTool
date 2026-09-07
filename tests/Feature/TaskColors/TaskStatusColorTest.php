@@ -61,7 +61,7 @@ test('an owner can view the status colors settings page with current colors pre-
     $response->assertSee('value="#F1EFE8"', false);
 });
 
-test('changing the pending status color updates Kanban, Dashboard, Task list, and Analytics', function () {
+test('changing the pending status color updates Kanban, Task list, and Analytics', function () {
     $newBackground = '#123456';
     $newText = '#ABCDEF';
 
@@ -72,9 +72,6 @@ test('changing the pending status color updates Kanban, Dashboard, Task list, an
 
     $kanban = $this->actingAs($this->owner)->get("/kanban/{$this->orgA->id}");
     $kanban->assertOk()->assertSee($newBackground, false);
-
-    $dashboard = $this->actingAs($this->owner)->get("/dashboard/{$this->orgA->id}");
-    $dashboard->assertOk()->assertSee($newText, false);
 
     $taskList = $this->actingAs($this->owner)->get("/tasks/{$this->orgA->id}");
     $taskList->assertOk()->assertSee($newBackground, false);

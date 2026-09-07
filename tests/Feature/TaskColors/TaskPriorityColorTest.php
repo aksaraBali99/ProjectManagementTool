@@ -59,7 +59,7 @@ test('an owner can view the priority colors section pre-filled with current colo
     $response->assertSee('value="#FDEAEA"', false);
 });
 
-test('changing the medium priority color updates Kanban, Dashboard, Task list, and Analytics', function () {
+test('changing the medium priority color updates Kanban, Task list, and Analytics', function () {
     $newBackground = '#334455';
     $newText = '#FEDCBA';
 
@@ -71,31 +71,11 @@ test('changing the medium priority color updates Kanban, Dashboard, Task list, a
     $kanban = $this->actingAs($this->owner)->get("/kanban/{$this->orgA->id}");
     $kanban->assertOk()->assertSee($newBackground, false);
 
-    $dashboard = $this->actingAs($this->owner)->get("/dashboard/{$this->orgA->id}");
-    $dashboard->assertOk()->assertSee($newBackground, false)->assertSee($newText, false);
-
     $taskList = $this->actingAs($this->owner)->get("/tasks/{$this->orgA->id}");
     $taskList->assertOk()->assertSee($newBackground, false);
 
     $analytics = $this->actingAs($this->owner)->get('/analytics');
     $analytics->assertOk()->assertSee($newBackground, false);
-});
-
-test('folding dotColor into text_color means the Dashboard priority column header now reflects the configured text color', function () {
-    $newText = '#00FF00';
-
-    $this->actingAs($this->owner)->put('/task-colors/priority', [
-        'priority_colors' => allPriorityColorsPayload(['medium' => ['background_color' => '#FEF5E7', 'text_color' => $newText]]),
-    ]);
-
-    expect(Priority::Medium->badgeText())->toBe($newText);
-
-    $dashboard = $this->actingAs($this->owner)->get("/dashboard/{$this->orgA->id}");
-    // border-color, the dot, and the label text on the priority column
-    // header all read badgeText() now that dotColor() is gone — a single
-    // occurrence check is enough to prove the fold happened, the exact
-    // count of style attributes referencing it is an implementation detail.
-    $dashboard->assertOk()->assertSee($newText, false);
 });
 
 test('changing a priority color takes effect immediately without any manual cache clear', function () {
