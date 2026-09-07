@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['task_id', 'title', 'assignee_id', 'is_done', 'due_date', 'start_date'])]
+#[Fillable(['task_id', 'title', 'description', 'assignee_id', 'is_done', 'due_date', 'start_date'])]
 #[ObservedBy(SubtaskObserver::class)]
 class Subtask extends Model
 {

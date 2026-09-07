@@ -234,6 +234,7 @@ class TaskManagementController extends Controller
             foreach ($request->input('subtasks', []) as $subtask) {
                 $task->subtasks()->create([
                     'title' => $subtask['title'],
+                    'description' => $subtask['description'] ?? null,
                     'assignee_id' => $subtask['assignee_id'] ?? null,
                     'due_date' => $subtask['due_date'] ?? null,
                 ]);

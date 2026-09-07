@@ -1356,3 +1356,122 @@ test('the task list renders with mobile card-stacking markup alongside the deskt
     $response->assertSee('block divide-y divide-gray-100 bg-white md:table-row-group', false);
     $response->assertSee('md:table-cell', false);
 });
+
+test('a staged subtask\'s description is correctly persisted when the parent task is first saved', function () {
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Write the brief',
+        'description' => 'Draft the campaign brief',
+        'priority' => 'high',
+        'status' => 'pending',
+        'subtasks' => [
+            ['title' => 'Outline sections', 'description' => 'Cover goals, audience, and channels.', 'assignee_id' => null, 'due_date' => null],
+            ['title' => 'Send for review', 'description' => '', 'assignee_id' => null, 'due_date' => null],
+        ],
+    ]);
+
+    $task = Task::where('title', 'Write the brief')->firstOrFail();
+    $response->assertRedirect('/tasks/'.$task->id.'/edit');
+
+    $outline = $task->subtasks()->where('title', 'Outline sections')->firstOrFail();
+    $review = $task->subtasks()->where('title', 'Send for review')->firstOrFail();
+    expect($outline->description)->toBe('Cover goals, audience, and channels.')
+        ->and($review->description)->toBeNull();
+});
+
+test('a live-edited subtask\'s description saves correctly via the AJAX flow on the Edit Task page', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $subtask = $task->subtasks()->create(['title' => 'Step one']);
+
+    $this->actingAs($this->management)
+        ->put("/subtasks/{$subtask->id}", ['description' => 'Check with the client before starting.'])
+        ->assertOk();
+
+    expect($subtask->fresh()->description)->toBe('Check with the client before starting.');
+
+    // Clearing it back to null goes through the same PUT endpoint the
+    // blur-save handler uses (an empty textarea sends description: null).
+    $this->actingAs($this->management)->put("/subtasks/{$subtask->id}", ['description' => null])->assertOk();
+    expect($subtask->fresh()->description)->toBeNull();
+});
+
+test('a staff user who can only toggle a subtask\'s done state cannot edit its description', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Assigned to someone else',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $subtask = $task->subtasks()->create(['title' => 'Do the thing', 'description' => 'Original description']);
+
+    // Same permission boundary as title editing (SubtaskPolicy::update,
+    // reused unchanged for description) — toggle still works, but editing
+    // the description is forbidden exactly like renaming the title is.
+    $this->actingAs($staff)->patch("/subtasks/{$subtask->id}/toggle")->assertOk();
+    $this->actingAs($staff)->put("/subtasks/{$subtask->id}", ['description' => 'Sneaky edit'])->assertForbidden();
+    expect($subtask->fresh()->description)->toBe('Original description');
+
+    // Title is never hidden from a toggle-only viewer on the Edit Task
+    // page — it's rendered read-only (disabled) so its content is still
+    // visible. The description drilldown mirrors that: the row (and its
+    // existing description content) still renders for a toggle-only user,
+    // it's the textarea's edit capability that's restricted.
+    $response = $this->actingAs($staff)->get("/tasks/{$task->id}/edit");
+    $response->assertOk()->assertSee('Original description');
+});
+
+test('each subtask\'s description drilldown renders independently, scoped to its own row', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $first = $task->subtasks()->create(['title' => 'First subtask', 'description' => 'First description text']);
+    $second = $task->subtasks()->create(['title' => 'Second subtask', 'description' => 'Second description text']);
+    $third = $task->subtasks()->create(['title' => 'Third subtask']);
+
+    $response = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit");
+    $response->assertOk();
+
+    // Server-side guarantee the client-side toggle relies on: each row's
+    // description markup — collapsed by default — lives inside that row's
+    // own data-subtask-id block and carries only that subtask's content,
+    // so expanding one row's "+" can never leak or affect another row's
+    // (verified interactively in the browser; Pest has no JS runtime to
+    // click the toggle itself, so this pins down the server-rendered
+    // structure the toggle depends on instead).
+    $content = $response->getContent();
+    foreach ([$first, $second, $third] as $subtask) {
+        $rowStart = strpos($content, 'data-subtask-id="'.$subtask->id.'"');
+        expect($rowStart)->not->toBeFalse();
+
+        $nextRowStart = PHP_INT_MAX;
+        foreach ([$first, $second, $third] as $other) {
+            if ($other->id === $subtask->id) continue;
+            $pos = strpos($content, 'data-subtask-id="'.$other->id.'"', $rowStart + 1);
+            if ($pos !== false && $pos < $nextRowStart) $nextRowStart = $pos;
+        }
+        $rowMarkup = substr($content, $rowStart, min($nextRowStart, strlen($content)) - $rowStart);
+
+        expect($rowMarkup)->toContain('subtask-description-row')
+            ->and($rowMarkup)->toContain('style="display: none;"');
+
+        if ($subtask->description) {
+            expect($rowMarkup)->toContain($subtask->description);
+        }
+    }
+});

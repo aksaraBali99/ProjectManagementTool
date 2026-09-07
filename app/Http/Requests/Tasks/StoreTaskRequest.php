@@ -26,6 +26,7 @@ class StoreTaskRequest extends FormRequest
             ->map(fn ($row) => is_array($row) ? $row : [])
             ->map(fn ($row) => [
                 'title' => trim((string) ($row['title'] ?? '')),
+                'description' => trim((string) ($row['description'] ?? '')) ?: null,
                 'assignee_id' => $row['assignee_id'] ?: null,
                 'due_date' => $row['due_date'] ?: null,
             ])
@@ -49,6 +50,7 @@ class StoreTaskRequest extends FormRequest
             'due_date' => ['nullable', 'date'],
             'subtasks' => ['array'],
             'subtasks.*.title' => ['required', 'string', 'max:255'],
+            'subtasks.*.description' => ['nullable', 'string'],
             'subtasks.*.assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'subtasks.*.due_date' => ['nullable', 'date'],
         ];

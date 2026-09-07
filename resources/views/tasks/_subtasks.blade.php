@@ -10,25 +10,32 @@
 <div class="subtask-container" data-task-id="{{ $task->id }}" data-can-edit="{{ $canEdit ? '1' : '0' }}">
     <div class="subtask-rows space-y-2">
         @foreach ($task->subtasks as $subtask)
-            <div class="flex flex-wrap items-center gap-2" data-subtask-id="{{ $subtask->id }}">
-                <input type="checkbox" class="subtask-toggle rounded border-gray-300 text-brand-600 focus:ring-brand-600" {{ $subtask->is_done ? 'checked' : '' }}>
-                <input type="text" value="{{ $subtask->title }}" {{ $canEdit ? '' : 'disabled' }}
-                    class="subtask-title-input min-w-[140px] flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent disabled:px-0">
-                <select class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent" {{ $canEdit ? '' : 'disabled' }}>
-                    <option value="">Unassigned</option>
-                    @foreach ($staffOptions as $staff)
-                        <option value="{{ $staff['id'] }}" {{ (int) $subtask->assignee_id === $staff['id'] ? 'selected' : '' }}>{{ $staff['name'] }}</option>
-                    @endforeach
-                </select>
-                <input type="date" value="{{ $subtask->start_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }} title="Start date"
-                    class="subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent">
-                <span class="shrink-0 text-[10px] text-gray-400">To</span>
-                <input type="date" value="{{ $subtask->due_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }} title="Due date"
-                    class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent">
-                @if ($canEdit)
-                    <button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>
-                @endif
-                <span class="subtask-feedback text-[10px] text-gray-400"></span>
+            <div data-subtask-id="{{ $subtask->id }}">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" class="subtask-desc-toggle text-[11px] text-gray-500 hover:text-gray-700" title="Description">+</button>
+                    <input type="checkbox" class="subtask-toggle rounded border-gray-300 text-brand-600 focus:ring-brand-600" {{ $subtask->is_done ? 'checked' : '' }}>
+                    <input type="text" value="{{ $subtask->title }}" {{ $canEdit ? '' : 'disabled' }}
+                        class="subtask-title-input min-w-[140px] flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent disabled:px-0">
+                    <select class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent" {{ $canEdit ? '' : 'disabled' }}>
+                        <option value="">Unassigned</option>
+                        @foreach ($staffOptions as $staff)
+                            <option value="{{ $staff['id'] }}" {{ (int) $subtask->assignee_id === $staff['id'] ? 'selected' : '' }}>{{ $staff['name'] }}</option>
+                        @endforeach
+                    </select>
+                    <input type="date" value="{{ $subtask->start_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }} title="Start date"
+                        class="subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent">
+                    <span class="shrink-0 text-[10px] text-gray-400">To</span>
+                    <input type="date" value="{{ $subtask->due_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }} title="Due date"
+                        class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent">
+                    @if ($canEdit)
+                        <button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>
+                    @endif
+                    <span class="subtask-feedback text-[10px] text-gray-400"></span>
+                </div>
+                <div class="subtask-description-row mt-1 pl-5" style="display: none;">
+                    <textarea rows="2" placeholder="Description" {{ $canEdit ? '' : 'disabled' }}
+                        class="subtask-description-input block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-gray-50">{{ $subtask->description }}</textarea>
+                </div>
             </div>
         @endforeach
         @if ($task->subtasks->isEmpty())
@@ -111,6 +118,39 @@
             const startDateInput = row.querySelector('.subtask-start-date');
             const dueDateInput = row.querySelector('.subtask-due-date');
             const removeBtn = row.querySelector('.remove-subtask-row');
+            const descToggle = row.querySelector('.subtask-desc-toggle');
+            const descRow = row.querySelector('.subtask-description-row');
+            const descriptionInput = row.querySelector('.subtask-description-input');
+
+            // Collapsed by default regardless of content — expanding is
+            // purely a local show/hide, scoped to this row only, same "+"/"−"
+            // pattern as the Task list's own drilldown.
+            if (descToggle && descRow) {
+                descToggle.addEventListener('click', function () {
+                    const isHidden = descRow.style.display === 'none';
+                    descRow.style.display = isHidden ? '' : 'none';
+                    descToggle.textContent = isHidden ? '−' : '+';
+                });
+            }
+
+            if (canEdit && descriptionInput) {
+                let originalDescription = descriptionInput.value;
+                descriptionInput.addEventListener('blur', function () {
+                    const newDescription = descriptionInput.value;
+                    if (newDescription === originalDescription) return;
+
+                    const subtaskId = row.dataset.subtaskId;
+                    requestOrThrow('/subtasks/' + subtaskId, 'PUT', { description: newDescription === '' ? null : newDescription }, 'Failed to save.')
+                        .then(function () {
+                            originalDescription = newDescription;
+                            showFeedback(row, 'Saved');
+                        })
+                        .catch(function (error) {
+                            descriptionInput.value = originalDescription;
+                            showFeedback(row, error.message, true);
+                        });
+                });
+            }
 
             toggle.addEventListener('change', function () {
                 const subtaskId = row.dataset.subtaskId;
@@ -250,16 +290,21 @@
                     .then(function (data) {
                         clearEmptyState();
                         const row = document.createElement('div');
-                        row.className = 'flex flex-wrap items-center gap-2';
                         row.dataset.subtaskId = data.subtask.id;
-                        row.innerHTML = '<input type="checkbox" class="subtask-toggle rounded border-gray-300 text-brand-600 focus:ring-1 focus:ring-brand-600">'
+                        row.innerHTML = '<div class="flex flex-wrap items-center gap-2">'
+                            + '<button type="button" class="subtask-desc-toggle text-[11px] text-gray-500 hover:text-gray-700" title="Description">+</button>'
+                            + '<input type="checkbox" class="subtask-toggle rounded border-gray-300 text-brand-600 focus:ring-1 focus:ring-brand-600">'
                             + '<input type="text" value="' + data.subtask.title.replace(/"/g, '&quot;') + '" class="subtask-title-input min-w-[140px] flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">'
                             + buildAssigneeSelectHtml(data.subtask.assignee_id)
                             + '<input type="date" value="' + (data.subtask.start_date || '') + '" title="Start date" class="subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">'
                             + '<span class="shrink-0 text-[10px] text-gray-400">To</span>'
                             + '<input type="date" value="' + (data.subtask.due_date || '') + '" title="Due date" class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">'
                             + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>'
-                            + '<span class="subtask-feedback text-[10px] text-gray-400"></span>';
+                            + '<span class="subtask-feedback text-[10px] text-gray-400"></span>'
+                            + '</div>'
+                            + '<div class="subtask-description-row mt-1 pl-5" style="display: none;">'
+                            + '<textarea rows="2" placeholder="Description" class="subtask-description-input block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>'
+                            + '</div>';
                         rowsEl.appendChild(row);
                         wireRow(row);
                         newTitleInput.value = '';
