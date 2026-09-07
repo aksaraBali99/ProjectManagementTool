@@ -84,21 +84,37 @@
    invalidates the whole clip-path, it's simply skipped and the sharp-corner
    version above it stays in effect, so this degrades safely instead of
    losing the trapezoid shape entirely. */
+/* Every tab — active or not — carries its own company's color; only the
+   INTENSITY differs. At rest, a tab shows a washed-out tint of its own
+   accent (color-mix toward white) so e.g. Bali Hire and Remote Works read
+   as different colors even when neither is selected, rather than both
+   collapsing into the same generic gray. The text stays at full
+   --tab-accent-text strength even at rest — the pale background alone
+   isn't always enough to tell two pastel companies apart, but the text
+   color is far more saturated and does the heavy lifting for
+   distinguishability. Active/hover intensity is layered on top below. */
 .folder-tab {
     clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
     clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100% round 5px);
-    background-color: #F3F4F6;
-    color: #4B5563;
+    background-color: color-mix(in srgb, var(--tab-accent-bg) 55%, white);
+    color: var(--tab-accent-text);
     transition: background-color 150ms ease, color 150ms ease;
 }
 
-/* Actual colors live here, not in each tab's inline style, so this rule's
-   normal cascade specificity can win over the base rule above — an inline
-   background-color/color would always beat this regardless of selector
-   specificity, which is why the per-company values are passed through as
-   custom properties (--tab-accent-bg/text) instead. */
-.folder-tab--active,
+/* Hover nudges an inactive tab's background partway toward full strength —
+   "this is clickable" — without reaching the active tab's own full-strength
+   fill, so a hovered tab never reads as indistinguishable from the truly
+   selected one. */
 .folder-tab:not(.folder-tab--active):hover {
+    background-color: color-mix(in srgb, var(--tab-accent-bg) 80%, white);
+}
+
+/* Actual full-strength colors live here, not in each tab's inline style, so
+   this rule's normal cascade specificity can win over the base rule above —
+   an inline background-color/color would always beat this regardless of
+   selector specificity, which is why the per-company values are passed
+   through as custom properties (--tab-accent-bg/text) instead. */
+.folder-tab--active {
     background-color: var(--tab-accent-bg);
     color: var(--tab-accent-text);
 }
