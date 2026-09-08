@@ -103,16 +103,23 @@
 
                 <div id="subtask-rows" class="mt-2 space-y-2">
                     @foreach (old('subtasks', []) as $index => $staged)
-                        <div class="flex items-center gap-2" data-subtask-row>
-                            <input type="checkbox" disabled class="rounded border-gray-300 text-gray-300">
-                            <input type="text" name="subtasks[{{ $index }}][title]" value="{{ $staged['title'] ?? '' }}" placeholder="Subtask title"
-                                class="subtask-title-input flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                            <select name="subtasks[{{ $index }}][assignee_id]" class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                                <option value="">Unassigned</option>
-                            </select>
-                            <input type="date" name="subtasks[{{ $index }}][due_date]" value="{{ $staged['due_date'] ?? '' }}"
-                                class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                            <button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Remove</button>
+                        <div data-subtask-row>
+                            <div class="flex items-center gap-2">
+                                <button type="button" class="subtask-desc-toggle text-[11px] text-gray-500 hover:text-gray-700" title="Description">+</button>
+                                <input type="checkbox" disabled class="rounded border-gray-300 text-gray-300">
+                                <input type="text" name="subtasks[{{ $index }}][title]" value="{{ $staged['title'] ?? '' }}" placeholder="Subtask title"
+                                    class="subtask-title-input flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                                <select name="subtasks[{{ $index }}][assignee_id]" class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                                    <option value="">Unassigned</option>
+                                </select>
+                                <input type="date" name="subtasks[{{ $index }}][due_date]" value="{{ $staged['due_date'] ?? '' }}"
+                                    class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                                <button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Remove</button>
+                            </div>
+                            <div class="subtask-description-row mt-1 pl-5" style="display: none;">
+                                <textarea name="subtasks[{{ $index }}][description]" rows="2" placeholder="Description"
+                                    class="block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">{{ $staged['description'] ?? '' }}</textarea>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -188,13 +195,18 @@
                     const index = subtaskIndex++;
 
                     const row = document.createElement('div');
-                    row.className = 'flex items-center gap-2';
                     row.dataset.subtaskRow = '';
-                    row.innerHTML = '<input type="checkbox" disabled class="rounded border-gray-300 text-gray-300">'
+                    row.innerHTML = '<div class="flex items-center gap-2">'
+                        + '<button type="button" class="subtask-desc-toggle text-[11px] text-gray-500 hover:text-gray-700" title="Description">+</button>'
+                        + '<input type="checkbox" disabled class="rounded border-gray-300 text-gray-300">'
                         + '<input type="text" name="subtasks[' + index + '][title]" placeholder="Subtask title" class="subtask-title-input flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">'
                         + '<select name="subtasks[' + index + '][assignee_id]" class="subtask-assignee-select w-28 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></select>'
                         + '<input type="date" name="subtasks[' + index + '][due_date]" class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">'
-                        + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Remove</button>';
+                        + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Remove</button>'
+                        + '</div>'
+                        + '<div class="subtask-description-row mt-1 pl-5" style="display: none;">'
+                        + '<textarea name="subtasks[' + index + '][description]" rows="2" placeholder="Description" class="block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>'
+                        + '</div>';
                     subtaskRows.appendChild(row);
 
                     // Pre-fill from the parent task's current values — a
@@ -210,7 +222,16 @@
                 subtaskRows.addEventListener('click', function (event) {
                     const removeBtn = event.target.closest('.remove-subtask-row');
                     if (removeBtn) {
-                        removeBtn.closest('div').remove();
+                        removeBtn.closest('[data-subtask-row]').remove();
+                        return;
+                    }
+
+                    const descToggle = event.target.closest('.subtask-desc-toggle');
+                    if (descToggle) {
+                        const descRow = descToggle.closest('[data-subtask-row]').querySelector('.subtask-description-row');
+                        const isHidden = descRow.style.display === 'none';
+                        descRow.style.display = isHidden ? '' : 'none';
+                        descToggle.textContent = isHidden ? '−' : '+';
                     }
                 });
             })();

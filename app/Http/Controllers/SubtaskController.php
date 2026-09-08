@@ -19,6 +19,7 @@ class SubtaskController extends Controller
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
             'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'due_date' => ['nullable', 'date'],
             'start_date' => ['nullable', 'date'],
@@ -49,6 +50,7 @@ class SubtaskController extends Controller
 
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string'],
             'assignee_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'due_date' => ['sometimes', 'nullable', 'date'],
             'start_date' => ['sometimes', 'nullable', 'date'],
