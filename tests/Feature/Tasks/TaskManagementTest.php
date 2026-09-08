@@ -1461,9 +1461,13 @@ test('each subtask\'s description drilldown renders independently, scoped to its
 
         $nextRowStart = PHP_INT_MAX;
         foreach ([$first, $second, $third] as $other) {
-            if ($other->id === $subtask->id) continue;
+            if ($other->id === $subtask->id) {
+                continue;
+            }
             $pos = strpos($content, 'data-subtask-id="'.$other->id.'"', $rowStart + 1);
-            if ($pos !== false && $pos < $nextRowStart) $nextRowStart = $pos;
+            if ($pos !== false && $pos < $nextRowStart) {
+                $nextRowStart = $pos;
+            }
         }
         $rowMarkup = substr($content, $rowStart, min($nextRowStart, strlen($content)) - $rowStart);
 
