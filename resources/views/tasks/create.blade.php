@@ -44,6 +44,14 @@
                 <select id="department_id" name="department_id" required
                     class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 </select>
+                <p id="no-departments-warning" class="mt-1 text-[11px] text-amber-600" style="display: none;">
+                    This company has no departments yet.
+                    @if ($canCreateDepartments)
+                        <a href="{{ route('departments.create') }}" class="underline hover:no-underline">Add one</a> before creating a task.
+                    @else
+                        Ask an owner or super admin to add one before creating a task.
+                    @endif
+                </p>
             </div>
 
             <div>
@@ -130,7 +138,7 @@
             </div>
 
             <div class="flex items-center gap-3 pt-2">
-                <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
+                <button type="submit" id="create-task-submit" class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">
                     Create task
                 </button>
                 <a href="{{ route('projects.index') }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
@@ -163,17 +171,30 @@
                     });
                 }
 
+                const noDepartmentsWarning = document.getElementById('no-departments-warning');
+                const submitBtn = document.getElementById('create-task-submit');
+
                 function refreshDependents() {
                     const orgId = projectOrganizations[projectSelect.value];
+                    const availableDepartments = departmentsByOrg[orgId] || [];
 
                     departmentSelect.innerHTML = '';
-                    (departmentsByOrg[orgId] || []).forEach(function (dept) {
+                    availableDepartments.forEach(function (dept) {
                         const option = document.createElement('option');
                         option.value = dept.id;
                         option.textContent = dept.name;
                         if (String(dept.id) === String(oldDepartment)) option.selected = true;
                         departmentSelect.appendChild(option);
                     });
+
+                    // The selected company has no departments at all, so
+                    // department_id (required) has nothing to submit — block
+                    // the attempt up front with a clear next step, rather than
+                    // letting it fail validation after the fact.
+                    const hasNoDepartments = availableDepartments.length === 0;
+                    noDepartmentsWarning.style.display = hasNoDepartments ? '' : 'none';
+                    departmentSelect.disabled = hasNoDepartments;
+                    submitBtn.disabled = hasNoDepartments;
 
                     populateAssigneeSelect(assigneeSelect, projectSelect.value, oldAssignee);
 
