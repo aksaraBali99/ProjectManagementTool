@@ -6,6 +6,7 @@ use App\Enums\BoardAccessDeniedReason;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -154,6 +155,71 @@ class User extends Authenticatable
     public function hasGlobalRole(): bool
     {
         return $this->isSuperAdmin() || $this->isOwner();
+    }
+
+    /**
+     * Query-builder equivalent of hasGlobalRole() — users holding
+     * super_admin and/or owner (Role::GLOBAL_SLUGS) via user_roles. These
+     * users are never scoped to a single company via org_members, so
+     * they're always valid assignment candidates in every company without
+     * exception. Kept as its own scope (rather than inlined into
+     * scopeAssignableIn()) so every consumer that needs "just the
+     * global-role users" — e.g. Task/Subtask's assignee pool, which is
+     * project-attached rather than company-wide — can reuse this exact
+     * check instead of re-deriving the role-slug lookup.
+     */
+    public function scopeWithGlobalRole(Builder $query): Builder
+    {
+        return $query->whereHas('roles', fn (Builder $q) => $q->whereIn('slug', Role::GLOBAL_SLUGS));
+    }
+
+    /**
+     * Users assignable within a given company: anyone holding an
+     * org_members row there, UNIONed with anyone holding a global role
+     * (scopeWithGlobalRole() above). Global-role users are deliberately
+     * never given an org_members row — they're global by design, not
+     * scoped to any one company (see hasGlobalRole()) — so without this
+     * union they'd be invisible in every company-scoped assignment picker
+     * (Project's "Assigned staff", Task's "Assignee", Subtask's
+     * "Assignee") despite already being allowed to work in any company.
+     * This governs only who is *selectable* in a picker — it doesn't
+     * loosen what a selected user is actually permitted to do once
+     * assigned, which stays gated by TaskPolicy/ProjectPolicy exactly as
+     * before.
+     */
+    public function scopeAssignableIn(Builder $query, int $organizationId): Builder
+    {
+        return $query->where(function (Builder $q) use ($organizationId) {
+            $q->whereHas('orgMemberships', fn (Builder $oq) => $oq->where('organization_id', $organizationId))
+                ->orWhere(fn (Builder $gq) => $gq->withGlobalRole());
+        });
+    }
+
+    /**
+     * Users eligible for the Project "Assigned staff" picker within a
+     * given company: assignableIn($organizationId) minus anyone whose
+     * only qualifying path is an org_members row holding the Client role
+     * there — Client visibility on a project is granted separately via
+     * the Client field (project_clients), not by being added as staff. A
+     * global-role user is never excluded by this, even in the unusual
+     * case where they separately also hold a Client org_members row for
+     * this company, since their global-role qualification stands on its
+     * own regardless of any other membership. The single source of truth
+     * for this picker — both the controller building the dropdown and
+     * StoreProjectRequest/UpdateProjectRequest's server-side validation of
+     * a submitted staff id call this, so they can't drift out of sync.
+     */
+    public function scopeAssignableAsStaffIn(Builder $query, int $organizationId): Builder
+    {
+        $clientRoleId = Role::where('slug', Role::CLIENT)->value('id');
+
+        return $query->assignableIn($organizationId)
+            ->where(function (Builder $q) use ($organizationId, $clientRoleId) {
+                $q->whereDoesntHave('orgMemberships', fn (Builder $oq) => $oq
+                    ->where('organization_id', $organizationId)
+                    ->where('role_id', $clientRoleId))
+                    ->orWhere(fn (Builder $gq) => $gq->withGlobalRole());
+            });
     }
 
     public function isManagementInOrg(int $organizationId): bool

@@ -209,6 +209,54 @@ test('assigning a user who holds the Client role in the project company as staff
     $this->assertDatabaseMissing('projects', ['organization_id' => $this->orgA->id, 'name' => 'Website revamp']);
 });
 
+test('a user with the owner role appears in the assigned staff dropdown for a company they have no org_members row in', function () {
+    // $this->owner (from beforeEach) deliberately holds no org_members row
+    // anywhere — global roles are granted only via user_roles.
+    $createResponse = $this->actingAs($this->owner)->get("/projects/create/{$this->orgA->id}");
+    $createResponse->assertOk();
+    expect(collect($createResponse->viewData('organizationMembers')[$this->orgA->id])->pluck('id')->all())
+        ->toContain($this->owner->id);
+
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'P', 'description' => 'd']);
+    $editResponse = $this->actingAs($this->owner)->get("/projects/{$project->id}/edit");
+    $editResponse->assertOk();
+    expect($editResponse->viewData('members')->pluck('id')->all())->toContain($this->owner->id);
+});
+
+test('a user with the super_admin role can be successfully assigned as project staff despite having no org_members row', function () {
+    $superAdmin = User::factory()->create();
+    $superAdmin->roles()->attach($this->roles['super_admin']->id);
+
+    $response = $this->actingAs($this->owner)->post('/projects', validProjectPayload([
+        'organization_id' => $this->orgA->id,
+        'staff' => [$superAdmin->id],
+    ]));
+
+    $response->assertRedirect("/projects/{$this->orgA->id}");
+    $project = Project::where('organization_id', $this->orgA->id)->where('name', 'Website revamp')->firstOrFail();
+    expect($project->staff()->where('users.id', $superAdmin->id)->exists())->toBeTrue();
+});
+
+test('a user holding both an org_members row and a global role appears exactly once in the assigned staff dropdown', function () {
+    $ownerAlsoMember = User::factory()->create(['name' => 'Owner Also Member']);
+    $ownerAlsoMember->roles()->attach($this->roles['owner']->id);
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $ownerAlsoMember->id, 'role_id' => $this->roles['staff']->id]);
+
+    $response = $this->actingAs($this->owner)->get("/projects/create/{$this->orgA->id}");
+    $response->assertOk();
+
+    $ids = collect($response->viewData('organizationMembers')[$this->orgA->id])->pluck('id')->all();
+    expect(array_count_values($ids)[$ownerAlsoMember->id] ?? 0)->toBe(1);
+});
+
+test('a staff member of a different company still does not appear in the assigned staff dropdown, even after the global-role fix', function () {
+    $response = $this->actingAs($this->owner)->get("/projects/create/{$this->orgA->id}");
+    $response->assertOk();
+
+    expect(collect($response->viewData('organizationMembers')[$this->orgA->id])->pluck('id')->all())
+        ->not->toContain($this->staffInB->id);
+});
+
 test('a management user can create a project in their own company', function () {
     $response = $this->actingAs($this->manager)->post('/projects', validProjectPayload([
         'organization_id' => $this->orgA->id,

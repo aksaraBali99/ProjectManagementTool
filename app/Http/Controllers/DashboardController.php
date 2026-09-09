@@ -81,7 +81,11 @@ class DashboardController extends Controller
      *     include).
      *   - management: assigned to Staff-role members of this company.
      *   - super_admin/owner: every task in this company, narrowable via a
-     *     checkbox filter to specific Staff-role members.
+     *     checkbox filter to specific Staff-role members OR any global-role
+     *     user (super_admin/owner) — the latter can now be a task assignee
+     *     too (see User::scopeAssignableAsStaffIn()), so the filter needs
+     *     to be able to isolate their tasks the same way it already can
+     *     for Staff-role members.
      *
      * @param  Collection<int, Task>  $tasks
      * @return array{0: Collection<int, Task>, 1: string, 2: Collection<int, User>, 3: array<int, int>}
@@ -89,7 +93,11 @@ class DashboardController extends Controller
     private function myTaskSection(Request $request, User $user, int $organizationId, Collection $tasks): array
     {
         if ($user->isSuperAdmin() || $user->isOwner()) {
-            $staffOptions = $this->staffInOrg($organizationId);
+            $staffOptions = $this->staffInOrg($organizationId)
+                ->concat(User::withGlobalRole()->get(['id', 'name']))
+                ->unique('id')
+                ->sortBy('name')
+                ->values();
             $selectedStaffIds = Collection::make($request->input('staff', []))->map(fn ($id) => (int) $id)->all();
 
             $myTasks = empty($selectedStaffIds)
