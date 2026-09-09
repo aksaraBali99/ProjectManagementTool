@@ -209,6 +209,7 @@ class TaskManagementController extends Controller
             // Date field with that cell's date, so the user doesn't have
             // to re-pick it after clicking through.
             'dueDate' => request()->query('due_date'),
+            'canCreateDepartments' => Gate::allows('create', Department::class),
         ], $this->cascadingOptions($projects)));
     }
 

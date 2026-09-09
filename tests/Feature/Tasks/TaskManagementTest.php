@@ -95,6 +95,43 @@ test('a management user can create a task with staged subtasks bulk-created agai
     expect($task->subtasks()->pluck('title')->all())->toBe(['Outline sections', 'Send for review']);
 });
 
+test('an owner sees a warning and a link to add a department when the selected company has none yet', function () {
+    $orgWithoutDepartments = Organization::create(['name' => 'Org No Depts', 'slug' => 'org-no-depts', 'accent_color' => '#1D9E75']);
+    $projectWithoutDepartments = Project::create([
+        'organization_id' => $orgWithoutDepartments->id,
+        'name' => 'Deptless project',
+        'description' => 'd',
+    ]);
+
+    $response = $this->actingAs($this->owner)->get('/tasks/create/'.$projectWithoutDepartments->id);
+
+    $response->assertOk();
+    expect($response->viewData('departmentsByOrganization'))->not->toHaveKey($orgWithoutDepartments->id);
+    $response->assertSee('This company has no departments yet.');
+    $response->assertSee(route('departments.create'), false);
+});
+
+test('a management user sees the same no-departments warning but without a link, since they cannot create departments', function () {
+    $orgWithoutDepartments = Organization::create(['name' => 'Org No Depts', 'slug' => 'org-no-depts', 'accent_color' => '#1D9E75']);
+    $projectWithoutDepartments = Project::create([
+        'organization_id' => $orgWithoutDepartments->id,
+        'name' => 'Deptless project',
+        'description' => 'd',
+    ]);
+    OrgMember::create([
+        'organization_id' => $orgWithoutDepartments->id,
+        'user_id' => $this->management->id,
+        'role_id' => Role::where('slug', 'management')->first()->id,
+    ]);
+
+    $response = $this->actingAs($this->management)->get('/tasks/create/'.$projectWithoutDepartments->id);
+
+    $response->assertOk();
+    $response->assertSee('This company has no departments yet.');
+    $response->assertSee('Ask an owner or super admin to add one');
+    $response->assertDontSee(route('departments.create'), false);
+});
+
 test('a staff user cannot create a task', function () {
     $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
 
