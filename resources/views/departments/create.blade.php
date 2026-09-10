@@ -85,4 +85,6 @@
         })();
     </script>
 </div>
+
+@include('users._unsaved-changes-guard', ['formId' => 'create-department-form'])
 @endsection

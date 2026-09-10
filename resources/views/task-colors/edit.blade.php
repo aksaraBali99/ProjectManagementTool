@@ -13,6 +13,7 @@
         <div class="mt-4 rounded-md bg-brand-50 p-3 text-[12px] text-brand-800">{{ session('status') }}</div>
     @endif
 
+    <div id="task-colors-forms">
     <div class="mt-6">
         <h2 class="text-[11px] font-semibold uppercase tracking-[0.05em] text-gray-500">Status Colors</h2>
 
@@ -106,7 +107,10 @@
             </div>
         </form>
     </div>
+    </div>
 </div>
+
+@include('users._unsaved-changes-guard', ['formId' => 'task-colors-forms'])
 
 {{-- Shared by every .task-color-row on this page — both the Status and
      Priority sections above reuse the exact same row markup/classes —

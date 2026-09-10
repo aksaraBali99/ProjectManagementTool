@@ -16,7 +16,7 @@
         <div class="mt-4 rounded-md bg-brand-50 p-3 text-[12px] text-brand-800">{{ session('status') }}</div>
     @endif
 
-    <form method="POST" action="{{ route('roles.permissions.update') }}" class="mt-6">
+    <form method="POST" action="{{ route('roles.permissions.update') }}" class="mt-6" id="role-permissions-form">
         @csrf
         @method('PUT')
 
@@ -75,4 +75,6 @@
         </div>
     </form>
 </div>
+
+@include('users._unsaved-changes-guard', ['formId' => 'role-permissions-form'])
 @endsection
