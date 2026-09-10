@@ -198,4 +198,6 @@
         </div>
     </div>
 </div>
+
+@include('users._unsaved-changes-guard', ['formId' => 'edit-task-form'])
 @endsection

@@ -9,7 +9,7 @@
     <h1 class="mt-2 text-[14px] font-medium text-[#1F2937]">Add document</h1>
     <p class="mt-1 text-[11px] text-gray-500">Adding to <span class="font-medium text-[#1F2937]">{{ $organization->name }}</span>.</p>
 
-    <form method="POST" action="{{ route('documents.store') }}" class="mt-6 space-y-4" novalidate>
+    <form method="POST" action="{{ route('documents.store') }}" class="mt-6 space-y-4" id="create-document-form" novalidate>
         @csrf
         <input type="hidden" name="organization_id" value="{{ $organization->id }}">
         <input type="hidden" name="from_documents_page" value="1">
@@ -54,4 +54,6 @@
         </div>
     </form>
 </div>
+
+@include('users._unsaved-changes-guard', ['formId' => 'create-document-form'])
 @endsection

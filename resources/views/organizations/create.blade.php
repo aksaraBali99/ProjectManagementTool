@@ -18,7 +18,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('organizations.store') }}" class="mt-6 space-y-4">
+    <form method="POST" action="{{ route('organizations.store') }}" class="mt-6 space-y-4" id="create-organization-form">
         @csrf
 
         <div>
@@ -41,4 +41,6 @@
         </div>
     </form>
 </div>
+
+@include('users._unsaved-changes-guard', ['formId' => 'create-organization-form'])
 @endsection

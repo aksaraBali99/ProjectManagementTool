@@ -18,7 +18,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('organizations.update', $organization) }}" class="mt-6 space-y-4">
+    <form method="POST" action="{{ route('organizations.update', $organization) }}" class="mt-6 space-y-4" id="edit-organization-form">
         @csrf
         @method('PUT')
 
@@ -65,4 +65,6 @@
         </form>
     </div>
 </div>
+
+@include('users._unsaved-changes-guard', ['formId' => 'edit-organization-form'])
 @endsection
