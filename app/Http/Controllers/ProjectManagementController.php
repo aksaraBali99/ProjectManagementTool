@@ -282,19 +282,21 @@ class ProjectManagementController extends Controller
 
     /**
      * Company members eligible for the Project "Assigned staff" picker —
-     * every org_member except those holding the Client role there. Client
-     * visibility on a project is granted separately via the Client field
-     * (project_clients), not by being added as staff.
+     * every org_member except those holding the Client role there, UNIONed
+     * with anyone holding a global role (super_admin/owner). Global-role
+     * users deliberately have no org_members row — they're global by
+     * design, not scoped to any one company — so without that union
+     * they'd never appear here despite already being allowed to work in
+     * any company. See User::scopeAssignableAsStaffIn() for the single
+     * shared query (also used by StoreProjectRequest/UpdateProjectRequest's
+     * server-side validation of a submitted staff id).
      *
      * @return Collection<int, User>
      */
     private function assignableStaff(Organization $organization): Collection
     {
-        $clientRoleId = Role::where('slug', Role::CLIENT)->value('id');
-
-        return $organization->members()
-            ->wherePivot('role_id', '!=', $clientRoleId)
+        return User::assignableAsStaffIn($organization->id)
             ->orderBy('name')
-            ->get(['users.id', 'users.name']);
+            ->get(['id', 'name']);
     }
 }

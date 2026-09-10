@@ -343,13 +343,49 @@ test('super_admin MyTask defaults to every task in the company, narrowed by a st
     $defaultResponse->assertOk();
     expect($defaultResponse->viewData('myTasks')->pluck('id')->sort()->values()->all())
         ->toBe(collect([$task1->id, $task2->id])->sort()->values()->all())
-        ->and($defaultResponse->viewData('myTaskMode'))->toBe('admin')
-        ->and($defaultResponse->viewData('staffOptions')->pluck('id')->sort()->values()->all())
-        ->toBe(collect([$staff1->id, $staff2->id])->sort()->values()->all());
+        ->and($defaultResponse->viewData('myTaskMode'))->toBe('admin');
+    // The checkbox filter also offers every global-role user (this->owner
+    // from beforeEach, and $superAdmin themselves) alongside the two
+    // Staff-role members — a global-role user can now be a task assignee
+    // too, so the filter needs to be able to isolate their tasks the same
+    // way it already can for staff.
+    expect($defaultResponse->viewData('staffOptions')->pluck('id')->sort()->values()->all())
+        ->toBe(collect([$this->owner->id, $superAdmin->id, $staff1->id, $staff2->id])->sort()->values()->all());
 
     $filteredResponse = $this->actingAs($superAdmin)->get('/dashboard/'.$this->orgA->id.'?staff[]='.$staff1->id);
     $filteredResponse->assertOk();
     expect($filteredResponse->viewData('myTasks')->pluck('id')->all())->toBe([$task1->id]);
+});
+
+test('the super_admin/owner staff checkbox filter can isolate a task assigned to a global-role user', function () {
+    $superAdmin = User::factory()->create();
+    $superAdmin->roles()->attach(Role::where('slug', 'super_admin')->first()->id);
+
+    $staff1 = makeStaffOnDashboard($this->orgA, $this->deptA);
+
+    $staffTask = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff1->id,
+        'title' => 'Staff task',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+    $ownerTask = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $this->owner->id,
+        'title' => 'Owner task',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($superAdmin)->get('/dashboard/'.$this->orgA->id.'?staff[]='.$this->owner->id);
+    $response->assertOk();
+    expect($response->viewData('myTasks')->pluck('id')->all())->toBe([$ownerTask->id])
+        ->and($response->viewData('myTasks')->pluck('id')->all())->not->toContain($staffTask->id);
 });
 
 test('management only sees their own company as a Dashboard tab, and super_admin sees every active company', function () {

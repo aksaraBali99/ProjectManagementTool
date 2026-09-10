@@ -233,6 +233,89 @@ test('assigning a task to a staff member added to the project succeeds', functio
     $this->assertDatabaseHas('tasks', ['title' => 'Assignable', 'assignee_id' => $staff->id]);
 });
 
+test('a user with the owner role appears in a project\'s Task/Subtask assignee options despite having no project_staff row', function () {
+    // $this->owner (from beforeEach) is deliberately not attached to
+    // projectA via project_staff — global roles never need that row.
+    $response = $this->actingAs($this->owner)->get("/tasks/create/{$this->projectA->id}");
+
+    $response->assertOk();
+    $options = collect($response->viewData('staffByProject')[$this->projectA->id])->pluck('id')->all();
+    expect($options)->toContain($this->owner->id);
+});
+
+test('a super_admin can be successfully assigned to a Task despite having no project_staff row', function () {
+    $superAdmin = User::factory()->create();
+    $superAdmin->roles()->attach(Role::where('slug', 'super_admin')->first()->id);
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $superAdmin->id,
+        'title' => 'Assigned to super admin',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('tasks', ['title' => 'Assigned to super admin', 'assignee_id' => $superAdmin->id]);
+});
+
+test('an owner can be successfully assigned to a Subtask via the AJAX endpoint despite having no project_staff row', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Parent task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->post("/tasks/{$task->id}/subtasks", [
+        'title' => 'Subtask for owner',
+        'assignee_id' => $this->owner->id,
+    ]);
+
+    $response->assertCreated();
+    $this->assertDatabaseHas('subtasks', ['title' => 'Subtask for owner', 'assignee_id' => $this->owner->id]);
+});
+
+test('a user holding both a project_staff row and a global role appears exactly once in the assignee options', function () {
+    $ownerAlsoStaff = User::factory()->create(['name' => 'Owner Also Staff']);
+    $ownerAlsoStaff->roles()->attach(Role::where('slug', 'owner')->first()->id);
+    $this->projectA->staff()->attach($ownerAlsoStaff->id);
+
+    $response = $this->actingAs($this->owner)->get("/tasks/create/{$this->projectA->id}");
+    $response->assertOk();
+
+    $ids = collect($response->viewData('staffByProject')[$this->projectA->id])->pluck('id')->all();
+    expect(array_count_values($ids)[$ownerAlsoStaff->id] ?? 0)->toBe(1);
+});
+
+test('a task assignee now being selectable from any global-role user does not change who can edit the task', function () {
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $this->owner->id,
+        'title' => 'Assigned to owner',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+
+    // An uninvolved staff member (not the assignee, no create_edit_tasks
+    // permission) still can't edit — assigning an owner as the task's
+    // assignee didn't change anyone else's TaskPolicy::update() outcome.
+    $this->actingAs($staff)->put("/tasks/{$task->id}", [
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Hijacked',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertForbidden();
+    expect($task->fresh()->title)->toBe('Assigned to owner');
+});
+
 test('a management user added to the project can be assigned to a task', function () {
     $this->projectA->staff()->attach($this->management->id);
 

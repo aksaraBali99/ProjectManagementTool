@@ -4,8 +4,8 @@ namespace App\Http\Requests\Projects;
 
 use App\Enums\Priority;
 use App\Enums\ProjectStatus;
-use App\Models\Role;
 use App\Rules\ValidClientUser;
+use App\Rules\ValidProjectStaffUser;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -37,9 +37,7 @@ class UpdateProjectRequest extends FormRequest
             'staff' => ['array'],
             'staff.*' => [
                 'integer',
-                Rule::exists('org_members', 'user_id')
-                    ->where('organization_id', $organizationId)
-                    ->whereNot('role_id', Role::where('slug', Role::CLIENT)->value('id')),
+                new ValidProjectStaffUser($organizationId),
             ],
         ];
     }
