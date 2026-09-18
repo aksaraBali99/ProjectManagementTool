@@ -60,6 +60,26 @@ return [
             'report' => false,
         ],
 
+        // Cloudflare R2 — S3-compatible, so it reuses the 's3' driver
+        // rather than a bespoke integration. Backs FileStorageService
+        // (config/filestorage.php) for rich-media uploads. 'throw' is
+        // true here (unlike the disks above) so a bad credential or an
+        // unreachable endpoint surfaces as a catchable exception —
+        // FileStorageService relies on that to produce its own specific
+        // error rather than a silent false return.
+        'r2' => [
+            'driver' => 's3',
+            'key' => env('R2_ACCESS_KEY_ID'),
+            'secret' => env('R2_SECRET_ACCESS_KEY'),
+            'region' => 'auto',
+            'bucket' => env('R2_BUCKET'),
+            'url' => env('R2_URL'),
+            'endpoint' => env('R2_ENDPOINT'),
+            'use_path_style_endpoint' => true,
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
 
     /*
