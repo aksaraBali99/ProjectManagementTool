@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -955,8 +955,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/NotificationSettingsController.php": {
-    "mtime": 1787304774.920938,
-    "ast_hash": "ce62060458b01cc4a41a626dad309290",
+    "mtime": 1789727099.3807025,
+    "ast_hash": "e9a4bd7cccd03da66926e7bf17ee0a62",
     "semantic_hash": ""
   },
   "app/Notifications/AuditEventDatabaseNotification.php": {
@@ -995,8 +995,8 @@
     "semantic_hash": ""
   },
   "app/Services/AuditEventNotifier.php": {
-    "mtime": 1789706005.7501862,
-    "ast_hash": "185bc8bfa9dab0779e6cb812d50546be",
+    "mtime": 1789727415.8424964,
+    "ast_hash": "4a59aa544d2e0a2ae92540491ee23ca0",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_21_070656_create_notifications_table.php": {
@@ -1010,8 +1010,8 @@
     "semantic_hash": ""
   },
   "resources/views/notification-settings/index.blade.php": {
-    "mtime": 1787710145.1247268,
-    "ast_hash": "bbecd68f6f3a64a7039e7d3f804aedd5",
+    "mtime": 1789727184.49016,
+    "ast_hash": "937259242aebcf155f5c39d0b8acdbdf",
     "semantic_hash": ""
   },
   "resources/views/notifications/index.blade.php": {
@@ -1030,13 +1030,13 @@
     "semantic_hash": ""
   },
   "tests/Feature/Notifications/NotificationDeliveryTest.php": {
-    "mtime": 1789706125.0260632,
-    "ast_hash": "c99b4ce22454ab1f97faa2e975f592e0",
+    "mtime": 1789727205.482498,
+    "ast_hash": "fa681b12f3d1d550bb810a9b00a49a8d",
     "semantic_hash": ""
   },
   "tests/Feature/Notifications/NotificationSettingsTest.php": {
-    "mtime": 1787710145.3267307,
-    "ast_hash": "bc96bb4a1088b5ef0baca24b332a9026",
+    "mtime": 1789727188.021791,
+    "ast_hash": "909f37bede41ce8f216a4ab3c96b6968",
     "semantic_hash": ""
   },
   "resources/views/errors/403.blade.php": {
@@ -1060,8 +1060,8 @@
     "semantic_hash": ""
   },
   "app/Services/NotificationSettingsResolver.php": {
-    "mtime": 1789705994.864918,
-    "ast_hash": "951e5eba3f0a1a8f26fb7fcae06da017",
+    "mtime": 1789727044.3183804,
+    "ast_hash": "8ce7f9520b9a306207b13fd43233f771",
     "semantic_hash": ""
   },
   "app/Http/Controllers/AnalyticsController.php": {
