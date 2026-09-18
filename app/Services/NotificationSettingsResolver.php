@@ -107,15 +107,29 @@ class NotificationSettingsResolver
 
     private function isNewAssignee(AuditLog $auditLog, int $userId): bool
     {
+        $newAssigneeId = $this->newAssigneeId($auditLog);
+
+        return $newAssigneeId !== null && $newAssigneeId === $userId;
+    }
+
+    /**
+     * The assignee_id an assignment/reassignment audit row's changes
+     * resolved to, regardless of whether it came from a plain created()
+     * snapshot (raw scalar) or an updated() diff (['old' => .., 'new' =>
+     * ..]) — shared with AuditEventNotifier's self-assignment check so
+     * both read the same shape the same way.
+     */
+    public function newAssigneeId(AuditLog $auditLog): ?int
+    {
         $changes = $auditLog->changes ?? [];
 
         if (! array_key_exists('assignee_id', $changes)) {
-            return false;
+            return null;
         }
 
         $value = $changes['assignee_id'];
         $newValue = is_array($value) && array_key_exists('new', $value) ? $value['new'] : $value;
 
-        return $newValue !== null && (int) $newValue === $userId;
+        return $newValue !== null ? (int) $newValue : null;
     }
 }
