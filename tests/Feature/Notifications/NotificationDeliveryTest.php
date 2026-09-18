@@ -57,6 +57,43 @@ function changeTaskStatus($test)
     ]);
 }
 
+function assignExistingTask($test, User $actor, ?int $assigneeId)
+{
+    return $test->actingAs($actor)->put("/tasks/{$test->task->id}", [
+        'project_id' => $test->projectA->id,
+        'department_id' => $test->deptA->id,
+        'assignee_id' => $assigneeId,
+        'title' => 'Delivery test task',
+        'description' => 'Same description',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+}
+
+function createTaskWithAssignee($test, User $actor, int $assigneeId)
+{
+    return $test->actingAs($actor)->post('/tasks', [
+        'project_id' => $test->projectA->id,
+        'department_id' => $test->deptA->id,
+        'assignee_id' => $assigneeId,
+        'title' => 'Brand new task',
+        'description' => 'A fresh task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+}
+
+function givePersonalTaskAssignedRule($user, bool $isActive = true)
+{
+    return NotificationSetting::create([
+        'owner_id' => $user->id,
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+        'recipients' => null,
+        'is_active' => $isActive,
+    ]);
+}
+
 test('triggering a configured event creates an in-app notification for the configured recipient', function () {
     NotificationSetting::create([
         'owner_id' => $this->recipient->id,
@@ -237,4 +274,78 @@ test('a user matching two different admin rules for the same event_type receives
     changeTaskStatus($this);
 
     expect($this->recipient->fresh()->notifications()->count())->toBe(1);
+});
+
+test('assigning a task to another user creates a notification for that user', function () {
+    $this->projectA->staff()->attach($this->recipient->id);
+    givePersonalTaskAssignedRule($this->recipient);
+
+    assignExistingTask($this, $this->management, $this->recipient->id)->assertRedirect();
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(1);
+
+    $notification = $this->recipient->fresh()->notifications()->first();
+    expect($notification->data['entity_type'])->toBe('task')
+        ->and($notification->data['entity_id'])->toBe($this->task->id);
+});
+
+test('reassigning a task from one user to another notifies the new assignee only, not the old one', function () {
+    $previousAssignee = User::factory()->create();
+    $this->projectA->staff()->attach([$this->recipient->id, $previousAssignee->id]);
+    givePersonalTaskAssignedRule($this->recipient);
+    givePersonalTaskAssignedRule($previousAssignee);
+
+    assignExistingTask($this, $this->management, $previousAssignee->id)->assertRedirect();
+    $previousAssignee->notifications()->delete();
+
+    assignExistingTask($this, $this->management, $this->recipient->id)->assertRedirect();
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(1)
+        ->and($previousAssignee->fresh()->notifications()->count())->toBe(0);
+});
+
+test('a user assigning a task to themselves does not trigger any notification', function () {
+    $this->projectA->staff()->attach($this->management->id);
+    givePersonalTaskAssignedRule($this->management);
+
+    assignExistingTask($this, $this->management, $this->management->id)->assertRedirect();
+
+    expect($this->management->fresh()->notifications()->count())->toBe(0);
+});
+
+test('a manager reassigning a task away from themselves to another user still notifies that assignee', function () {
+    $this->projectA->staff()->attach([$this->management->id, $this->recipient->id]);
+    givePersonalTaskAssignedRule($this->recipient);
+
+    // The task starts assigned to the manager themselves (self-assignment,
+    // so no notification from this step) before they hand it off — this
+    // confirms the exclusion check compares the actor against the NEW
+    // assignee only, not against who held the task before.
+    assignExistingTask($this, $this->management, $this->management->id)->assertRedirect();
+
+    assignExistingTask($this, $this->management, $this->recipient->id)->assertRedirect();
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(1);
+});
+
+test("the assignee's personal preference to opt out of task_assigned notifications is respected", function () {
+    $this->projectA->staff()->attach($this->recipient->id);
+    givePersonalTaskAssignedRule($this->recipient, isActive: false);
+
+    assignExistingTask($this, $this->management, $this->recipient->id)->assertRedirect();
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(0);
+});
+
+test('creating a brand new task with an assignee triggers a task_assigned notification', function () {
+    $this->projectA->staff()->attach($this->recipient->id);
+    givePersonalTaskAssignedRule($this->recipient);
+
+    createTaskWithAssignee($this, $this->management, $this->recipient->id)->assertRedirect();
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(1);
+
+    $notification = $this->recipient->fresh()->notifications()->first();
+    expect($notification->data['entity_type'])->toBe('task')
+        ->and($notification->data['message'])->toContain('Brand new task');
 });

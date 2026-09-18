@@ -33,6 +33,10 @@ class AuditEventNotifier
             return;
         }
 
+        if ($eventType === NotificationEventType::TaskAssigned && $this->isSelfAssignment($auditLog)) {
+            return;
+        }
+
         foreach ($this->candidateUserIds($eventType, $auditLog) as $userId) {
             $user = User::find($userId);
 
@@ -50,6 +54,21 @@ class AuditEventNotifier
                 $user->notify(new AuditEventMailNotification($auditLog, $eventType->label()));
             }
         }
+    }
+
+    /**
+     * "Assigned to me" is meaningless when the assigner and the new
+     * assignee are the same person — someone picking up their own task
+     * doesn't need to be told they just did that. Compares the actor who
+     * made the change (auditLog->user_id) against the *new* assignee, not
+     * the previous one, so a manager reassigning a task away from
+     * themselves to someone else still notifies that someone else.
+     */
+    private function isSelfAssignment(AuditLog $auditLog): bool
+    {
+        $newAssigneeId = $this->resolver->newAssigneeId($auditLog);
+
+        return $newAssigneeId !== null && $auditLog->user_id !== null && $newAssigneeId === (int) $auditLog->user_id;
     }
 
     private function matchEventType(AuditLog $auditLog): ?NotificationEventType
