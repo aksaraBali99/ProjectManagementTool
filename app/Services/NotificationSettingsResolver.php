@@ -73,6 +73,16 @@ class NotificationSettingsResolver
      */
     private function resolveAdminChannels(User $user, NotificationEventType $eventType, AuditLog $auditLog): array
     {
+        // Same "to me" rule as the personal-preference branch above: an
+        // admin-configured rule for task_assigned is a default-on switch
+        // for whichever users it targets, not a broadcast list — it must
+        // still never fire for anyone other than the actual new assignee.
+        // Without this, a rule like "role: staff" would tell every staff
+        // member about every assignment company-wide, not just their own.
+        if ($eventType === NotificationEventType::TaskAssigned && ! $this->isNewAssignee($auditLog, $user->id)) {
+            return [];
+        }
+
         $channels = [];
 
         $rows = NotificationSetting::where('event_type', $eventType->value)
@@ -91,6 +101,10 @@ class NotificationSettingsResolver
 
     private function rowTargetsUser(NotificationSetting $row, User $user, int $organizationId): bool
     {
+        if (($row->recipients['type'] ?? null) === 'all') {
+            return true;
+        }
+
         if (($row->recipients['type'] ?? null) === 'users') {
             return in_array($user->id, array_map('intval', $row->recipients['ids'] ?? []), true);
         }

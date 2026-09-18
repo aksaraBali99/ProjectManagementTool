@@ -349,3 +349,71 @@ test('creating a brand new task with an assignee triggers a task_assigned notifi
     expect($notification->data['entity_type'])->toBe('task')
         ->and($notification->data['message'])->toContain('Brand new task');
 });
+
+test('a team "everyone" task_assigned rule notifies only the actual new assignee, not other staff with no personal preference', function () {
+    $bystander = User::factory()->create();
+    $this->projectA->staff()->attach([$this->recipient->id, $bystander->id]);
+    OrgMember::create([
+        'organization_id' => $this->orgA->id,
+        'user_id' => $bystander->id,
+        'role_id' => Role::where('slug', 'staff')->first()->id,
+    ]);
+
+    // Team-level default, not a personal opt-in from either user — this is
+    // the "turn it on for everyone" rule from the Team Notification Rules
+    // section, with no recipient list of its own.
+    NotificationSetting::create([
+        'owner_id' => $this->management->id,
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+        'recipients' => ['type' => 'all'],
+        'is_active' => true,
+    ]);
+
+    assignExistingTask($this, $this->management, $this->recipient->id)->assertRedirect();
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(1)
+        ->and($bystander->fresh()->notifications()->count())->toBe(0);
+});
+
+test('a team role-based task_assigned rule notifies only the actual new assignee within that role, not the whole role', function () {
+    $bystander = User::factory()->create();
+    $this->projectA->staff()->attach([$this->recipient->id, $bystander->id]);
+    OrgMember::create([
+        'organization_id' => $this->orgA->id,
+        'user_id' => $bystander->id,
+        'role_id' => Role::where('slug', 'staff')->first()->id,
+    ]);
+
+    // Before the assignee gate was added to resolveAdminChannels(), this
+    // exact rule shape would have notified every staff member on every
+    // assignment, not just the one being assigned.
+    NotificationSetting::create([
+        'owner_id' => $this->management->id,
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+        'recipients' => ['type' => 'role', 'role' => 'staff'],
+        'is_active' => true,
+    ]);
+
+    assignExistingTask($this, $this->management, $this->recipient->id)->assertRedirect();
+
+    expect($this->recipient->fresh()->notifications()->count())->toBe(1)
+        ->and($bystander->fresh()->notifications()->count())->toBe(0);
+});
+
+test('self-assignment still sends nothing even with an active team "everyone" task_assigned rule in place', function () {
+    $this->projectA->staff()->attach($this->management->id);
+
+    NotificationSetting::create([
+        'owner_id' => $this->management->id,
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+        'recipients' => ['type' => 'all'],
+        'is_active' => true,
+    ]);
+
+    assignExistingTask($this, $this->management, $this->management->id)->assertRedirect();
+
+    expect($this->management->fresh()->notifications()->count())->toBe(0);
+});

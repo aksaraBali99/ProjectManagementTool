@@ -76,23 +76,42 @@ class NotificationSettingsController extends Controller
         return redirect()->route('notification-settings.index')->with('status', 'Your notification preferences were saved.');
     }
 
+    /**
+     * task_assigned has no "who receives it" choice to make — delivery is
+     * always narrowed to whichever user actually ends up as the new
+     * assignee (see NotificationSettingsResolver), so picking specific
+     * users or a role here would only pointlessly restrict which
+     * assignees are eligible for the default. A rule for this event is
+     * just an org-wide on/off switch, recipients = {"type": "all"}.
+     */
     public function storeRule(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'event_type' => ['required', 'in:'.implode(',', NotificationEventType::values())],
-            'channel' => ['required', 'in:'.implode(',', NotificationChannel::values())],
-            'recipient_type' => ['required', 'in:users,role'],
-            'user_ids' => ['required_if:recipient_type,users', 'array'],
-            'user_ids.*' => ['integer', 'exists:users,id'],
-            'role' => ['required_if:recipient_type,role', 'in:'.implode(',', [Role::MANAGEMENT, Role::STAFF, Role::CLIENT])],
-        ], [
-            'user_ids.required_if' => 'Please select a user when the recipient type is users.',
-            'role.required_if' => 'Please select a role when the recipient type is role.',
-        ]);
+        $eventType = $request->input('event_type');
 
-        $recipients = $data['recipient_type'] === 'users'
-            ? ['type' => 'users', 'ids' => array_map('intval', $data['user_ids'])]
-            : ['type' => 'role', 'role' => $data['role']];
+        if ($eventType === NotificationEventType::TaskAssigned->value) {
+            $data = $request->validate([
+                'event_type' => ['required', 'in:'.NotificationEventType::TaskAssigned->value],
+                'channel' => ['required', 'in:'.implode(',', NotificationChannel::values())],
+            ]);
+
+            $recipients = ['type' => 'all'];
+        } else {
+            $data = $request->validate([
+                'event_type' => ['required', 'in:'.implode(',', NotificationEventType::values())],
+                'channel' => ['required', 'in:'.implode(',', NotificationChannel::values())],
+                'recipient_type' => ['required', 'in:users,role'],
+                'user_ids' => ['required_if:recipient_type,users', 'array'],
+                'user_ids.*' => ['integer', 'exists:users,id'],
+                'role' => ['required_if:recipient_type,role', 'in:'.implode(',', [Role::MANAGEMENT, Role::STAFF, Role::CLIENT])],
+            ], [
+                'user_ids.required_if' => 'Please select a user when the recipient type is users.',
+                'role.required_if' => 'Please select a role when the recipient type is role.',
+            ]);
+
+            $recipients = $data['recipient_type'] === 'users'
+                ? ['type' => 'users', 'ids' => array_map('intval', $data['user_ids'])]
+                : ['type' => 'role', 'role' => $data['role']];
+        }
 
         Gate::authorize('create', [NotificationSetting::class, $recipients]);
 

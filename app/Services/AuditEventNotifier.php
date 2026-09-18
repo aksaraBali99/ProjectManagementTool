@@ -121,6 +121,18 @@ class AuditEventNotifier
                 foreach ($roleUserIds as $id) {
                     $ids[] = (int) $id;
                 }
+            } elseif (($row->recipients['type'] ?? null) === 'all') {
+                // Only meaningful for task_assigned (the only event type
+                // that offers this recipient type — see
+                // NotificationSettingsController::storeRule()) — "all"
+                // resolves to just the actual new assignee, so there's no
+                // need to enumerate every org member as a candidate only
+                // to have resolveChannels() filter them back out.
+                $newAssigneeId = $this->resolver->newAssigneeId($auditLog);
+
+                if ($newAssigneeId !== null) {
+                    $ids[] = $newAssigneeId;
+                }
             }
         }
 

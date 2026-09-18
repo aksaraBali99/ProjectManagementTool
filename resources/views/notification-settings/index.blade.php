@@ -84,7 +84,7 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-start gap-6">
+            <div id="recipient-picker" class="flex flex-wrap items-start gap-6">
                 <label class="flex items-center gap-1.5 text-[11px] text-gray-700">
                     <input type="radio" name="recipient_type" value="users" checked class="text-brand-600 focus:ring-brand-600">
                     Specific users
@@ -105,6 +105,10 @@
                     @endforeach
                 </select>
             </div>
+
+            <p id="task-assigned-note" hidden class="text-[11px] text-gray-500">
+                This event always goes only to whichever user is actually assigned a task — there's no recipient to choose. Adding this rule turns it on by default for everyone, unless a person has set their own preference for it.
+            </p>
 
             @error('user_ids')
                 <p class="field-error text-[11px] text-red-600">{{ $message }}</p>
@@ -138,7 +142,9 @@
                             </td>
                             <td class="py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                                 <span class="mb-0.5 block text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Recipients</span>
-                                @if (($rule->recipients['type'] ?? null) === 'role')
+                                @if (($rule->recipients['type'] ?? null) === 'all')
+                                    Everyone (whoever is assigned)
+                                @elseif (($rule->recipients['type'] ?? null) === 'role')
                                     Role: {{ $roles->firstWhere('slug', $rule->recipients['role'])?->name ?? ucfirst($rule->recipients['role']) }}
                                 @else
                                     Users: {{ \App\Models\User::whereIn('id', $rule->recipients['ids'] ?? [])->pluck('name')->implode(', ') }}
@@ -177,4 +183,24 @@
         </div>
     @endif
 </div>
+
+@if ($canManageOthers)
+<script>
+    (function () {
+        const eventSelect = document.getElementById('rule_event_type');
+        const picker = document.getElementById('recipient-picker');
+        const note = document.getElementById('task-assigned-note');
+        const taskAssignedValue = @json(\App\Enums\NotificationEventType::TaskAssigned->value);
+
+        function syncPicker() {
+            const isTaskAssigned = eventSelect.value === taskAssignedValue;
+            picker.hidden = isTaskAssigned;
+            note.hidden = !isTaskAssigned;
+        }
+
+        eventSelect.addEventListener('change', syncPicker);
+        syncPicker();
+    })();
+</script>
+@endif
 @endsection
