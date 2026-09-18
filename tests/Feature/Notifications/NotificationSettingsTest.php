@@ -245,6 +245,59 @@ test('a role-based rule displays the role\'s current editable name, not its slug
     $response->assertDontSee('Role: Staff');
 });
 
+test('an owner can create a task_assigned team rule with no recipient selection', function () {
+    $response = $this->actingAs($this->owner)->post('/notification-settings/rules', [
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+    ]);
+
+    $response->assertRedirect('/notification-settings');
+    $this->assertDatabaseHas('notification_settings', [
+        'owner_id' => $this->owner->id,
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+        'recipients' => json_encode(['type' => 'all']),
+        'is_active' => true,
+    ]);
+});
+
+test('a staff user without manage_settings cannot create a task_assigned team rule', function () {
+    $this->actingAs($this->staff)->post('/notification-settings/rules', [
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+    ])->assertForbidden();
+});
+
+test('an owner cannot save a duplicate task_assigned team rule for the same channel', function () {
+    $this->actingAs($this->owner)->post('/notification-settings/rules', [
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+    ])->assertRedirect('/notification-settings');
+
+    $response = $this->actingAs($this->owner)->post('/notification-settings/rules', [
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+    ]);
+
+    $response->assertSessionHasErrors('duplicate');
+    expect(NotificationSetting::where('event_type', 'task_assigned')->whereNotNull('recipients')->count())->toBe(1);
+});
+
+test('a task_assigned team rule displays as everyone, not a user or role list', function () {
+    NotificationSetting::create([
+        'owner_id' => $this->owner->id,
+        'event_type' => 'task_assigned',
+        'channel' => 'in_app',
+        'recipients' => ['type' => 'all'],
+        'is_active' => true,
+    ]);
+
+    $response = $this->actingAs($this->owner)->get('/notification-settings');
+
+    $response->assertOk();
+    $response->assertSee('Everyone (whoever is assigned)');
+});
+
 test('the team notification rules list renders with mobile card-stacking markup alongside the desktop table', function () {
     NotificationSetting::create([
         'owner_id' => $this->owner->id,
