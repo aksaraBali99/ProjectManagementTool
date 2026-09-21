@@ -153,12 +153,73 @@ async function initAnalyticsCharts() {
     });
 }
 
+// TipTap + highlight.js are a large chunk, so like Chart.js they're loaded on
+// demand and only once an editor is actually on screen — the Task List page
+// renders one (hidden) comment editor per row inside collapsed drilldowns,
+// and none of those should cost anything until a row is expanded. An editor
+// root (`[data-rich-text]`) waits, via IntersectionObserver, until it's
+// displayed near the viewport, then the chunk loads and it mounts.
+//
+// mount() is idempotent per element and resolves to the editor controller
+// (getHTML / isEmpty / clear / focus / getMentionedUserIds / destroy), so
+// inline page scripts (the comment box) can call it too without racing the
+// auto-init below.
+const richTextMounts = new WeakMap();
+
+function whenNearViewport(element) {
+    return new Promise(function (resolve) {
+        if (! ('IntersectionObserver' in window)) {
+            resolve();
+            return;
+        }
+
+        const observer = new IntersectionObserver(function (entries) {
+            if (entries.some(function (entry) { return entry.isIntersecting; })) {
+                observer.disconnect();
+                resolve();
+            }
+        }, { rootMargin: '200px' });
+        observer.observe(element);
+    });
+}
+
+function mountRichText(root) {
+    if (! richTextMounts.has(root)) {
+        richTextMounts.set(root, whenNearViewport(root)
+            .then(function () { return import('./rich-text-editor.js'); })
+            .then(function (module) { return module.createRichTextEditor(root); }));
+    }
+
+    return richTextMounts.get(root);
+}
+
+// Saved code blocks are plain <pre><code class="language-x">; read-only
+// views get their syntax colors from this client-side pass. Only loads the
+// highlighter chunk when there's actually a code block to color.
+function highlightRichText(scope) {
+    const target = scope || document;
+    if (! target.querySelector('[data-rich-text-content] pre code:not([data-highlighted])')) {
+        return Promise.resolve();
+    }
+
+    return import('./code-highlight.js').then(function (module) { module.highlightCodeBlocks(target); });
+}
+
+window.solavaRichText = { mount: mountRichText, highlight: highlightRichText };
+
+function initRichText() {
+    document.querySelectorAll('[data-rich-text]').forEach(mountRichText);
+    highlightRichText(document);
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
         initPhoneInputs();
         initAnalyticsCharts();
+        initRichText();
     });
 } else {
     initPhoneInputs();
     initAnalyticsCharts();
+    initRichText();
 }
