@@ -212,6 +212,24 @@ test('the shared editor registers the emoji extension with native-only rendering
     expect($source)->toContain('data-type="emoji"');
 });
 
+test('the toolbar has an emoji picker button directly after the code block button, in the shared editor', function () {
+    $source = file_get_contents(resource_path('js/rich-text-editor.js'));
+
+    // The TOOLBAR array is the one list of buttons every editor gets.
+    preg_match('/const TOOLBAR = \[(.*?)\n\];/s', $source, $block);
+    preg_match_all("/key: '(\w+)'/", $block[1] ?? '', $keys);
+
+    expect(array_slice($keys[1], -2))->toBe(['codeBlock', 'emoji']);
+
+    // It opens a picker that inserts through the extension's own command (so
+    // bold/italic around the cursor carry over) and only from the native pool.
+    expect($source)
+        ->toContain('function buildEmojiPicker(editor)')
+        ->toContain('.setEmoji(item.name)')
+        ->toContain('availableEmojis(editor)')
+        ->toContain('emoji: function (button) { emojiPicker.toggle(button); }');
+});
+
 test('the committed production build contains the emoji extension in the editor chunk', function () {
     $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
     $entry = $manifest['resources/js/rich-text-editor.js'] ?? null;
