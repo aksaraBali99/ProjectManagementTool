@@ -58,9 +58,8 @@
             </div>
 
             <div>
-                <label for="description" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</label>
-                <textarea id="description" name="description" rows="3"
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">{{ old('description', $task->description) }}</textarea>
+                <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</span>
+                <x-rich-text-editor class="mt-1" name="description" id="description" :value="old('description', $task->description)" label="Description" placeholder="Add a description…" />
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -168,7 +167,7 @@
     @else
         <div class="mt-6 space-y-3 rounded-lg border border-gray-200 p-4 text-[12px]">
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Title</span><p class="mt-0.5 font-medium text-[#1F2937]">{{ $task->title }}</p></div>
-            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Description</span><p class="mt-0.5 text-gray-700">{{ $task->description ?: '—' }}</p></div>
+            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Description</span><x-rich-text :value="$task->description" empty="—" class="mt-0.5 text-gray-700" /></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Priority</span><p class="mt-1"><x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge></p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Status</span><p class="mt-1"><x-badge :background="$task->status->badgeBackground()" :text="$task->status->badgeText()">{{ $task->status->label() }}</x-badge></p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Start date</span><p class="mt-0.5 text-gray-700">{{ $task->start_date?->format('M j, Y') ?? '—' }}</p></div>

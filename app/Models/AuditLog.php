@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
+use App\Support\RichText;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -65,7 +66,7 @@ class AuditLog extends Model
 
         return match ($this->entity_type) {
             'task', 'subtask' => $record->title,
-            'comment' => Str::limit($record->body, 40),
+            'comment' => Str::limit(RichText::plainText($record->body), 40),
             default => "{$this->entity_type} #{$this->entity_id}",
         };
     }
@@ -154,6 +155,8 @@ class AuditLog extends Model
             'priority' => Priority::tryFrom($value)?->label() ?? (string) $value,
             'assignee_id' => User::find($value)?->name ?? "User #{$value}",
             'is_done' => $value ? 'Done' : 'Not done',
+            // Stored as editor HTML now — show the words, not the tags.
+            'description', 'body' => RichText::plainText((string) $value) ?: '—',
             default => is_bool($value) ? ($value ? 'Yes' : 'No') : (string) $value,
         };
     }

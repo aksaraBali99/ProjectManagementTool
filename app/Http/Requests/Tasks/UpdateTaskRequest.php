@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Models\Department;
 use App\Models\Project;
+use App\Support\RichText;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,17 @@ class UpdateTaskRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        // Same normalization as StoreTaskRequest: sanitize editor HTML, and
+        // treat a blank editor ("<p></p>") as no description. Only strings are
+        // normalized; anything else (a malformed array) is left for the
+        // 'string' rule to reject as a validation error rather than a TypeError.
+        if (is_string($this->input('description'))) {
+            $this->merge(['description' => RichText::normalize($this->input('description'))]);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -27,7 +39,7 @@ class UpdateTaskRequest extends FormRequest
             'department_id' => ['required', 'integer', 'exists:departments,id'],
             'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:200000'],
             'priority' => ['required', Rule::enum(Priority::class)],
             'status' => ['required', Rule::enum(TaskStatus::class)],
             'due_date' => ['nullable', 'date'],

@@ -267,7 +267,7 @@
                             <td class="hidden md:table-cell"></td>
                             <td colspan="{{ $showInactive ? 8 : 7 }}" class="block bg-gray-50 px-3 py-3 md:table-cell">
                                 <div class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</div>
-                                <p class="mt-1 text-[12px] text-gray-700">{{ $task->description ?: 'No description.' }}</p>
+                                <x-rich-text :value="$task->description" empty="No description." class="mt-1 text-[12px] text-gray-700" />
 
                                 <div class="mt-3 text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Subtasks</div>
                                 <div class="mt-1">
