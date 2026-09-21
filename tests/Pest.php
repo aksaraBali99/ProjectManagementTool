@@ -135,3 +135,55 @@ function runImportValidation(array $sheetsData, User $uploader): ImportBatch
 
     return $batch->fresh();
 }
+
+/**
+ * What the browser hands to the TipTap editor: the value of the
+ * `data-content` attribute on the `<x-rich-text-editor>` root carrying the
+ * given label (e.g. "Description"), entity-decoded by the DOM parser exactly
+ * as a browser would. Null when the page has no such editor. This is the
+ * seam the editor-compatibility tests assert on — the JS side just
+ * `content: root.dataset.content`, so if this is valid, readable HTML the
+ * editor loads it cleanly.
+ */
+function richTextEditorContent(string $pageHtml, string $label): ?string
+{
+    $node = richTextEditorNode($pageHtml, $label);
+
+    return $node?->getAttribute('data-content');
+}
+
+/** The value of the hidden form input inside the labelled editor, or null. */
+function richTextHiddenInputValue(string $pageHtml, string $label): ?string
+{
+    $node = richTextEditorNode($pageHtml, $label);
+    $input = $node?->getElementsByTagName('input')->item(0);
+
+    return $input?->getAttribute('value');
+}
+
+function richTextEditorNode(string $pageHtml, string $label): ?DOMElement
+{
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?>'.$pageHtml);
+    libxml_clear_errors();
+
+    foreach ((new DOMXPath($document))->query('//*[@data-rich-text]') as $node) {
+        if ($node->getAttribute('data-label') === $label) {
+            return $node;
+        }
+    }
+
+    return null;
+}
+
+/** Parses an HTML fragment (e.g. editor content) into a DOMDocument for structural assertions. */
+function richTextFragment(string $html): DOMDocument
+{
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?><body>'.$html.'</body>');
+    libxml_clear_errors();
+
+    return $document;
+}
