@@ -1,6 +1,8 @@
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Emoji, { emojis as defaultEmojis } from '@tiptap/extension-emoji';
+import { isEmojiSupported } from 'is-emoji-supported';
 import { lowlight } from './code-highlight.js';
 
 // THE rich-text editor. Task Description and Comments (new + edit) all mount
@@ -209,6 +211,189 @@ function buildLinkBar(editor) {
     return { element: wrap, open: open };
 }
 
+// Places a fixed-position popup just below a caret rectangle ({left, top,
+// bottom}), or above it when there isn't room below, and keeps it inside the
+// viewport. Shared by the @mention and :emoji: dropdowns.
+function placePopup(dropdown, caret) {
+    const margin = 4;
+    const spaceBelow = window.innerHeight - caret.bottom - margin - 8;
+    const spaceAbove = caret.top - margin - 8;
+    const above = spaceBelow < dropdown.scrollHeight && spaceAbove > spaceBelow;
+
+    dropdown.style.maxHeight = Math.max(80, above ? spaceAbove : spaceBelow) + 'px';
+    dropdown.style.left = Math.max(8, Math.min(caret.left, window.innerWidth - dropdown.offsetWidth - 8)) + 'px';
+    dropdown.style.top = above
+        ? (caret.top - margin - dropdown.offsetHeight) + 'px'
+        : (caret.bottom + margin) + 'px';
+}
+
+// :emoji: support. Emoji render as the browser's NATIVE glyphs — no image
+// set, no extra assets. The extension's bundled data attaches a
+// cdn.jsdelivr.net Apple PNG as `fallbackImage` to most emoji and renders
+// that <img> instead of the character whenever the browser doesn't detect
+// native support; stripping the field here guarantees the character is
+// always what gets rendered (and stored — the sanitizer drops <img>, so an
+// image would silently lose the emoji on save). Regional-indicator letters
+// are left out of the list (they exist only to compose flags).
+const NATIVE_EMOJIS = defaultEmojis
+    .filter(function (item) { return item.emoji && ! /^regional_indicator/.test(item.name); })
+    .map(function (item) {
+        const copy = Object.assign({}, item);
+        delete copy.fallbackImage;
+
+        return copy;
+    });
+
+// The extension decides "supported" per Unicode version by testing one emoji
+// of that version, which misses flags: Windows draws them as two letters
+// ("LT"), not a flag. Country flags (a pair of regional indicators) and
+// subdivision flags (a black flag + tag characters) are therefore offered
+// only when a real flag renders as a single glyph on this device.
+const FLAG_EMOJI = /^[\u{1F1E6}-\u{1F1FF}]{2}$|^\u{1F3F4}[\u{E0020}-\u{E007F}]+$/u;
+let flagSupport = null;
+
+function flagsRenderable() {
+    if (flagSupport === null) flagSupport = isEmojiSupported('\u{1F1FA}\u{1F1F8}');
+
+    return flagSupport;
+}
+
+const EMOJI_MIN_QUERY = 2;
+const EMOJI_MAX_RESULTS = 8;
+
+// Each emoji is matched on its aliases and its full name, and the label that
+// matched is the one shown (so typing ":smi" offers ":smile:", not an
+// unrelated alias of a long-named emoji). Tiers: a label starting with the
+// query, then containing it, then a keyword tag starting with it; within a
+// tier the shortest label wins ("smile" before "smile_cat").
+function searchEmojis(editor, query) {
+    const needle = query.toLowerCase();
+    if (needle.length < EMOJI_MIN_QUERY) return [];
+
+    // Only offer emoji this device can actually draw — an unsupported one
+    // would show as an empty box. If detection says nothing at all is
+    // supported (canvas blocked, etc.) fall back to offering everything.
+    const supported = NATIVE_EMOJIS.filter(function (item) {
+        return editor.storage.emoji.isSupported(item) && (flagsRenderable() || ! FLAG_EMOJI.test(item.emoji));
+    });
+    const pool = supported.length > 0 ? supported : NATIVE_EMOJIS;
+
+    const ranked = [];
+    pool.forEach(function (item) {
+        const labels = (item.shortcodes || []).concat([item.name]);
+        const shortest = function (list) {
+            return list.reduce(function (best, n) { return best === null || n.length < best.length ? n : best; }, null);
+        };
+
+        const prefixed = shortest(labels.filter(function (n) { return n.indexOf(needle) === 0; }));
+        const containing = shortest(labels.filter(function (n) { return n.indexOf(needle) !== -1; }));
+        const tagged = (item.tags || []).some(function (t) { return t.indexOf(needle) === 0; });
+
+        if (prefixed !== null) ranked.push({ item: item, label: prefixed, tier: 0 });
+        else if (containing !== null) ranked.push({ item: item, label: containing, tier: 1 });
+        else if (tagged) ranked.push({ item: item, label: labels[0], tier: 2 });
+    });
+
+    ranked.sort(function (a, b) {
+        return a.tier - b.tier || a.label.length - b.label.length || a.label.localeCompare(b.label);
+    });
+
+    const top = ranked.slice(0, EMOJI_MAX_RESULTS);
+    const counts = {};
+    top.forEach(function (entry) { counts[entry.label] = (counts[entry.label] || 0) + 1; });
+
+    // Two different emoji can share an alias in the dataset (":satellite:");
+    // when that happens the full, unique name tells them apart.
+    return top.map(function (entry) {
+        return Object.assign({}, entry.item, { label: counts[entry.label] > 1 ? entry.item.name : entry.label });
+    });
+}
+
+// Suggestion-plugin renderer: same look and keyboard behavior as the @mention
+// list (up/down move, Enter/Tab pick) and it reuses its styles.
+function emojiSuggestionRenderer() {
+    let dropdown = null;
+    let current = null;
+    let activeIndex = 0;
+
+    function highlight() {
+        Array.prototype.forEach.call(dropdown.children, function (child, i) {
+            child.classList.toggle('is-active', i === activeIndex);
+            child.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false');
+        });
+    }
+
+    function reposition() {
+        const rect = dropdown && current.clientRect && current.clientRect();
+        if (rect) placePopup(dropdown, rect);
+    }
+
+    function render(props) {
+        current = props;
+        activeIndex = 0;
+        if (dropdown) dropdown.remove();
+
+        if (props.items.length === 0) {
+            dropdown = null;
+            return;
+        }
+
+        dropdown = el('div', 'rte-mentions rte-emoji', { role: 'listbox', 'aria-label': 'Emoji suggestions' });
+        props.items.forEach(function (item, i) {
+            const option = el('button', 'rte-mention-option rte-emoji-option', { type: 'button', role: 'option' });
+            const glyph = el('span', 'rte-emoji-glyph', { 'aria-hidden': 'true' });
+            glyph.textContent = item.emoji;
+            const label = el('span', 'rte-emoji-name');
+            label.textContent = ':' + item.label + ':';
+            option.append(glyph, label);
+            // mousedown, not click: fires before the editor blurs.
+            option.addEventListener('mousedown', function (event) {
+                event.preventDefault();
+                current.command({ name: item.name });
+            });
+            option.addEventListener('mousemove', function () {
+                activeIndex = i;
+                highlight();
+            });
+            dropdown.appendChild(option);
+        });
+        document.body.appendChild(dropdown);
+        highlight();
+        reposition();
+    }
+
+    return {
+        onStart: render,
+        onUpdate: render,
+        onKeyDown: function (props) {
+            if (! dropdown || current.items.length === 0) return false;
+            const event = props.event;
+
+            if (event.key === 'ArrowDown') {
+                activeIndex = (activeIndex + 1) % current.items.length;
+            } else if (event.key === 'ArrowUp') {
+                activeIndex = (activeIndex - 1 + current.items.length) % current.items.length;
+            } else if (event.key === 'Enter' || event.key === 'Tab') {
+                current.command({ name: current.items[activeIndex].name });
+                return true;
+            } else {
+                // Escape (and everything else) is left to the suggestion
+                // plugin, which closes the list itself.
+                return false;
+            }
+
+            highlight();
+
+            return true;
+        },
+        onExit: function () {
+            if (dropdown) dropdown.remove();
+            dropdown = null;
+            current = null;
+        },
+    };
+}
+
 // @mention autocomplete. Same behavior the comment box had as a plain
 // textarea: picking a name inserts the literal text "@Full Name ", picked
 // user IDs are tracked, and at read time an ID is only reported if its
@@ -261,17 +446,7 @@ function setupMentions(editor, users) {
     }
 
     function position() {
-        const caret = editor.view.coordsAtPos(range.to);
-        const margin = 4;
-        const spaceBelow = window.innerHeight - caret.bottom - margin - 8;
-        const spaceAbove = caret.top - margin - 8;
-        const above = spaceBelow < dropdown.scrollHeight && spaceAbove > spaceBelow;
-
-        dropdown.style.maxHeight = Math.max(80, above ? spaceAbove : spaceBelow) + 'px';
-        dropdown.style.left = Math.min(caret.left, window.innerWidth - dropdown.offsetWidth - 8) + 'px';
-        dropdown.style.top = above
-            ? (caret.top - margin - dropdown.offsetHeight) + 'px'
-            : (caret.bottom + margin) + 'px';
+        placePopup(dropdown, editor.view.coordsAtPos(range.to));
     }
 
     function pick(user) {
@@ -386,8 +561,16 @@ export function createRichTextEditor(root) {
 
     // Trailing empty paragraphs (the editor keeps one after a final code
     // block so the cursor can leave it) aren't content worth saving.
+    // Emoji are editor nodes that serialize as <span data-type="emoji">😀</span>;
+    // they're stored as the bare Unicode character instead, so saved content is
+    // plain text plus the same allowlisted tags as before (the wrapper carries
+    // nothing the character doesn't).
     function serialize() {
-        return editor.isEmpty ? '' : editor.getHTML().replace(/(?:<p><\/p>)+$/, '');
+        if (editor.isEmpty) return '';
+
+        return editor.getHTML()
+            .replace(/<span\b[^>]*\bdata-type="emoji"[^>]*>([^<]*)<\/span>/g, '$1')
+            .replace(/(?:<p><\/p>)+$/, '');
     }
 
     function syncInput() {
@@ -417,6 +600,14 @@ export function createRichTextEditor(root) {
                 },
             }),
             CodeBlockLowlight.configure({ lowlight: lowlight }),
+            Emoji.configure({
+                emojis: NATIVE_EMOJIS,
+                enableEmoticons: false,
+                suggestion: {
+                    items: function (props) { return searchEmojis(props.editor, props.query); },
+                    render: emojiSuggestionRenderer,
+                },
+            }),
         ],
         editorProps: {
             attributes: { class: 'rte-prose rich-text', role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },

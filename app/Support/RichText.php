@@ -143,6 +143,11 @@ class RichText
                 ->allowElement('a', ['href'])
                 ->dropElement('script')
                 ->dropElement('style')
+                // Unknown elements are dropped WITH their contents by default.
+                // <span> is what the editor's emoji node serializes to
+                // (<span data-type="emoji">🚀</span>) — the browser unwraps it
+                // before submitting, but if one ever arrives, keep the text.
+                ->blockElement('span')
                 ->allowLinkSchemes(['http', 'https', 'mailto'])
                 ->allowRelativeLinks(false)
                 ->forceAttribute('a', 'rel', 'noopener noreferrer nofollow')
