@@ -212,12 +212,14 @@ class TaskManagementController extends Controller
             // to re-pick it after clicking through.
             'dueDate' => request()->query('due_date'),
             'canCreateDepartments' => Gate::allows('create', Department::class),
-            // The task doesn't exist yet, so an image uploaded from this
-            // page's Description editor can't be keyed by a real task id —
-            // it's stored under tasks/pending/{this}/... instead and moved
-            // to its real tasks/{id}/... path once the task is actually
-            // saved (see store() and FileStorageService::reconcilePendingImages()).
-            'pendingImageId' => (string) Str::uuid(),
+            // The task doesn't exist yet, so a file (image, audio, ...)
+            // uploaded from this page's Description editor can't be keyed
+            // by a real task id — it's stored under tasks/pending/{this}/...
+            // instead and moved to its real tasks/{id}/... path once the
+            // task is actually saved (see store() and
+            // FileStorageService::reconcilePendingFiles()). One id shared
+            // across every media category the editor uploads.
+            'pendingMediaId' => (string) Str::uuid(),
         ], $this->cascadingOptions($projects)));
     }
 
@@ -249,14 +251,15 @@ class TaskManagementController extends Controller
                 ]);
             }
 
-            // Any image the Description editor uploaded while this task was
-            // still being drafted landed under a pending/ path (no task id
-            // existed yet) — now that one does, move those files to their
-            // permanent tasks/{id}/... home and repoint the saved HTML at
-            // the new URLs. A no-op (one string comparison, no disk calls)
-            // when the description has no pending image in it.
+            // Any file (image, audio, ...) the Description editor uploaded
+            // while this task was still being drafted landed under a
+            // pending/ path (no task id existed yet) — now that one does,
+            // move those files to their permanent tasks/{id}/... home and
+            // repoint the saved HTML at the new URLs. A no-op (one string
+            // comparison, no disk calls) when the description has no
+            // pending reference in it.
             if ($task->description !== null) {
-                $reconciled = app(FileStorageService::class)->reconcilePendingImages($task->description, $task->id);
+                $reconciled = app(FileStorageService::class)->reconcilePendingFiles($task->description, $task->id);
 
                 if ($reconciled !== $task->description) {
                     $task->update(['description' => $reconciled]);

@@ -57,12 +57,17 @@ class FileStorageService
      * id — the task doesn't exist yet while it's still being drafted. Those
      * uploads land under tasks/pending/{pendingId}/{category-prefix}/... — a
      * random id the page generates on load (see TaskManagementController's
-     * `pendingImageId` view data), not a database row of any kind — instead
-     * of tasks/{taskId}/..., and reconcilePendingImages() moves them to
-     * their real task-scoped path once the task is actually saved.
+     * `pendingMediaId` view data), not a database row of any kind — instead
+     * of tasks/{taskId}/..., and reconcilePendingFiles() moves them to
+     * their real task-scoped path once the task is actually saved. One
+     * pendingId is shared across every category the Add Task page's editor
+     * uploads (image, audio, ...) — the folder segment right after it
+     * (`{category-prefix}/`) is what tells them apart, so a single call to
+     * reconcilePendingFiles() moves everything a description/comment
+     * references regardless of category.
      *
      * A file that's never reconciled (the Add Task page was abandoned) is
-     * swept up by the images:cleanup-stale-pending scheduled command, the
+     * swept up by the media:cleanup-stale-pending scheduled command, the
      * same pattern as the Import feature's own stale-batch cleanup.
      *
      * @throws FileStorageException file fails validation, $pendingId isn't a
@@ -78,20 +83,27 @@ class FileStorageService
     }
 
     /**
-     * Moves every tasks/pending/{pendingId}/... image this HTML references
+     * Moves every tasks/pending/{pendingId}/... file this HTML references
      * to its permanent tasks/{taskId}/... path, and rewrites the matching
-     * <img src> values to the new URL — called once, right after a new
-     * Task row is created, on whatever the submitted description contains.
-     * A real R2/S3 move (copy-then-delete server-side), not a re-upload —
-     * the browser already has the file, it never sends the bytes again.
+     * src values to the new URL — called once, right after a new Task row
+     * is created, on whatever the submitted description contains. A real
+     * R2/S3 move (copy-then-delete server-side), not a re-upload — the
+     * browser already has the file, it never sends the bytes again.
+     *
+     * Generic across every category by construction: the regex matches a
+     * pending URL shape (tasks/pending/{id}/{category-prefix}/...), not a
+     * specific HTML tag or attribute, so it moves an <img src>, an
+     * <audio src>, or any future category's src the exact same way in one
+     * pass over the HTML — task #4 phase 4 confirmed this rather than
+     * assuming it, see FileStorageServiceTest.
      *
      * Deliberately tolerant of a reference that can't be moved (the pending
      * file was already cleaned up, or the URL was tampered with): that one
-     * <img> tag is left pointing at its original URL — which 24h+ later
-     * increasingly means a broken image — rather than failing the whole
+     * tag is left pointing at its original URL — which 24h+ later
+     * increasingly means a broken embed — rather than failing the whole
      * task save over one bad reference.
      */
-    public function reconcilePendingImages(string $html, int $taskId): string
+    public function reconcilePendingFiles(string $html, int $taskId): string
     {
         if (! str_contains($html, '/tasks/pending/')) {
             return $html;

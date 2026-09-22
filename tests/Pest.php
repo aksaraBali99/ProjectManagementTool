@@ -193,7 +193,7 @@ function richTextFragment(string $html): DOMDocument
  * Backdates a Storage::fake() file's mtime — the fake disk is a real
  * temporary directory, so a plain touch() on its underlying path works;
  * there's no Storage::fake() API for this. Used by age-based cleanup
- * command tests (e.g. images:cleanup-stale-pending), which decide what's
+ * command tests (e.g. media:cleanup-stale-pending), which decide what's
  * "stale" purely from Storage::lastModified().
  */
 function touchDiskFile(string $disk, string $path, DateTimeInterface $when): void
