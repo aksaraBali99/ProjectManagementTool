@@ -185,7 +185,15 @@ class RichText
                 ->allowElement('pre')
                 ->allowElement('code', ['class'])
                 ->allowElement('a', ['href'])
-                ->allowElement('img', ['src', 'alt'])
+                // width/height (task #4, image resize): TipTap's resize
+                // handles save the new size as real width/height attributes
+                // on the node — never inline style — via its own attribute/
+                // render pipeline, so the allowlist has to carry them or
+                // every resize is silently thrown away the moment the
+                // description/comment round-trips through save(). Bounds
+                // are enforced by ImageDimensionAttributeSanitizer, not
+                // trusted from the client alone.
+                ->allowElement('img', ['src', 'alt', 'width', 'height'])
                 ->dropElement('script')
                 ->dropElement('style')
                 // Unknown elements are dropped WITH their contents by default.
@@ -217,6 +225,7 @@ class RichText
                 // for no real security gain.
                 ->allowRelativeMedias(true)
                 ->withAttributeSanitizer(new CodeLanguageClassSanitizer)
+                ->withAttributeSanitizer(new ImageDimensionAttributeSanitizer)
                 // The library's default is 20,000 bytes, and beyond that it
                 // returns an empty string rather than the input — a long
                 // description would silently vanish on save.
