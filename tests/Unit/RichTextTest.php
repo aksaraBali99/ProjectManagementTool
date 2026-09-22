@@ -9,6 +9,7 @@ test('editor output is recognised as HTML and ordinary prose is not', function (
     'empty editor' => ['<p></p>', true],
     'multiple blocks' => ['<h2>T</h2><p>a</p><ul><li><p>b</p></li></ul>', true],
     'code block' => ['<pre><code class="language-js">x</code></pre>', true],
+    'audio only' => ['<audio src="https://x/a.mp3" controls></audio>', true],
     'surrounding whitespace' => ["  <p>hi</p>\n", true],
     'plain sentence' => ['just some words', false],
     'prose mentioning a tag' => ['use the <b> tag for bold', false],
@@ -50,11 +51,12 @@ test('the sanitizer keeps exactly what the editor can produce', function () {
         .'<p><strong>b</strong><em>i</em><u>u</u>line<br>break</p>'
         .'<ul><li><p>x</p></li></ul><ol><li><p>y</p></li></ol>'
         .'<pre><code class="language-python">print(1)</code></pre>'
-        .'<img src="https://cdn.example.com/tasks/5/images/a.jpg" alt="a screenshot">';
+        .'<img src="https://cdn.example.com/tasks/5/images/a.jpg" alt="a screenshot">'
+        .'<audio src="https://cdn.example.com/tasks/5/audio/a.mp3" controls></audio>';
 
     $clean = RichText::sanitize($editorOutput);
 
-    foreach (['<h1>A</h1>', '<h2>B</h2>', '<h3>C</h3>', '<strong>b</strong>', '<em>i</em>', '<u>u</u>', '<br', '<ul><li><p>x</p></li></ul>', '<ol><li><p>y</p></li></ol>', 'class="language-python"', 'src="https://cdn.example.com/tasks/5/images/a.jpg"', 'alt="a screenshot"'] as $expected) {
+    foreach (['<h1>A</h1>', '<h2>B</h2>', '<h3>C</h3>', '<strong>b</strong>', '<em>i</em>', '<u>u</u>', '<br', '<ul><li><p>x</p></li></ul>', '<ol><li><p>y</p></li></ol>', 'class="language-python"', 'src="https://cdn.example.com/tasks/5/images/a.jpg"', 'alt="a screenshot"', 'src="https://cdn.example.com/tasks/5/audio/a.mp3"', 'controls', '</audio>'] as $expected) {
         expect($clean)->toContain($expected);
     }
 });
@@ -70,6 +72,9 @@ test('the sanitizer removes anything the editor cannot produce', function (strin
     'image event handler' => ['<img src="https://x/y.png" onerror="alert(1)">', 'onerror'],
     'image data: src' => ['<img src="data:image/png;base64,AAAA">', 'data:'],
     'image title attribute' => ['<img src="https://x/y.png" title="not in the allowlist">', 'title='],
+    'audio event handler' => ['<audio src="https://x/a.mp3" onerror="alert(1)"></audio>', 'onerror'],
+    'audio data: src' => ['<audio src="data:audio/mp3;base64,AAAA"></audio>', 'data:'],
+    'audio autoplay attribute' => ['<audio src="https://x/a.mp3" autoplay></audio>', 'autoplay'],
     'iframe' => ['<p>a</p><iframe src="https://evil"></iframe>', '<iframe'],
     'style attribute' => ['<p style="position:fixed">a</p>', 'style='],
     'arbitrary code class' => ['<pre><code class="fixed inset-0">a</code></pre>', 'fixed'],
@@ -78,6 +83,14 @@ test('the sanitizer removes anything the editor cannot produce', function (strin
 
 test('a relative image src is kept — unlike a link, it carries no meaningful risk and config(filestorage.disk) is allowed to be local', function () {
     expect(RichText::sanitize('<img src="/storage/tasks/5/images/a.jpg">'))->toContain('src="/storage/tasks/5/images/a.jpg"');
+});
+
+test('a relative audio src is kept, same reasoning as image (task #4 phase 4)', function () {
+    expect(RichText::sanitize('<audio src="/storage/tasks/5/audio/a.mp3" controls></audio>'))->toContain('src="/storage/tasks/5/audio/a.mp3"');
+});
+
+test('an audio-only description/comment is real content, not blank (task #4 phase 4, same rule as image-only)', function () {
+    expect(RichText::normalize('<audio src="https://x/a.mp3" controls></audio>'))->not->toBeNull();
 });
 
 test('a span is unwrapped, keeping its text (the editor emoji node markup), and its attributes go', function () {
@@ -128,4 +141,9 @@ test('plainText extracts visible words with block boundaries as newlines', funct
     expect(RichText::plainText('<p></p>'))->toBe('');
     expect(RichText::plainText('legacy <b>text</b>'))->toBe('legacy <b>text</b>');
     expect(RichText::plainText(null))->toBe('');
+});
+
+test('an embedded audio player contributes no readable text, just a line break, same as an image (task #4 phase 4)', function () {
+    expect(RichText::plainText('<p>Listen:</p><audio src="https://x/a.mp3" controls></audio><p>after</p>'))
+        ->toBe("Listen:\n\nafter");
 });

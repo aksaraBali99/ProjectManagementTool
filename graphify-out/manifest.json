@@ -20,8 +20,8 @@
     "semantic_hash": ""
   },
   "bootstrap/app.php": {
-    "mtime": 1790073019.5498645,
-    "ast_hash": "a141d25104eb29524bed2385a7cd9f08",
+    "mtime": 1790080730.6812644,
+    "ast_hash": "ce807d07d733ee9abbce99182d4c3815",
     "semantic_hash": ""
   },
   "bootstrap/providers.php": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1790073019.6165948,
-    "ast_hash": "14a24923c557878ea91d95e26cbf930c",
+    "mtime": 1790080789.6425593,
+    "ast_hash": "354e483eab74454774194885de15dd97",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -140,8 +140,8 @@
     "semantic_hash": ""
   },
   "tests/Pest.php": {
-    "mtime": 1790073019.6282678,
-    "ast_hash": "951790f3f38ef60b5dd7921c2d48b1f9",
+    "mtime": 1790080749.7425098,
+    "ast_hash": "28cc67614af621a3232a42dbb5c60b08",
     "semantic_hash": ""
   },
   "tests/TestCase.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1790073019.5431778,
-    "ast_hash": "b8ace3fe3f2fe9e3ef10493f0654148e",
+    "mtime": 1790080635.676198,
+    "ast_hash": "27d6e3ed5631fd36c066fac40a7ec6b5",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -780,8 +780,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
-    "mtime": 1790073019.6110127,
-    "ast_hash": "08aec3b32a80432be4293f11733cc069",
+    "mtime": 1790079262.439092,
+    "ast_hash": "f8b6b11caa18ee7f1ce5744f73f058c0",
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
@@ -795,13 +795,13 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/create.blade.php": {
-    "mtime": 1790073019.6130638,
-    "ast_hash": "2623c65a0fe0a1e75efd8db79c21a4fe",
+    "mtime": 1790080658.1790204,
+    "ast_hash": "4bcfd652c542da4d63d38d913f013ac5",
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1790073019.6150742,
-    "ast_hash": "e7bf3c51974afecb3ef3c372cf34f5c2",
+    "mtime": 1790079240.1929398,
+    "ast_hash": "f4c6e1d186f45457779243bc5189a7ec",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
@@ -1520,8 +1520,8 @@
     "semantic_hash": ""
   },
   "app/Services/FileStorageService.php": {
-    "mtime": 1790073019.5446851,
-    "ast_hash": "4f01db8333d06d11922d76cd7ea70617",
+    "mtime": 1790080622.2564507,
+    "ast_hash": "a7df8fa863c9a9fa4ec549a0f57a5127",
     "semantic_hash": ""
   },
   "app/Services/StoredFile.php": {
@@ -1545,8 +1545,8 @@
     "semantic_hash": ""
   },
   "app/Support/RichText.php": {
-    "mtime": 1790073019.5468478,
-    "ast_hash": "3bbd946314d389fe4030ab5eb66bb439",
+    "mtime": 1790079042.6761208,
+    "ast_hash": "aaaa3015cf50427e45ab4d375d52c49f",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php": {
@@ -1560,13 +1560,13 @@
     "semantic_hash": ""
   },
   "resources/js/rich-text-editor.js": {
-    "mtime": 1790073019.607481,
-    "ast_hash": "8fee00292689a5b623391e6bb2dba440",
+    "mtime": 1790080829.2951746,
+    "ast_hash": "c34d80e51a821a7402cca425b52c10ac",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text-editor.blade.php": {
-    "mtime": 1790073019.6100109,
-    "ast_hash": "e3290c4daaddbc5a727aa43527e9154a",
+    "mtime": 1790080804.69039,
+    "ast_hash": "2f53213346a0c4eecf5323bc7475fb0c",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text.blade.php": {
@@ -1590,13 +1590,8 @@
     "semantic_hash": ""
   },
   "tests/Unit/RichTextTest.php": {
-    "mtime": 1790073019.6302657,
-    "ast_hash": "b3acfd17cb807edfe1b44179f09a4f36",
-    "semantic_hash": ""
-  },
-  "app/Console/Commands/CleanupStalePendingImages.php": {
-    "mtime": 1790073019.5376575,
-    "ast_hash": "36ce7ec6bb5737231da2aec6441fd46a",
+    "mtime": 1790081078.698336,
+    "ast_hash": "7281f77370f4772bcd8d83204068b9ae",
     "semantic_hash": ""
   },
   "app/Http/Controllers/RichTextImageController.php": {
@@ -1619,11 +1614,6 @@
     "ast_hash": "38e28a395f7b8d431e4abe9a1a13f892",
     "semantic_hash": ""
   },
-  "tests/Feature/FileStorage/CleanupStalePendingImagesTest.php": {
-    "mtime": 1790073019.6176054,
-    "ast_hash": "ba8c4b7dfc256e5f575a15abc5e35eba",
-    "semantic_hash": ""
-  },
   "tests/Feature/RichText/EmojiSupportTest.php": {
     "mtime": 1790073019.620351,
     "ast_hash": "a451290b629d8d74d2113679fc8d8396",
@@ -1635,8 +1625,33 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/ImageUploadTest.php": {
-    "mtime": 1790073019.6252565,
-    "ast_hash": "f2bb76dc829f415be1c9bfa925b3593f",
+    "mtime": 1790080740.1406474,
+    "ast_hash": "b09b7905c2edcfadfa40e78caa4f26cf",
+    "semantic_hash": ""
+  },
+  "app/Console/Commands/CleanupStalePendingMedia.php": {
+    "mtime": 1790080675.716258,
+    "ast_hash": "f7a57753b677c304b22b416ddac9b30a",
+    "semantic_hash": ""
+  },
+  "app/Http/Controllers/RichTextAudioController.php": {
+    "mtime": 1790080782.897092,
+    "ast_hash": "691d95d774ea70ad53a721f54d646c06",
+    "semantic_hash": ""
+  },
+  "resources/js/audio-extension.js": {
+    "mtime": 1790078994.3646548,
+    "ast_hash": "72c78a4e6537b5db72bd2f6e90b9bcb5",
+    "semantic_hash": ""
+  },
+  "tests/Feature/FileStorage/CleanupStalePendingMediaTest.php": {
+    "mtime": 1790080707.3962986,
+    "ast_hash": "104aee119f726cc52cb31f940fd06087",
+    "semantic_hash": ""
+  },
+  "tests/Feature/RichText/AudioUploadTest.php": {
+    "mtime": 1790081112.6154559,
+    "ast_hash": "6e6048c823db0f207dfacd356955ce28",
     "semantic_hash": ""
   }
 }

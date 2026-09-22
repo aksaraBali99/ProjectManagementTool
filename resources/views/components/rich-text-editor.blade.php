@@ -27,6 +27,15 @@
         department data attributes updated itself as its selects change —
         see tasks/create.blade.php.
       Neither pair given: the image button hides itself.
+
+    Audio upload target (task #4 phase 4) — same shape as image, same two
+    targets: $audioTaskId + $audioContext (POSTs to /tasks/{id}/audio),
+    $audioPendingId (+ optional initial $audioProjectId/$audioDepartmentId,
+    POSTs to /pending-task-audio). tasks/create.blade.php passes the SAME
+    pendingMediaId as both :image-pending-id and :audio-pending-id — one id
+    covers every category the Add Task page's editor uploads, since
+    FileStorageService::reconcilePendingFiles() moves everything a
+    description references in one generic pass on save, not per category.
 --}}
 @props([
     'name' => null,
@@ -41,6 +50,11 @@
     'imagePendingId' => null,
     'imageProjectId' => null,
     'imageDepartmentId' => null,
+    'audioTaskId' => null,
+    'audioContext' => null,
+    'audioPendingId' => null,
+    'audioProjectId' => null,
+    'audioDepartmentId' => null,
 ])
 
 @php $html = \App\Support\RichText::toHtml($value); @endphp
@@ -55,6 +69,8 @@
     @if ($mentions) data-mentions="{{ json_encode($mentions) }}" @endif
     @if ($imageTaskId) data-image-task-id="{{ $imageTaskId }}" data-image-context="{{ $imageContext }}" @endif
     @if ($imagePendingId) data-image-pending-id="{{ $imagePendingId }}" data-image-project-id="{{ $imageProjectId }}" data-image-department-id="{{ $imageDepartmentId }}" @endif
+    @if ($audioTaskId) data-audio-task-id="{{ $audioTaskId }}" data-audio-context="{{ $audioContext }}" @endif
+    @if ($audioPendingId) data-audio-pending-id="{{ $audioPendingId }}" data-audio-project-id="{{ $audioProjectId }}" data-audio-department-id="{{ $audioDepartmentId }}" @endif
 >
     @if ($name)
         <input type="hidden" name="{{ $name }}" @if ($id) id="{{ $id }}" @endif value="{{ $html }}" data-rte-input>

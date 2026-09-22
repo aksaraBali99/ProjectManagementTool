@@ -282,7 +282,7 @@ test('an abandoned pending image (never referenced by a saved task) is left alon
     ])->assertRedirect();
 
     // Still sitting under tasks/pending/ — untouched, exactly what
-    // images:cleanup-stale-pending exists to eventually sweep up.
+    // media:cleanup-stale-pending exists to eventually sweep up.
     $path = "tasks/pending/{$pendingId}/images/".basename(parse_url($uploaded->json('url'), PHP_URL_PATH));
     Storage::disk('r2')->assertExists($path);
 });

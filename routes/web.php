@@ -17,6 +17,7 @@ use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\OrganizationManagementController;
 use App\Http\Controllers\PermissionManagementController;
 use App\Http\Controllers\ProjectManagementController;
+use App\Http\Controllers\RichTextAudioController;
 use App\Http\Controllers\RichTextImageController;
 use App\Http\Controllers\RoleManagementController;
 use App\Http\Controllers\SettingsController;
@@ -113,6 +114,10 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     // Not nested under /tasks/{task} — the Add Task page has no task yet;
     // see RichTextImageController::storePending().
     Route::post('/pending-task-images', [RichTextImageController::class, 'storePending'])->name('tasks.images.store-pending');
+
+    // task #4 phase 4 — mirrors the two image routes above exactly.
+    Route::post('/tasks/{task}/audio', [RichTextAudioController::class, 'store'])->name('tasks.audio.store')->withTrashed();
+    Route::post('/pending-task-audio', [RichTextAudioController::class, 'storePending'])->name('tasks.audio.store-pending');
 
     Route::post('/tasks/{task}/subtasks', [SubtaskController::class, 'store'])->name('subtasks.store');
     Route::patch('/subtasks/{subtask}/toggle', [SubtaskController::class, 'toggle'])->name('subtasks.toggle');
