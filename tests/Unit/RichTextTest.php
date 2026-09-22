@@ -101,6 +101,27 @@ test('external links are forced to open safely', function () {
     expect($clean)->toContain('rel="noopener noreferrer nofollow"')->toContain('target="_blank"');
 });
 
+test('an image\'s width and height survive sanitizing — the resized dimensions TipTap saves as real HTML attributes (task #4)', function () {
+    expect(RichText::sanitize('<img src="https://x/y.jpg" width="400" height="300">'))
+        ->toContain('width="400"')
+        ->toContain('height="300"');
+});
+
+test('a well-formed pixel width/height is kept and an implausible one is dropped, per dimension', function (string $dirty, bool $widthSurvives, bool $heightSurvives) {
+    $clean = RichText::sanitize($dirty);
+
+    expect(str_contains($clean, 'width='))->toBe($widthSurvives);
+    expect(str_contains($clean, 'height='))->toBe($heightSurvives);
+})->with([
+    'both valid' => ['<img src="https://x/y.jpg" width="400" height="300">', true, true],
+    'width over the ceiling' => ['<img src="https://x/y.jpg" width="99999" height="300">', false, true],
+    'non-numeric height' => ['<img src="https://x/y.jpg" width="400" height="abc">', true, false],
+    'unit suffix' => ['<img src="https://x/y.jpg" width="400px" height="300">', false, true],
+    'zero' => ['<img src="https://x/y.jpg" width="0" height="300">', false, true],
+    'negative' => ['<img src="https://x/y.jpg" width="-400" height="300">', false, true],
+    'decimal' => ['<img src="https://x/y.jpg" width="400.5" height="300">', false, true],
+]);
+
 test('plainText extracts visible words with block boundaries as newlines', function () {
     expect(RichText::plainText('<p>Hello <strong>world</strong></p><p>Second &amp; last</p>'))->toBe("Hello world\nSecond & last");
     expect(RichText::plainText('<ul><li><p>one</p></li><li><p>two</p></li></ul>'))->toContain('one')->toContain('two');

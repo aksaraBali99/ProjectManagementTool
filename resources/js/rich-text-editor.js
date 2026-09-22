@@ -2,7 +2,7 @@ import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Emoji, { emojis as defaultEmojis } from '@tiptap/extension-emoji';
-import Image from '@tiptap/extension-image';
+import { ResizableImage } from './resizable-image.js';
 import { isEmojiSupported } from 'is-emoji-supported';
 import { lowlight } from './code-highlight.js';
 
@@ -1056,7 +1056,28 @@ export function createRichTextEditor(root) {
             // come from the upload endpoint as an R2/MinIO URL; a base64
             // <img src> could only arrive via a paste or a crafted request,
             // and the server-side sanitizer rejects "data:" too either way.
-            Image.configure({ inline: false }),
+            //
+            // resize (task #4, image resize): native TipTap resize (see
+            // resizable-image.js for the one gap it fills — max size — over
+            // the stock extension). maxWidth roughly matches the content
+            // column's own max-width (.rich-text img's inline-thumbnail
+            // cap, resources/css/app.css) — resizing past what the column
+            // can show wouldn't do anything visually useful anyway.
+            // alwaysPreserveAspectRatio: true — dragging any single handle
+            // (an edge or the corner) scales both dimensions together, so
+            // an image can't be squashed or stretched out of shape.
+            ResizableImage.configure({
+                inline: false,
+                resize: {
+                    enabled: true,
+                    directions: ['bottom', 'right', 'bottom-right'],
+                    minWidth: 100,
+                    maxWidth: 800,
+                    minHeight: 60,
+                    maxHeight: 800,
+                    alwaysPreserveAspectRatio: true,
+                },
+            }),
         ],
         editorProps: {
             attributes: { class: 'rte-prose rich-text', role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },
