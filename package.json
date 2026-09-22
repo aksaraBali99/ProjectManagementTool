@@ -20,6 +20,7 @@
         "@fontsource/inter": "^5.3.0",
         "@tiptap/core": "^3.31.3",
         "@tiptap/extension-code-block-lowlight": "^3.31.3",
+        "@tiptap/extension-image": "^3.31.3",
         "@tiptap/pm": "^3.31.3",
         "@tiptap/starter-kit": "^3.31.3",
         "chart.js": "^4.5.1",
