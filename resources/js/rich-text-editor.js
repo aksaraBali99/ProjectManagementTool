@@ -3,6 +3,7 @@ import StarterKit from '@tiptap/starter-kit';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Emoji, { emojis as defaultEmojis } from '@tiptap/extension-emoji';
 import { ResizableImage } from './resizable-image.js';
+import { Audio } from './audio-extension.js';
 import { isEmojiSupported } from 'is-emoji-supported';
 import { lowlight } from './code-highlight.js';
 
@@ -12,9 +13,9 @@ import { lowlight } from './code-highlight.js';
 // TOOLBAR below, and every editor in the app picks the change up.
 //
 // The feature set is intentionally exactly what App\Support\RichText's
-// sanitizer allows (p, br, strong, em, u, h1-h3, ul/ol/li, a, pre/code, img):
-// anything the editor could emit but the server strips would silently
-// vanish on save, so the two lists must move together.
+// sanitizer allows (p, br, strong, em, u, h1-h3, ul/ol/li, a, pre/code, img,
+// audio): anything the editor could emit but the server strips would
+// silently vanish on save, so the two lists must move together.
 
 const ICON_ATTRS = 'width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 
@@ -25,6 +26,7 @@ const ICONS = {
     codeBlock: '<svg ' + ICON_ATTRS + '><polyline points="5.5 4.5 2 8 5.5 11.5"/><polyline points="10.5 4.5 14 8 10.5 11.5"/></svg>',
     emoji: '<svg ' + ICON_ATTRS + '><circle cx="8" cy="8" r="6"/><path d="M5.4 9.6a3.2 3.2 0 0 0 5.2 0"/><circle cx="6" cy="6.6" r=".7" fill="currentColor" stroke="none"/><circle cx="10" cy="6.6" r=".7" fill="currentColor" stroke="none"/></svg>',
     image: '<svg ' + ICON_ATTRS + '><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6.5" r="1.2"/><path d="M2 12l3.5-3.5a1 1 0 0 1 1.4 0L10 11.5m2-2 .6-.6a1 1 0 0 1 1.4 0L14.5 11"/></svg>',
+    audio: '<svg ' + ICON_ATTRS + '><path d="M9.5 2.5v9.2a2 2 0 1 1-1-1.73V4.7L5 5.6v6.1a2 2 0 1 1-1-1.73V4.8z" fill="currentColor" stroke="none"/></svg>',
 };
 
 const TOOLBAR = [
@@ -43,6 +45,8 @@ const TOOLBAR = [
     // No `active` state — inserting an image doesn't toggle a mark/node the
     // cursor can currently be "inside", unlike the other buttons.
     { key: 'image', label: 'Insert image', html: ICONS.image, run: null, active: () => false },
+    // Same reasoning as image (task #4 phase 4).
+    { key: 'audio', label: 'Insert audio', html: ICONS.audio, run: null, active: () => false },
 ];
 
 const HEADING_OPTIONS = [
@@ -81,7 +85,7 @@ function normalizeHref(raw) {
 }
 
 // `handlers` are the toolbar items with no single ProseMirror command of
-// their own — they open other UI instead: { link, emoji, image }.
+// their own — they open other UI instead: { link, emoji, image, audio }.
 function buildToolbar(editor, handlers) {
     const bar = el('div', 'rte-toolbar', { role: 'toolbar', 'aria-label': 'Text formatting' });
 
@@ -118,6 +122,7 @@ function buildToolbar(editor, handlers) {
             if (item.key === 'link') handlers.link();
             else if (item.key === 'emoji') handlers.emoji(button);
             else if (item.key === 'image') handlers.image();
+            else if (item.key === 'audio') handlers.audio();
             else item.run(editor);
         });
         bar.appendChild(button);
@@ -251,7 +256,7 @@ function buildLinkBar(editor) {
 function buildImageUpload(editor, root, onBusyChange) {
     const input = el('input', 'rte-image-input', { type: 'file', accept: 'image/*', tabindex: '-1', 'aria-hidden': 'true' });
 
-    const status = el('div', 'rte-image-status');
+    const status = el('div', 'rte-upload-status');
     status.hidden = true;
 
     let busy = false;
@@ -315,6 +320,108 @@ function buildImageUpload(editor, root, onBusyChange) {
             })
             .then(function (data) {
                 editor.chain().focus().setImage({ src: data.url }).run();
+                setStatus('', false);
+            })
+            .catch(function (error) {
+                setStatus(error.message, true);
+            })
+            .finally(function () {
+                setBusy(false);
+                input.value = '';
+            });
+    }
+
+    input.addEventListener('change', function () {
+        const file = input.files[0];
+        if (file) upload(file);
+    });
+
+    return {
+        element: status,
+        input: input,
+        isWired: function () { return target() !== null; },
+        isBusy: function () { return busy; },
+        trigger: function () {
+            if (busy || ! target()) return;
+            input.click();
+        },
+    };
+}
+
+// Audio upload (task #4 phase 4) — same shape as buildImageUpload() above,
+// reusing the exact same pattern rather than a shared abstraction: two
+// upload targets read fresh from `root.dataset` (data-audio-task-id/
+// data-audio-context for an existing task; data-audio-pending-id/
+// data-audio-project-id/data-audio-department-id for the Add Task page),
+// matching RichTextAudioController's two actions the same way the image
+// button matches RichTextImageController's.
+function buildAudioUpload(editor, root, onBusyChange) {
+    const input = el('input', 'rte-audio-input', { type: 'file', accept: 'audio/*', tabindex: '-1', 'aria-hidden': 'true' });
+
+    const status = el('div', 'rte-upload-status');
+    status.hidden = true;
+
+    let busy = false;
+
+    function target() {
+        const taskId = root.dataset.audioTaskId;
+        if (taskId) {
+            return { url: '/tasks/' + taskId + '/audio', fields: { context: root.dataset.audioContext || 'comment' } };
+        }
+
+        const pendingId = root.dataset.audioPendingId;
+        if (pendingId) {
+            return {
+                url: '/pending-task-audio',
+                fields: {
+                    pending_id: pendingId,
+                    project_id: root.dataset.audioProjectId || '',
+                    department_id: root.dataset.audioDepartmentId || '',
+                },
+            };
+        }
+
+        return null;
+    }
+
+    function setStatus(message, isError) {
+        status.hidden = ! message;
+        status.textContent = message || '';
+        status.classList.toggle('is-error', !! isError);
+    }
+
+    function setBusy(next) {
+        busy = next;
+        status.classList.toggle('is-busy', next);
+        if (onBusyChange) onBusyChange(next);
+    }
+
+    function upload(file) {
+        const destination = target();
+        if (! destination) return;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const body = new FormData();
+        body.append('file', file);
+        Object.keys(destination.fields).forEach(function (key) { body.append(key, destination.fields[key]); });
+
+        setBusy(true);
+        setStatus('Uploading audio…', false);
+
+        fetch(destination.url, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
+            body: body,
+        })
+            .then(function (response) {
+                return response.json().catch(function () { return null; }).then(function (data) {
+                    if (! response.ok) throw new Error((data && data.message) || 'Failed to upload audio.');
+
+                    return data;
+                });
+            })
+            .then(function (data) {
+                editor.chain().focus().setAudio({ src: data.url }).run();
                 setStatus('', false);
             })
             .catch(function (error) {
@@ -1001,6 +1108,7 @@ export function createRichTextEditor(root) {
     let toolbar = null;
     let linkBar = null;
     let imageUpload = null;
+    let audioUpload = null;
 
     // Trailing empty paragraphs (the editor keeps one after a final code
     // block, or after a block image, so the cursor can leave it) aren't
@@ -1078,6 +1186,10 @@ export function createRichTextEditor(root) {
                     alwaysPreserveAspectRatio: true,
                 },
             }),
+            // task #4 phase 4 — see audio-extension.js for why this is a
+            // plain custom node rather than a NodeView or third-party
+            // package.
+            Audio,
         ],
         editorProps: {
             attributes: { class: 'rte-prose rich-text', role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },
@@ -1112,10 +1224,15 @@ export function createRichTextEditor(root) {
         const button = toolbar.button('image');
         if (button) button.disabled = busy;
     });
+    audioUpload = buildAudioUpload(editor, root, function (busy) {
+        const button = toolbar.button('audio');
+        if (button) button.disabled = busy;
+    });
     toolbar = buildToolbar(editor, {
         link: function () { linkBar.open(); },
         emoji: function (button) { emojiPicker.toggle(button); },
         image: function () { imageUpload.trigger(); },
+        audio: function () { audioUpload.trigger(); },
     });
     linkBar = buildLinkBar(editor);
     if (users.length > 0) mentions = setupMentions(editor, users);
@@ -1125,7 +1242,12 @@ export function createRichTextEditor(root) {
         if (imageButton) imageButton.hidden = true;
     }
 
-    root.prepend(toolbar.element, linkBar.element, imageUpload.element, imageUpload.input);
+    if (! audioUpload.isWired()) {
+        const audioButton = toolbar.button('audio');
+        if (audioButton) audioButton.hidden = true;
+    }
+
+    root.prepend(toolbar.element, linkBar.element, imageUpload.element, imageUpload.input, audioUpload.element, audioUpload.input);
     root.appendChild(content);
 
     const form = root.closest('form');

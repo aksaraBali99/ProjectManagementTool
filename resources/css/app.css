@@ -440,15 +440,17 @@
     background: transparent;
 }
 
-.rte-image-input {
+.rte-image-input,
+.rte-audio-input {
     display: none;
 }
 
 /* Shown only while an upload is in flight or after one fails — the "clear
-   loading/progress state" the image button needs, since silently waiting
-   on a fetch() with nothing on screen reads as broken, especially on a
-   slow connection. */
-.rte-image-status {
+   loading/progress state" the image/audio buttons need, since silently
+   waiting on a fetch() with nothing on screen reads as broken, especially
+   on a slow connection. Shared by buildImageUpload() and buildAudioUpload()
+   (task #4 phase 4) — same behavior, only the message text differs. */
+.rte-upload-status {
     padding: 6px 10px;
     border-bottom: 1px solid #E5E7EB;
     background: #fff;
@@ -456,11 +458,11 @@
     font-size: 11px;
 }
 
-.rte-image-status.is-busy {
+.rte-upload-status.is-busy {
     color: var(--color-gray-600);
 }
 
-.rte-image-status.is-error {
+.rte-upload-status.is-error {
     color: #DC2626;
 }
 
@@ -496,6 +498,21 @@
     max-height: 320px;
     width: auto;
     height: auto;
+}
+
+/* Embedded audio (task #4 phase 4) — native browser controls, not skinned;
+   only the surrounding spacing/width/radius is styled, matching the same
+   UIX tokens .rich-text img uses above. width: 100% up to a fixed cap
+   (rather than img's max-width: 100%, which lets a small image stay small)
+   because a native player's default intrinsic width is a browser-specific,
+   not-meaningful-here value — every embed should read as one consistent
+   size, not vary by browser. */
+.rich-text audio {
+    display: block;
+    width: 100%;
+    max-width: 360px;
+    margin: 4px 0;
+    border-radius: var(--radius-md);
 }
 
 /* ---------------------------------------------------------------------------
