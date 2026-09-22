@@ -17,6 +17,7 @@ use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\OrganizationManagementController;
 use App\Http\Controllers\PermissionManagementController;
 use App\Http\Controllers\ProjectManagementController;
+use App\Http\Controllers\RichTextImageController;
 use App\Http\Controllers\RoleManagementController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SubtaskController;
@@ -104,6 +105,14 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::put('/tasks/{task}', [TaskManagementController::class, 'update'])->name('tasks.update')->withTrashed();
     Route::patch('/tasks/{task}/toggle-active', [TaskManagementController::class, 'toggleActive'])->name('tasks.toggle-active')->withTrashed();
     Route::patch('/tasks/{task}/status', [TaskManagementController::class, 'updateStatus'])->name('tasks.update-status');
+
+    // ->withTrashed(): matches tasks.edit/update above — a deactivated
+    // task's Description is still reachable/editable there, so its image
+    // button must keep working too.
+    Route::post('/tasks/{task}/images', [RichTextImageController::class, 'store'])->name('tasks.images.store')->withTrashed();
+    // Not nested under /tasks/{task} — the Add Task page has no task yet;
+    // see RichTextImageController::storePending().
+    Route::post('/pending-task-images', [RichTextImageController::class, 'storePending'])->name('tasks.images.store-pending');
 
     Route::post('/tasks/{task}/subtasks', [SubtaskController::class, 'store'])->name('subtasks.store');
     Route::patch('/subtasks/{subtask}/toggle', [SubtaskController::class, 'toggle'])->name('subtasks.toggle');

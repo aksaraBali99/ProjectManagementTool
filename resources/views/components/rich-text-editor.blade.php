@@ -15,8 +15,33 @@
 
     $mentions: [['id' => .., 'name' => ..], ...] enables @mention
     autocomplete (comments). $compact: shorter surface for inline use.
+
+    Image upload target (resources/js/rich-text-editor.js reads these fresh
+    on every click of the toolbar's image button — see buildImageUpload()):
+      - $imageTaskId + $imageContext ('description'|'comment'): an existing
+        task — Edit Task's Description, or any comment box. POSTs to
+        /tasks/{id}/images.
+      - $imagePendingId (+ optional initial $imageProjectId/
+        $imageDepartmentId): the Add Task page, before the task exists.
+        POSTs to /pending-task-images. That page keeps the project/
+        department data attributes updated itself as its selects change —
+        see tasks/create.blade.php.
+      Neither pair given: the image button hides itself.
 --}}
-@props(['name' => null, 'id' => null, 'value' => null, 'placeholder' => '', 'label' => 'Rich text', 'compact' => false, 'mentions' => null])
+@props([
+    'name' => null,
+    'id' => null,
+    'value' => null,
+    'placeholder' => '',
+    'label' => 'Rich text',
+    'compact' => false,
+    'mentions' => null,
+    'imageTaskId' => null,
+    'imageContext' => null,
+    'imagePendingId' => null,
+    'imageProjectId' => null,
+    'imageDepartmentId' => null,
+])
 
 @php $html = \App\Support\RichText::toHtml($value); @endphp
 
@@ -28,6 +53,8 @@
     data-label="{{ $label }}"
     @if ($compact) data-compact @endif
     @if ($mentions) data-mentions="{{ json_encode($mentions) }}" @endif
+    @if ($imageTaskId) data-image-task-id="{{ $imageTaskId }}" data-image-context="{{ $imageContext }}" @endif
+    @if ($imagePendingId) data-image-pending-id="{{ $imagePendingId }}" data-image-project-id="{{ $imageProjectId }}" data-image-department-id="{{ $imageDepartmentId }}" @endif
 >
     @if ($name)
         <input type="hidden" name="{{ $name }}" @if ($id) id="{{ $id }}" @endif value="{{ $html }}" data-rte-input>

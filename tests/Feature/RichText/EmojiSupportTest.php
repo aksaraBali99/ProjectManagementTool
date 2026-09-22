@@ -90,18 +90,26 @@ test('the editor node markup an emoji serializes to is reduced to the bare chara
     expect($this->task->fresh()->description)->toBe('<p>Ship 🚀 now</p>');
 });
 
-test('the third-party fallback image the emoji extension would otherwise render is never stored', function () {
-    // With the extension's stock data, an emoji the browser can't detect renders as a
-    // cdn.jsdelivr.net <img> instead of the character. The editor strips that data
-    // (see the static test below); this is the server-side backstop.
+test('the emoji span wrapper never survives a submission, with or without the image-support sanitizer allowlist (task #4 phase 3)', function () {
+    // With the extension's stock data, an emoji the browser can't detect
+    // renders as a cdn.jsdelivr.net <img> instead of the character — the
+    // editor strips that fallback client-side (see the static test below).
+    // Server-side, the emoji <span> wrapper itself is still never allowed to
+    // survive (unwrapped to its content, same as any other unrecognized
+    // span) — what changed once phase 3 allowed <img src> generally is that
+    // the *inner* image tag it wrapped is no longer stripped merely for
+    // being an <img>; an absolute https image URL is legitimate content
+    // either way, uploaded or not, so this is expected, not a regression.
     $withImage = '<p>hi <span data-name="grinning" data-type="emoji"><img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/64/1f600.png" alt="grinning emoji"></span> there</p>';
 
     $this->actingAs($this->management)->put("/tasks/{$this->task->id}", emojiTaskPayload($this->task, $withImage))->assertRedirect();
 
-    expect($this->task->fresh()->description)
-        ->not->toContain('<img')
+    $stored = $this->task->fresh()->description;
+    expect($stored)
         ->not->toContain('<span')
-        ->not->toContain('jsdelivr');
+        ->not->toContain('data-name')
+        ->not->toContain('data-type')
+        ->toContain('<img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/64/1f600.png"');
 });
 
 test('a comment with emoji persists and renders formatted in the task list drilldown and the polling endpoint', function () {
@@ -216,10 +224,14 @@ test('the toolbar has an emoji picker button directly after the code block butto
     $source = file_get_contents(resource_path('js/rich-text-editor.js'));
 
     // The TOOLBAR array is the one list of buttons every editor gets.
+    // task #4 phase 3 (image upload) appends an "image" button after emoji —
+    // this only pins that emoji itself still comes directly after codeBlock,
+    // not that it's the very last button.
     preg_match('/const TOOLBAR = \[(.*?)\n\];/s', $source, $block);
     preg_match_all("/key: '(\w+)'/", $block[1] ?? '', $keys);
 
-    expect(array_slice($keys[1], -2))->toBe(['codeBlock', 'emoji']);
+    $codeBlockIndex = array_search('codeBlock', $keys[1], true);
+    expect($keys[1][$codeBlockIndex + 1] ?? null)->toBe('emoji');
 
     // It opens a picker that inserts through the extension's own command (so
     // bold/italic around the cursor carry over) and only from the native pool.

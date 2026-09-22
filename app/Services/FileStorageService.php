@@ -49,9 +49,98 @@ class FileStorageService
      */
     public function upload(UploadedFile $file, FileCategory $category, int $taskId): StoredFile
     {
+        return $this->store($file, $category, (string) $taskId);
+    }
+
+    /**
+     * The Add Task page's rich-text editor can't key uploads off a real task
+     * id — the task doesn't exist yet while it's still being drafted. Those
+     * uploads land under tasks/pending/{pendingId}/{category-prefix}/... — a
+     * random id the page generates on load (see TaskManagementController's
+     * `pendingImageId` view data), not a database row of any kind — instead
+     * of tasks/{taskId}/..., and reconcilePendingImages() moves them to
+     * their real task-scoped path once the task is actually saved.
+     *
+     * A file that's never reconciled (the Add Task page was abandoned) is
+     * swept up by the images:cleanup-stale-pending scheduled command, the
+     * same pattern as the Import feature's own stale-batch cleanup.
+     *
+     * @throws FileStorageException file fails validation, $pendingId isn't a
+     *                              well-formed UUID, or the disk write fails
+     */
+    public function uploadPending(UploadedFile $file, FileCategory $category, string $pendingId): StoredFile
+    {
+        if (! Str::isUuid($pendingId)) {
+            throw FileStorageException::invalidPendingId($pendingId);
+        }
+
+        return $this->store($file, $category, "pending/{$pendingId}");
+    }
+
+    /**
+     * Moves every tasks/pending/{pendingId}/... image this HTML references
+     * to its permanent tasks/{taskId}/... path, and rewrites the matching
+     * <img src> values to the new URL — called once, right after a new
+     * Task row is created, on whatever the submitted description contains.
+     * A real R2/S3 move (copy-then-delete server-side), not a re-upload —
+     * the browser already has the file, it never sends the bytes again.
+     *
+     * Deliberately tolerant of a reference that can't be moved (the pending
+     * file was already cleaned up, or the URL was tampered with): that one
+     * <img> tag is left pointing at its original URL — which 24h+ later
+     * increasingly means a broken image — rather than failing the whole
+     * task save over one bad reference.
+     */
+    public function reconcilePendingImages(string $html, int $taskId): string
+    {
+        if (! str_contains($html, '/tasks/pending/')) {
+            return $html;
+        }
+
+        // Not read from config directly: url() prepends whatever the disk's
+        // *actual* base turns out to be, and in tests that's Storage::fake()'s
+        // own "/storage/..." — never the configured R2/MinIO URL — so asking
+        // the disk itself (the same call every URL here was built from) is
+        // what keeps this matching real URLs in every environment, fake or not.
+        $base = rtrim(Storage::disk($this->disk)->url(''), '/');
+
+        $pattern = '#'.preg_quote($base, '#').'/(tasks/pending/([^/"\'<>]+)/([^/"\'<>]+)/[^"\'<>]+)#';
+
+        return preg_replace_callback($pattern, function (array $match) use ($taskId): string {
+            [$url, $oldPath, , $prefix] = $match;
+            $newPath = "tasks/{$taskId}/{$prefix}/".basename($oldPath);
+
+            try {
+                return $this->move($oldPath, $newPath)->url;
+            } catch (FileStorageException) {
+                return $url;
+            }
+        }, $html);
+    }
+
+    /**
+     * @throws FileStorageException the source doesn't exist, or the move itself fails
+     */
+    public function move(string $fromPath, string $toPath): StoredFile
+    {
+        try {
+            $moved = Storage::disk($this->disk)->move($fromPath, $toPath);
+        } catch (Throwable $e) {
+            throw FileStorageException::moveFailed($fromPath, $toPath, $e);
+        }
+
+        if (! $moved) {
+            throw FileStorageException::moveFailed($fromPath, $toPath, new RuntimeException('Storage::move() returned false.'));
+        }
+
+        return new StoredFile(path: $toPath, url: $this->url($toPath));
+    }
+
+    private function store(UploadedFile $file, FileCategory $category, string $keySegment): StoredFile
+    {
         $this->validate($file, $category);
 
-        $path = $this->keyFor($taskId, $category, strtolower($file->getClientOriginalExtension()));
+        $path = $this->keyFor($keySegment, $category, strtolower($file->getClientOriginalExtension()));
 
         try {
             $written = Storage::disk($this->disk)->put($path, fopen($file->getRealPath(), 'r'));
@@ -96,9 +185,15 @@ class FileStorageService
         }
     }
 
-    private function keyFor(int $taskId, FileCategory $category, string $extension): string
+    /**
+     * $keySegment is either a real task id (upload()) or "pending/{uuid}"
+     * (uploadPending()) — either way, tasks/{segment}/{category-prefix}/...
+     * is the one layout every consumer (real uploads, pending uploads,
+     * reconciliation's move target) agrees on.
+     */
+    private function keyFor(string $keySegment, FileCategory $category, string $extension): string
     {
-        return sprintf('tasks/%d/%s/%s.%s', $taskId, $category->prefix(), (string) Str::uuid(), $extension);
+        return sprintf('tasks/%s/%s/%s.%s', $keySegment, $category->prefix(), (string) Str::uuid(), $extension);
     }
 
     /**

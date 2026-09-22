@@ -431,6 +431,112 @@
     background: var(--color-gray-50);
 }
 
+.rte-btn:disabled {
+    color: var(--color-gray-400);
+    cursor: not-allowed;
+}
+
+.rte-btn:disabled:hover {
+    background: transparent;
+}
+
+.rte-image-input {
+    display: none;
+}
+
+/* Shown only while an upload is in flight or after one fails — the "clear
+   loading/progress state" the image button needs, since silently waiting
+   on a fetch() with nothing on screen reads as broken, especially on a
+   slow connection. */
+.rte-image-status {
+    padding: 6px 10px;
+    border-bottom: 1px solid #E5E7EB;
+    background: #fff;
+    color: var(--color-gray-500);
+    font-size: 11px;
+}
+
+.rte-image-status.is-busy {
+    color: var(--color-gray-600);
+}
+
+.rte-image-status.is-error {
+    color: #DC2626;
+}
+
+/* Inline thumbnail sizing for an embedded image, live in the editor and in
+   every read-only render (task drilldown, comment list) — both share the
+   .rich-text class. Capped on both axes (width auto + max-height keeps the
+   aspect ratio while still bounding a very tall screenshot) so a
+   full-resolution image never blows out the description/comment column,
+   per the UIX spacing/radius tokens used everywhere else. cursor:zoom-in
+   only actually opens anything on the read-only render (see
+   initLightboxDelegation in app.js, scoped to [data-rich-text-content]) —
+   left on the live editor's copy too since ProseMirror's own node-select
+   click isn't affected by it, just the pointer hint.
+*/
+.rich-text img {
+    display: block;
+    max-width: 100%;
+    max-height: 320px;
+    width: auto;
+    height: auto;
+    margin: 4px 0;
+    border: 1px solid #E5E7EB;
+    border-radius: var(--radius-md);
+    cursor: zoom-in;
+}
+
+/* ---------------------------------------------------------------------------
+   Lightbox (click-to-enlarge) — reusable, not specific to rich-text images;
+   see resources/js/lightbox.js.
+   --------------------------------------------------------------------------- */
+
+.lightbox-open {
+    overflow: hidden;
+}
+
+.lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    background: rgb(17 24 39 / 0.75);
+    cursor: zoom-out;
+}
+
+.lightbox-image {
+    display: block;
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+    cursor: default;
+}
+
+.lightbox-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background: rgb(255 255 255 / 0.12);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+}
+
+.lightbox-close:hover {
+    background: rgb(255 255 255 / 0.22);
+}
+
 /* :emoji: suggestions reuse the @mention dropdown (.rte-mentions /
    .rte-mention-option — same border, radius, shadow, hover/active fill) and
    only add the glyph-and-name row layout. */

@@ -2,6 +2,7 @@ import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Emoji, { emojis as defaultEmojis } from '@tiptap/extension-emoji';
+import Image from '@tiptap/extension-image';
 import { isEmojiSupported } from 'is-emoji-supported';
 import { lowlight } from './code-highlight.js';
 
@@ -11,7 +12,7 @@ import { lowlight } from './code-highlight.js';
 // TOOLBAR below, and every editor in the app picks the change up.
 //
 // The feature set is intentionally exactly what App\Support\RichText's
-// sanitizer allows (p, br, strong, em, u, h1-h3, ul/ol/li, a, pre/code):
+// sanitizer allows (p, br, strong, em, u, h1-h3, ul/ol/li, a, pre/code, img):
 // anything the editor could emit but the server strips would silently
 // vanish on save, so the two lists must move together.
 
@@ -23,6 +24,7 @@ const ICONS = {
     link: '<svg ' + ICON_ATTRS + '><path d="M6.5 9.5a3 3 0 0 0 4.2 0l2-2a3 3 0 0 0-4.2-4.2l-.7.7"/><path d="M9.5 6.5a3 3 0 0 0-4.2 0l-2 2a3 3 0 0 0 4.2 4.2l.7-.7"/></svg>',
     codeBlock: '<svg ' + ICON_ATTRS + '><polyline points="5.5 4.5 2 8 5.5 11.5"/><polyline points="10.5 4.5 14 8 10.5 11.5"/></svg>',
     emoji: '<svg ' + ICON_ATTRS + '><circle cx="8" cy="8" r="6"/><path d="M5.4 9.6a3.2 3.2 0 0 0 5.2 0"/><circle cx="6" cy="6.6" r=".7" fill="currentColor" stroke="none"/><circle cx="10" cy="6.6" r=".7" fill="currentColor" stroke="none"/></svg>',
+    image: '<svg ' + ICON_ATTRS + '><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6.5" r="1.2"/><path d="M2 12l3.5-3.5a1 1 0 0 1 1.4 0L10 11.5m2-2 .6-.6a1 1 0 0 1 1.4 0L14.5 11"/></svg>',
 };
 
 const TOOLBAR = [
@@ -38,6 +40,9 @@ const TOOLBAR = [
     // Opens the emoji picker popover (built by buildEmojiPicker). `popup` items
     // report aria-expanded instead of aria-pressed, and "active" means "open".
     { key: 'emoji', label: 'Emoji', html: ICONS.emoji, popup: true, run: null, active: () => emojiPickerIsOpen() },
+    // No `active` state — inserting an image doesn't toggle a mark/node the
+    // cursor can currently be "inside", unlike the other buttons.
+    { key: 'image', label: 'Insert image', html: ICONS.image, run: null, active: () => false },
 ];
 
 const HEADING_OPTIONS = [
@@ -75,8 +80,8 @@ function normalizeHref(raw) {
     return 'https://' + value;
 }
 
-// `handlers` are the toolbar items that open UI instead of running a command:
-// { link: () => void, emoji: (button) => void }.
+// `handlers` are the toolbar items with no single ProseMirror command of
+// their own — they open other UI instead: { link, emoji, image }.
 function buildToolbar(editor, handlers) {
     const bar = el('div', 'rte-toolbar', { role: 'toolbar', 'aria-label': 'Text formatting' });
 
@@ -112,6 +117,7 @@ function buildToolbar(editor, handlers) {
         button.addEventListener('click', function () {
             if (item.key === 'link') handlers.link();
             else if (item.key === 'emoji') handlers.emoji(button);
+            else if (item.key === 'image') handlers.image();
             else item.run(editor);
         });
         bar.appendChild(button);
@@ -129,7 +135,13 @@ function buildToolbar(editor, handlers) {
         heading.value = level ? String(level) : 'p';
     }
 
-    return { element: bar, refresh: refresh };
+    function button(key) {
+        const entry = buttons.find(function (b) { return b.item.key === key; });
+
+        return entry ? entry.button : null;
+    }
+
+    return { element: bar, refresh: refresh, button: button };
 }
 
 // Inline URL entry instead of window.prompt(): styled like the rest of the
@@ -220,6 +232,117 @@ function buildLinkBar(editor) {
     return { element: wrap, open: open };
 }
 
+// Image upload. Where the file goes, and under whose permission, is read
+// from `root.dataset` fresh on every click rather than fixed at editor
+// construction — the Add Task page's editor has to send whichever project
+// is *currently* selected (see rte-image-*-* attributes set/kept updated
+// by each Blade page in resources/views/tasks/*.blade.php), and rereading
+// them here is simpler than teaching this shared module about that.
+//
+// Two upload targets, matching RichTextImageController's two actions:
+//   - data-image-task-id (+ data-image-context: description|comment) — an
+//     existing task; POSTs to /tasks/{id}/images.
+//   - data-image-pending-id (+ data-image-project-id, optionally
+//     data-image-department-id) — the Add Task page, before the task
+//     exists; POSTs to /pending-task-images.
+// An editor root with neither pair set has no image support wired up (not
+// expected for anything in this app today, but the module doesn't assume
+// it) — the toolbar button is hidden rather than a dead click.
+function buildImageUpload(editor, root, onBusyChange) {
+    const input = el('input', 'rte-image-input', { type: 'file', accept: 'image/*', tabindex: '-1', 'aria-hidden': 'true' });
+
+    const status = el('div', 'rte-image-status');
+    status.hidden = true;
+
+    let busy = false;
+
+    function target() {
+        const taskId = root.dataset.imageTaskId;
+        if (taskId) {
+            return { url: '/tasks/' + taskId + '/images', fields: { context: root.dataset.imageContext || 'comment' } };
+        }
+
+        const pendingId = root.dataset.imagePendingId;
+        if (pendingId) {
+            return {
+                url: '/pending-task-images',
+                fields: {
+                    pending_id: pendingId,
+                    project_id: root.dataset.imageProjectId || '',
+                    department_id: root.dataset.imageDepartmentId || '',
+                },
+            };
+        }
+
+        return null;
+    }
+
+    function setStatus(message, isError) {
+        status.hidden = ! message;
+        status.textContent = message || '';
+        status.classList.toggle('is-error', !! isError);
+    }
+
+    function setBusy(next) {
+        busy = next;
+        status.classList.toggle('is-busy', next);
+        if (onBusyChange) onBusyChange(next);
+    }
+
+    function upload(file) {
+        const destination = target();
+        if (! destination) return;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const body = new FormData();
+        body.append('file', file);
+        Object.keys(destination.fields).forEach(function (key) { body.append(key, destination.fields[key]); });
+
+        setBusy(true);
+        setStatus('Uploading image…', false);
+
+        fetch(destination.url, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
+            body: body,
+        })
+            .then(function (response) {
+                return response.json().catch(function () { return null; }).then(function (data) {
+                    if (! response.ok) throw new Error((data && data.message) || 'Failed to upload image.');
+
+                    return data;
+                });
+            })
+            .then(function (data) {
+                editor.chain().focus().setImage({ src: data.url }).run();
+                setStatus('', false);
+            })
+            .catch(function (error) {
+                setStatus(error.message, true);
+            })
+            .finally(function () {
+                setBusy(false);
+                input.value = '';
+            });
+    }
+
+    input.addEventListener('change', function () {
+        const file = input.files[0];
+        if (file) upload(file);
+    });
+
+    return {
+        element: status,
+        input: input,
+        isWired: function () { return target() !== null; },
+        isBusy: function () { return busy; },
+        trigger: function () {
+            if (busy || ! target()) return;
+            input.click();
+        },
+    };
+}
+
 // Places a fixed-position popup just below a caret rectangle ({left, top,
 // bottom}), or above it when there isn't room below, and keeps it inside the
 // viewport. Shared by the @mention and :emoji: dropdowns.
@@ -241,9 +364,10 @@ function placePopup(dropdown, caret) {
 // cdn.jsdelivr.net Apple PNG as `fallbackImage` to most emoji and renders
 // that <img> instead of the character whenever the browser doesn't detect
 // native support; stripping the field here guarantees the character is
-// always what gets rendered (and stored — the sanitizer drops <img>, so an
-// image would silently lose the emoji on save). Regional-indicator letters
-// are left out of the list (they exist only to compose flags).
+// always what gets rendered (and stored — the sanitizer would otherwise let
+// that <img> through now that task #4 phase 3 allows the tag, and an image
+// would silently replace the emoji on save). Regional-indicator letters are
+// left out of the list (they exist only to compose flags).
 const NATIVE_EMOJIS = defaultEmojis
     .filter(function (item) { return item.emoji && ! /^regional_indicator/.test(item.name); })
     .map(function (item) {
@@ -876,13 +1000,15 @@ export function createRichTextEditor(root) {
     let mentions = null;
     let toolbar = null;
     let linkBar = null;
+    let imageUpload = null;
 
     // Trailing empty paragraphs (the editor keeps one after a final code
-    // block so the cursor can leave it) aren't content worth saving.
-    // Emoji are editor nodes that serialize as <span data-type="emoji">😀</span>;
-    // they're stored as the bare Unicode character instead, so saved content is
-    // plain text plus the same allowlisted tags as before (the wrapper carries
-    // nothing the character doesn't).
+    // block, or after a block image, so the cursor can leave it) aren't
+    // content worth saving. Emoji are editor nodes that serialize as
+    // <span data-type="emoji">😀</span>; they're stored as the bare Unicode
+    // character instead, so saved content is plain text plus the same
+    // allowlisted tags as before (the wrapper carries nothing the character
+    // doesn't).
     function serialize() {
         if (editor.isEmpty) return '';
 
@@ -926,6 +1052,11 @@ export function createRichTextEditor(root) {
                     render: emojiSuggestionRenderer,
                 },
             }),
+            // allowBase64: false (the default) — this app's images always
+            // come from the upload endpoint as an R2/MinIO URL; a base64
+            // <img src> could only arrive via a paste or a crafted request,
+            // and the server-side sanitizer rejects "data:" too either way.
+            Image.configure({ inline: false }),
         ],
         editorProps: {
             attributes: { class: 'rte-prose rich-text', role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },
@@ -956,14 +1087,24 @@ export function createRichTextEditor(root) {
     });
 
     const emojiPicker = buildEmojiPicker(editor);
+    imageUpload = buildImageUpload(editor, root, function (busy) {
+        const button = toolbar.button('image');
+        if (button) button.disabled = busy;
+    });
     toolbar = buildToolbar(editor, {
         link: function () { linkBar.open(); },
         emoji: function (button) { emojiPicker.toggle(button); },
+        image: function () { imageUpload.trigger(); },
     });
     linkBar = buildLinkBar(editor);
     if (users.length > 0) mentions = setupMentions(editor, users);
 
-    root.prepend(toolbar.element, linkBar.element);
+    if (! imageUpload.isWired()) {
+        const imageButton = toolbar.button('image');
+        if (imageButton) imageButton.hidden = true;
+    }
+
+    root.prepend(toolbar.element, linkBar.element, imageUpload.element, imageUpload.input);
     root.appendChild(content);
 
     const form = root.closest('form');

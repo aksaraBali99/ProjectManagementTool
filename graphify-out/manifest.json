@@ -20,8 +20,8 @@
     "semantic_hash": ""
   },
   "bootstrap/app.php": {
-    "mtime": 1788247718.547675,
-    "ast_hash": "728b7e398331f07f9cbe9b56b75ca19d",
+    "mtime": 1790059259.2010517,
+    "ast_hash": "a141d25104eb29524bed2385a7cd9f08",
     "semantic_hash": ""
   },
   "bootstrap/providers.php": {
@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1790051716.688239,
-    "ast_hash": "9838338946f66b94c9562867bf3f0b69",
+    "mtime": 1790062468.138131,
+    "ast_hash": "9bef55e20000e26d62c90e5397779a12",
     "semantic_hash": ""
   },
   "public/index.php": {
@@ -120,8 +120,8 @@
     "semantic_hash": ""
   },
   "resources/js/app.js": {
-    "mtime": 1790051675.7767196,
-    "ast_hash": "549187b0a71a954036580b46f6bc136e",
+    "mtime": 1790059683.1373434,
+    "ast_hash": "be9362a8bd5647d5efbe7b6f7df69803",
     "semantic_hash": ""
   },
   "routes/console.php": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1788247718.5548,
-    "ast_hash": "285871f3443427d2c3011cb068036012",
+    "mtime": 1790059181.7271214,
+    "ast_hash": "14a24923c557878ea91d95e26cbf930c",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -140,8 +140,8 @@
     "semantic_hash": ""
   },
   "tests/Pest.php": {
-    "mtime": 1790051675.8001597,
-    "ast_hash": "6a7098e8d8f75254a9b66a6815ef8c95",
+    "mtime": 1790060557.3222418,
+    "ast_hash": "951790f3f38ef60b5dd7921c2d48b1f9",
     "semantic_hash": ""
   },
   "tests/TestCase.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1789027502.6236145,
-    "ast_hash": "b0d6f75cb8bf8e22847b82ecd9d844a3",
+    "mtime": 1790059229.3768816,
+    "ast_hash": "b8ace3fe3f2fe9e3ef10493f0654148e",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -780,8 +780,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
-    "mtime": 1790051675.7858338,
-    "ast_hash": "3b57d21a5f0693249ae0366055d68861",
+    "mtime": 1790059601.2232752,
+    "ast_hash": "08aec3b32a80432be4293f11733cc069",
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
@@ -795,13 +795,13 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/create.blade.php": {
-    "mtime": 1790051675.7898579,
-    "ast_hash": "e004947c6986bceda6250ad0f8b7e816",
+    "mtime": 1790059564.016888,
+    "ast_hash": "2623c65a0fe0a1e75efd8db79c21a4fe",
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1790051675.79187,
-    "ast_hash": "0110cb174ff29799cb8b57b3b58654cf",
+    "mtime": 1790059493.9413788,
+    "ast_hash": "e7bf3c51974afecb3ef3c372cf34f5c2",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
@@ -1515,13 +1515,13 @@
     "semantic_hash": ""
   },
   "app/Exceptions/FileStorageException.php": {
-    "mtime": 1790051675.678283,
-    "ast_hash": "285fce1010f1c8a3af5d6ebbd4e7784e",
+    "mtime": 1790058980.5665731,
+    "ast_hash": "badf3fdaeb5f08737ce30c24345743d1",
     "semantic_hash": ""
   },
   "app/Services/FileStorageService.php": {
-    "mtime": 1790051675.688352,
-    "ast_hash": "b7944bbab0dfb24bab346f0d0768baa1",
+    "mtime": 1790059752.1030273,
+    "ast_hash": "4f01db8333d06d11922d76cd7ea70617",
     "semantic_hash": ""
   },
   "app/Services/StoredFile.php": {
@@ -1545,8 +1545,8 @@
     "semantic_hash": ""
   },
   "app/Support/RichText.php": {
-    "mtime": 1790051716.897151,
-    "ast_hash": "0d2db1ee8a5e16f9c95fb199ce87f65e",
+    "mtime": 1790062427.5912683,
+    "ast_hash": "384069346fc1437d17eda40cc571409c",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php": {
@@ -1560,13 +1560,13 @@
     "semantic_hash": ""
   },
   "resources/js/rich-text-editor.js": {
-    "mtime": 1790051727.342403,
-    "ast_hash": "d8f9bf9ceb45afa902b40407134b5490",
+    "mtime": 1790062897.0835385,
+    "ast_hash": "ea9a1fc8e45331d5fdc029aa9f995fb0",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text-editor.blade.php": {
-    "mtime": 1790051675.7818134,
-    "ast_hash": "58fc7c7912ba248856540be29abfc17f",
+    "mtime": 1790059480.6127012,
+    "ast_hash": "e3290c4daaddbc5a727aa43527e9154a",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text.blade.php": {
@@ -1575,8 +1575,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/CommentRichTextTest.php": {
-    "mtime": 1790051675.7975872,
-    "ast_hash": "b26a30871c3cf5d8142d2e4c0b90da98",
+    "mtime": 1790060425.5153522,
+    "ast_hash": "a35b675cb5a106819fd05749be898901",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/LongtextMigrationTest.php": {
@@ -1585,18 +1585,43 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/TaskDescriptionEditorTest.php": {
-    "mtime": 1790051675.8001597,
-    "ast_hash": "639f12e680e25e2329524ad070f6696a",
+    "mtime": 1790060433.9271743,
+    "ast_hash": "29a70ec495914ff28579bb609006380c",
     "semantic_hash": ""
   },
   "tests/Unit/RichTextTest.php": {
-    "mtime": 1790051716.9196374,
-    "ast_hash": "220179db1e97e96b2923522cda4a60f0",
+    "mtime": 1790062452.4679697,
+    "ast_hash": "2e61eda655d0f1d5559112394715db12",
+    "semantic_hash": ""
+  },
+  "app/Console/Commands/CleanupStalePendingImages.php": {
+    "mtime": 1790059253.1196854,
+    "ast_hash": "36ce7ec6bb5737231da2aec6441fd46a",
+    "semantic_hash": ""
+  },
+  "app/Http/Controllers/RichTextImageController.php": {
+    "mtime": 1790059152.7267513,
+    "ast_hash": "d393bce35a18051b2a70fc5ea1912c6f",
+    "semantic_hash": ""
+  },
+  "resources/js/lightbox.js": {
+    "mtime": 1790059330.5267968,
+    "ast_hash": "e18cca22b4f864aa7bf66fea3ed1b53d",
+    "semantic_hash": ""
+  },
+  "tests/Feature/FileStorage/CleanupStalePendingImagesTest.php": {
+    "mtime": 1790060182.3992007,
+    "ast_hash": "ba8c4b7dfc256e5f575a15abc5e35eba",
+    "semantic_hash": ""
+  },
+  "tests/Feature/RichText/ImageUploadTest.php": {
+    "mtime": 1790060444.5095177,
+    "ast_hash": "f2bb76dc829f415be1c9bfa925b3593f",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/EmojiSupportTest.php": {
-    "mtime": 1790051727.3444114,
-    "ast_hash": "cd4f28c19a1ed1093f46641ddab470df",
+    "mtime": 1790069514.6788497,
+    "ast_hash": "a451290b629d8d74d2113679fc8d8396",
     "semantic_hash": ""
   }
 }

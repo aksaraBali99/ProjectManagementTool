@@ -62,7 +62,7 @@
 
             <div>
                 <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</span>
-                <x-rich-text-editor class="mt-1" name="description" id="description" :value="old('description')" label="Description" placeholder="Add a description…" />
+                <x-rich-text-editor class="mt-1" name="description" id="description" :value="old('description')" label="Description" placeholder="Add a description…" :image-pending-id="$pendingImageId" :image-project-id="$project->id" />
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -204,6 +204,18 @@
                     subtaskRows.querySelectorAll('.subtask-assignee-select').forEach(function (select) {
                         populateAssigneeSelect(select, projectSelect.value, null);
                     });
+
+                    // The Description editor's image upload authorizes
+                    // against whichever company/department is currently
+                    // selected (there's no task yet to check a permission
+                    // against) — kept in sync here, the one place project/
+                    // department selection changes, rather than the editor
+                    // module polling these selects itself.
+                    const descriptionEditor = document.querySelector('[data-rich-text][data-label="Description"]');
+                    if (descriptionEditor) {
+                        descriptionEditor.dataset.imageProjectId = projectSelect.value;
+                        descriptionEditor.dataset.imageDepartmentId = hasNoDepartments ? '' : departmentSelect.value;
+                    }
                 }
 
                 projectSelect.addEventListener('change', refreshDependents);

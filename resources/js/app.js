@@ -212,14 +212,34 @@ function initRichText() {
     highlightRichText(document);
 }
 
+// Click-to-enlarge on an embedded image — scoped to READ-ONLY rendered rich
+// text (task drilldown, comment list, the non-editable task view: anywhere
+// carrying `data-rich-text-content`), not the live editing surface, where a
+// click is normally placing the cursor or selecting the image node, not
+// asking to preview it. One delegated listener covers every current image
+// and any a comment row adds later (buildCommentRow/syncComments in
+// tasks/_comments.blade.php), so nothing needs re-wiring per row.
+function initLightboxDelegation() {
+    document.addEventListener('click', function (event) {
+        const img = event.target.closest('[data-rich-text-content] img');
+        if (! img) return;
+
+        import('./lightbox.js').then(function (module) {
+            module.openLightbox({ src: img.currentSrc || img.src, alt: img.alt });
+        });
+    });
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
         initPhoneInputs();
         initAnalyticsCharts();
         initRichText();
+        initLightboxDelegation();
     });
 } else {
     initPhoneInputs();
     initAnalyticsCharts();
     initRichText();
+    initLightboxDelegation();
 }
