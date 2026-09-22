@@ -80,6 +80,21 @@ test('a relative image src is kept — unlike a link, it carries no meaningful r
     expect(RichText::sanitize('<img src="/storage/tasks/5/images/a.jpg">'))->toContain('src="/storage/tasks/5/images/a.jpg"');
 });
 
+test('a span is unwrapped, keeping its text (the editor emoji node markup), and its attributes go', function () {
+    expect(RichText::sanitize('<p>a <span data-type="emoji" data-name="rocket" class="x" style="color:red">🚀</span> b</p>'))
+        ->toBe('<p>a 🚀 b</p>');
+});
+
+test('emoji, including multi-codepoint sequences, pass through normalize, toHtml and plainText unchanged', function () {
+    $text = 'Ship 🚀 👍🏽 👨‍👩‍👧 🇮🇩 ❤️';
+
+    expect(RichText::normalize("<p>{$text}</p>"))->toBe("<p>{$text}</p>");
+    expect(RichText::toHtml("<p>{$text}</p>"))->toBe("<p>{$text}</p>");
+    expect(RichText::plainText("<p>{$text}</p>"))->toBe($text);
+    expect(RichText::toHtml($text))->toBe("<p>{$text}</p>"); // legacy plain text containing emoji
+    expect(RichText::normalize('<p>🚀</p>'))->toBe('<p>🚀</p>'); // emoji-only is content, not blank
+});
+
 test('external links are forced to open safely', function () {
     $clean = RichText::sanitize('<p><a href="https://example.com">x</a></p>');
 

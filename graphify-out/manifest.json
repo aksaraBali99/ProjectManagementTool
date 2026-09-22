@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1790058683.314564,
-    "ast_hash": "dbf09849b2e2bad9790ee1413ff9ded5",
+    "mtime": 1790062468.138131,
+    "ast_hash": "9bef55e20000e26d62c90e5397779a12",
     "semantic_hash": ""
   },
   "public/index.php": {
@@ -1545,8 +1545,8 @@
     "semantic_hash": ""
   },
   "app/Support/RichText.php": {
-    "mtime": 1790060332.5579293,
-    "ast_hash": "7d2fdf9fde4cc254407e51be6b128153",
+    "mtime": 1790062427.5912683,
+    "ast_hash": "384069346fc1437d17eda40cc571409c",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php": {
@@ -1560,8 +1560,8 @@
     "semantic_hash": ""
   },
   "resources/js/rich-text-editor.js": {
-    "mtime": 1790059430.5298264,
-    "ast_hash": "56fb1b75f1f5f1dfebd67359f710fa94",
+    "mtime": 1790062897.0835385,
+    "ast_hash": "ea9a1fc8e45331d5fdc029aa9f995fb0",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text-editor.blade.php": {
@@ -1590,8 +1590,8 @@
     "semantic_hash": ""
   },
   "tests/Unit/RichTextTest.php": {
-    "mtime": 1790060360.945965,
-    "ast_hash": "53867ab8affc3f468a36e0a0994edd22",
+    "mtime": 1790062452.4679697,
+    "ast_hash": "2e61eda655d0f1d5559112394715db12",
     "semantic_hash": ""
   },
   "app/Console/Commands/CleanupStalePendingImages.php": {
@@ -1617,6 +1617,11 @@
   "tests/Feature/RichText/ImageUploadTest.php": {
     "mtime": 1790060444.5095177,
     "ast_hash": "f2bb76dc829f415be1c9bfa925b3593f",
+    "semantic_hash": ""
+  },
+  "tests/Feature/RichText/EmojiSupportTest.php": {
+    "mtime": 1790069514.6788497,
+    "ast_hash": "a451290b629d8d74d2113679fc8d8396",
     "semantic_hash": ""
   }
 }
