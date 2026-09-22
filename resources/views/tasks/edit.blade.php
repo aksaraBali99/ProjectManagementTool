@@ -59,7 +59,7 @@
 
             <div>
                 <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</span>
-                <x-rich-text-editor class="mt-1" name="description" id="description" :value="old('description', $task->description)" label="Description" placeholder="Add a description…" />
+                <x-rich-text-editor class="mt-1" name="description" id="description" :value="old('description', $task->description)" label="Description" placeholder="Add a description…" :image-task-id="$task->id" image-context="description" />
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
