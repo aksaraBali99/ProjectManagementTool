@@ -49,11 +49,12 @@ test('the sanitizer keeps exactly what the editor can produce', function () {
     $editorOutput = '<h1>A</h1><h2>B</h2><h3>C</h3>'
         .'<p><strong>b</strong><em>i</em><u>u</u>line<br>break</p>'
         .'<ul><li><p>x</p></li></ul><ol><li><p>y</p></li></ol>'
-        .'<pre><code class="language-python">print(1)</code></pre>';
+        .'<pre><code class="language-python">print(1)</code></pre>'
+        .'<img src="https://cdn.example.com/tasks/5/images/a.jpg" alt="a screenshot">';
 
     $clean = RichText::sanitize($editorOutput);
 
-    foreach (['<h1>A</h1>', '<h2>B</h2>', '<h3>C</h3>', '<strong>b</strong>', '<em>i</em>', '<u>u</u>', '<br', '<ul><li><p>x</p></li></ul>', '<ol><li><p>y</p></li></ol>', 'class="language-python"'] as $expected) {
+    foreach (['<h1>A</h1>', '<h2>B</h2>', '<h3>C</h3>', '<strong>b</strong>', '<em>i</em>', '<u>u</u>', '<br', '<ul><li><p>x</p></li></ul>', '<ol><li><p>y</p></li></ol>', 'class="language-python"', 'src="https://cdn.example.com/tasks/5/images/a.jpg"', 'alt="a screenshot"'] as $expected) {
         expect($clean)->toContain($expected);
     }
 });
@@ -66,12 +67,18 @@ test('the sanitizer removes anything the editor cannot produce', function (strin
     'javascript: href' => ['<p><a href="javascript:alert(1)">a</a></p>', 'javascript:'],
     'data: href' => ['<p><a href="data:text/html;base64,PHNjcmlwdD4=">a</a></p>', 'data:'],
     'relative href' => ['<p><a href="/admin/delete">a</a></p>', '/admin/delete'],
-    'image' => ['<p><img src="https://x/y.png"></p>', '<img'],
+    'image event handler' => ['<img src="https://x/y.png" onerror="alert(1)">', 'onerror'],
+    'image data: src' => ['<img src="data:image/png;base64,AAAA">', 'data:'],
+    'image title attribute' => ['<img src="https://x/y.png" title="not in the allowlist">', 'title='],
     'iframe' => ['<p>a</p><iframe src="https://evil"></iframe>', '<iframe'],
     'style attribute' => ['<p style="position:fixed">a</p>', 'style='],
     'arbitrary code class' => ['<pre><code class="fixed inset-0">a</code></pre>', 'fixed'],
     'class on paragraph' => ['<p class="fixed inset-0">a</p>', 'class='],
 ]);
+
+test('a relative image src is kept — unlike a link, it carries no meaningful risk and config(filestorage.disk) is allowed to be local', function () {
+    expect(RichText::sanitize('<img src="/storage/tasks/5/images/a.jpg">'))->toContain('src="/storage/tasks/5/images/a.jpg"');
+});
 
 test('external links are forced to open safely', function () {
     $clean = RichText::sanitize('<p><a href="https://example.com">x</a></p>');

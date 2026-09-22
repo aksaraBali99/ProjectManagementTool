@@ -126,7 +126,7 @@ test('script, event handlers, javascript links and images are stripped from a co
     expect($stored)
         ->not->toContain('onclick')
         ->not->toContain('javascript:')
-        ->not->toContain('<img')
+        ->not->toContain('onerror')
         ->not->toContain('<script');
 
     $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
@@ -148,7 +148,7 @@ test('hostile markup written straight into the database is still neutralized whe
     $page->assertDontSee('onmouseover', false);
 
     $json = $this->actingAs($this->management)->getJson("/tasks/{$this->task->id}/comments")->json('comments.0.body_html');
-    expect($json)->not->toContain('<script')->not->toContain('onmouseover')->not->toContain('<img');
+    expect($json)->not->toContain('<script')->not->toContain('onmouseover')->not->toContain('onerror');
 });
 
 test('the 2000-character limit applies to the visible text, not to the markup around it', function () {

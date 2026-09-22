@@ -229,7 +229,7 @@ test('script, event handlers, javascript links, images and arbitrary classes are
         ->not->toContain('onclick')
         ->not->toContain('onmouseover')
         ->not->toContain('javascript:')
-        ->not->toContain('<img')
+        ->not->toContain('onerror')
         ->not->toContain('<script')
         ->not->toContain('fixed inset-0')
         ->toContain('href="https://ok.example"');
