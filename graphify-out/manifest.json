@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "",
+    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -1545,8 +1545,8 @@
     "semantic_hash": ""
   },
   "app/Support/RichText.php": {
-    "mtime": 1790062427.5912683,
-    "ast_hash": "384069346fc1437d17eda40cc571409c",
+    "mtime": 1790070589.4805622,
+    "ast_hash": "3bbd946314d389fe4030ab5eb66bb439",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php": {
@@ -1560,8 +1560,8 @@
     "semantic_hash": ""
   },
   "resources/js/rich-text-editor.js": {
-    "mtime": 1790062897.0835385,
-    "ast_hash": "ea9a1fc8e45331d5fdc029aa9f995fb0",
+    "mtime": 1790070690.209391,
+    "ast_hash": "8fee00292689a5b623391e6bb2dba440",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text-editor.blade.php": {
@@ -1590,8 +1590,8 @@
     "semantic_hash": ""
   },
   "tests/Unit/RichTextTest.php": {
-    "mtime": 1790062452.4679697,
-    "ast_hash": "2e61eda655d0f1d5559112394715db12",
+    "mtime": 1790070823.6904871,
+    "ast_hash": "b3acfd17cb807edfe1b44179f09a4f36",
     "semantic_hash": ""
   },
   "app/Console/Commands/CleanupStalePendingImages.php": {
@@ -1622,6 +1622,21 @@
   "tests/Feature/RichText/EmojiSupportTest.php": {
     "mtime": 1790069514.6788497,
     "ast_hash": "a451290b629d8d74d2113679fc8d8396",
+    "semantic_hash": ""
+  },
+  "app/Support/ImageDimensionAttributeSanitizer.php": {
+    "mtime": 1790070607.462226,
+    "ast_hash": "fec8cce506b07567659516a2806e815d",
+    "semantic_hash": ""
+  },
+  "resources/js/resizable-image.js": {
+    "mtime": 1790070642.5987895,
+    "ast_hash": "38e28a395f7b8d431e4abe9a1a13f892",
+    "semantic_hash": ""
+  },
+  "tests/Feature/RichText/ImageResizeTest.php": {
+    "mtime": 1790070808.0908332,
+    "ast_hash": "8eed86b6c58f692254952cb5179345ab",
     "semantic_hash": ""
   }
 }
