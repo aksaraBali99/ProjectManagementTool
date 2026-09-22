@@ -9,6 +9,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -186,4 +187,16 @@ function richTextFragment(string $html): DOMDocument
     libxml_clear_errors();
 
     return $document;
+}
+
+/**
+ * Backdates a Storage::fake() file's mtime — the fake disk is a real
+ * temporary directory, so a plain touch() on its underlying path works;
+ * there's no Storage::fake() API for this. Used by age-based cleanup
+ * command tests (e.g. images:cleanup-stale-pending), which decide what's
+ * "stale" purely from Storage::lastModified().
+ */
+function touchDiskFile(string $disk, string $path, DateTimeInterface $when): void
+{
+    touch(Storage::disk($disk)->path($path), $when->getTimestamp());
 }
