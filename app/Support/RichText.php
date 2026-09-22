@@ -13,7 +13,8 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  *   - legacy plain text (everything saved before the editor swap, plus
  *     anything written by the Bulk Import feature), and
  *   - HTML produced by the editor (a run of block elements: <p>, <h1-3>,
- *     <ul>/<ol>, <pre>, plus the void <img> block node — see VOID_TAGS).
+ *     <ul>/<ol>, <pre>, <audio>, plus the void <img> block node — see
+ *     VOID_BLOCK_TAGS).
  *
  * The format is detected from the value itself rather than tracked in a
  * column, so the LONGTEXT migration stays a pure widening and no existing
@@ -33,7 +34,12 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  */
 class RichText
 {
-    private const BLOCK_TAGS = 'p|h[1-6]|ul|ol|pre';
+    // audio (task #4 phase 4): unlike img, <audio> isn't a void HTML element
+    // — the browser requires a real closing tag even with no content — so
+    // TipTap's custom Audio node (resources/js/audio-extension.js) renders
+    // it as <audio ...></audio>, an ordinary open/close pair like <pre>,
+    // not a self-closing tag. It belongs here, not in VOID_BLOCK_TAGS.
+    private const BLOCK_TAGS = 'p|h[1-6]|ul|ol|pre|audio';
 
     /**
      * Block-level nodes the editor emits with no closing tag (an uploaded
@@ -126,10 +132,10 @@ class RichText
 
         $clean = self::sanitize($value);
 
-        // An image-only description/comment has no visible text at all, but
-        // it's still real content, not a blank editor — plainText() alone
-        // would otherwise null it out.
-        if (self::plainText($clean) === '' && ! str_contains($clean, '<img')) {
+        // An image- or audio-only description/comment has no visible text at
+        // all, but it's still real content, not a blank editor — plainText()
+        // alone would otherwise null it out.
+        if (self::plainText($clean) === '' && ! str_contains($clean, '<img') && ! str_contains($clean, '<audio')) {
             return null;
         }
 
@@ -194,6 +200,10 @@ class RichText
                 // are enforced by ImageDimensionAttributeSanitizer, not
                 // trusted from the client alone.
                 ->allowElement('img', ['src', 'alt', 'width', 'height'])
+                // controls (task #4 phase 4): always present — see the Audio
+                // node's addAttributes() — but still has to be allowlisted
+                // like any other attribute, or the sanitizer strips it.
+                ->allowElement('audio', ['src', 'controls'])
                 ->dropElement('script')
                 ->dropElement('style')
                 // Unknown elements are dropped WITH their contents by default.
@@ -207,17 +217,18 @@ class RichText
                 ->forceAttribute('a', 'target', '_blank')
                 // 'src' is sanitized against these same rules for every
                 // element (Symfony's UrlAttributeSanitizer applies them to
-                // anything that isn't an <a>/<area> href) — img is the only
-                // one we allow. The library's own default additionally
-                // allows "data:" here; excluded, since a base64 image would
-                // both defeat the point of uploading to storage and let a
-                // crafted request stuff an arbitrarily large blob straight
-                // into the database.
+                // anything that isn't an <a>/<area> href) — img and audio are
+                // the only ones we allow. The library's own default
+                // additionally allows "data:" here; excluded, since a
+                // base64-embedded file would both defeat the point of
+                // uploading to storage and let a crafted request stuff an
+                // arbitrarily large blob straight into the database.
                 ->allowMediaSchemes(['http', 'https'])
-                // Unlike a link's href, a relative <img src> carries no real
-                // risk (it's just a same-origin GET for image bytes, same as
-                // any other <img> the browser already loads on this page —
-                // no script executes, nothing crosses origins) — and
+                // Unlike a link's href, a relative <img>/<audio> src carries
+                // no real risk (it's just a same-origin GET for media bytes,
+                // same as any other <img>/<audio> the browser already loads
+                // on this page — no script executes, nothing crosses
+                // origins) — and
                 // config('filestorage.disk') is allowed to be 'local' rather
                 // than R2/MinIO (see FileStorageService's docblock), which
                 // legitimately produces relative "/storage/..." URLs.
