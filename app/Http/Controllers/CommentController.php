@@ -7,13 +7,19 @@ use App\Models\Comment;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\MentionedInCommentNotification;
+use App\Support\RichText;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class CommentController extends Controller
 {
     use ValidatesTaskAssignment;
+
+    private const MAX_BODY_TEXT_LENGTH = 2000;
+
+    private const MAX_BODY_HTML_LENGTH = 100000;
 
     public function index(Task $task): JsonResponse
     {
@@ -25,6 +31,8 @@ class CommentController extends Controller
             'comments' => $comments->map(fn (Comment $comment) => [
                 'id' => $comment->id,
                 'body' => $comment->body,
+                'body_html' => RichText::toHtml($comment->body),
+                'body_hash' => md5($comment->body),
                 'user_name' => $comment->user->name,
                 'user_initials' => $comment->user->initials(),
                 'user_avatar_bg' => $comment->user->avatarBackground(),
@@ -44,14 +52,14 @@ class CommentController extends Controller
         Gate::authorize('create', Comment::class);
 
         $data = $request->validate([
-            'body' => ['required', 'string', 'max:2000'],
+            'body' => ['required', 'string', 'max:500000'],
             'mentioned_user_ids' => ['sometimes', 'array'],
             'mentioned_user_ids.*' => ['integer'],
         ]);
 
         $comment = $task->comments()->create([
             'user_id' => auth()->id(),
-            'body' => $data['body'],
+            'body' => $this->cleanBody($data['body']),
         ]);
 
         $this->syncMentions($comment, $task, $data['mentioned_user_ids'] ?? []);
@@ -60,6 +68,8 @@ class CommentController extends Controller
             'comment' => [
                 'id' => $comment->id,
                 'body' => $comment->body,
+                'body_html' => RichText::toHtml($comment->body),
+                'body_hash' => md5($comment->body),
                 'user_name' => auth()->user()->name,
                 'user_initials' => auth()->user()->initials(),
                 'user_avatar_bg' => auth()->user()->avatarBackground(),
@@ -74,16 +84,21 @@ class CommentController extends Controller
         Gate::authorize('update', $comment);
 
         $data = $request->validate([
-            'body' => ['required', 'string', 'max:2000'],
+            'body' => ['required', 'string', 'max:500000'],
             'mentioned_user_ids' => ['sometimes', 'array'],
             'mentioned_user_ids.*' => ['integer'],
         ]);
 
-        $comment->update(['body' => $data['body']]);
+        $comment->update(['body' => $this->cleanBody($data['body'])]);
 
         $this->syncMentions($comment, $comment->task, $data['mentioned_user_ids'] ?? []);
 
-        return response()->json(['comment' => ['id' => $comment->id, 'body' => $comment->body]]);
+        return response()->json(['comment' => [
+            'id' => $comment->id,
+            'body' => $comment->body,
+            'body_html' => RichText::toHtml($comment->body),
+            'body_hash' => md5($comment->body),
+        ]]);
     }
 
     public function destroy(Comment $comment): JsonResponse
@@ -93,6 +108,29 @@ class CommentController extends Controller
         $comment->delete();
 
         return response()->json(['deleted' => true]);
+    }
+
+    /**
+     * Comment bodies arrive as editor HTML (or plain text from older
+     * clients). The old 2000-character cap applied to what a person typed,
+     * so it's now measured on the visible text — HTML markup mustn't eat
+     * into it — with a separate generous cap on the raw HTML so a crafted
+     * request can't store an unbounded blob. Blank content (including the
+     * editor's empty "<p></p>") counts as missing.
+     */
+    private function cleanBody(string $raw): string
+    {
+        $body = RichText::normalize($raw);
+
+        if ($body === null) {
+            throw ValidationException::withMessages(['body' => 'The body field is required.']);
+        }
+
+        if (mb_strlen(RichText::plainText($body)) > self::MAX_BODY_TEXT_LENGTH || mb_strlen($body) > self::MAX_BODY_HTML_LENGTH) {
+            throw ValidationException::withMessages(['body' => 'The body field must not be greater than '.self::MAX_BODY_TEXT_LENGTH.' characters.']);
+        }
+
+        return $body;
     }
 
     /**

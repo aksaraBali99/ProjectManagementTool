@@ -118,3 +118,315 @@
     background-color: var(--tab-accent-bg);
     color: var(--tab-accent-text);
 }
+
+/* ---------------------------------------------------------------------------
+   Rich text (TipTap editor + read-only rendered content)
+   --------------------------------------------------------------------------- */
+
+/* Shared typography. `.rich-text` is on both the editable surface and every
+   read-only render of saved content, so a description looks the same
+   whether you're editing it or reading it. Font size is inherited — each
+   caller already sets its own text-[12px]/text-[11px]. Tailwind's preflight
+   strips list bullets, heading sizes and paragraph spacing, so they're
+   restored here. */
+.rich-text {
+    overflow-wrap: anywhere;
+}
+
+.rich-text > * + * {
+    margin-top: 0.5em;
+}
+
+.rich-text h1,
+.rich-text h2,
+.rich-text h3 {
+    font-weight: 600;
+    color: #1F2937;
+    line-height: 1.3;
+}
+
+.rich-text h1 { font-size: 1.35em; }
+.rich-text h2 { font-size: 1.2em; }
+.rich-text h3 { font-size: 1.05em; }
+
+.rich-text ul,
+.rich-text ol {
+    padding-left: 1.4em;
+}
+
+.rich-text ul { list-style: disc; }
+.rich-text ol { list-style: decimal; }
+
+.rich-text li > p {
+    margin: 0;
+}
+
+.rich-text li + li {
+    margin-top: 0.15em;
+}
+
+.rich-text a {
+    color: var(--color-brand-600);
+    text-decoration: underline;
+}
+
+.rich-text a:hover {
+    color: var(--color-brand-700);
+}
+
+.rich-text pre {
+    padding: 0.6em 0.8em;
+    overflow-x: auto;
+    border: 1px solid #E5E7EB;
+    border-radius: var(--radius-md);
+    background: #F9FAFB;
+    color: #1F2937;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.92em;
+    line-height: 1.5;
+    /* Code keeps its own line breaks/indentation, and scrolls instead of wrapping. */
+    overflow-wrap: normal;
+    white-space: pre;
+}
+
+.rich-text pre code {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+/* highlight.js token colors — the "GitHub light" mapping, which reads fine
+   against the #F9FAFB code background and keeps enough contrast. */
+.hljs-comment,
+.hljs-quote { color: #6B7280; font-style: italic; }
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-doctag,
+.hljs-type,
+.hljs-template-tag { color: #B4234E; }
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-meta .hljs-string { color: #0A5F46; }
+.hljs-number,
+.hljs-literal,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-variable.constant_ { color: #1D4ED8; }
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.function_,
+.hljs-section { color: #6D28D9; }
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-built_in,
+.hljs-selector-class,
+.hljs-selector-id { color: #B45309; }
+.hljs-name,
+.hljs-tag { color: #0F6E56; }
+.hljs-deletion { color: #A32D2D; background: #FCEBEB; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 600; }
+
+/* The editor shell: one bordered box (matching the app's other inputs —
+   gray-300 border, 8px radius, brand-green focus ring) containing toolbar,
+   optional link bar, and the editing surface. */
+.rte {
+    position: relative;
+    display: block;
+    width: 100%;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    background: #fff;
+    font-size: 12px;
+    color: var(--color-gray-700);
+}
+
+.rte:focus-within {
+    border-color: var(--color-brand-600);
+    box-shadow: 0 0 0 1px var(--color-brand-600);
+}
+
+/* Before the editor chunk loads (or while its row is still collapsed) the
+   box reserves its final height so nothing jumps when it mounts. */
+.rte-loading {
+    min-height: 8.5rem;
+    background: var(--color-gray-50);
+}
+
+.rte--compact.rte-loading {
+    min-height: 5rem;
+}
+
+.rte-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px;
+    border-bottom: 1px solid #E5E7EB;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    background: var(--color-gray-50);
+}
+
+.rte-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-sm);
+    color: var(--color-gray-600);
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+.rte-btn:hover {
+    background: var(--color-gray-200);
+    color: #1F2937;
+}
+
+.rte-btn.is-active {
+    background: var(--color-brand-50);
+    color: var(--color-brand-700);
+}
+
+.rte-heading {
+    height: 26px;
+    padding: 0 4px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-gray-700);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.rte-heading:hover {
+    background: var(--color-gray-200);
+}
+
+.rte-heading:focus {
+    outline: none;
+    background: var(--color-gray-200);
+}
+
+.rte-sep {
+    width: 1px;
+    height: 16px;
+    margin: 0 4px;
+    background: var(--color-gray-300);
+}
+
+.rte-linkbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    border-bottom: 1px solid #E5E7EB;
+    background: #fff;
+}
+
+.rte-linkbar[hidden],
+.rte-link-error[hidden],
+.rte-link-btn[hidden] {
+    display: none;
+}
+
+.rte-link-input {
+    flex: 1 1 12rem;
+    min-width: 0;
+    padding: 4px 8px;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    font-size: 12px;
+}
+
+.rte-link-input:focus {
+    border-color: var(--color-brand-600);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--color-brand-600);
+}
+
+.rte-link-btn {
+    padding: 4px 8px;
+    border-radius: var(--radius-md);
+    color: var(--color-gray-600);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.rte-link-btn:hover {
+    background: var(--color-gray-100);
+}
+
+.rte-link-btn--primary {
+    background: var(--color-brand-600);
+    color: #fff;
+    font-weight: 500;
+}
+
+.rte-link-btn--primary:hover {
+    background: var(--color-brand-700);
+}
+
+.rte-link-error {
+    flex-basis: 100%;
+    color: #DC2626;
+    font-size: 11px;
+}
+
+.rte-content {
+    position: relative;
+}
+
+.rte-prose {
+    min-height: 5.5rem;
+    max-height: 24rem;
+    padding: 8px 12px;
+    overflow-y: auto;
+    outline: none;
+}
+
+.rte--compact .rte-prose {
+    min-height: 2.75rem;
+    max-height: 14rem;
+}
+
+/* Placeholder: shown via a class toggled from JS (`rte-empty`) instead of
+   the Placeholder extension, so it's one fewer dependency. */
+.rte-empty .rte-content::before {
+    content: attr(data-placeholder);
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    color: var(--color-gray-400);
+    pointer-events: none;
+}
+
+.rte-mentions {
+    position: fixed;
+    z-index: 60;
+    width: 14rem;
+    overflow-y: auto;
+    border: 1px solid #E5E7EB;
+    border-radius: var(--radius-md);
+    background: #fff;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+    font-size: 12px;
+}
+
+.rte-mention-option {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    text-align: left;
+}
+
+.rte-mention-option.is-active,
+.rte-mention-option:hover {
+    background: var(--color-gray-50);
+}
