@@ -47,6 +47,16 @@ class FileStorageException extends RuntimeException
         return new self("Failed to delete file at \"{$path}\" from storage.", previous: $previous);
     }
 
+    public static function moveFailed(string $fromPath, string $toPath, Throwable $previous): self
+    {
+        return new self("Failed to move file from \"{$fromPath}\" to \"{$toPath}\" in storage.", previous: $previous);
+    }
+
+    public static function invalidPendingId(string $pendingId): self
+    {
+        return new self("\"{$pendingId}\" is not a valid pending-upload id.");
+    }
+
     public static function urlGenerationFailed(string $path, Throwable $previous): self
     {
         return new self("Failed to generate a URL for file at \"{$path}\".", previous: $previous);
