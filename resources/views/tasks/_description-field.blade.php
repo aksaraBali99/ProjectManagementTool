@@ -21,11 +21,14 @@
 <div class="mt-1" data-description-field data-task-id="{{ $task->id }}">
     <div class="description-view-row flex items-start justify-between gap-2">
         <x-rich-text :value="$value" class="description-view min-w-0 flex-1" empty="—" />
-        <button type="button" class="edit-description-btn shrink-0 text-[10px] text-brand-600 hover:underline">Edit</button>
+        {{-- A proper bordered button (matching the "Attach"/"Post" secondary-
+             button style used elsewhere on this page), not a small text
+             link — easy to spot as the one way into editing this field. --}}
+        <button type="button" class="edit-description-btn shrink-0 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-[12px] font-medium text-gray-700 hover:bg-gray-50">Edit</button>
     </div>
     <div class="description-edit-controls mt-1 hidden items-center gap-2">
-        <button type="button" class="save-description-btn text-[10px] font-medium text-brand-600 hover:underline">Save</button>
-        <button type="button" class="cancel-description-btn text-[10px] text-gray-500 hover:underline">Cancel</button>
+        <button type="button" class="save-description-btn rounded-md bg-brand-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-brand-700">Save</button>
+        <button type="button" class="cancel-description-btn rounded-md border border-gray-300 px-3 py-1.5 text-[12px] font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
     </div>
     <input type="hidden" name="description" value="{{ $descriptionHtml }}" data-description-fallback-input>
 </div>
