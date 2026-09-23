@@ -17,18 +17,30 @@
 
      Self-contained per inclusion (document.currentScript, not a global
      id), matching _comments.blade.php's own pattern. --}}
-@php $descriptionHtml = \App\Support\RichText::toHtml($value); @endphp
+@php
+    $descriptionHtml = \App\Support\RichText::toHtml($value);
+    $iconAttrs = 'width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+@endphp
 <div class="mt-1" data-description-field data-task-id="{{ $task->id }}">
-    <div class="description-view-row flex items-start justify-between gap-2">
+    {{-- Icon buttons, not captioned ones — a pencil for Edit, a green check
+         for Save, a red X for Cancel, matching the small square icon-button
+         language the rich-text toolbar already uses (.rte-btn) rather than
+         inventing a second button style. gap-4 (not the tighter gap-2 a
+         plain text link used) and ml-4 on the button itself keep them from
+         crowding the content they act on. --}}
+    <div class="description-view-row flex items-start gap-4">
         <x-rich-text :value="$value" class="description-view min-w-0 flex-1" empty="—" />
-        {{-- A proper bordered button (matching the "Attach"/"Post" secondary-
-             button style used elsewhere on this page), not a small text
-             link — easy to spot as the one way into editing this field. --}}
-        <button type="button" class="edit-description-btn shrink-0 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-[12px] font-medium text-gray-700 hover:bg-gray-50">Edit</button>
+        <button type="button" class="edit-description-btn description-action-btn ml-4 shrink-0" title="Edit description" aria-label="Edit description">
+            <svg {!! $iconAttrs !!}><path d="M11.5 2.5a1.5 1.5 0 0 1 2 2L5 13l-3 1 1-3z"/><path d="M9.5 4.5l2 2"/></svg>
+        </button>
     </div>
-    <div class="description-edit-controls mt-1 hidden items-center gap-2">
-        <button type="button" class="save-description-btn rounded-md bg-brand-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-brand-700">Save</button>
-        <button type="button" class="cancel-description-btn rounded-md border border-gray-300 px-3 py-1.5 text-[12px] font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+    <div class="description-edit-controls mt-3 hidden items-center gap-3">
+        <button type="button" class="save-description-btn description-action-btn description-action-btn--save" title="Save" aria-label="Save">
+            <svg {!! $iconAttrs !!}><polyline points="3 8.5 6.5 12 13 4"/></svg>
+        </button>
+        <button type="button" class="cancel-description-btn description-action-btn description-action-btn--cancel" title="Cancel" aria-label="Cancel">
+            <svg {!! $iconAttrs !!}><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+        </button>
     </div>
     <input type="hidden" name="description" value="{{ $descriptionHtml }}" data-description-fallback-input>
 </div>
