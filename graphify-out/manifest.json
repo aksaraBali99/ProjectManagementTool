@@ -800,8 +800,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1790124550.540331,
-    "ast_hash": "c6221c5ab5a85cec21c8eea7a31550d4",
+    "mtime": 1790165181.6257336,
+    "ast_hash": "1b6a50d48fd19512c2c528d547b9a81d",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
@@ -1655,8 +1655,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_description-field.blade.php": {
-    "mtime": 1790164616.7979186,
-    "ast_hash": "6bc0d78c2c2ebcea8f7e534cb5c35860",
+    "mtime": 1790166158.6862988,
+    "ast_hash": "61da23b6091aeaadbdd3b0e507755cbe",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/DescriptionViewEditModeTest.php": {
