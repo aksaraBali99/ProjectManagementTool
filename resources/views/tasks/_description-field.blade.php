@@ -29,12 +29,16 @@
          plain text link used) and ml-4 on the button itself keep them from
          crowding the content they act on. --}}
     <div class="description-view-row flex items-start gap-4">
-        <x-rich-text :value="$value" class="description-view min-w-0 flex-1" empty="—" />
+        {{-- text-[12px] text-[#1F2937]: the exact body-text token this app
+             uses for a field's displayed value elsewhere (e.g. the read-only
+             Title display just below, tasks/edit.blade.php's own
+             $canEdit-false branch) — not an approximate Tailwind gray. --}}
+        <x-rich-text :value="$value" class="description-view min-w-0 flex-1 text-[12px] text-[#1F2937]" empty="—" />
         <button type="button" class="edit-description-btn description-action-btn ml-4 shrink-0" title="Edit description" aria-label="Edit description">
             <svg {!! $iconAttrs !!}><path d="M11.5 2.5a1.5 1.5 0 0 1 2 2L5 13l-3 1 1-3z"/><path d="M9.5 4.5l2 2"/></svg>
         </button>
     </div>
-    <div class="description-edit-controls mt-3 hidden items-center gap-3">
+    <div class="description-edit-controls mb-2 mt-3 hidden items-center gap-3">
         <button type="button" class="save-description-btn description-action-btn description-action-btn--save" title="Save" aria-label="Save">
             <svg {!! $iconAttrs !!}><polyline points="3 8.5 6.5 12 13 4"/></svg>
         </button>
