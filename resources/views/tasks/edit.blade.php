@@ -4,7 +4,18 @@
 
 @section('content')
 <div class="mx-auto max-w-2xl">
-    <a href="{{ route('tasks.index', $task->organization_id) }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← Tasks</a>
+    <div class="flex items-center justify-between">
+        <a href="{{ route('tasks.index', $task->organization_id) }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← Tasks</a>
+        @if ($canEdit && $canDeactivate)
+            <form method="POST" action="{{ route('tasks.toggle-active', $task) }}">
+                @csrf
+                @method('PATCH')
+                <button type="submit" class="text-[13px] text-gray-500 hover:underline">
+                    {{ $task->trashed() ? 'Activate' : 'Deactivate' }} task
+                </button>
+            </form>
+        @endif
+    </div>
 
     <div class="mt-2 flex items-center justify-between">
         <h1 class="text-[14px] font-medium text-[#1F2937]">Edit task</h1>
@@ -59,7 +70,13 @@
 
             <div>
                 <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</span>
-                <x-rich-text-editor class="mt-1" name="description" id="description" :value="old('description', $task->description)" label="Description" placeholder="Add a description…" :image-task-id="$task->id" image-context="description" :audio-task-id="$task->id" audio-context="description" />
+                {{-- View/edit split (task #4, follow-up fix) — see
+                     tasks/_description-field.blade.php. Always reached with
+                     edit permission here (this whole block is inside
+                     @if ($canEdit), the identical TaskPolicy::update check
+                     Description's own image/audio upload already uses), so
+                     the Edit control is unconditional in this partial. --}}
+                @include('tasks._description-field', ['task' => $task, 'value' => old('description', $task->description)])
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -154,16 +171,6 @@
                 refreshDependents();
             })();
         </script>
-
-        @if ($canDeactivate)
-            <form method="POST" action="{{ route('tasks.toggle-active', $task) }}" class="mt-3">
-                @csrf
-                @method('PATCH')
-                <button type="submit" class="text-[11px] text-gray-500 hover:underline">
-                    {{ $task->trashed() ? 'Activate' : 'Deactivate' }} task
-                </button>
-            </form>
-        @endif
     @else
         <div class="mt-6 space-y-3 rounded-lg border border-gray-200 p-4 text-[12px]">
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Title</span><p class="mt-0.5 font-medium text-[#1F2937]">{{ $task->title }}</p></div>

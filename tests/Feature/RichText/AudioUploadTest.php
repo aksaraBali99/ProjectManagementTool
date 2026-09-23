@@ -103,9 +103,10 @@ test('a valid audio upload for a task description succeeds, returns a URL, and t
         ->toContain('</audio>'); // a real open/close pair, unlike the void <img> tag
 
     // Reload: the same URL renders as a real <audio> element, in both the
-    // editor and the read-only drilldown.
+    // Edit Task page's read-only Description view (task #4, view/edit
+    // split) and the drilldown.
     $editPage = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
-    $editorContent = richTextEditorContent($editPage, 'Description');
+    $editorContent = descriptionViewContent($editPage);
     expect($editorContent)->toContain($url)->toContain('<audio');
 
     $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
@@ -256,12 +257,11 @@ test('audio uploaded on the Add Task page moves to the real task path once the t
     Storage::disk('r2')->assertMissing($pendingPath);
 
     // The rewritten URL actually renders, as a real <audio> element, on
-    // reload — not just an escaped substring match. The Edit page's editor
-    // carries content in a data-content attribute (HTML-escaped by Blade),
-    // so `<audio` never appears literally in the raw response; parse it out
-    // the same way richTextEditorContent()'s other callers do.
+    // reload, via the Edit Task page's read-only Description view (task
+    // #4, view/edit split — descriptionViewContent() parses that view's
+    // own container, same as every other reload check in this file).
     $editPage = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit")->assertOk()->getContent();
-    $editorContent = richTextEditorContent($editPage, 'Description');
+    $editorContent = descriptionViewContent($editPage);
     expect($editorContent)->toContain("tasks/{$task->id}/audio/")->toContain('<audio');
 });
 

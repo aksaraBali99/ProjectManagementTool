@@ -86,8 +86,10 @@ test('reloading the Edit Task page after a resize-and-save shows the resized dim
         ->put("/tasks/{$this->task->id}", imageResizeTaskPayload($this->task, $resized))
         ->assertRedirect();
 
+    // task #4 (view/edit split): Description opens read-only by default,
+    // so this checks the same read-only view every other reload check does.
     $editPage = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
-    $editorContent = richTextEditorContent($editPage, 'Description');
+    $editorContent = descriptionViewContent($editPage);
 
     expect($editorContent)->toContain('width="250"')->toContain('height="180"');
 
@@ -103,7 +105,7 @@ test('an image embedded before this change (no width/height at all) still displa
     // this: an img with no resize data, as every image saved under phase 3
     // (before this feature existed) looks.
     $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
-    $editorContent = richTextEditorContent($page, 'Description');
+    $editorContent = descriptionViewContent($page);
 
     expect($editorContent)
         ->toContain('src="https://cdn.example.com/tasks/1/images/a.jpg"')

@@ -54,17 +54,22 @@ function taskUpdatePayload(Task $task, array $overrides = []): array
 // plain text. These are the tests standing between that data and a regression.
 // ---------------------------------------------------------------------------
 
-test('an existing plain-text description loads into the editor as readable content, not raw escaped markup', function () {
+test('an existing plain-text description loads into the read-only view as readable content, not raw escaped markup', function () {
+    // task #4 (view/edit split): Description opens read-only by default now,
+    // not a live editor — this is the same conversion (RichText::toHtml())
+    // either way, just rendered by <x-rich-text> instead of handed to
+    // TipTap's data-content, so the same escaping guarantees apply.
     $legacy = "Fix the login redirect.\nSee <script>alert('x')</script> & the 5 < 6 note.\n\nSecond paragraph: \"quoted\".";
     $task = makeTaskWithDescription($legacy);
 
     $page = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit")->assertOk()->getContent();
 
-    $content = richTextEditorContent($page, 'Description');
+    $content = descriptionViewContent($page);
     expect($content)->not->toBeNull()->not->toBe('');
 
-    // Valid editor HTML: two paragraphs (blank line = paragraph break), the
-    // single newline kept as a <br>, and no element the author never typed.
+    // Valid editor-shaped HTML: two paragraphs (blank line = paragraph
+    // break), the single newline kept as a <br>, and no element the author
+    // never typed.
     $fragment = richTextFragment($content);
     expect($fragment->getElementsByTagName('p')->length)->toBe(2);
     expect($fragment->getElementsByTagName('br')->length)->toBe(1);
@@ -76,24 +81,29 @@ test('an existing plain-text description loads into the editor as readable conte
     expect($text)->toContain("See <script>alert('x')</script> & the 5 < 6 note.");
     expect($text)->toContain('Second paragraph: "quoted".');
 
-    // Not double-escaped: the editor must never show "&lt;" to a user.
+    // Not double-escaped: the view must never show "&lt;" to a user.
     expect($content)->not->toContain('&amp;lt;')->not->toContain('&amp;amp;');
 });
 
-test('the hidden form field starts with the same converted content, so saving an untouched legacy description is lossless', function () {
+test('the fallback hidden field starts with the same converted content, so saving an untouched legacy description is lossless', function () {
+    // task #4 (view/edit split): with Description read-only by default,
+    // what actually submits if the field is never put into edit mode is
+    // its own fallback hidden input (data-description-fallback-input), not
+    // a live editor's own — same lossless-round-trip guarantee, different
+    // element.
     $task = makeTaskWithDescription("Line one\nLine two");
 
     $page = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit")->getContent();
 
-    expect(richTextHiddenInputValue($page, 'Description'))->toBe(richTextEditorContent($page, 'Description'));
+    expect(descriptionFallbackInputValue($page))->toBe(descriptionViewContent($page));
 
-    // Round trip: submit exactly what the page hands the editor.
+    // Round trip: submit exactly what the page's fallback field holds.
     $this->actingAs($this->management)
-        ->put("/tasks/{$task->id}", taskUpdatePayload($task, ['description' => richTextHiddenInputValue($page, 'Description')]))
+        ->put("/tasks/{$task->id}", taskUpdatePayload($task, ['description' => descriptionFallbackInputValue($page)]))
         ->assertRedirect();
 
     $reloaded = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit")->getContent();
-    $fragment = richTextFragment(richTextEditorContent($reloaded, 'Description'));
+    $fragment = richTextFragment(descriptionViewContent($reloaded));
     expect($fragment->getElementsByTagName('body')->item(0)->textContent)->toBe('Line oneLine two');
     expect($fragment->getElementsByTagName('br')->length)->toBe(1);
 });
@@ -108,13 +118,16 @@ test('opening a legacy plain-text task never rewrites the stored value', functio
     expect($task->fresh()->description)->toBe($legacy);
 });
 
-test('a task with no description, or only whitespace, opens with an empty editor', function () {
+test('a task with no description, or only whitespace, opens with an empty read-only view', function () {
     foreach ([null, '', "  \n "] as $blank) {
         $task = makeTaskWithDescription($blank);
 
         $page = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit")->assertOk()->getContent();
 
-        expect(richTextEditorContent($page, 'Description'))->toBe('');
+        // <x-rich-text> renders its $empty placeholder (a plain "—", no
+        // [data-rich-text-content] element at all) when the value is blank —
+        // task #4 (view/edit split), same as the read-only drilldown always did.
+        expect(descriptionViewContent($page))->toBeNull();
     }
 });
 
@@ -162,9 +175,11 @@ test('a description saved from the editor with bold, a link and a code block per
         ->toContain('rel="noopener noreferrer nofollow"')
         ->toContain('target="_blank"');
 
-    // Reload in the editor: the saved HTML is what the editor is given.
+    // Reload: the saved HTML is what the read-only view renders (task #4,
+    // view/edit split — the same content an Edit click would then load
+    // into the live editor, just not rendered as one by default).
     $page = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit")->getContent();
-    $fragment = richTextFragment(richTextEditorContent($page, 'Description'));
+    $fragment = richTextFragment(descriptionViewContent($page));
     expect($fragment->getElementsByTagName('strong')->length)->toBe(1);
     expect($fragment->getElementsByTagName('a')->item(0)->getAttribute('href'))->toBe('https://example.com/docs');
     expect($fragment->getElementsByTagName('pre')->length)->toBe(1);
@@ -191,12 +206,12 @@ test('creating a task with a formatted description stores sanitized HTML', funct
     expect(Task::where('title', 'Formatted on create')->firstOrFail()->description)->toBe('<p>Hello <strong>team</strong></p>');
 });
 
-test('the editor page for a formatted description is not double-escaped either', function () {
+test('the edit page for a formatted description is not double-escaped either', function () {
     $task = makeTaskWithDescription('<p>Hello <strong>team</strong> &amp; friends</p>');
 
     $page = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit")->getContent();
 
-    expect(richTextEditorContent($page, 'Description'))->toBe('<p>Hello <strong>team</strong> &amp; friends</p>');
+    expect(descriptionViewContent($page))->toBe('<p>Hello <strong>team</strong> &amp; friends</p>');
 });
 
 test('script, event handlers, javascript links, images and arbitrary classes are stripped from a submitted description', function () {

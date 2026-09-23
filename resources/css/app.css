@@ -515,6 +515,51 @@
     border-radius: var(--radius-md);
 }
 
+/* Description's own Edit/Save/Cancel (task #4, view/edit split) — icon
+   buttons, not captioned ones, bordered like the "Attach"/"Post" secondary
+   buttons elsewhere on this page (unlike .rte-btn's toolbar icons, these sit
+   on a plain background with nothing else marking them as controls, so they
+   need a visible boundary of their own). Save/Cancel get their own color
+   (green/red) directly rather than a shared "is-active" state, since
+   they're two permanently-distinct actions, never a toggled single one. */
+.description-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    border: 1px solid #E5E7EB;
+    background: #fff;
+    color: var(--color-gray-600);
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.description-action-btn:hover {
+    background: var(--color-gray-50);
+    border-color: #D1D5DB;
+    color: #1F2937;
+}
+
+.description-action-btn--save {
+    color: #059669;
+}
+
+.description-action-btn--save:hover {
+    background: #ECFDF5;
+    border-color: #A7F3D0;
+}
+
+.description-action-btn--cancel {
+    color: #DC2626;
+}
+
+.description-action-btn--cancel:hover {
+    background: #FEF2F2;
+    border-color: #FECACA;
+}
+
 /* ---------------------------------------------------------------------------
    Lightbox (click-to-enlarge) — reusable, not specific to rich-text images;
    see resources/js/lightbox.js.

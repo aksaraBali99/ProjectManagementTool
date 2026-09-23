@@ -24,6 +24,21 @@
         form.addEventListener('input', function () { isDirty = true; });
         form.addEventListener('change', function () { isDirty = true; });
 
+        // A small, backward-compatible read/write API on the form element
+        // itself (task #4: Description's own Edit/Cancel toggle needs it) —
+        // typing inside a contenteditable rich-text editor already bubbles
+        // native 'input' events up to this form same as any other field, so
+        // isDirty correctly becomes true while editing. But unlike a plain
+        // input, that editor can be explicitly discarded (Cancel) without
+        // ever submitting — this form-level isDirty flag has no way to know
+        // that change no longer exists, so it would otherwise keep warning
+        // about a "change" that was already thrown away. Callers snapshot
+        // isDirty before their own edit session and restore it on cancel,
+        // rather than blindly clearing it (which would hide a real change
+        // to some other field made during that same window).
+        form.__unsavedGuardIsDirty = function () { return isDirty; };
+        form.__unsavedGuardSetDirty = function (value) { isDirty = value; };
+
         // Listens on the document (bubble phase) rather than the guarded form
         // directly, so it also picks up submits of *other* forms on the same
         // page (e.g. the Change Password modal) — any real save anywhere on
