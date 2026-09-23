@@ -1655,8 +1655,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_description-field.blade.php": {
-    "mtime": 1790124550.6606884,
-    "ast_hash": "bf3a68ad00a0e3eb0575347bf5284b97",
+    "mtime": 1790164616.7979186,
+    "ast_hash": "6bc0d78c2c2ebcea8f7e534cb5c35860",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/DescriptionViewEditModeTest.php": {

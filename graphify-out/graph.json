@@ -407,45 +407,6 @@
       "norm_label": "calendarcontroller"
     },
     {
-      "label": "Subtask",
-      "file_type": "code",
-      "source_file": "app/Models/Subtask.php",
-      "source_location": "L11",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_models_subtask_subtask",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": "subtask"
-    },
-    {
-      "label": "SubtaskObserver",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L20",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": "subtaskobserver"
-    },
-    {
-      "label": "SubtaskPolicy",
-      "file_type": "code",
-      "source_file": "app/Policies/SubtaskPolicy.php",
-      "source_location": "L10",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_policies_subtaskpolicy_subtaskpolicy",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": "subtaskpolicy"
-    },
-    {
       "label": "DashboardController",
       "file_type": "code",
       "source_file": "app/Http/Controllers/DashboardController.php",
@@ -862,43 +823,43 @@
       "norm_label": "ensureuserisactive"
     },
     {
-      "label": "Task",
+      "label": "Subtask",
       "file_type": "code",
-      "source_file": "app/Models/Task.php",
-      "source_location": "L18",
+      "source_file": "app/Models/Subtask.php",
+      "source_location": "L11",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_models_task_task",
+      "id": "app_models_subtask_subtask",
       "community": 156,
-      "community_name": "Task",
-      "norm_label": "task"
+      "community_name": "Subtask",
+      "norm_label": "subtask"
     },
     {
-      "label": "MentionedInCommentNotification",
+      "label": "SubtaskObserver",
       "file_type": "code",
-      "source_file": "app/Notifications/MentionedInCommentNotification.php",
-      "source_location": "L16",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L20",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_notifications_mentionedincommentnotification_mentionedincommentnotification",
+      "id": "app_observers_subtaskobserver_subtaskobserver",
       "community": 156,
-      "community_name": "Task",
-      "norm_label": "mentionedincommentnotification"
+      "community_name": "Subtask",
+      "norm_label": "subtaskobserver"
     },
     {
-      "label": "TaskObserver",
+      "label": "SubtaskPolicy",
       "file_type": "code",
-      "source_file": "app/Observers/TaskObserver.php",
-      "source_location": "L27",
+      "source_file": "app/Policies/SubtaskPolicy.php",
+      "source_location": "L10",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_observers_taskobserver_taskobserver",
+      "id": "app_policies_subtaskpolicy_subtaskpolicy",
       "community": 156,
-      "community_name": "Task",
-      "norm_label": "taskobserver"
+      "community_name": "Subtask",
+      "norm_label": "subtaskpolicy"
     },
     {
       "label": "UserManagementController",
@@ -992,17 +953,30 @@
       "norm_label": "documentpolicy"
     },
     {
-      "label": "SubtaskController",
+      "label": "AuditLog",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/SubtaskController.php",
-      "source_location": "L12",
+      "source_file": "app/Models/AuditLog.php",
+      "source_location": "L13",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_http_controllers_subtaskcontroller_subtaskcontroller",
+      "id": "app_models_auditlog_auditlog",
       "community": 166,
-      "community_name": "ValidatesTaskAssignment.php",
-      "norm_label": "subtaskcontroller"
+      "community_name": "AuditLog",
+      "norm_label": "auditlog"
+    },
+    {
+      "label": "AuditEventDatabaseNotification",
+      "file_type": "code",
+      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
+      "source_location": "L15",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_notifications_auditeventdatabasenotification_auditeventdatabasenotification",
+      "community": 166,
+      "community_name": "AuditLog",
+      "norm_label": "auditeventdatabasenotification"
     },
     {
       "label": "AuditTrailController",
@@ -1070,17 +1044,17 @@
       "norm_label": "document"
     },
     {
-      "label": "UpdateTaskStatusColorsRequest",
+      "label": "UpdateDepartmentRequest",
       "file_type": "code",
-      "source_file": "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php",
-      "source_location": "L9",
+      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
+      "source_location": "L8",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_http_requests_taskcolors_updatetaskstatuscolorsrequest_updatetaskstatuscolorsrequest",
+      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest",
       "community": 168,
-      "community_name": "UpdateTaskStatusColorsRequest",
-      "norm_label": "updatetaskstatuscolorsrequest"
+      "community_name": "UpdateDepartmentRequest",
+      "norm_label": "updatedepartmentrequest"
     },
     {
       "label": "UpdateUserRequest",
@@ -1135,17 +1109,17 @@
       "norm_label": "projectpolicy"
     },
     {
-      "label": "UpdateDepartmentRequest",
+      "label": "SubtaskController",
       "file_type": "code",
-      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
-      "source_location": "L8",
+      "source_file": "app/Http/Controllers/SubtaskController.php",
+      "source_location": "L12",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest",
+      "id": "app_http_controllers_subtaskcontroller_subtaskcontroller",
       "community": 177,
-      "community_name": "UpdateDepartmentRequest",
-      "norm_label": "updatedepartmentrequest"
+      "community_name": "ValidatesTaskAssignment.php",
+      "norm_label": "subtaskcontroller"
     },
     {
       "label": "UpdateTaskPriorityColorsRequest",
@@ -1159,6 +1133,19 @@
       "community": 178,
       "community_name": "UpdateTaskPriorityColorsRequest",
       "norm_label": "updatetaskprioritycolorsrequest"
+    },
+    {
+      "label": "UpdateTaskStatusColorsRequest",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php",
+      "source_location": "L9",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_requests_taskcolors_updatetaskstatuscolorsrequest_updatetaskstatuscolorsrequest",
+      "community": 179,
+      "community_name": "UpdateTaskStatusColorsRequest",
+      "norm_label": "updatetaskstatuscolorsrequest"
     },
     {
       "label": "AuditLogPolicy",
@@ -1369,30 +1356,43 @@
       "norm_label": "importtemplatebuilder"
     },
     {
-      "label": "AuditLog",
+      "label": "Task",
       "file_type": "code",
-      "source_file": "app/Models/AuditLog.php",
-      "source_location": "L13",
+      "source_file": "app/Models/Task.php",
+      "source_location": "L18",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_models_auditlog_auditlog",
+      "id": "app_models_task_task",
       "community": 86,
-      "community_name": "AuditLog",
-      "norm_label": "auditlog"
+      "community_name": "Task",
+      "norm_label": "task"
     },
     {
-      "label": "AuditEventDatabaseNotification",
+      "label": "MentionedInCommentNotification",
       "file_type": "code",
-      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
-      "source_location": "L15",
+      "source_file": "app/Notifications/MentionedInCommentNotification.php",
+      "source_location": "L16",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_notifications_auditeventdatabasenotification_auditeventdatabasenotification",
+      "id": "app_notifications_mentionedincommentnotification_mentionedincommentnotification",
       "community": 86,
-      "community_name": "AuditLog",
-      "norm_label": "auditeventdatabasenotification"
+      "community_name": "Task",
+      "norm_label": "mentionedincommentnotification"
+    },
+    {
+      "label": "TaskObserver",
+      "file_type": "code",
+      "source_file": "app/Observers/TaskObserver.php",
+      "source_location": "L27",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_observers_taskobserver_taskobserver",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": "taskobserver"
     },
     {
       "label": "User",
@@ -4166,126 +4166,6 @@
       "norm_label": ".uploadeddocuments()"
     },
     {
-      "label": ".casts()",
-      "file_type": "code",
-      "source_file": "app/Models/Subtask.php",
-      "source_location": "L15",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_models_subtask_subtask_casts",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": ".casts()"
-    },
-    {
-      "label": ".__construct()",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L24",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver_construct",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": ".__construct()"
-    },
-    {
-      "label": ".created()",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L26",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver_created",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": ".created()"
-    },
-    {
-      "label": ".deleted()",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L63",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver_deleted",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": ".deleted()"
-    },
-    {
-      "label": ".log()",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L70",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver_log",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": ".log()"
-    },
-    {
-      "label": ".updated()",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L33",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver_updated",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": ".updated()"
-    },
-    {
-      "label": ".create()",
-      "file_type": "code",
-      "source_file": "app/Policies/SubtaskPolicy.php",
-      "source_location": "L12",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_policies_subtaskpolicy_subtaskpolicy_create",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": ".create()"
-    },
-    {
-      "label": ".delete()",
-      "file_type": "code",
-      "source_file": "app/Policies/SubtaskPolicy.php",
-      "source_location": "L37",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_policies_subtaskpolicy_subtaskpolicy_delete",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": ".delete()"
-    },
-    {
-      "label": ".toggle()",
-      "file_type": "code",
-      "source_file": "app/Policies/SubtaskPolicy.php",
-      "source_location": "L26",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_policies_subtaskpolicy_subtaskpolicy_toggle",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": ".toggle()"
-    },
-    {
-      "label": ".update()",
-      "file_type": "code",
-      "source_file": "app/Policies/SubtaskPolicy.php",
-      "source_location": "L32",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_policies_subtaskpolicy_subtaskpolicy_update",
-      "community": 116,
-      "community_name": "Subtask",
-      "norm_label": ".update()"
-    },
-    {
       "label": "resolveCurrentOrganization()",
       "file_type": "code",
       "source_file": "app/Http/Controllers/Concerns/ResolvesCurrentOrganization.php",
@@ -6050,184 +5930,124 @@
       "norm_label": ".handle()"
     },
     {
-      "label": ".updateStatus()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/TaskManagementController.php",
-      "source_location": "L362",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_taskmanagementcontroller_taskmanagementcontroller_updatestatus",
-      "community": 156,
-      "community_name": "Task",
-      "norm_label": ".updatestatus()"
-    },
-    {
       "label": ".casts()",
       "file_type": "code",
-      "source_file": "app/Models/Task.php",
-      "source_location": "L24",
+      "source_file": "app/Models/Subtask.php",
+      "source_location": "L15",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_models_task_task_casts",
+      "id": "app_models_subtask_subtask_casts",
       "community": 156,
-      "community_name": "Task",
+      "community_name": "Subtask",
       "norm_label": ".casts()"
     },
     {
       "label": ".__construct()",
       "file_type": "code",
-      "source_file": "app/Notifications/MentionedInCommentNotification.php",
-      "source_location": "L18",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L24",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_notifications_mentionedincommentnotification_mentionedincommentnotification_construct",
+      "id": "app_observers_subtaskobserver_subtaskobserver_construct",
       "community": 156,
-      "community_name": "Task",
+      "community_name": "Subtask",
       "norm_label": ".__construct()"
-    },
-    {
-      "label": ".toDatabase()",
-      "file_type": "code",
-      "source_file": "app/Notifications/MentionedInCommentNotification.php",
-      "source_location": "L25",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_notifications_mentionedincommentnotification_mentionedincommentnotification_todatabase",
-      "community": 156,
-      "community_name": "Task",
-      "norm_label": ".todatabase()"
-    },
-    {
-      "label": ".via()",
-      "file_type": "code",
-      "source_file": "app/Notifications/MentionedInCommentNotification.php",
-      "source_location": "L20",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_notifications_mentionedincommentnotification_mentionedincommentnotification_via",
-      "community": 156,
-      "community_name": "Task",
-      "norm_label": ".via()"
     },
     {
       "label": ".created()",
       "file_type": "code",
-      "source_file": "app/Observers/TaskObserver.php",
-      "source_location": "L48",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L26",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_observers_taskobserver_taskobserver_created",
+      "id": "app_observers_subtaskobserver_subtaskobserver_created",
       "community": 156,
-      "community_name": "Task",
+      "community_name": "Subtask",
       "norm_label": ".created()"
     },
     {
       "label": ".deleted()",
       "file_type": "code",
-      "source_file": "app/Observers/TaskObserver.php",
-      "source_location": "L95",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L63",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_observers_taskobserver_taskobserver_deleted",
+      "id": "app_observers_subtaskobserver_subtaskobserver_deleted",
       "community": 156,
-      "community_name": "Task",
+      "community_name": "Subtask",
       "norm_label": ".deleted()"
     },
     {
       "label": ".log()",
       "file_type": "code",
-      "source_file": "app/Observers/TaskObserver.php",
-      "source_location": "L105",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L70",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_observers_taskobserver_taskobserver_log",
+      "id": "app_observers_subtaskobserver_subtaskobserver_log",
       "community": 156,
-      "community_name": "Task",
+      "community_name": "Subtask",
       "norm_label": ".log()"
-    },
-    {
-      "label": ".restored()",
-      "file_type": "code",
-      "source_file": "app/Observers/TaskObserver.php",
-      "source_location": "L100",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_taskobserver_taskobserver_restored",
-      "community": 156,
-      "community_name": "Task",
-      "norm_label": ".restored()"
-    },
-    {
-      "label": ".saving()",
-      "file_type": "code",
-      "source_file": "app/Observers/TaskObserver.php",
-      "source_location": "L41",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_taskobserver_taskobserver_saving",
-      "community": 156,
-      "community_name": "Task",
-      "norm_label": ".saving()"
     },
     {
       "label": ".updated()",
       "file_type": "code",
-      "source_file": "app/Observers/TaskObserver.php",
-      "source_location": "L63",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L33",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_observers_taskobserver_taskobserver_updated",
+      "id": "app_observers_subtaskobserver_subtaskobserver_updated",
       "community": 156,
-      "community_name": "Task",
+      "community_name": "Subtask",
       "norm_label": ".updated()"
     },
     {
-      "label": "emojiTaskPayload()",
+      "label": ".create()",
       "file_type": "code",
-      "source_file": "tests/Feature/RichText/EmojiSupportTest.php",
-      "source_location": "L47",
+      "source_file": "app/Policies/SubtaskPolicy.php",
+      "source_location": "L12",
       "_callable": true,
       "_origin": "ast",
-      "id": "tests_feature_richtext_emojisupporttest_emojitaskpayload",
+      "id": "app_policies_subtaskpolicy_subtaskpolicy_create",
       "community": 156,
-      "community_name": "Task",
-      "norm_label": "emojitaskpayload()"
+      "community_name": "Subtask",
+      "norm_label": ".create()"
     },
     {
-      "label": "imageResizeTaskPayload()",
+      "label": ".delete()",
       "file_type": "code",
-      "source_file": "tests/Feature/RichText/ImageResizeTest.php",
-      "source_location": "L51",
+      "source_file": "app/Policies/SubtaskPolicy.php",
+      "source_location": "L37",
       "_callable": true,
       "_origin": "ast",
-      "id": "tests_feature_richtext_imageresizetest_imageresizetaskpayload",
+      "id": "app_policies_subtaskpolicy_subtaskpolicy_delete",
       "community": 156,
-      "community_name": "Task",
-      "norm_label": "imageresizetaskpayload()"
+      "community_name": "Subtask",
+      "norm_label": ".delete()"
     },
     {
-      "label": "makeTaskWithDescription()",
+      "label": ".toggle()",
       "file_type": "code",
-      "source_file": "tests/Feature/RichText/TaskDescriptionEditorTest.php",
-      "source_location": "L28",
+      "source_file": "app/Policies/SubtaskPolicy.php",
+      "source_location": "L26",
       "_callable": true,
       "_origin": "ast",
-      "id": "tests_feature_richtext_taskdescriptioneditortest_maketaskwithdescription",
+      "id": "app_policies_subtaskpolicy_subtaskpolicy_toggle",
       "community": 156,
-      "community_name": "Task",
-      "norm_label": "maketaskwithdescription()"
+      "community_name": "Subtask",
+      "norm_label": ".toggle()"
     },
     {
-      "label": "taskUpdatePayload()",
+      "label": ".update()",
       "file_type": "code",
-      "source_file": "tests/Feature/RichText/TaskDescriptionEditorTest.php",
-      "source_location": "L41",
+      "source_file": "app/Policies/SubtaskPolicy.php",
+      "source_location": "L32",
       "_callable": true,
       "_origin": "ast",
-      "id": "tests_feature_richtext_taskdescriptioneditortest_taskupdatepayload",
+      "id": "app_policies_subtaskpolicy_subtaskpolicy_update",
       "community": 156,
-      "community_name": "Task",
-      "norm_label": "taskupdatepayload()"
+      "community_name": "Subtask",
+      "norm_label": ".update()"
     },
     {
       "label": ".create()",
@@ -6674,52 +6494,124 @@
       "norm_label": ".view()"
     },
     {
-      "label": ".destroy()",
+      "label": ".actionLabel()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/SubtaskController.php",
-      "source_location": "L68",
+      "source_file": "app/Models/AuditLog.php",
+      "source_location": "L98",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_subtaskcontroller_subtaskcontroller_destroy",
+      "id": "app_models_auditlog_auditlog_actionlabel",
       "community": 166,
-      "community_name": "ValidatesTaskAssignment.php",
-      "norm_label": ".destroy()"
+      "community_name": "AuditLog",
+      "norm_label": ".actionlabel()"
     },
     {
-      "label": ".store()",
+      "label": ".casts()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/SubtaskController.php",
-      "source_location": "L16",
+      "source_file": "app/Models/AuditLog.php",
+      "source_location": "L20",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_subtaskcontroller_subtaskcontroller_store",
+      "id": "app_models_auditlog_auditlog_casts",
       "community": 166,
-      "community_name": "ValidatesTaskAssignment.php",
-      "norm_label": ".store()"
+      "community_name": "AuditLog",
+      "norm_label": ".casts()"
     },
     {
-      "label": ".toggle()",
+      "label": ".describeChanges()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/SubtaskController.php",
-      "source_location": "L38",
+      "source_file": "app/Models/AuditLog.php",
+      "source_location": "L118",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_subtaskcontroller_subtaskcontroller_toggle",
+      "id": "app_models_auditlog_auditlog_describechanges",
       "community": 166,
-      "community_name": "ValidatesTaskAssignment.php",
-      "norm_label": ".toggle()"
+      "community_name": "AuditLog",
+      "norm_label": ".describechanges()"
     },
     {
-      "label": ".update()",
+      "label": ".formatFieldValue()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/SubtaskController.php",
-      "source_location": "L47",
+      "source_file": "app/Models/AuditLog.php",
+      "source_location": "L147",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_subtaskcontroller_subtaskcontroller_update",
+      "id": "app_models_auditlog_auditlog_formatfieldvalue",
       "community": 166,
-      "community_name": "ValidatesTaskAssignment.php",
-      "norm_label": ".update()"
+      "community_name": "AuditLog",
+      "norm_label": ".formatfieldvalue()"
+    },
+    {
+      "label": ".linkUrl()",
+      "file_type": "code",
+      "source_file": "app/Models/AuditLog.php",
+      "source_location": "L80",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_auditlog_auditlog_linkurl",
+      "community": 166,
+      "community_name": "AuditLog",
+      "norm_label": ".linkurl()"
+    },
+    {
+      "label": ".organization()",
+      "file_type": "code",
+      "source_file": "app/Models/AuditLog.php",
+      "source_location": "L27",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_auditlog_auditlog_organization",
+      "community": 166,
+      "community_name": "AuditLog",
+      "norm_label": ".organization()"
+    },
+    {
+      "label": ".user()",
+      "file_type": "code",
+      "source_file": "app/Models/AuditLog.php",
+      "source_location": "L32",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_auditlog_auditlog_user",
+      "community": 166,
+      "community_name": "AuditLog",
+      "norm_label": ".user()"
+    },
+    {
+      "label": ".__construct()",
+      "file_type": "code",
+      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
+      "source_location": "L17",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_notifications_auditeventdatabasenotification_auditeventdatabasenotification_construct",
+      "community": 166,
+      "community_name": "AuditLog",
+      "norm_label": ".__construct()"
+    },
+    {
+      "label": ".toDatabase()",
+      "file_type": "code",
+      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
+      "source_location": "L27",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_notifications_auditeventdatabasenotification_auditeventdatabasenotification_todatabase",
+      "community": 166,
+      "community_name": "AuditLog",
+      "norm_label": ".todatabase()"
+    },
+    {
+      "label": ".via()",
+      "file_type": "code",
+      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
+      "source_location": "L22",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_notifications_auditeventdatabasenotification_auditeventdatabasenotification_via",
+      "community": 166,
+      "community_name": "AuditLog",
+      "norm_label": ".via()"
     },
     {
       "label": ".index()",
@@ -6854,40 +6746,40 @@
       "norm_label": ".casts()"
     },
     {
-      "label": ".authorize()",
+      "label": ".attributes()",
       "file_type": "code",
-      "source_file": "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php",
-      "source_location": "L11",
+      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
+      "source_location": "L33",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_requests_taskcolors_updatetaskstatuscolorsrequest_updatetaskstatuscolorsrequest_authorize",
+      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_attributes",
       "community": 168,
-      "community_name": "UpdateTaskStatusColorsRequest",
+      "community_name": "UpdateDepartmentRequest",
+      "norm_label": ".attributes()"
+    },
+    {
+      "label": ".authorize()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
+      "source_location": "L10",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_authorize",
+      "community": 168,
+      "community_name": "UpdateDepartmentRequest",
       "norm_label": ".authorize()"
     },
     {
       "label": ".rules()",
       "file_type": "code",
-      "source_file": "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php",
-      "source_location": "L23",
+      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
+      "source_location": "L15",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_requests_taskcolors_updatetaskstatuscolorsrequest_updatetaskstatuscolorsrequest_rules",
+      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_rules",
       "community": 168,
-      "community_name": "UpdateTaskStatusColorsRequest",
+      "community_name": "UpdateDepartmentRequest",
       "norm_label": ".rules()"
-    },
-    {
-      "label": ".withValidator()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php",
-      "source_location": "L34",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_taskcolors_updatetaskstatuscolorsrequest_updatetaskstatuscolorsrequest_withvalidator",
-      "community": 168,
-      "community_name": "UpdateTaskStatusColorsRequest",
-      "norm_label": ".withvalidator()"
     },
     {
       "label": ".attributes()",
@@ -7178,40 +7070,52 @@
       "norm_label": ".viewany()"
     },
     {
-      "label": ".attributes()",
+      "label": ".destroy()",
       "file_type": "code",
-      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
-      "source_location": "L33",
+      "source_file": "app/Http/Controllers/SubtaskController.php",
+      "source_location": "L68",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_attributes",
+      "id": "app_http_controllers_subtaskcontroller_subtaskcontroller_destroy",
       "community": 177,
-      "community_name": "UpdateDepartmentRequest",
-      "norm_label": ".attributes()"
+      "community_name": "ValidatesTaskAssignment.php",
+      "norm_label": ".destroy()"
     },
     {
-      "label": ".authorize()",
+      "label": ".store()",
       "file_type": "code",
-      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
-      "source_location": "L10",
+      "source_file": "app/Http/Controllers/SubtaskController.php",
+      "source_location": "L16",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_authorize",
+      "id": "app_http_controllers_subtaskcontroller_subtaskcontroller_store",
       "community": 177,
-      "community_name": "UpdateDepartmentRequest",
-      "norm_label": ".authorize()"
+      "community_name": "ValidatesTaskAssignment.php",
+      "norm_label": ".store()"
     },
     {
-      "label": ".rules()",
+      "label": ".toggle()",
       "file_type": "code",
-      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
-      "source_location": "L15",
+      "source_file": "app/Http/Controllers/SubtaskController.php",
+      "source_location": "L38",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_requests_departments_updatedepartmentrequest_updatedepartmentrequest_rules",
+      "id": "app_http_controllers_subtaskcontroller_subtaskcontroller_toggle",
       "community": 177,
-      "community_name": "UpdateDepartmentRequest",
-      "norm_label": ".rules()"
+      "community_name": "ValidatesTaskAssignment.php",
+      "norm_label": ".toggle()"
+    },
+    {
+      "label": ".update()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/SubtaskController.php",
+      "source_location": "L47",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_subtaskcontroller_subtaskcontroller_update",
+      "community": 177,
+      "community_name": "ValidatesTaskAssignment.php",
+      "norm_label": ".update()"
     },
     {
       "label": ".authorize()",
@@ -7250,40 +7154,40 @@
       "norm_label": ".withvalidator()"
     },
     {
-      "label": "currentImportBatchId()",
+      "label": ".authorize()",
       "file_type": "code",
-      "source_file": "app/Observers/Concerns/TagsImportBatch.php",
+      "source_file": "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php",
+      "source_location": "L11",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_taskcolors_updatetaskstatuscolorsrequest_updatetaskstatuscolorsrequest_authorize",
+      "community": 179,
+      "community_name": "UpdateTaskStatusColorsRequest",
+      "norm_label": ".authorize()"
+    },
+    {
+      "label": ".rules()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php",
       "source_location": "L23",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_observers_concerns_tagsimportbatch_currentimportbatchid",
+      "id": "app_http_requests_taskcolors_updatetaskstatuscolorsrequest_updatetaskstatuscolorsrequest_rules",
       "community": 179,
-      "community_name": "TagsImportBatch.php",
-      "norm_label": "currentimportbatchid()"
+      "community_name": "UpdateTaskStatusColorsRequest",
+      "norm_label": ".rules()"
     },
     {
-      "label": "shouldSuppressNotification()",
+      "label": ".withValidator()",
       "file_type": "code",
-      "source_file": "app/Observers/Concerns/TagsImportBatch.php",
-      "source_location": "L41",
+      "source_file": "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php",
+      "source_location": "L34",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_observers_concerns_tagsimportbatch_shouldsuppressnotification",
+      "id": "app_http_requests_taskcolors_updatetaskstatuscolorsrequest_updatetaskstatuscolorsrequest_withvalidator",
       "community": 179,
-      "community_name": "TagsImportBatch.php",
-      "norm_label": "shouldsuppressnotification()"
-    },
-    {
-      "label": "taggedChanges()",
-      "file_type": "code",
-      "source_file": "app/Observers/Concerns/TagsImportBatch.php",
-      "source_location": "L32",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_concerns_tagsimportbatch_taggedchanges",
-      "community": 179,
-      "community_name": "TagsImportBatch.php",
-      "norm_label": "taggedchanges()"
+      "community_name": "UpdateTaskStatusColorsRequest",
+      "norm_label": ".withvalidator()"
     },
     {
       "label": "down()",
@@ -7332,6 +7236,42 @@
       "community": 181,
       "community_name": "AuditLogPolicy.php",
       "norm_label": ".viewany()"
+    },
+    {
+      "label": "currentImportBatchId()",
+      "file_type": "code",
+      "source_file": "app/Observers/Concerns/TagsImportBatch.php",
+      "source_location": "L23",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_concerns_tagsimportbatch_currentimportbatchid",
+      "community": 182,
+      "community_name": "TagsImportBatch.php",
+      "norm_label": "currentimportbatchid()"
+    },
+    {
+      "label": "shouldSuppressNotification()",
+      "file_type": "code",
+      "source_file": "app/Observers/Concerns/TagsImportBatch.php",
+      "source_location": "L41",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_concerns_tagsimportbatch_shouldsuppressnotification",
+      "community": 182,
+      "community_name": "TagsImportBatch.php",
+      "norm_label": "shouldsuppressnotification()"
+    },
+    {
+      "label": "taggedChanges()",
+      "file_type": "code",
+      "source_file": "app/Observers/Concerns/TagsImportBatch.php",
+      "source_location": "L32",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_concerns_tagsimportbatch_taggedchanges",
+      "community": 182,
+      "community_name": "TagsImportBatch.php",
+      "norm_label": "taggedchanges()"
     },
     {
       "label": "down()",
@@ -9110,124 +9050,184 @@
       "norm_label": ".writecolumn()"
     },
     {
-      "label": ".actionLabel()",
+      "label": ".updateStatus()",
       "file_type": "code",
-      "source_file": "app/Models/AuditLog.php",
-      "source_location": "L98",
+      "source_file": "app/Http/Controllers/TaskManagementController.php",
+      "source_location": "L362",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_models_auditlog_auditlog_actionlabel",
+      "id": "app_http_controllers_taskmanagementcontroller_taskmanagementcontroller_updatestatus",
       "community": 86,
-      "community_name": "AuditLog",
-      "norm_label": ".actionlabel()"
+      "community_name": "Task",
+      "norm_label": ".updatestatus()"
     },
     {
       "label": ".casts()",
       "file_type": "code",
-      "source_file": "app/Models/AuditLog.php",
-      "source_location": "L20",
+      "source_file": "app/Models/Task.php",
+      "source_location": "L24",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_models_auditlog_auditlog_casts",
+      "id": "app_models_task_task_casts",
       "community": 86,
-      "community_name": "AuditLog",
+      "community_name": "Task",
       "norm_label": ".casts()"
-    },
-    {
-      "label": ".describeChanges()",
-      "file_type": "code",
-      "source_file": "app/Models/AuditLog.php",
-      "source_location": "L118",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_models_auditlog_auditlog_describechanges",
-      "community": 86,
-      "community_name": "AuditLog",
-      "norm_label": ".describechanges()"
-    },
-    {
-      "label": ".formatFieldValue()",
-      "file_type": "code",
-      "source_file": "app/Models/AuditLog.php",
-      "source_location": "L147",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_models_auditlog_auditlog_formatfieldvalue",
-      "community": 86,
-      "community_name": "AuditLog",
-      "norm_label": ".formatfieldvalue()"
-    },
-    {
-      "label": ".linkUrl()",
-      "file_type": "code",
-      "source_file": "app/Models/AuditLog.php",
-      "source_location": "L80",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_models_auditlog_auditlog_linkurl",
-      "community": 86,
-      "community_name": "AuditLog",
-      "norm_label": ".linkurl()"
-    },
-    {
-      "label": ".organization()",
-      "file_type": "code",
-      "source_file": "app/Models/AuditLog.php",
-      "source_location": "L27",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_models_auditlog_auditlog_organization",
-      "community": 86,
-      "community_name": "AuditLog",
-      "norm_label": ".organization()"
-    },
-    {
-      "label": ".user()",
-      "file_type": "code",
-      "source_file": "app/Models/AuditLog.php",
-      "source_location": "L32",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_models_auditlog_auditlog_user",
-      "community": 86,
-      "community_name": "AuditLog",
-      "norm_label": ".user()"
     },
     {
       "label": ".__construct()",
       "file_type": "code",
-      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
-      "source_location": "L17",
+      "source_file": "app/Notifications/MentionedInCommentNotification.php",
+      "source_location": "L18",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_notifications_auditeventdatabasenotification_auditeventdatabasenotification_construct",
+      "id": "app_notifications_mentionedincommentnotification_mentionedincommentnotification_construct",
       "community": 86,
-      "community_name": "AuditLog",
+      "community_name": "Task",
       "norm_label": ".__construct()"
     },
     {
       "label": ".toDatabase()",
       "file_type": "code",
-      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
-      "source_location": "L27",
+      "source_file": "app/Notifications/MentionedInCommentNotification.php",
+      "source_location": "L25",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_notifications_auditeventdatabasenotification_auditeventdatabasenotification_todatabase",
+      "id": "app_notifications_mentionedincommentnotification_mentionedincommentnotification_todatabase",
       "community": 86,
-      "community_name": "AuditLog",
+      "community_name": "Task",
       "norm_label": ".todatabase()"
     },
     {
       "label": ".via()",
       "file_type": "code",
-      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
-      "source_location": "L22",
+      "source_file": "app/Notifications/MentionedInCommentNotification.php",
+      "source_location": "L20",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_notifications_auditeventdatabasenotification_auditeventdatabasenotification_via",
+      "id": "app_notifications_mentionedincommentnotification_mentionedincommentnotification_via",
       "community": 86,
-      "community_name": "AuditLog",
+      "community_name": "Task",
       "norm_label": ".via()"
+    },
+    {
+      "label": ".created()",
+      "file_type": "code",
+      "source_file": "app/Observers/TaskObserver.php",
+      "source_location": "L48",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_taskobserver_taskobserver_created",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": ".created()"
+    },
+    {
+      "label": ".deleted()",
+      "file_type": "code",
+      "source_file": "app/Observers/TaskObserver.php",
+      "source_location": "L95",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_taskobserver_taskobserver_deleted",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": ".deleted()"
+    },
+    {
+      "label": ".log()",
+      "file_type": "code",
+      "source_file": "app/Observers/TaskObserver.php",
+      "source_location": "L105",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_taskobserver_taskobserver_log",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": ".log()"
+    },
+    {
+      "label": ".restored()",
+      "file_type": "code",
+      "source_file": "app/Observers/TaskObserver.php",
+      "source_location": "L100",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_taskobserver_taskobserver_restored",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": ".restored()"
+    },
+    {
+      "label": ".saving()",
+      "file_type": "code",
+      "source_file": "app/Observers/TaskObserver.php",
+      "source_location": "L41",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_taskobserver_taskobserver_saving",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": ".saving()"
+    },
+    {
+      "label": ".updated()",
+      "file_type": "code",
+      "source_file": "app/Observers/TaskObserver.php",
+      "source_location": "L63",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_taskobserver_taskobserver_updated",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": ".updated()"
+    },
+    {
+      "label": "emojiTaskPayload()",
+      "file_type": "code",
+      "source_file": "tests/Feature/RichText/EmojiSupportTest.php",
+      "source_location": "L47",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_richtext_emojisupporttest_emojitaskpayload",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": "emojitaskpayload()"
+    },
+    {
+      "label": "imageResizeTaskPayload()",
+      "file_type": "code",
+      "source_file": "tests/Feature/RichText/ImageResizeTest.php",
+      "source_location": "L51",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_richtext_imageresizetest_imageresizetaskpayload",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": "imageresizetaskpayload()"
+    },
+    {
+      "label": "makeTaskWithDescription()",
+      "file_type": "code",
+      "source_file": "tests/Feature/RichText/TaskDescriptionEditorTest.php",
+      "source_location": "L28",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_richtext_taskdescriptioneditortest_maketaskwithdescription",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": "maketaskwithdescription()"
+    },
+    {
+      "label": "taskUpdatePayload()",
+      "file_type": "code",
+      "source_file": "tests/Feature/RichText/TaskDescriptionEditorTest.php",
+      "source_location": "L41",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_richtext_taskdescriptioneditortest_taskupdatepayload",
+      "community": 86,
+      "community_name": "Task",
+      "norm_label": "taskupdatepayload()"
     },
     {
       "label": ".index()",
@@ -10961,37 +10961,37 @@
       "norm_label": "illuminate\\database\\eloquent\\relations\\hasmany"
     },
     {
-      "label": "Subtask.php",
+      "label": "keywords",
       "file_type": "code",
-      "source_file": "app/Models/Subtask.php",
-      "source_location": "L1",
+      "source_file": "composer.json",
+      "source_location": "L6",
       "_origin": "ast",
-      "id": "app_models_subtask",
+      "id": "composer_keywords",
       "community": 116,
-      "community_name": "Subtask",
-      "norm_label": "subtask.php"
+      "community_name": "keywords",
+      "norm_label": "keywords"
     },
     {
-      "label": "SubtaskObserver.php",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L1",
+      "label": "framework",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L6",
       "_origin": "ast",
-      "id": "app_observers_subtaskobserver",
+      "id": "ref_framework",
       "community": 116,
-      "community_name": "Subtask",
-      "norm_label": "subtaskobserver.php"
+      "community_name": "keywords",
+      "norm_label": "framework"
     },
     {
-      "label": "SubtaskPolicy.php",
-      "file_type": "code",
-      "source_file": "app/Policies/SubtaskPolicy.php",
-      "source_location": "L1",
+      "label": "laravel",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L6",
       "_origin": "ast",
-      "id": "app_policies_subtaskpolicy",
+      "id": "ref_laravel",
       "community": 116,
-      "community_name": "Subtask",
-      "norm_label": "subtaskpolicy.php"
+      "community_name": "keywords",
+      "norm_label": "laravel"
     },
     {
       "label": "CleanupStalePendingMediaTest.php",
@@ -13062,26 +13062,37 @@
       "norm_label": "symfony\\component\\httpfoundation\\response"
     },
     {
-      "label": "MentionedInCommentNotification.php",
+      "label": "Subtask.php",
       "file_type": "code",
-      "source_file": "app/Notifications/MentionedInCommentNotification.php",
+      "source_file": "app/Models/Subtask.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_notifications_mentionedincommentnotification",
+      "id": "app_models_subtask",
       "community": 156,
-      "community_name": "Task",
-      "norm_label": "mentionedincommentnotification.php"
+      "community_name": "Subtask",
+      "norm_label": "subtask.php"
     },
     {
-      "label": "Illuminate\\Database\\Eloquent\\SoftDeletes",
+      "label": "SubtaskObserver.php",
       "file_type": "code",
-      "source_file": "",
-      "source_location": "",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "illuminate_database_eloquent_softdeletes",
+      "id": "app_observers_subtaskobserver",
       "community": 156,
-      "community_name": "Task",
-      "norm_label": "illuminate\\database\\eloquent\\softdeletes"
+      "community_name": "Subtask",
+      "norm_label": "subtaskobserver.php"
+    },
+    {
+      "label": "SubtaskPolicy.php",
+      "file_type": "code",
+      "source_file": "app/Policies/SubtaskPolicy.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_policies_subtaskpolicy",
+      "community": 156,
+      "community_name": "Subtask",
+      "norm_label": "subtaskpolicy.php"
     },
     {
       "label": "NotificationSettingPolicy.php",
@@ -13238,26 +13249,26 @@
       "norm_label": "documentpolicy.php"
     },
     {
-      "label": "SubtaskController.php",
+      "label": "AuditEventDatabaseNotification.php",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/SubtaskController.php",
+      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_http_controllers_subtaskcontroller",
+      "id": "app_notifications_auditeventdatabasenotification",
       "community": 166,
-      "community_name": "ValidatesTaskAssignment.php",
-      "norm_label": "subtaskcontroller.php"
+      "community_name": "AuditLog",
+      "norm_label": "auditeventdatabasenotification.php"
     },
     {
-      "label": "ValidatesTaskAssignment.php",
+      "label": "Illuminate\\Notifications\\Notification",
       "file_type": "code",
-      "source_file": "app/Http/Requests/Tasks/Concerns/ValidatesTaskAssignment.php",
-      "source_location": "L1",
+      "source_file": "",
+      "source_location": "",
       "_origin": "ast",
-      "id": "app_http_requests_tasks_concerns_validatestaskassignment",
+      "id": "illuminate_notifications_notification",
       "community": 166,
-      "community_name": "ValidatesTaskAssignment.php",
-      "norm_label": "validatestaskassignment.php"
+      "community_name": "AuditLog",
+      "norm_label": "illuminate\\notifications\\notification"
     },
     {
       "label": "AuditTrailController.php",
@@ -13370,15 +13381,15 @@
       "norm_label": "web.php"
     },
     {
-      "label": "UpdateTaskStatusColorsRequest.php",
+      "label": "UpdateDepartmentRequest.php",
       "file_type": "code",
-      "source_file": "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php",
+      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_http_requests_taskcolors_updatetaskstatuscolorsrequest",
+      "id": "app_http_requests_departments_updatedepartmentrequest",
       "community": 168,
-      "community_name": "UpdateTaskStatusColorsRequest",
-      "norm_label": "updatetaskstatuscolorsrequest.php"
+      "community_name": "UpdateDepartmentRequest",
+      "norm_label": "updatedepartmentrequest.php"
     },
     {
       "label": "tasks/edit.blade.php",
@@ -13513,15 +13524,26 @@
       "norm_label": "rich-text-editor.blade.php"
     },
     {
-      "label": "UpdateDepartmentRequest.php",
+      "label": "SubtaskController.php",
       "file_type": "code",
-      "source_file": "app/Http/Requests/Departments/UpdateDepartmentRequest.php",
+      "source_file": "app/Http/Controllers/SubtaskController.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_http_requests_departments_updatedepartmentrequest",
+      "id": "app_http_controllers_subtaskcontroller",
       "community": 177,
-      "community_name": "UpdateDepartmentRequest",
-      "norm_label": "updatedepartmentrequest.php"
+      "community_name": "ValidatesTaskAssignment.php",
+      "norm_label": "subtaskcontroller.php"
+    },
+    {
+      "label": "ValidatesTaskAssignment.php",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Tasks/Concerns/ValidatesTaskAssignment.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_requests_tasks_concerns_validatestaskassignment",
+      "community": 177,
+      "community_name": "ValidatesTaskAssignment.php",
+      "norm_label": "validatestaskassignment.php"
     },
     {
       "label": "UpdateTaskPriorityColorsRequest.php",
@@ -13535,26 +13557,15 @@
       "norm_label": "updatetaskprioritycolorsrequest.php"
     },
     {
-      "label": "TagsImportBatch.php",
+      "label": "UpdateTaskStatusColorsRequest.php",
       "file_type": "code",
-      "source_file": "app/Observers/Concerns/TagsImportBatch.php",
+      "source_file": "app/Http/Requests/TaskColors/UpdateTaskStatusColorsRequest.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_observers_concerns_tagsimportbatch",
+      "id": "app_http_requests_taskcolors_updatetaskstatuscolorsrequest",
       "community": 179,
-      "community_name": "TagsImportBatch.php",
-      "norm_label": "tagsimportbatch.php"
-    },
-    {
-      "label": "TaskObserver.php",
-      "file_type": "code",
-      "source_file": "app/Observers/TaskObserver.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_observers_taskobserver",
-      "community": 179,
-      "community_name": "TagsImportBatch.php",
-      "norm_label": "taskobserver.php"
+      "community_name": "UpdateTaskStatusColorsRequest",
+      "norm_label": "updatetaskstatuscolorsrequest.php"
     },
     {
       "label": "0001_01_01_000000_create_users_table.php",
@@ -13612,37 +13623,70 @@
       "norm_label": "auditlogpolicy.php"
     },
     {
-      "label": "autoload-dev",
+      "label": "TagsImportBatch.php",
       "file_type": "code",
-      "source_file": "composer.json",
-      "source_location": "L36",
+      "source_file": "app/Observers/Concerns/TagsImportBatch.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "composer_autoload_dev",
+      "id": "app_observers_concerns_tagsimportbatch",
       "community": 182,
-      "community_name": "autoload-dev",
-      "norm_label": "autoload-dev"
+      "community_name": "TagsImportBatch.php",
+      "norm_label": "tagsimportbatch.php"
     },
     {
-      "label": "psr-4",
+      "label": "TaskObserver.php",
       "file_type": "code",
-      "source_file": "composer.json",
-      "source_location": "L37",
+      "source_file": "app/Observers/TaskObserver.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "composer_autoload_dev_psr_4",
+      "id": "app_observers_taskobserver",
       "community": 182,
-      "community_name": "autoload-dev",
-      "norm_label": "psr-4"
+      "community_name": "TagsImportBatch.php",
+      "norm_label": "taskobserver.php"
     },
     {
-      "label": "Tests\\\\",
+      "label": "post-create-project-cmd",
       "file_type": "code",
       "source_file": "composer.json",
-      "source_location": "L38",
+      "source_location": "L68",
       "_origin": "ast",
-      "id": "composer_psr_4_tests",
-      "community": 182,
-      "community_name": "autoload-dev",
-      "norm_label": "tests\\\\"
+      "id": "composer_scripts_post_create_project_cmd",
+      "community": 183,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "post-create-project-cmd"
+    },
+    {
+      "label": "@php artisan key:generate --ansi",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_artisan_key_generate_ansi",
+      "community": 183,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "@php artisan key:generate --ansi"
+    },
+    {
+      "label": "@php artisan migrate --graceful --ansi",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_artisan_migrate_graceful_ansi",
+      "community": 183,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "@php artisan migrate --graceful --ansi"
+    },
+    {
+      "label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_r_file_exists_database_database_sqlite_touch_database_database_sqlite",
+      "community": 183,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\"
     },
     {
       "label": "chart.js",
@@ -13651,7 +13695,7 @@
       "confidence": "EXTRACTED",
       "_origin": "ast",
       "id": "chart_js_chart_js",
-      "community": 183,
+      "community": 184,
       "community_name": "chart.js",
       "norm_label": "chart.js"
     },
@@ -14547,6 +14591,28 @@
       "norm_label": "composer.json"
     },
     {
+      "label": "autoload-dev",
+      "file_type": "code",
+      "source_file": "composer.json",
+      "source_location": "L36",
+      "_origin": "ast",
+      "id": "composer_autoload_dev",
+      "community": 6,
+      "community_name": "composer.json",
+      "norm_label": "autoload-dev"
+    },
+    {
+      "label": "psr-4",
+      "file_type": "code",
+      "source_file": "composer.json",
+      "source_location": "L37",
+      "_origin": "ast",
+      "id": "composer_autoload_dev_psr_4",
+      "community": 6,
+      "community_name": "composer.json",
+      "norm_label": "psr-4"
+    },
+    {
       "label": "description",
       "file_type": "code",
       "source_file": "composer.json",
@@ -14578,17 +14644,6 @@
       "community": 6,
       "community_name": "composer.json",
       "norm_label": "laravel"
-    },
-    {
-      "label": "keywords",
-      "file_type": "code",
-      "source_file": "composer.json",
-      "source_location": "L6",
-      "_origin": "ast",
-      "id": "composer_keywords",
-      "community": 6,
-      "community_name": "composer.json",
-      "norm_label": "keywords"
     },
     {
       "label": "dont-discover",
@@ -14646,6 +14701,17 @@
       "norm_label": "prefer-stable"
     },
     {
+      "label": "Tests\\\\",
+      "file_type": "code",
+      "source_file": "composer.json",
+      "source_location": "L38",
+      "_origin": "ast",
+      "id": "composer_psr_4_tests",
+      "community": 6,
+      "community_name": "composer.json",
+      "norm_label": "tests\\\\"
+    },
+    {
       "label": "$schema",
       "file_type": "code",
       "source_file": "composer.json",
@@ -14666,28 +14732,6 @@
       "community": 6,
       "community_name": "composer.json",
       "norm_label": "type"
-    },
-    {
-      "label": "framework",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L6",
-      "_origin": "ast",
-      "id": "ref_framework",
-      "community": 6,
-      "community_name": "composer.json",
-      "norm_label": "framework"
-    },
-    {
-      "label": "laravel",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L6",
-      "_origin": "ast",
-      "id": "ref_laravel",
-      "community": 6,
-      "community_name": "composer.json",
-      "norm_label": "laravel"
     },
     {
       "label": "login.blade.php",
@@ -15130,17 +15174,6 @@
       "norm_label": "post-autoload-dump"
     },
     {
-      "label": "post-create-project-cmd",
-      "file_type": "code",
-      "source_file": "composer.json",
-      "source_location": "L68",
-      "_origin": "ast",
-      "id": "composer_scripts_post_create_project_cmd",
-      "community": 8,
-      "community_name": "scripts",
-      "norm_label": "post-create-project-cmd"
-    },
-    {
       "label": "post-update-cmd",
       "file_type": "code",
       "source_file": "composer.json",
@@ -15229,28 +15262,6 @@
       "norm_label": "@php artisan dev"
     },
     {
-      "label": "@php artisan key:generate --ansi",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
-      "_origin": "ast",
-      "id": "ref_php_artisan_key_generate_ansi",
-      "community": 8,
-      "community_name": "scripts",
-      "norm_label": "@php artisan key:generate --ansi"
-    },
-    {
-      "label": "@php artisan migrate --graceful --ansi",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
-      "_origin": "ast",
-      "id": "ref_php_artisan_migrate_graceful_ansi",
-      "community": 8,
-      "community_name": "scripts",
-      "norm_label": "@php artisan migrate --graceful --ansi"
-    },
-    {
       "label": "@php artisan package:discover --ansi",
       "file_type": "concept",
       "source_file": "composer.json",
@@ -15282,17 +15293,6 @@
       "community": 8,
       "community_name": "scripts",
       "norm_label": "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
-    },
-    {
-      "label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
-      "_origin": "ast",
-      "id": "ref_php_r_file_exists_database_database_sqlite_touch_database_database_sqlite",
-      "community": 8,
-      "community_name": "scripts",
-      "norm_label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\"
     },
     {
       "label": "_inline-validation.blade.php",
@@ -15361,26 +15361,26 @@
       "norm_label": "vite.config.js"
     },
     {
-      "label": "AuditEventDatabaseNotification.php",
+      "label": "MentionedInCommentNotification.php",
       "file_type": "code",
-      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
+      "source_file": "app/Notifications/MentionedInCommentNotification.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_notifications_auditeventdatabasenotification",
+      "id": "app_notifications_mentionedincommentnotification",
       "community": 86,
-      "community_name": "AuditLog",
-      "norm_label": "auditeventdatabasenotification.php"
+      "community_name": "Task",
+      "norm_label": "mentionedincommentnotification.php"
     },
     {
-      "label": "Illuminate\\Notifications\\Notification",
+      "label": "Illuminate\\Database\\Eloquent\\SoftDeletes",
       "file_type": "code",
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "id": "illuminate_notifications_notification",
+      "id": "illuminate_database_eloquent_softdeletes",
       "community": 86,
-      "community_name": "AuditLog",
-      "norm_label": "illuminate\\notifications\\notification"
+      "community_name": "Task",
+      "norm_label": "illuminate\\database\\eloquent\\softdeletes"
     },
     {
       "label": "DepartmentPolicy.php",
@@ -55780,5 +55780,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "2dcbba6748a870d3b17031131de9208e565d2b4a"
+  "built_at_commit": "6611f8a42f9520f5883a2232815b6c477d977285"
 }
