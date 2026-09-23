@@ -59,7 +59,13 @@
 
             <div>
                 <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</span>
-                <x-rich-text-editor class="mt-1" name="description" id="description" :value="old('description', $task->description)" label="Description" placeholder="Add a description…" :image-task-id="$task->id" image-context="description" :audio-task-id="$task->id" audio-context="description" />
+                {{-- View/edit split (task #4, follow-up fix) — see
+                     tasks/_description-field.blade.php. Always reached with
+                     edit permission here (this whole block is inside
+                     @if ($canEdit), the identical TaskPolicy::update check
+                     Description's own image/audio upload already uses), so
+                     the Edit control is unconditional in this partial. --}}
+                @include('tasks._description-field', ['task' => $task, 'value' => old('description', $task->description)])
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
