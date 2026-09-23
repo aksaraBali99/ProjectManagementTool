@@ -441,7 +441,8 @@
 }
 
 .rte-image-input,
-.rte-audio-input {
+.rte-audio-input,
+.rte-video-input {
     display: none;
 }
 
@@ -511,6 +512,20 @@
     display: block;
     width: 100%;
     max-width: 360px;
+    margin: 4px 0;
+    border-radius: var(--radius-md);
+}
+
+/* Embedded video (task #4 phase 5) — same treatment as .rich-text img
+   above (max-width: 100% of the content column, never audio's forced
+   width: 100%), since unlike audio a video actually has meaningful
+   intrinsic dimensions worth respecting rather than normalizing away.
+   max-height keeps a vertically long recording from dominating the page,
+   the same reasoning as img's own max-height for an unsized image. */
+.rich-text video {
+    display: block;
+    max-width: 100%;
+    max-height: 480px;
     margin: 4px 0;
     border-radius: var(--radius-md);
 }

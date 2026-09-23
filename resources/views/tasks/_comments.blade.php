@@ -32,7 +32,7 @@
     </div>
 
     <div class="mt-2 flex items-start gap-2">
-        <x-rich-text-editor class="new-comment-editor min-w-0 flex-1" compact label="New comment" placeholder="Add a comment… type @ to mention someone" :mentions="$mentionableUsers ?? []" :image-task-id="$task->id" image-context="comment" :audio-task-id="$task->id" audio-context="comment" />
+        <x-rich-text-editor class="new-comment-editor min-w-0 flex-1" compact label="New comment" placeholder="Add a comment… type @ to mention someone" :mentions="$mentionableUsers ?? []" :image-task-id="$task->id" image-context="comment" :audio-task-id="$task->id" audio-context="comment" :video-task-id="$task->id" video-context="comment" />
         <button type="button" class="post-comment-btn rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
             Post
         </button>
@@ -184,6 +184,8 @@
                     editRoot.dataset.imageContext = 'comment';
                     editRoot.dataset.audioTaskId = taskId;
                     editRoot.dataset.audioContext = 'comment';
+                    editRoot.dataset.videoTaskId = taskId;
+                    editRoot.dataset.videoContext = 'comment';
                     bodyText.replaceWith(editRoot);
                     row.querySelector('.comment-actions').style.display = 'none';
 

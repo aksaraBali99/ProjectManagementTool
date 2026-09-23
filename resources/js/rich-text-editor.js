@@ -4,6 +4,7 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Emoji, { emojis as defaultEmojis } from '@tiptap/extension-emoji';
 import { ResizableImage } from './resizable-image.js';
 import { Audio } from './audio-extension.js';
+import { Video } from './video-extension.js';
 import { isEmojiSupported } from 'is-emoji-supported';
 import { lowlight } from './code-highlight.js';
 
@@ -14,7 +15,7 @@ import { lowlight } from './code-highlight.js';
 //
 // The feature set is intentionally exactly what App\Support\RichText's
 // sanitizer allows (p, br, strong, em, u, h1-h3, ul/ol/li, a, pre/code, img,
-// audio): anything the editor could emit but the server strips would
+// audio, video): anything the editor could emit but the server strips would
 // silently vanish on save, so the two lists must move together.
 
 const ICON_ATTRS = 'width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
@@ -27,6 +28,7 @@ const ICONS = {
     emoji: '<svg ' + ICON_ATTRS + '><circle cx="8" cy="8" r="6"/><path d="M5.4 9.6a3.2 3.2 0 0 0 5.2 0"/><circle cx="6" cy="6.6" r=".7" fill="currentColor" stroke="none"/><circle cx="10" cy="6.6" r=".7" fill="currentColor" stroke="none"/></svg>',
     image: '<svg ' + ICON_ATTRS + '><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6.5" r="1.2"/><path d="M2 12l3.5-3.5a1 1 0 0 1 1.4 0L10 11.5m2-2 .6-.6a1 1 0 0 1 1.4 0L14.5 11"/></svg>',
     audio: '<svg ' + ICON_ATTRS + '><path d="M9.5 2.5v9.2a2 2 0 1 1-1-1.73V4.7L5 5.6v6.1a2 2 0 1 1-1-1.73V4.8z" fill="currentColor" stroke="none"/></svg>',
+    video: '<svg ' + ICON_ATTRS + '><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><path d="M6.3 6.2v3.6l3.4-1.8z" fill="currentColor" stroke="none"/></svg>',
 };
 
 const TOOLBAR = [
@@ -47,6 +49,8 @@ const TOOLBAR = [
     { key: 'image', label: 'Insert image', html: ICONS.image, run: null, active: () => false },
     // Same reasoning as image (task #4 phase 4).
     { key: 'audio', label: 'Insert audio', html: ICONS.audio, run: null, active: () => false },
+    // Same reasoning again (task #4 phase 5).
+    { key: 'video', label: 'Insert video', html: ICONS.video, run: null, active: () => false },
 ];
 
 const HEADING_OPTIONS = [
@@ -85,7 +89,7 @@ function normalizeHref(raw) {
 }
 
 // `handlers` are the toolbar items with no single ProseMirror command of
-// their own — they open other UI instead: { link, emoji, image, audio }.
+// their own — they open other UI instead: { link, emoji, image, audio, video }.
 function buildToolbar(editor, handlers) {
     const bar = el('div', 'rte-toolbar', { role: 'toolbar', 'aria-label': 'Text formatting' });
 
@@ -123,6 +127,7 @@ function buildToolbar(editor, handlers) {
             else if (item.key === 'emoji') handlers.emoji(button);
             else if (item.key === 'image') handlers.image();
             else if (item.key === 'audio') handlers.audio();
+            else if (item.key === 'video') handlers.video();
             else item.run(editor);
         });
         bar.appendChild(button);
@@ -431,6 +436,118 @@ function buildAudioUpload(editor, root, onBusyChange) {
                 setBusy(false);
                 input.value = '';
             });
+    }
+
+    input.addEventListener('change', function () {
+        const file = input.files[0];
+        if (file) upload(file);
+    });
+
+    return {
+        element: status,
+        input: input,
+        isWired: function () { return target() !== null; },
+        isBusy: function () { return busy; },
+        trigger: function () {
+            if (busy || ! target()) return;
+            input.click();
+        },
+    };
+}
+
+// Video upload (task #4 phase 5) — same target-resolution shape as audio's
+// (data-video-task-id/data-video-context, or data-video-pending-id/
+// data-video-project-id/data-video-department-id), matching
+// RichTextVideoController's two actions. The one real difference: this
+// uses XMLHttpRequest instead of fetch(), specifically for
+// xhr.upload.progress — video is the one media type here large enough
+// (up to 200MB, a multi-minute screen recording) that a bare "Uploading…"
+// spinner isn't real feedback; a live percentage is.
+function buildVideoUpload(editor, root, onBusyChange) {
+    const input = el('input', 'rte-video-input', { type: 'file', accept: 'video/*', tabindex: '-1', 'aria-hidden': 'true' });
+
+    const status = el('div', 'rte-upload-status');
+    status.hidden = true;
+
+    let busy = false;
+
+    function target() {
+        const taskId = root.dataset.videoTaskId;
+        if (taskId) {
+            return { url: '/tasks/' + taskId + '/video', fields: { context: root.dataset.videoContext || 'comment' } };
+        }
+
+        const pendingId = root.dataset.videoPendingId;
+        if (pendingId) {
+            return {
+                url: '/pending-task-video',
+                fields: {
+                    pending_id: pendingId,
+                    project_id: root.dataset.videoProjectId || '',
+                    department_id: root.dataset.videoDepartmentId || '',
+                },
+            };
+        }
+
+        return null;
+    }
+
+    function setStatus(message, isError) {
+        status.hidden = ! message;
+        status.textContent = message || '';
+        status.classList.toggle('is-error', !! isError);
+    }
+
+    function setBusy(next) {
+        busy = next;
+        status.classList.toggle('is-busy', next);
+        if (onBusyChange) onBusyChange(next);
+    }
+
+    function upload(file) {
+        const destination = target();
+        if (! destination) return;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const body = new FormData();
+        body.append('file', file);
+        Object.keys(destination.fields).forEach(function (key) { body.append(key, destination.fields[key]); });
+
+        setBusy(true);
+        setStatus('Uploading video… 0%', false);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', destination.url, true);
+        xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.responseType = 'json';
+
+        xhr.upload.addEventListener('progress', function (event) {
+            if (! event.lengthComputable) return;
+            setStatus('Uploading video… ' + Math.round((event.loaded / event.total) * 100) + '%', false);
+        });
+
+        xhr.addEventListener('load', function () {
+            const data = xhr.response;
+
+            if (xhr.status >= 200 && xhr.status < 300 && data) {
+                editor.chain().focus().setVideo({ src: data.url }).run();
+                setStatus('', false);
+            } else {
+                setStatus((data && data.message) || 'Failed to upload video.', true);
+            }
+
+            setBusy(false);
+            input.value = '';
+        });
+
+        xhr.addEventListener('error', function () {
+            setStatus('Failed to upload video.', true);
+            setBusy(false);
+            input.value = '';
+        });
+
+        xhr.send(body);
     }
 
     input.addEventListener('change', function () {
@@ -1109,6 +1226,7 @@ export function createRichTextEditor(root) {
     let linkBar = null;
     let imageUpload = null;
     let audioUpload = null;
+    let videoUpload = null;
 
     // Trailing empty paragraphs (the editor keeps one after a final code
     // block, or after a block image, so the cursor can leave it) aren't
@@ -1190,6 +1308,8 @@ export function createRichTextEditor(root) {
             // plain custom node rather than a NodeView or third-party
             // package.
             Audio,
+            // task #4 phase 5 — same reasoning, see video-extension.js.
+            Video,
         ],
         editorProps: {
             attributes: { class: 'rte-prose rich-text', role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },
@@ -1228,11 +1348,16 @@ export function createRichTextEditor(root) {
         const button = toolbar.button('audio');
         if (button) button.disabled = busy;
     });
+    videoUpload = buildVideoUpload(editor, root, function (busy) {
+        const button = toolbar.button('video');
+        if (button) button.disabled = busy;
+    });
     toolbar = buildToolbar(editor, {
         link: function () { linkBar.open(); },
         emoji: function (button) { emojiPicker.toggle(button); },
         image: function () { imageUpload.trigger(); },
         audio: function () { audioUpload.trigger(); },
+        video: function () { videoUpload.trigger(); },
     });
     linkBar = buildLinkBar(editor);
     if (users.length > 0) mentions = setupMentions(editor, users);
@@ -1247,7 +1372,12 @@ export function createRichTextEditor(root) {
         if (audioButton) audioButton.hidden = true;
     }
 
-    root.prepend(toolbar.element, linkBar.element, imageUpload.element, imageUpload.input, audioUpload.element, audioUpload.input);
+    if (! videoUpload.isWired()) {
+        const videoButton = toolbar.button('video');
+        if (videoButton) videoButton.hidden = true;
+    }
+
+    root.prepend(toolbar.element, linkBar.element, imageUpload.element, imageUpload.input, audioUpload.element, audioUpload.input, videoUpload.element, videoUpload.input);
     root.appendChild(content);
 
     const form = root.closest('form');
