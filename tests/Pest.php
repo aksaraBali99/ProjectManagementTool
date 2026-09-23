@@ -178,6 +178,52 @@ function richTextEditorNode(string $pageHtml, string $label): ?DOMElement
     return null;
 }
 
+/**
+ * Task Description's view-mode rendering on the Edit Task page (task #4,
+ * view/edit split) — unlike richTextEditorContent(), this isn't an editor's
+ * escaped data-content attribute; it's the same unescaped, read-only
+ * <x-rich-text> render every other read-only view (task drilldown,
+ * comments) already uses, found by its [data-description-field] wrapper.
+ * Null when the description is blank (<x-rich-text> renders its $empty
+ * placeholder instead of a [data-rich-text-content] element at all in that
+ * case). innerHTML, not textContent, since callers check for actual HTML
+ * (an <img>/<audio> tag, a width attribute), not just visible text.
+ */
+function descriptionViewContent(string $pageHtml): ?string
+{
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?>'.$pageHtml);
+    libxml_clear_errors();
+
+    $node = (new DOMXPath($document))->query('//*[@data-description-field]//*[@data-rich-text-content]')->item(0);
+    if ($node === null) {
+        return null;
+    }
+
+    return implode('', array_map(fn ($child) => $document->saveHTML($child), iterator_to_array($node->childNodes)));
+}
+
+/**
+ * The value Description's own fallback hidden input (data-description-
+ * fallback-input) starts with — what actually submits if the field is
+ * never put into edit mode. Compared against descriptionViewContent() to
+ * confirm both start from the same converted value (task #4, view/edit
+ * split), the same guarantee richTextHiddenInputValue()/
+ * richTextEditorContent() checked for a live editor's own hidden input.
+ */
+function descriptionFallbackInputValue(string $pageHtml): ?string
+{
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?>'.$pageHtml);
+    libxml_clear_errors();
+
+    $node = (new DOMXPath($document))->query('//*[@data-description-fallback-input]')->item(0);
+
+    return $node?->getAttribute('value');
+}
+
 /** Parses an HTML fragment (e.g. editor content) into a DOMDocument for structural assertions. */
 function richTextFragment(string $html): DOMDocument
 {

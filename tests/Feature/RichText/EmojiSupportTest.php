@@ -64,9 +64,12 @@ test('a description saved with emoji persists byte-for-byte and re-renders in th
     // Stored as the bare characters: no wrapper element, no entity encoding.
     expect($this->task->fresh()->description)->toBe($html);
 
+    // task #4 (view/edit split): Description opens read-only by default,
+    // so both the read-only view and its fallback hidden input are checked
+    // here instead of a live editor's data-content/hidden input pair.
     $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
-    expect(richTextEditorContent($page, 'Description'))->toBe($html);
-    expect(richTextHiddenInputValue($page, 'Description'))->toBe($html);
+    expect(descriptionViewContent($page))->toBe($html);
+    expect(descriptionFallbackInputValue($page))->toBe($html);
 
     $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()->assertSee($html, false);
 });
@@ -164,7 +167,7 @@ test('existing plain-text content is untouched by emoji support', function () {
     $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
 
     // Loaded as ordinary text — nothing that looks like :shortcode: is turned into an emoji server-side.
-    expect(richTextFragment(richTextEditorContent($page, 'Description'))->getElementsByTagName('body')->item(0)->textContent)
+    expect(richTextFragment(descriptionViewContent($page))->getElementsByTagName('body')->item(0)->textContent)
         ->toBe('Plain old descriptionwith a colon: like this, and 10:30 too');
     expect($this->task->fresh()->description)->toBe($legacy);
 });
@@ -183,11 +186,26 @@ test('the MySQL connection defaults to utf8mb4 so four-byte emoji need no schema
 // ---------------------------------------------------------------------------
 
 test('the Description editor and the Comment editor are the same shared component', function () {
+    // task #4 (view/edit split): Description no longer renders a live
+    // <x-rich-text-editor> root by default — only on Edit click, built
+    // dynamically by tasks/_description-field.blade.php's own inline
+    // script, the same way _comments.blade.php already builds an editor
+    // root for editing an existing comment. Pest can't click Edit (no JS
+    // runner in this suite — see the comment above), so this checks the
+    // same "exactly one shared construction path" guarantee from the two
+    // places that's actually verifiable over HTTP: the New comment editor
+    // (still always-live) is a real <x-rich-text-editor> root, and
+    // Description's edit-mode source builds its dynamic root with the
+    // identical data-rich-text + window.solavaRichText.mount() pattern
+    // Comments' own edit-comment flow uses — not a second, diverged one.
     $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
-
-    // Both are <x-rich-text-editor> roots, mounted by the one JS module.
-    expect(richTextEditorNode($page, 'Description'))->not->toBeNull();
     expect(richTextEditorNode($page, 'New comment'))->not->toBeNull();
+
+    $descriptionFieldSource = file_get_contents(resource_path('views/tasks/_description-field.blade.php'));
+    expect($descriptionFieldSource)
+        ->toContain("editRoot.setAttribute('data-rich-text'")
+        ->toContain("editRoot.dataset.label = 'Description'")
+        ->toContain('window.solavaRichText.mount(root)');
 
     // ...and that module is the only place an editor is ever constructed, so an
     // extension added there reaches every usage.
