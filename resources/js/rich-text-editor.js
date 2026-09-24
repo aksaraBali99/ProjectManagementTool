@@ -440,6 +440,16 @@ function buildImageUpload(editor, root, onBusyChange) {
                 upload(file, { filename: filename });
             }
         },
+        // Drag-and-drop (task #4, drag-and-drop upload) — unlike a
+        // clipboard paste, a file dropped from a file explorer/desktop
+        // always has a real filename of its own, so this is really just
+        // trigger()'s own upload(file) with no extraFields, the exact
+        // same call the picker's input 'change' listener above makes —
+        // uploadPasted()'s auto-naming never applies here.
+        uploadDropped: function (file) {
+            if (busy) return;
+            upload(file);
+        },
     };
 }
 
@@ -682,6 +692,14 @@ function buildVideoUpload(editor, root, onBusyChange) {
                 upload(file, { filename: filename });
             }
         },
+        // Drag-and-drop (task #4, drag-and-drop upload) — see
+        // buildImageUpload()'s identical method for the full reasoning: a
+        // dropped file always has a real filename of its own, so this is
+        // just upload(file) with no extraFields, same as the picker path.
+        uploadDropped: function (file) {
+            if (busy) return;
+            upload(file);
+        },
     };
 }
 
@@ -854,6 +872,66 @@ function buildClipboardMediaPaste(imageUpload, videoUpload) {
     }
 
     return { handlePaste: handlePaste };
+}
+
+// Drag-and-drop of an image or video file (task #4, drag-and-drop upload)
+// — a file dragged in from a file explorer/desktop and dropped onto the
+// editor. Handled the same way clipboard paste is: detect image/video
+// file data on the browser event, hand it to imageUpload/videoUpload's
+// own upload pipeline (SAME validation, SAME endpoint, SAME inline
+// embedding, SAME Add Task pending-path reconciliation as a picker
+// selection), and prevent the browser's own default drop behavior —
+// which, left unhandled, navigates the whole tab to the dropped file
+// instead of doing anything with the editor at all.
+//
+// Unlike a clipboard paste, a dropped file always has a real filename of
+// its own (it came from somewhere on disk), so this goes through
+// uploadPasted()'s sibling uploadDropped() instead — no auto-naming, the
+// file keeps its own name exactly like the picker button's selection
+// does. Also unlike paste, there's no "must be alone on an empty line"
+// restriction to check: a drop lands whichever inline/block shape the
+// upload produces regardless of surrounding text, exactly like clicking
+// the picker button with the cursor in the middle of a sentence already
+// does today.
+//
+// Only the FIRST file on the drop is used, same simplification
+// buildClipboardMediaPaste() already makes for a paste.
+function buildDragDropMedia(editor, imageUpload, videoUpload) {
+    function handleDrop(view, event) {
+        const files = (event.dataTransfer && event.dataTransfer.files) || [];
+        if (files.length === 0) return false;
+
+        const file = files[0];
+        const isImage = file.type.indexOf('image/') === 0;
+        const isVideo = file.type.indexOf('video/') === 0;
+
+        if (isImage && imageUpload.isWired() && ! imageUpload.isBusy()) {
+            event.preventDefault();
+            // Moves the cursor to where the file was actually dropped
+            // before uploading — upload()'s own insertContent always
+            // targets the CURRENT selection, which would otherwise still
+            // be wherever the cursor happened to be before the drag
+            // started, not where the user visibly dropped the file.
+            const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+            if (pos) editor.chain().focus().setTextSelection(pos.pos).run();
+            imageUpload.uploadDropped(file);
+
+            return true;
+        }
+
+        if (isVideo && videoUpload.isWired() && ! videoUpload.isBusy()) {
+            event.preventDefault();
+            const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+            if (pos) editor.chain().focus().setTextSelection(pos.pos).run();
+            videoUpload.uploadDropped(file);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    return { handleDrop: handleDrop };
 }
 
 // Smart Links (task #4) — resolves a bare URL to a compact inline chip
@@ -1681,6 +1759,7 @@ export function createRichTextEditor(root) {
     let documentUpload = null;
     let linkPreview = null;
     let clipboardMediaPaste = null;
+    let dragDropMedia = null;
     // Description's own autosave-on-blur (task #4, description autosave)
     // is the only current caller of onSettledBlur() below — a single
     // callback slot is enough, no consumer needs more than one.
@@ -1823,6 +1902,17 @@ export function createRichTextEditor(root) {
 
                 return linkPreview ? linkPreview.handlePaste(view, event) : false;
             },
+            // dragDropMedia is assigned after construction too, same
+            // deferred-reference reason as clipboardMediaPaste/linkPreview
+            // above — a drop before that split second just isn't
+            // intercepted, falling through to ProseMirror's own default
+            // drop handling (which, for a bare file with no text/HTML
+            // data alongside it, does nothing useful either — the
+            // browser's OWN default of navigating to the file is what
+            // actually happens if nothing here prevents it).
+            handleDrop: function (view, event) {
+                return dragDropMedia ? dragDropMedia.handleDrop(view, event) : false;
+            },
         },
         onUpdate: function () {
             syncInput();
@@ -1903,6 +1993,9 @@ export function createRichTextEditor(root) {
     // exist (built above), same reason this is built after them rather
     // than alongside linkPreview.
     clipboardMediaPaste = buildClipboardMediaPaste(imageUpload, videoUpload);
+    // task #4, drag-and-drop upload — same reason, built right alongside
+    // its paste-detection sibling.
+    dragDropMedia = buildDragDropMedia(editor, imageUpload, videoUpload);
     toolbar = buildToolbar(editor, {
         link: function () { linkBar.open(); },
         emoji: function (button) { emojiPicker.toggle(button); },
