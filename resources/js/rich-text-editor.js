@@ -381,7 +381,16 @@ function buildImageUpload(editor, root, onBusyChange) {
         setBusy(true);
         setStatus('Uploading image…', false);
 
-        fetch(destination.url, {
+        // Returned (task #4, drag-and-drop upload — multi-file) so a
+        // caller uploading several files in one go (uploadDropped()'s own
+        // caller) can wait for one to fully finish — including this
+        // .finally() clearing busy — before starting the next, rather
+        // than firing every upload at once and racing setBusy()/setStatus
+        // against each other. Resolves whether the upload succeeded or
+        // failed (the .catch() below only shows the error, it doesn't
+        // rethrow) — a batch keeps going past one failed file instead of
+        // aborting the rest.
+        return fetch(destination.url, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
             body: body,
@@ -395,6 +404,20 @@ function buildImageUpload(editor, root, onBusyChange) {
             })
             .then(function (data) {
                 editor.chain().focus().setImage({ src: data.url }).run();
+                // setImage() leaves the selection AS a NodeSelection on
+                // the block image it just inserted, not past it — found
+                // the hard way (task #4, drag-and-drop multi-file): a
+                // second upload started right after this one (several
+                // files dropped at once, or two picker uploads in quick
+                // succession with no click in between) would run its own
+                // setImage() against that same NodeSelection and REPLACE
+                // this image instead of inserting after it. Moving to a
+                // plain text selection at the node's own end boundary —
+                // TipTap keeps an automatic trailing paragraph after a
+                // block image for exactly this "the cursor can leave it"
+                // reason — is what makes each new upload land as its own
+                // separate embed instead.
+                editor.commands.setTextSelection(editor.state.selection.to);
                 setStatus('', false);
             })
             .catch(function (error) {
@@ -447,8 +470,8 @@ function buildImageUpload(editor, root, onBusyChange) {
         // same call the picker's input 'change' listener above makes —
         // uploadPasted()'s auto-naming never applies here.
         uploadDropped: function (file) {
-            if (busy) return;
-            upload(file);
+            if (busy) return Promise.resolve();
+            return upload(file);
         },
     };
 }
@@ -634,27 +657,43 @@ function buildVideoUpload(editor, root, onBusyChange) {
             setStatus('Uploading video… ' + Math.round((event.loaded / event.total) * 100) + '%', false);
         });
 
-        xhr.addEventListener('load', function () {
-            const data = xhr.response;
+        // Wrapped in a Promise, and returned (task #4, drag-and-drop
+        // upload — multi-file), for the exact same reason
+        // buildImageUpload()'s own upload() now returns its fetch chain —
+        // a caller uploading several files in one go needs to know when
+        // THIS one is fully done (busy cleared) before starting the next.
+        // Always resolves, never rejects: a failed upload already shows
+        // its own error via setStatus(), a batch caller just needs to
+        // move on to the next file either way.
+        return new Promise(function (resolve) {
+            xhr.addEventListener('load', function () {
+                const data = xhr.response;
 
-            if (xhr.status >= 200 && xhr.status < 300 && data) {
-                editor.chain().focus().setVideo({ src: data.url }).run();
-                setStatus('', false);
-            } else {
-                setStatus((data && data.message) || 'Failed to upload video.', true);
-            }
+                if (xhr.status >= 200 && xhr.status < 300 && data) {
+                    editor.chain().focus().setVideo({ src: data.url }).run();
+                    // See buildImageUpload()'s identical line for why —
+                    // setVideo() leaves the same kind of NodeSelection
+                    // setImage() does.
+                    editor.commands.setTextSelection(editor.state.selection.to);
+                    setStatus('', false);
+                } else {
+                    setStatus((data && data.message) || 'Failed to upload video.', true);
+                }
 
-            setBusy(false);
-            input.value = '';
+                setBusy(false);
+                input.value = '';
+                resolve();
+            });
+
+            xhr.addEventListener('error', function () {
+                setStatus('Failed to upload video.', true);
+                setBusy(false);
+                input.value = '';
+                resolve();
+            });
+
+            xhr.send(body);
         });
-
-        xhr.addEventListener('error', function () {
-            setStatus('Failed to upload video.', true);
-            setBusy(false);
-            input.value = '';
-        });
-
-        xhr.send(body);
     }
 
     input.addEventListener('change', function () {
@@ -697,8 +736,8 @@ function buildVideoUpload(editor, root, onBusyChange) {
         // dropped file always has a real filename of its own, so this is
         // just upload(file) with no extraFields, same as the picker path.
         uploadDropped: function (file) {
-            if (busy) return;
-            upload(file);
+            if (busy) return Promise.resolve();
+            return upload(file);
         },
     };
 }
@@ -894,41 +933,57 @@ function buildClipboardMediaPaste(imageUpload, videoUpload) {
 // the picker button with the cursor in the middle of a sentence already
 // does today.
 //
-// Only the FIRST file on the drop is used, same simplification
-// buildClipboardMediaPaste() already makes for a paste.
+// Every relevant file on the drop is uploaded, not just the first — a
+// drag from a file explorer routinely carries a multi-selection. They're
+// uploaded ONE AT A TIME, in drop order, each fully finishing (including
+// its own embed insert) before the next starts, rather than firing every
+// upload at once: uploadDropped()/upload() share one `busy` flag and one
+// status message per media type, so truly concurrent uploads of the same
+// type would race each other's status text and clobber the "no double
+// upload" busy guard; sequencing also keeps embeds landing in the same
+// left-to-right order the files were dropped in, rather than whichever
+// request happens to come back from the server first.
 function buildDragDropMedia(editor, imageUpload, videoUpload) {
+    function isRelevant(file) {
+        return file.type.indexOf('image/') === 0 || file.type.indexOf('video/') === 0;
+    }
+
+    function uploadOne(file) {
+        const isImage = file.type.indexOf('image/') === 0;
+        const uploader = isImage ? imageUpload : videoUpload;
+        if (! uploader.isWired()) return Promise.resolve();
+
+        return uploader.uploadDropped(file);
+    }
+
+    // Recurses rather than a for-loop over promises, so each file's
+    // upload() call (and the busy/status state it sets) only happens once
+    // the previous one has fully settled — see the doc comment above.
+    function uploadAll(files, index) {
+        if (index >= files.length) return;
+
+        uploadOne(files[index]).then(function () { uploadAll(files, index + 1); });
+    }
+
     function handleDrop(view, event) {
-        const files = (event.dataTransfer && event.dataTransfer.files) || [];
+        const files = Array.prototype.filter.call((event.dataTransfer && event.dataTransfer.files) || [], isRelevant);
         if (files.length === 0) return false;
 
-        const file = files[0];
-        const isImage = file.type.indexOf('image/') === 0;
-        const isVideo = file.type.indexOf('video/') === 0;
+        event.preventDefault();
+        // Moves the cursor to where the file(s) were actually dropped
+        // before uploading — upload()'s own insertContent always targets
+        // the CURRENT selection, which would otherwise still be wherever
+        // the cursor happened to be before the drag started, not where
+        // the user visibly dropped the file. Set once, up front: each
+        // successive embed naturally inserts right after the previous
+        // one once the selection has moved past it, the same way two
+        // sequential picker uploads already do.
+        const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        if (pos) editor.chain().focus().setTextSelection(pos.pos).run();
 
-        if (isImage && imageUpload.isWired() && ! imageUpload.isBusy()) {
-            event.preventDefault();
-            // Moves the cursor to where the file was actually dropped
-            // before uploading — upload()'s own insertContent always
-            // targets the CURRENT selection, which would otherwise still
-            // be wherever the cursor happened to be before the drag
-            // started, not where the user visibly dropped the file.
-            const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
-            if (pos) editor.chain().focus().setTextSelection(pos.pos).run();
-            imageUpload.uploadDropped(file);
+        uploadAll(files, 0);
 
-            return true;
-        }
-
-        if (isVideo && videoUpload.isWired() && ! videoUpload.isBusy()) {
-            event.preventDefault();
-            const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
-            if (pos) editor.chain().focus().setTextSelection(pos.pos).run();
-            videoUpload.uploadDropped(file);
-
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     return { handleDrop: handleDrop };
