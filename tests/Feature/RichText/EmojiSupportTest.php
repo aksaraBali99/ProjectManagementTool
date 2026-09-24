@@ -64,9 +64,6 @@ test('a description saved with emoji persists byte-for-byte and re-renders in th
     // Stored as the bare characters: no wrapper element, no entity encoding.
     expect($this->task->fresh()->description)->toBe($html);
 
-    // task #4 (view/edit split): Description opens read-only by default,
-    // so both the read-only view and its fallback hidden input are checked
-    // here instead of a live editor's data-content/hidden input pair.
     $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
     expect(descriptionViewContent($page))->toBe($html);
     expect(descriptionFallbackInputValue($page))->toBe($html);
@@ -186,26 +183,13 @@ test('the MySQL connection defaults to utf8mb4 so four-byte emoji need no schema
 // ---------------------------------------------------------------------------
 
 test('the Description editor and the Comment editor are the same shared component', function () {
-    // task #4 (view/edit split): Description no longer renders a live
-    // <x-rich-text-editor> root by default — only on Edit click, built
-    // dynamically by tasks/_description-field.blade.php's own inline
-    // script, the same way _comments.blade.php already builds an editor
-    // root for editing an existing comment. Pest can't click Edit (no JS
-    // runner in this suite — see the comment above), so this checks the
-    // same "exactly one shared construction path" guarantee from the two
-    // places that's actually verifiable over HTTP: the New comment editor
-    // (still always-live) is a real <x-rich-text-editor> root, and
-    // Description's edit-mode source builds its dynamic root with the
-    // identical data-rich-text + window.solavaRichText.mount() pattern
-    // Comments' own edit-comment flow uses — not a second, diverged one.
+    // Description is a permanently-live <x-rich-text-editor> root (task
+    // #4, description autosave), the identical component the New comment
+    // box already used — both present immediately, no click needed to
+    // construct either one.
     $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
     expect(richTextEditorNode($page, 'New comment'))->not->toBeNull();
-
-    $descriptionFieldSource = file_get_contents(resource_path('views/tasks/_description-field.blade.php'));
-    expect($descriptionFieldSource)
-        ->toContain("editRoot.setAttribute('data-rich-text'")
-        ->toContain("editRoot.dataset.label = 'Description'")
-        ->toContain('window.solavaRichText.mount(root)');
+    expect(richTextEditorNode($page, 'Description'))->not->toBeNull();
 
     // ...and that module is the only place an editor is ever constructed, so an
     // extension added there reaches every usage.

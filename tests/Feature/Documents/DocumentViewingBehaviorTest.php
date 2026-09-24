@@ -167,7 +167,13 @@ test('a document\'s own link text typed into a task description stays a plain li
     $response = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit");
 
     $response->assertOk();
-    $html = $response->getContent();
+    // Description is a permanently-live editor (task #4, description
+    // autosave): its content lives in the editor's own hidden input as an
+    // HTML-attribute-escaped value, not as literal markup in the page
+    // source — descriptionViewContent() reads that back out unescaped,
+    // the same way every other structural check on Description's content
+    // already does.
+    $html = descriptionViewContent($response->getContent());
 
     expect($html)
         ->toContain('href="https://example.com/project-brief.pdf"')

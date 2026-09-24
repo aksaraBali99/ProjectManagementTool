@@ -96,8 +96,8 @@ test('a valid image upload for a task description succeeds, returns a URL, and t
     $stored = $this->task->fresh()->description;
     expect($stored)->toContain('<p>Before</p>')->toContain($url)->toContain('alt="a screenshot"');
 
-    // Reload: the same URL renders, in both the Edit Task page's read-only
-    // Description view (task #4, view/edit split) and the drilldown.
+    // Reload: the same URL renders, in both the Edit Task page's
+    // Description editor and the drilldown.
     $editPage = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
     expect(descriptionViewContent($editPage))->toContain($url);
 
