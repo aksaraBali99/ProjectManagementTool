@@ -8,6 +8,7 @@ use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\FileStorageService;
+use App\Services\PastedMediaNamer;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,6 +40,17 @@ class RichTextImageController extends Controller
         $data = $request->validate([
             'file' => ['required', 'file'],
             'context' => ['required', Rule::in(['description', 'comment'])],
+            // task #4, clipboard paste: `pasted` flags that this file came
+            // from a clipboard paste rather than the picker, which is the
+            // ONLY thing that ever triggers the auto-filename below — a
+            // picker upload never sends this, so it's never affected.
+            // `title` is the Title field's value AT THE MOMENT OF PASTE
+            // (read client-side, not this task's own possibly-stale saved
+            // title — see rich-text-editor.js), which is also why it's
+            // trusted here only as free text to slugify, never as a raw
+            // filename itself.
+            'pasted' => ['nullable', 'boolean'],
+            'title' => ['nullable', 'string', 'max:255'],
         ]);
 
         if ($data['context'] === 'description') {
@@ -48,7 +60,11 @@ class RichTextImageController extends Controller
             Gate::authorize('create', Comment::class);
         }
 
-        return $this->upload(fn (FileStorageService $service) => $service->upload($request->file('file'), FileCategory::Image, $task->id));
+        $desiredFilename = ($data['pasted'] ?? false)
+            ? app(PastedMediaNamer::class)->nextFilename($task, FileCategory::Image, $data['title'] ?? null)
+            : null;
+
+        return $this->upload(fn (FileStorageService $service) => $service->upload($request->file('file'), FileCategory::Image, $task->id, $desiredFilename));
     }
 
     /**
@@ -67,13 +83,23 @@ class RichTextImageController extends Controller
             'project_id' => ['required', 'integer', 'exists:projects,id'],
             'department_id' => ['nullable', 'integer'],
             'pending_id' => ['required', 'uuid'],
+            // task #4, clipboard paste — the Add Task page has no task_id
+            // yet to atomically count pasted_media against, and no
+            // concurrent-paste risk for one person drafting one task, so
+            // (unlike store() above) the client computes the whole
+            // filename itself (slugifyTaskTitle() in rich-text-editor.js)
+            // and just hands it over already-built. The strict allowlist
+            // is this endpoint's only defense against that client-built
+            // string being used as a storage path segment — a picker
+            // upload never sends this field at all.
+            'filename' => ['nullable', 'string', 'max:100', 'regex:/^[a-z0-9-]+$/'],
         ]);
 
         $project = Project::findOrFail($data['project_id']);
 
         Gate::authorize('create', [Task::class, $project->organization_id, $data['department_id'] ?? null]);
 
-        return $this->upload(fn (FileStorageService $service) => $service->uploadPending($request->file('file'), FileCategory::Image, $data['pending_id']));
+        return $this->upload(fn (FileStorageService $service) => $service->uploadPending($request->file('file'), FileCategory::Image, $data['pending_id'], $data['filename'] ?? null));
     }
 
     private function upload(Closure $attempt): JsonResponse

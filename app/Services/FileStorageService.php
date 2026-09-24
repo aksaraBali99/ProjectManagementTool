@@ -46,11 +46,20 @@ class FileStorageService
      * two people both attaching "screenshot.png" to the same task) never
      * collide.
      *
-     * @throws FileStorageException file fails validation, or the disk write itself fails
+     * $desiredFilename overrides the uuid with a specific basename
+     * instead (task #4, clipboard paste — see PastedMediaNamer) — the
+     * caller is responsible for that name being collision-safe up front
+     * (PastedMediaNamer's own atomic count-and-lock is what guarantees
+     * that for a real task); this only re-sanitizes it defensively
+     * (strips anything but a-z0-9-, so it's never trusted as a raw path
+     * segment even indirectly) and refuses to silently overwrite an
+     * existing file at the resulting path.
+     *
+     * @throws FileStorageException file fails validation, the disk write itself fails, or $desiredFilename collides with an existing file
      */
-    public function upload(UploadedFile $file, FileCategory $category, int $taskId): StoredFile
+    public function upload(UploadedFile $file, FileCategory $category, int $taskId, ?string $desiredFilename = null): StoredFile
     {
-        return $this->store($file, $category, (string) $taskId);
+        return $this->store($file, $category, (string) $taskId, $desiredFilename);
     }
 
     /**
@@ -71,16 +80,24 @@ class FileStorageService
      * swept up by the media:cleanup-stale-pending scheduled command, the
      * same pattern as the Import feature's own stale-batch cleanup.
      *
+     * $desiredFilename: same override as upload() — for the Add Task page
+     * this is computed client-side (no task_id yet to atomically count
+     * pasted_media against, and no concurrency risk for one person
+     * drafting one task; see slugifyTaskTitle() in rich-text-editor.js),
+     * unlike upload()'s caller, which resolves it server-side via
+     * PastedMediaNamer.
+     *
      * @throws FileStorageException file fails validation, $pendingId isn't a
-     *                              well-formed UUID, or the disk write fails
+     *                              well-formed UUID, the disk write fails, or
+     *                              $desiredFilename collides with an existing file
      */
-    public function uploadPending(UploadedFile $file, FileCategory $category, string $pendingId): StoredFile
+    public function uploadPending(UploadedFile $file, FileCategory $category, string $pendingId, ?string $desiredFilename = null): StoredFile
     {
         if (! Str::isUuid($pendingId)) {
             throw FileStorageException::invalidPendingId($pendingId);
         }
 
-        return $this->store($file, $category, "pending/{$pendingId}");
+        return $this->store($file, $category, "pending/{$pendingId}", $desiredFilename);
     }
 
     /**
@@ -149,11 +166,15 @@ class FileStorageService
         return new StoredFile(path: $toPath, url: $this->url($toPath));
     }
 
-    private function store(UploadedFile $file, FileCategory $category, string $keySegment): StoredFile
+    private function store(UploadedFile $file, FileCategory $category, string $keySegment, ?string $desiredFilename = null): StoredFile
     {
         $this->validate($file, $category);
 
-        $path = $this->keyFor($keySegment, $category, strtolower($file->getClientOriginalExtension()));
+        $path = $this->keyFor($keySegment, $category, strtolower($file->getClientOriginalExtension()), $desiredFilename);
+
+        if ($desiredFilename !== null && Storage::disk($this->disk)->exists($path)) {
+            throw FileStorageException::nameCollision($path);
+        }
 
         try {
             $written = Storage::disk($this->disk)->put($path, fopen($file->getRealPath(), 'r'));
@@ -243,9 +264,23 @@ class FileStorageService
      * is the one layout every consumer (real uploads, pending uploads,
      * reconciliation's move target) agrees on.
      */
-    private function keyFor(string $keySegment, FileCategory $category, string $extension): string
+    private function keyFor(string $keySegment, FileCategory $category, string $extension, ?string $desiredFilename = null): string
     {
-        return sprintf('tasks/%s/%s/%s.%s', $keySegment, $category->prefix(), (string) Str::uuid(), $extension);
+        // Re-stripped here too, not just trusted from the caller (task #4,
+        // clipboard paste) — this is the one place a basename actually
+        // becomes part of a storage path, so it's the last line of
+        // defense against a "/", "..", or anything else that isn't a
+        // plain slug segment, regardless of what already validated it
+        // upstream (a request field's regex rule, PastedMediaNamer's own
+        // slugify).
+        $basename = $desiredFilename !== null
+            ? preg_replace('/[^a-z0-9-]/', '', strtolower($desiredFilename))
+            : '';
+        if ($basename === '') {
+            $basename = (string) Str::uuid();
+        }
+
+        return sprintf('tasks/%s/%s/%s.%s', $keySegment, $category->prefix(), $basename, $extension);
     }
 
     /**
