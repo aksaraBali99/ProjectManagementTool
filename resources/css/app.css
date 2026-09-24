@@ -468,6 +468,155 @@
     color: #DC2626;
 }
 
+/* Drag-and-drop visual indicator (task #4, drag-and-drop upload) — a
+   dashed border plus a brief "Drop to upload" overlay while a file from
+   the OS (File Explorer, Finder, ...) is being dragged over the editor,
+   so it's clear before releasing that the drop will actually register.
+   .rte is already position: relative (see its own base rule), so the
+   overlay just needs inset: 0 to cover the whole box. pointer-events:
+   none on the overlay — it's purely informational, never blocks the
+   drop event itself from reaching the editor underneath it. */
+.rte.rte-drop-active {
+    border-color: var(--color-brand-600);
+    border-style: dashed;
+}
+
+.rte.rte-drop-active::after {
+    content: 'Drop to upload';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: rgb(255 255 255 / 0.85);
+    color: var(--color-brand-700);
+    font-size: 13px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+/* The per-file status list for a drag-and-drop upload (task #4,
+   drag-and-drop upload) — separate from .rte-upload-status above, which
+   is scoped to one category (image/audio/...) and only ever shows one
+   file's status at a time; a drop can carry several files across several
+   categories at once, so this lists every file in the current batch by
+   name, each with its own state, regardless of which category ends up
+   handling it. */
+.rte-drop-queue {
+    border-bottom: 1px solid #E5E7EB;
+    background: #fff;
+    font-size: 11px;
+}
+
+.rte-drop-queue-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 10px;
+    color: var(--color-gray-600);
+}
+
+.rte-drop-queue-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.rte-drop-queue-status {
+    flex-shrink: 0;
+    color: var(--color-gray-500);
+}
+
+.rte-drop-queue-item--done .rte-drop-queue-status {
+    color: #059669;
+}
+
+.rte-drop-queue-item--failed .rte-drop-queue-status {
+    color: #DC2626;
+}
+
+/* Alt text (task #4, alt text) — the low-friction popover shown right
+   after an image upload (any of the three entry points), and again on
+   demand via .rte-alt-edit-btn below. Same visual language as
+   .rte-mentions (fixed position, portaled to document.body, white/
+   bordered/shadowed) rather than a new one, just laid out as a single
+   row instead of a list. */
+.rte-alt-prompt {
+    position: fixed;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid #E5E7EB;
+    border-radius: var(--radius-md);
+    background: #fff;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+}
+
+.rte-alt-prompt-label {
+    flex-shrink: 0;
+    color: var(--color-gray-500);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.rte-alt-prompt-input {
+    width: 14rem;
+    border: 1px solid #D1D5DB;
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.rte-alt-prompt-input:focus {
+    outline: none;
+    border-color: var(--color-brand-600);
+}
+
+.rte-alt-prompt-btn {
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    background: var(--color-brand-600);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.rte-alt-prompt-btn:hover {
+    background: var(--color-brand-700);
+}
+
+/* The small contextual control that reopens .rte-alt-prompt for an
+   already-embedded image, shown near it whenever it's the current
+   selection (task #4, alt text) — deliberately understated (no bordered-
+   square icon-button treatment) since it floats directly over live
+   document content, not inside a toolbar. */
+.rte-alt-edit-btn {
+    position: fixed;
+    z-index: 55;
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+    border: 1px solid #E5E7EB;
+    background: #fff;
+    color: var(--color-gray-600);
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.1);
+}
+
+.rte-alt-edit-btn:hover {
+    background: var(--color-gray-50);
+    color: #1F2937;
+}
+
 /* Inline thumbnail sizing for an embedded image, live in the editor and in
    every read-only render (task drilldown, comment list) — both share the
    .rich-text class. max-width is a safety cap for every image (never blow

@@ -133,6 +133,19 @@ function currentTaskTitle() {
     return input ? input.value : '';
 }
 
+// task #4, alt text — the fallback used when an uploaded image has no
+// real original filename to fall back to (a clipboard paste): the
+// server-resolved/auto-generated name is still reflected in the storage
+// URL's own last path segment either way (PastedMediaNamer's whole job
+// is choosing that basename), just with its extension still attached and
+// possibly a query string from a signed/CDN URL — both stripped here.
+function basenameNoExtension(url) {
+    const path = url.split('?')[0].split('#')[0];
+    const base = path.substring(path.lastIndexOf('/') + 1);
+
+    return base.replace(/\.[a-z0-9]+$/i, '');
+}
+
 // `handlers` are the toolbar items with no single ProseMirror command of
 // their own — they open other UI instead: { link, emoji, image, audio,
 // video, document }.
@@ -304,6 +317,152 @@ function buildLinkBar(editor, linkPreview) {
     return { element: wrap, open: open };
 }
 
+// Alt text for images (task #4, alt text) — image-specific, deliberately:
+// video/audio/document embeds have no accessibility-relevant "alt"
+// concept the way an image does, so this is only ever built and passed
+// into buildImageUpload(), never the other three upload builders.
+//
+// A single popover instance per editor, reused for both moments it can
+// open: right after ANY of the three upload entry points (toolbar,
+// paste, drag-and-drop) inserts a new image — see upload()'s own
+// `if (altPrompt) altPrompt.open(...)` call — and later, on demand, via
+// the small "Edit alt text" button that appears near an already-embedded
+// image whenever it becomes the current selection (see
+// buildAltTextEditButton() below). Neither caller blocks on this: the
+// image is already fully uploaded and embedded (with SOME alt value —
+// upload()'s own fallback — already set) before this ever opens, and
+// dismissing it (Escape, clicking away, or just never opening it) leaves
+// that value exactly as it was, never null.
+function buildAltTextPrompt(editor) {
+    let popover = null;
+    let currentPos = null;
+
+    // refocusEditor: true for a deliberate "I'm done, back to editing"
+    // dismissal (Save, Escape) — the popover's own input had DOM focus,
+    // and removing it without putting focus back somewhere leaves it on
+    // document.body, where the editor's own onBlur/onSettledBlur (and so
+    // Description's autosave) never even fires on the NEXT real
+    // click-away, since TipTap never sees ITS OWN element lose focus in
+    // the first place. False for an outside click closing it instead
+    // (clicking directly on some other field, say) — that click already
+    // says exactly where focus should go, and forcing it back to the
+    // editor here would fight that.
+    function close(refocusEditor) {
+        if (popover) {
+            popover.remove();
+            popover = null;
+        }
+        currentPos = null;
+        if (refocusEditor) {
+            editor.commands.focus();
+            // TipTap's focus() finishes on the next animation frame;
+            // removing the popover (its input had focus) already dropped
+            // it, so put it back immediately too — same fix
+            // buildEmojiPicker()'s own pick() already needed, and for the
+            // exact same reason.
+            editor.view.focus();
+        }
+    }
+
+    function commit(value) {
+        const pos = currentPos;
+        const trimmed = value.trim();
+        close(true);
+        if (pos === null || trimmed === '') return;
+
+        editor.chain().setNodeSelection(pos).updateAttributes('image', { alt: trimmed }).run();
+    }
+
+    function open(pos, currentAlt) {
+        close();
+        currentPos = pos;
+
+        const coords = editor.view.coordsAtPos(pos);
+        popover = el('div', 'rte-alt-prompt', { role: 'dialog', 'aria-label': 'Image description' });
+        const label = el('span', 'rte-alt-prompt-label');
+        label.textContent = 'Alt text (optional)';
+        const input = el('input', 'rte-alt-prompt-input', { type: 'text', placeholder: 'Describe this image…', 'aria-label': 'Alt text' });
+        input.value = currentAlt || '';
+        const saveBtn = el('button', 'rte-alt-prompt-btn', { type: 'button' });
+        saveBtn.textContent = 'Save';
+
+        popover.append(label, input, saveBtn);
+        document.body.appendChild(popover);
+        placePopup(popover, { left: coords.left, top: coords.top, bottom: coords.bottom });
+
+        // mousedown, not click: fires before the outside-click listener
+        // below would otherwise close the popover (and clear currentPos)
+        // first.
+        saveBtn.addEventListener('mousedown', function (event) {
+            event.preventDefault();
+            commit(input.value);
+        });
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                commit(input.value);
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                close(true);
+            }
+        });
+        input.focus();
+        input.select();
+
+        // Deferred registration: the very mousedown/click that OPENED
+        // this (a freshly-inserted image needs none, but the "Edit alt
+        // text" button does) would otherwise immediately count as "outside"
+        // and close it again in the same tick.
+        setTimeout(function () {
+            document.addEventListener('mousedown', onOutsideClick, true);
+        }, 0);
+    }
+
+    function onOutsideClick(event) {
+        if (popover && ! popover.contains(event.target)) {
+            document.removeEventListener('mousedown', onOutsideClick, true);
+            close();
+        }
+    }
+
+    return { open: open, close: close };
+}
+
+// The small contextual control that makes an alt text EDITABLE after the
+// fact (task #4, alt text), not just settable once at upload time: shown
+// near an already-embedded image whenever it becomes the editor's current
+// selection (wired into onSelectionUpdate in createRichTextEditor,
+// alongside the resize handles TipTap's own ResizableNodeView already
+// draws for that same selected image), hidden the instant selection
+// moves elsewhere. Clicking it reopens buildAltTextPrompt() pre-filled
+// with the image's current alt attribute.
+function buildAltTextEditButton(editor, altPrompt) {
+    const button = el('button', 'rte-alt-edit-btn', { type: 'button', title: 'Edit alt text', 'aria-label': 'Edit alt text' });
+    button.textContent = 'Alt text';
+    button.hidden = true;
+    document.body.appendChild(button);
+
+    button.addEventListener('mousedown', function (event) {
+        event.preventDefault();
+        const selection = editor.state.selection;
+        if (selection.node && selection.node.type.name === 'image') {
+            altPrompt.open(selection.from, selection.node.attrs.alt || '');
+        }
+    });
+
+    function refresh() {
+        const selection = editor.state.selection;
+        const isImage = !! (selection.node && selection.node.type.name === 'image');
+        button.hidden = ! isImage;
+        if (! isImage) return;
+
+        const coords = editor.view.coordsAtPos(selection.from);
+        placePopup(button, { left: coords.left, top: coords.top, bottom: coords.bottom });
+    }
+
+    return { element: button, refresh: refresh };
+}
+
 // Image upload. Where the file goes, and under whose permission, is read
 // from `root.dataset` fresh on every click rather than fixed at editor
 // construction — the Add Task page's editor has to send whichever project
@@ -320,7 +479,7 @@ function buildLinkBar(editor, linkPreview) {
 // An editor root with neither pair set has no image support wired up (not
 // expected for anything in this app today, but the module doesn't assume
 // it) — the toolbar button is hidden rather than a dead click.
-function buildImageUpload(editor, root, onBusyChange) {
+function buildImageUpload(editor, root, onBusyChange, altPrompt) {
     const input = el('input', 'rte-image-input', { type: 'file', accept: 'image/*', tabindex: '-1', 'aria-hidden': 'true' });
 
     const status = el('div', 'rte-upload-status');
@@ -368,9 +527,9 @@ function buildImageUpload(editor, root, onBusyChange) {
     // (PastedMediaNamer), never counted here.
     let pastedCount = 0;
 
-    function upload(file, extraFields) {
+    function upload(file, extraFields, fallbackAlt) {
         const destination = target();
-        if (! destination) return;
+        if (! destination) return Promise.resolve({ ok: false });
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const body = new FormData();
@@ -386,10 +545,11 @@ function buildImageUpload(editor, root, onBusyChange) {
         // caller) can wait for one to fully finish — including this
         // .finally() clearing busy — before starting the next, rather
         // than firing every upload at once and racing setBusy()/setStatus
-        // against each other. Resolves whether the upload succeeded or
-        // failed (the .catch() below only shows the error, it doesn't
-        // rethrow) — a batch keeps going past one failed file instead of
-        // aborting the rest.
+        // against each other. Resolves to { ok, message } either way (the
+        // .catch() below only shows the error, it doesn't rethrow) — a
+        // batch keeps going past one failed file instead of aborting the
+        // rest, and the caller can still tell success from failure to
+        // report per-file in its own queue UI.
         return fetch(destination.url, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
@@ -403,7 +563,13 @@ function buildImageUpload(editor, root, onBusyChange) {
                 });
             })
             .then(function (data) {
-                editor.chain().focus().setImage({ src: data.url }).run();
+                // No original filename to fall back to for a pasted
+                // image (uploadPasted() never passes fallbackAlt) — the
+                // server-resolved/auto-generated name is still reflected
+                // in the storage URL's own basename either way (task #4,
+                // alt text).
+                const alt = fallbackAlt || basenameNoExtension(data.url);
+                editor.chain().focus().setImage({ src: data.url, alt: alt }).run();
                 // setImage() leaves the selection AS a NodeSelection on
                 // the block image it just inserted, not past it — found
                 // the hard way (task #4, drag-and-drop multi-file): a
@@ -417,11 +583,25 @@ function buildImageUpload(editor, root, onBusyChange) {
                 // block image for exactly this "the cursor can leave it"
                 // reason — is what makes each new upload land as its own
                 // separate embed instead.
+                const insertedAt = editor.state.selection.to - 1;
                 editor.commands.setTextSelection(editor.state.selection.to);
                 setStatus('', false);
+                // task #4, alt text — a low-friction, skippable prompt
+                // right after insertion, not a blocking step in the
+                // upload itself: the image is already fully uploaded and
+                // embedded by this point regardless of what happens next
+                // here. altPrompt is undefined for any editor that never
+                // built one (there is only ever one per editor instance,
+                // shared across all three entry points — see
+                // createRichTextEditor).
+                if (altPrompt) altPrompt.open(insertedAt, alt);
+
+                return { ok: true };
             })
             .catch(function (error) {
                 setStatus(error.message, true);
+
+                return { ok: false, message: error.message };
             })
             .finally(function () {
                 setBusy(false);
@@ -433,7 +613,8 @@ function buildImageUpload(editor, root, onBusyChange) {
         const file = input.files[0];
         // A picker selection always has its own real filename — never
         // routed through the auto-naming scheme, so no extraFields here.
-        if (file) upload(file);
+        // Its name IS the alt-text fallback, though (task #4, alt text).
+        if (file) upload(file, undefined, file.name);
     });
 
     return {
@@ -451,27 +632,34 @@ function buildImageUpload(editor, root, onBusyChange) {
         // name atomically (PastedMediaNamer); the Add Task page has
         // nothing yet to atomically count against and no concurrent-paste
         // risk, so it builds the whole name here instead, incrementing
-        // its own local, composition-session-only counter.
+        // its own local, composition-session-only counter. No fallbackAlt
+        // passed either way — there's no original filename to use, so
+        // upload()'s own basenameNoExtension(data.url) fallback applies.
         uploadPasted: function (file) {
-            if (busy) return;
+            if (busy) return Promise.resolve({ ok: false });
 
             if (root.dataset.imageTaskId) {
-                upload(file, { pasted: '1', title: currentTaskTitle() });
+                return upload(file, { pasted: '1', title: currentTaskTitle() });
             } else if (root.dataset.imagePendingId) {
                 pastedCount += 1;
                 const filename = slugifyTaskTitle(currentTaskTitle()) + '-image-' + pastedCount;
-                upload(file, { filename: filename });
+
+                return upload(file, { filename: filename });
             }
+
+            return Promise.resolve({ ok: false });
         },
         // Drag-and-drop (task #4, drag-and-drop upload) — unlike a
         // clipboard paste, a file dropped from a file explorer/desktop
         // always has a real filename of its own, so this is really just
         // trigger()'s own upload(file) with no extraFields, the exact
         // same call the picker's input 'change' listener above makes —
-        // uploadPasted()'s auto-naming never applies here.
+        // uploadPasted()'s auto-naming never applies here, and its name
+        // is the alt-text fallback too, same as a picker selection's.
         uploadDropped: function (file) {
-            if (busy) return Promise.resolve();
-            return upload(file);
+            if (busy) return Promise.resolve({ ok: false });
+
+            return upload(file, undefined, file.name);
         },
     };
 }
@@ -526,7 +714,7 @@ function buildAudioUpload(editor, root, onBusyChange) {
 
     function upload(file) {
         const destination = target();
-        if (! destination) return;
+        if (! destination) return Promise.resolve({ ok: false });
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const body = new FormData();
@@ -536,7 +724,10 @@ function buildAudioUpload(editor, root, onBusyChange) {
         setBusy(true);
         setStatus('Uploading audio…', false);
 
-        fetch(destination.url, {
+        // Returned, resolving to { ok, message } either way — see
+        // buildImageUpload()'s identical upload() for the full reasoning
+        // (task #4, drag-and-drop upload).
+        return fetch(destination.url, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
             body: body,
@@ -550,10 +741,17 @@ function buildAudioUpload(editor, root, onBusyChange) {
             })
             .then(function (data) {
                 editor.chain().focus().setAudio({ src: data.url }).run();
+                // See buildImageUpload()'s identical line — setAudio()
+                // leaves the same kind of NodeSelection setImage() does.
+                editor.commands.setTextSelection(editor.state.selection.to);
                 setStatus('', false);
+
+                return { ok: true };
             })
             .catch(function (error) {
                 setStatus(error.message, true);
+
+                return { ok: false, message: error.message };
             })
             .finally(function () {
                 setBusy(false);
@@ -574,6 +772,15 @@ function buildAudioUpload(editor, root, onBusyChange) {
         trigger: function () {
             if (busy || ! target()) return;
             input.click();
+        },
+        // Drag-and-drop (task #4, drag-and-drop upload) — a dropped file
+        // always has its own real filename already; audio has no
+        // separate "display name" concept to preserve either way (same
+        // as video), so this is just upload(file) with nothing else to do.
+        uploadDropped: function (file) {
+            if (busy) return Promise.resolve({ ok: false });
+
+            return upload(file);
         },
     };
 }
@@ -635,7 +842,7 @@ function buildVideoUpload(editor, root, onBusyChange) {
 
     function upload(file, extraFields) {
         const destination = target();
-        if (! destination) return;
+        if (! destination) return Promise.resolve({ ok: false });
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const body = new FormData();
@@ -668,6 +875,7 @@ function buildVideoUpload(editor, root, onBusyChange) {
         return new Promise(function (resolve) {
             xhr.addEventListener('load', function () {
                 const data = xhr.response;
+                let outcome;
 
                 if (xhr.status >= 200 && xhr.status < 300 && data) {
                     editor.chain().focus().setVideo({ src: data.url }).run();
@@ -676,20 +884,23 @@ function buildVideoUpload(editor, root, onBusyChange) {
                     // setImage() does.
                     editor.commands.setTextSelection(editor.state.selection.to);
                     setStatus('', false);
+                    outcome = { ok: true };
                 } else {
-                    setStatus((data && data.message) || 'Failed to upload video.', true);
+                    const message = (data && data.message) || 'Failed to upload video.';
+                    setStatus(message, true);
+                    outcome = { ok: false, message: message };
                 }
 
                 setBusy(false);
                 input.value = '';
-                resolve();
+                resolve(outcome);
             });
 
             xhr.addEventListener('error', function () {
                 setStatus('Failed to upload video.', true);
                 setBusy(false);
                 input.value = '';
-                resolve();
+                resolve({ ok: false, message: 'Failed to upload video.' });
             });
 
             xhr.send(body);
@@ -721,22 +932,26 @@ function buildVideoUpload(editor, root, onBusyChange) {
         // know or care which kind of video data got through, only that
         // the browser handed it a File/Blob with a video/* type.
         uploadPasted: function (file) {
-            if (busy) return;
+            if (busy) return Promise.resolve({ ok: false });
 
             if (root.dataset.videoTaskId) {
-                upload(file, { pasted: '1', title: currentTaskTitle() });
+                return upload(file, { pasted: '1', title: currentTaskTitle() });
             } else if (root.dataset.videoPendingId) {
                 pastedCount += 1;
                 const filename = slugifyTaskTitle(currentTaskTitle()) + '-video-' + pastedCount;
-                upload(file, { filename: filename });
+
+                return upload(file, { filename: filename });
             }
+
+            return Promise.resolve({ ok: false });
         },
         // Drag-and-drop (task #4, drag-and-drop upload) — see
         // buildImageUpload()'s identical method for the full reasoning: a
         // dropped file always has a real filename of its own, so this is
         // just upload(file) with no extraFields, same as the picker path.
         uploadDropped: function (file) {
-            if (busy) return Promise.resolve();
+            if (busy) return Promise.resolve({ ok: false });
+
             return upload(file);
         },
     };
@@ -805,7 +1020,7 @@ function buildDocumentUpload(editor, root, onBusyChange) {
 
     function upload(file) {
         const destination = target();
-        if (! destination) return;
+        if (! destination) return Promise.resolve({ ok: false });
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const body = new FormData();
@@ -815,7 +1030,10 @@ function buildDocumentUpload(editor, root, onBusyChange) {
         setBusy(true);
         setStatus('Uploading document…', false);
 
-        fetch(destination.url, {
+        // Returned, resolving to { ok, message } either way — see
+        // buildImageUpload()'s identical upload() for the full reasoning
+        // (task #4, drag-and-drop upload).
+        return fetch(destination.url, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
             body: body,
@@ -829,10 +1047,19 @@ function buildDocumentUpload(editor, root, onBusyChange) {
             })
             .then(function (data) {
                 editor.chain().focus().setFileChip({ href: data.url, name: data.name }).run();
+                // See buildImageUpload()'s identical line — an inline
+                // atom node can leave the same kind of NodeSelection a
+                // block one does, and a multi-file drop needs each
+                // dropped document to land after the previous one too.
+                editor.commands.setTextSelection(editor.state.selection.to);
                 setStatus('', false);
+
+                return { ok: true };
             })
             .catch(function (error) {
                 setStatus(error.message, true);
+
+                return { ok: false, message: error.message };
             })
             .finally(function () {
                 setBusy(false);
@@ -853,6 +1080,17 @@ function buildDocumentUpload(editor, root, onBusyChange) {
         trigger: function () {
             if (busy || ! target()) return;
             input.click();
+        },
+        // Drag-and-drop (task #4, drag-and-drop upload) — a document's
+        // real filename is already server-resolved (RichTextDocumentController
+        // returns `name` from the upload itself, per the file's own
+        // getClientOriginalName()) regardless of entry point, so there's
+        // nothing extra to pass here — just upload(file), same as the
+        // picker path.
+        uploadDropped: function (file) {
+            if (busy) return Promise.resolve({ ok: false });
+
+            return upload(file);
         },
     };
 }
@@ -913,63 +1151,223 @@ function buildClipboardMediaPaste(imageUpload, videoUpload) {
     return { handlePaste: handlePaste };
 }
 
-// Drag-and-drop of an image or video file (task #4, drag-and-drop upload)
-// — a file dragged in from a file explorer/desktop and dropped onto the
-// editor. Handled the same way clipboard paste is: detect image/video
-// file data on the browser event, hand it to imageUpload/videoUpload's
-// own upload pipeline (SAME validation, SAME endpoint, SAME inline
-// embedding, SAME Add Task pending-path reconciliation as a picker
-// selection), and prevent the browser's own default drop behavior —
-// which, left unhandled, navigates the whole tab to the dropped file
-// instead of doing anything with the editor at all.
+// The small per-file status list shown while a multi-file drop is
+// uploading (task #4, drag-and-drop upload) — which files are still
+// queued, which are uploading right now, which finished, and which
+// failed and why. A single-file drop still uses this (a list of one),
+// rather than a special case, so there's only ever one status surface
+// for a drop, distinct from each category's own single-line
+// `.rte-upload-status` (still used for the picker/paste paths, which
+// only ever upload one file at a time and so never needed a list).
+function buildDropQueue() {
+    const panel = el('div', 'rte-drop-queue', { role: 'status', 'aria-live': 'polite' });
+    panel.hidden = true;
+
+    let items = [];
+    let clearTimer = null;
+
+    function labelFor(item) {
+        if (item.status === 'pending') return 'Waiting…';
+        if (item.status === 'uploading') return 'Uploading…';
+        if (item.status === 'done') return 'Done';
+
+        return 'Failed: ' + (item.message || 'unknown error');
+    }
+
+    function render() {
+        panel.textContent = '';
+        if (items.length === 0) {
+            panel.hidden = true;
+            return;
+        }
+
+        panel.hidden = false;
+        items.forEach(function (item) {
+            const row = el('div', 'rte-drop-queue-item rte-drop-queue-item--' + item.status);
+            const name = el('span', 'rte-drop-queue-name');
+            name.textContent = item.name;
+            const status = el('span', 'rte-drop-queue-status');
+            status.textContent = labelFor(item);
+            row.append(name, status);
+            panel.appendChild(row);
+        });
+    }
+
+    function start(files) {
+        if (clearTimer) {
+            clearTimeout(clearTimer);
+            clearTimer = null;
+        }
+        items = files.map(function (file) { return { name: file.name, status: 'pending' }; });
+        render();
+    }
+
+    function setStatus(index, status, message) {
+        if (! items[index]) return;
+        items[index].status = status;
+        items[index].message = message;
+        render();
+    }
+
+    // Left showing "Done"/"Failed: ..." for a few seconds once the whole
+    // batch finishes — long enough to actually read a failure's reason —
+    // then cleared, rather than lingering on screen forever after every
+    // future drop's own queue has long since finished.
+    function finish() {
+        clearTimer = setTimeout(function () {
+            items = [];
+            render();
+        }, 5000);
+    }
+
+    return { element: panel, start: start, setStatus: setStatus, finish: finish };
+}
+
+// Drag-and-drop of a file (task #4, drag-and-drop upload) — a file
+// dragged in from a file explorer/desktop and dropped onto the editor.
+// Handled the same way clipboard paste is: detect file data on the
+// browser event, hand it to the matching category's own upload pipeline
+// (SAME validation, SAME endpoint, SAME inline embedding, SAME Add Task
+// pending-path reconciliation as a picker selection), and prevent the
+// browser's own default drop behavior — which, left unhandled, navigates
+// the whole tab to the dropped file instead of doing anything with the
+// editor at all. All four categories (image/video/audio/document) are
+// covered here, routed to the matching uploader by MIME type — a
+// document has no single wildcard MIME type of its own the way the other
+// three do (see buildDocumentUpload()'s own comment), so anything that
+// isn't image/video/audio falls to it BY ELIMINATION, and the server's
+// own FileCategory::Document allow-list is what actually decides — a
+// truly unsupported file (a .zip, say) still gets a real, specific
+// rejection reason instead of being silently ignored client-side.
 //
 // Unlike a clipboard paste, a dropped file always has a real filename of
 // its own (it came from somewhere on disk), so this goes through
 // uploadPasted()'s sibling uploadDropped() instead — no auto-naming, the
 // file keeps its own name exactly like the picker button's selection
-// does. Also unlike paste, there's no "must be alone on an empty line"
-// restriction to check: a drop lands whichever inline/block shape the
-// upload produces regardless of surrounding text, exactly like clicking
-// the picker button with the cursor in the middle of a sentence already
-// does today.
+// does (and, for an image, is the alt-text fallback too — see
+// buildImageUpload()). Also unlike paste, there's no "must be alone on
+// an empty line" restriction to check: a drop lands whichever
+// inline/block shape the upload produces regardless of surrounding text,
+// exactly like clicking a picker button with the cursor mid-sentence
+// already does today.
 //
-// Every relevant file on the drop is uploaded, not just the first — a
-// drag from a file explorer routinely carries a multi-selection. They're
-// uploaded ONE AT A TIME, in drop order, each fully finishing (including
-// its own embed insert) before the next starts, rather than firing every
-// upload at once: uploadDropped()/upload() share one `busy` flag and one
-// status message per media type, so truly concurrent uploads of the same
-// type would race each other's status text and clobber the "no double
+// EVERY file on the drop is attempted, not just the first — a drag from
+// a file explorer routinely carries a multi-selection. They're uploaded
+// ONE AT A TIME, in drop order, each fully finishing (including its own
+// embed insert) before the next starts, rather than firing every upload
+// at once: uploadDropped()/upload() share one `busy` flag and one status
+// message per category, so truly concurrent uploads of the same category
+// would race each other's status text and clobber the "no double
 // upload" busy guard; sequencing also keeps embeds landing in the same
 // left-to-right order the files were dropped in, rather than whichever
-// request happens to come back from the server first.
-function buildDragDropMedia(editor, imageUpload, videoUpload) {
-    function isRelevant(file) {
-        return file.type.indexOf('image/') === 0 || file.type.indexOf('video/') === 0;
+// request happens to come back from the server first. One file failing
+// validation never stops the rest — upload()'s own promise always
+// resolves, success or failure (see its own comment) — each file's own
+// outcome is reported by name in the queue panel above regardless.
+function buildDragDropUpload(editor, root, uploaders, dropQueue) {
+    function categoryFor(file) {
+        if (file.type.indexOf('image/') === 0) return 'image';
+        if (file.type.indexOf('video/') === 0) return 'video';
+        if (file.type.indexOf('audio/') === 0) return 'audio';
+
+        return 'document';
     }
 
-    function uploadOne(file) {
-        const isImage = file.type.indexOf('image/') === 0;
-        const uploader = isImage ? imageUpload : videoUpload;
-        if (! uploader.isWired()) return Promise.resolve();
+    // dragenter/dragleave fire once per DOM element the pointer crosses
+    // while dragging, including every child inside the editor — entering
+    // a child fires enter-on-child, and leaving it back into the parent
+    // fires leave-on-parent even though the drag never actually left the
+    // editor as a whole. A counter (rather than a boolean) is what keeps
+    // the visual indicator showing continuously across those nested
+    // enter/leave pairs, only actually clearing it once the count returns
+    // to zero — the drag has genuinely left the whole editor, or been
+    // dropped/cancelled.
+    let dragCounter = 0;
 
-        return uploader.uploadDropped(file);
+    // The browser only exposes WHICH KINDS of data are on the clipboard
+    // during dragenter/dragover — the payload/count/files themselves are
+    // locked until drop, deliberately, so a page can't read dragged file
+    // names before the user commits to dropping. "Files" in `types` is
+    // enough to know a real OS file (not dragged text, not an internal
+    // editor drag reordering something) is what's being hovered.
+    function isFileDrag(event) {
+        const types = event.dataTransfer && event.dataTransfer.types;
+
+        return !! (types && Array.prototype.indexOf.call(types, 'Files') !== -1);
+    }
+
+    function showDropIndicator() {
+        root.classList.add('rte-drop-active');
+    }
+
+    function hideDropIndicator() {
+        root.classList.remove('rte-drop-active');
+    }
+
+    function handleDragEnter(view, event) {
+        if (! isFileDrag(event)) return false;
+        dragCounter += 1;
+        showDropIndicator();
+
+        return false;
+    }
+
+    function handleDragOver(event) {
+        if (! isFileDrag(event)) return false;
+        // Without this, some browsers show the "no drop allowed" cursor
+        // for a plain (non-editable-aware) drop target — contenteditable
+        // areas already accept a drop by default, but this keeps the
+        // "copy" cursor showing consistently for the whole hover, not
+        // just the initial dragenter.
+        event.preventDefault();
+
+        return false;
+    }
+
+    function handleDragLeave(event) {
+        if (! isFileDrag(event)) return false;
+        dragCounter = Math.max(0, dragCounter - 1);
+        if (dragCounter === 0) hideDropIndicator();
+
+        return false;
     }
 
     // Recurses rather than a for-loop over promises, so each file's
-    // upload() call (and the busy/status state it sets) only happens once
-    // the previous one has fully settled — see the doc comment above.
+    // upload() call (and the busy/status state, and this queue entry) only
+    // updates once the previous one has fully settled — see the doc
+    // comment above.
     function uploadAll(files, index) {
-        if (index >= files.length) return;
+        if (index >= files.length) {
+            dropQueue.finish();
 
-        uploadOne(files[index]).then(function () { uploadAll(files, index + 1); });
+            return;
+        }
+
+        const file = files[index];
+        const uploader = uploaders[categoryFor(file)];
+
+        if (! uploader.isWired()) {
+            dropQueue.setStatus(index, 'failed', categoryFor(file) + ' uploads aren’t available here');
+            uploadAll(files, index + 1);
+
+            return;
+        }
+
+        dropQueue.setStatus(index, 'uploading');
+        uploader.uploadDropped(file).then(function (outcome) {
+            dropQueue.setStatus(index, outcome && outcome.ok ? 'done' : 'failed', outcome && outcome.message);
+            uploadAll(files, index + 1);
+        });
     }
 
     function handleDrop(view, event) {
-        const files = Array.prototype.filter.call((event.dataTransfer && event.dataTransfer.files) || [], isRelevant);
+        const files = Array.prototype.slice.call((event.dataTransfer && event.dataTransfer.files) || []);
         if (files.length === 0) return false;
 
         event.preventDefault();
+        dragCounter = 0;
+        hideDropIndicator();
+
         // Moves the cursor to where the file(s) were actually dropped
         // before uploading — upload()'s own insertContent always targets
         // the CURRENT selection, which would otherwise still be wherever
@@ -981,12 +1379,18 @@ function buildDragDropMedia(editor, imageUpload, videoUpload) {
         const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
         if (pos) editor.chain().focus().setTextSelection(pos.pos).run();
 
+        dropQueue.start(files);
         uploadAll(files, 0);
 
         return true;
     }
 
-    return { handleDrop: handleDrop };
+    return {
+        handleDrop: handleDrop,
+        handleDragEnter: handleDragEnter,
+        handleDragOver: handleDragOver,
+        handleDragLeave: handleDragLeave,
+    };
 }
 
 // Smart Links (task #4) — resolves a bare URL to a compact inline chip
@@ -1805,6 +2209,11 @@ export function createRichTextEditor(root) {
     const content = el('div', 'rte-content');
     content.dataset.placeholder = root.dataset.placeholder || '';
 
+    // task #4, drag-and-drop upload — needs no editor/uploaders yet, only
+    // built here so its element exists in time for the root.prepend(...)
+    // call further down.
+    const dropQueue = buildDropQueue();
+
     let mentions = null;
     let toolbar = null;
     let linkBar = null;
@@ -1815,6 +2224,8 @@ export function createRichTextEditor(root) {
     let linkPreview = null;
     let clipboardMediaPaste = null;
     let dragDropMedia = null;
+    let altPrompt = null;
+    let altEditButton = null;
     // Description's own autosave-on-blur (task #4, description autosave)
     // is the only current caller of onSettledBlur() below — a single
     // callback slot is enough, no consumer needs more than one.
@@ -1968,6 +2379,24 @@ export function createRichTextEditor(root) {
             handleDrop: function (view, event) {
                 return dragDropMedia ? dragDropMedia.handleDrop(view, event) : false;
             },
+            // The visual "you can drop here" indicator (task #4,
+            // drag-and-drop upload) — handleDOMEvents rather than
+            // handleDrop-style handlers, since these three only ever
+            // toggle a CSS class and never decide whether the editor
+            // "handles" the event; returning false always lets
+            // ProseMirror's own dragenter/dragover/dragleave behavior
+            // (e.g. positioning its drop-cursor decoration) run too.
+            handleDOMEvents: {
+                dragenter: function (view, event) {
+                    return dragDropMedia ? dragDropMedia.handleDragEnter(view, event) : false;
+                },
+                dragover: function (view, event) {
+                    return dragDropMedia ? dragDropMedia.handleDragOver(event) : false;
+                },
+                dragleave: function (view, event) {
+                    return dragDropMedia ? dragDropMedia.handleDragLeave(event) : false;
+                },
+            },
         },
         onUpdate: function () {
             syncInput();
@@ -1977,17 +2406,12 @@ export function createRichTextEditor(root) {
         onSelectionUpdate: function () {
             if (mentions) mentions.refresh();
             if (toolbar) toolbar.refresh();
+            if (altEditButton) altEditButton.refresh();
         },
         onBlur: function () {
             // Delayed so a mousedown-picked option still runs first.
             if (mentions) setTimeout(mentions.close, 150);
-            // Same delay for the same reason — see isBlurSettled()'s own
-            // doc comment for what "settled" actually checks.
-            if (settledBlurCallback) {
-                setTimeout(function () {
-                    if (isBlurSettled() && ! anyUploadBusy()) settledBlurCallback();
-                }, 150);
-            }
+            checkSettledBlur();
         },
     });
 
@@ -2013,20 +2437,60 @@ export function createRichTextEditor(root) {
         const active = document.activeElement;
         if (! active || active === document.body) return true;
         if (root.contains(active)) return false;
-        if (active.closest && active.closest('.rte-emoji-picker')) return false;
+        // Portaled to document.body, same reason the emoji picker is (see
+        // its own doc comment) — not real descendants of `root`, so
+        // root.contains() alone can't see them. Without this, clicking
+        // the "Edit alt text" button, or typing into its popover's input
+        // (task #4, alt text), would itself count as "genuinely left the
+        // editor" and fire an autosave mid-edit.
+        if (active.closest && active.closest('.rte-emoji-picker, .rte-alt-edit-btn, .rte-alt-prompt')) return false;
 
         return true;
     }
+
+    // TipTap's own onBlur (wired above) only fires when the ProseMirror
+    // contenteditable ITSELF loses DOM focus — a one-shot event, not a
+    // continuously-checked state. That's a gap once focus has already
+    // moved into a PORTALED piece of this editor (the alt-text popover,
+    // the emoji picker) — see isBlurSettled()'s own list: from there,
+    // moving focus again straight to some completely unrelated field
+    // (clicking directly from the alt-text input into the Title field,
+    // say) never re-fires a blur on the contenteditable, since it wasn't
+    // the focused element to begin with at that point — so the settle
+    // check this function runs would otherwise never get another chance
+    // to run at all (task #4, alt text — found reproducing the "edit alt
+    // text, then click elsewhere" flow). A document-level focusout
+    // listener (registered once below) calls this on EVERY focus change
+    // anywhere on the page, cheap enough to not matter, and is what
+    // actually catches that transition too.
+    function checkSettledBlur() {
+        if (! settledBlurCallback && ! altEditButton) return;
+
+        setTimeout(function () {
+            if (! isBlurSettled()) return;
+            if (altEditButton) altEditButton.element.hidden = true;
+            if (settledBlurCallback && ! anyUploadBusy()) settledBlurCallback();
+        }, 150);
+    }
+
+    function onDocumentFocusOut() {
+        checkSettledBlur();
+    }
+    document.addEventListener('focusout', onDocumentFocusOut, true);
 
     function anyUploadBusy() {
         return imageUpload.isBusy() || audioUpload.isBusy() || videoUpload.isBusy() || documentUpload.isBusy();
     }
 
     const emojiPicker = buildEmojiPicker(editor);
+    // task #4, alt text — built before imageUpload, which needs altPrompt
+    // to exist already (see its own upload()).
+    altPrompt = buildAltTextPrompt(editor);
+    altEditButton = buildAltTextEditButton(editor, altPrompt);
     imageUpload = buildImageUpload(editor, root, function (busy) {
         const button = toolbar.button('image');
         if (button) button.disabled = busy;
-    });
+    }, altPrompt);
     audioUpload = buildAudioUpload(editor, root, function (busy) {
         const button = toolbar.button('audio');
         if (button) button.disabled = busy;
@@ -2049,8 +2513,14 @@ export function createRichTextEditor(root) {
     // than alongside linkPreview.
     clipboardMediaPaste = buildClipboardMediaPaste(imageUpload, videoUpload);
     // task #4, drag-and-drop upload — same reason, built right alongside
-    // its paste-detection sibling.
-    dragDropMedia = buildDragDropMedia(editor, imageUpload, videoUpload);
+    // its paste-detection sibling. Covers all four upload categories,
+    // unlike clipboard paste (image/video only) — see its own doc comment.
+    dragDropMedia = buildDragDropUpload(editor, root, {
+        image: imageUpload,
+        video: videoUpload,
+        audio: audioUpload,
+        document: documentUpload,
+    }, dropQueue);
     toolbar = buildToolbar(editor, {
         link: function () { linkBar.open(); },
         emoji: function (button) { emojiPicker.toggle(button); },
@@ -2082,7 +2552,7 @@ export function createRichTextEditor(root) {
         if (documentButton) documentButton.hidden = true;
     }
 
-    root.prepend(toolbar.element, linkBar.element, imageUpload.element, imageUpload.input, audioUpload.element, audioUpload.input, videoUpload.element, videoUpload.input, documentUpload.element, documentUpload.input);
+    root.prepend(toolbar.element, linkBar.element, imageUpload.element, imageUpload.input, audioUpload.element, audioUpload.input, videoUpload.element, videoUpload.input, documentUpload.element, documentUpload.input, dropQueue.element);
     root.appendChild(content);
 
     const form = root.closest('form');
@@ -2113,6 +2583,14 @@ export function createRichTextEditor(root) {
         destroy: function () {
             if (mentions) mentions.close();
             emojiPicker.close();
+            // Both are appended straight to document.body (task #4, alt
+            // text) — like the mention/emoji dropdowns and the emoji
+            // picker panel, they need their own explicit teardown or an
+            // editor.destroy() (a comment's own Cancel, or the comment
+            // row itself being removed) leaves them orphaned there.
+            altPrompt.close();
+            altEditButton.element.remove();
+            document.removeEventListener('focusout', onDocumentFocusOut, true);
             editor.destroy();
         },
     };
