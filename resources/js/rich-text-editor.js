@@ -100,6 +100,39 @@ function normalizeHref(raw) {
     return 'https://' + value;
 }
 
+// task #4, clipboard paste — the {task-title-slug} half of a pasted
+// image/video's auto-generated {task-title-slug}-{image|video}-{n} name.
+// Mirrored EXACTLY by PastedMediaNamer::slugifyTitle() in PHP: spaces
+// become hyphens first, then everything else non-alphanumeric is
+// stripped outright (not turned into a hyphen), runs of hyphens collapse
+// to one, and the result is capped at 40 characters. Which one runs is
+// purely a matter of whether a task_id exists yet (this one only ever
+// runs for the Add Task page's client-side numbering) — never a
+// user-visible distinction, so the two must never drift apart.
+function slugifyTaskTitle(title) {
+    let slug = (title || '').trim().toLowerCase();
+    slug = slug.replace(/ /g, '-');
+    slug = slug.replace(/[^a-z0-9-]/g, '');
+    slug = slug.replace(/-+/g, '-');
+    slug = slug.replace(/^-+|-+$/g, '');
+    slug = slug.slice(0, 40);
+    slug = slug.replace(/^-+|-+$/g, '');
+
+    return slug === '' ? 'untitled-task' : slug;
+}
+
+// The Title field's CURRENT value at the moment of paste — read fresh
+// each time, not cached, since it can change between pastes (and the
+// spec is explicit that a filename is fixed at paste time, never
+// retroactively renamed if the title changes afterward). Both the Add
+// Task page (create.blade.php) and the Edit Task page (edit.blade.php)
+// give their Title input this same id.
+function currentTaskTitle() {
+    const input = document.getElementById('title');
+
+    return input ? input.value : '';
+}
+
 // `handlers` are the toolbar items with no single ProseMirror command of
 // their own — they open other UI instead: { link, emoji, image, audio,
 // video, document }.
@@ -328,7 +361,14 @@ function buildImageUpload(editor, root, onBusyChange) {
         if (onBusyChange) onBusyChange(next);
     }
 
-    function upload(file) {
+    // task #4, clipboard paste — Add Task's own session-scoped counter
+    // (see slugifyTaskTitle()'s doc comment): only ever read/incremented
+    // by uploadPasted() below, and only for the pending (no task_id yet)
+    // case — an existing task's numbering is resolved server-side instead
+    // (PastedMediaNamer), never counted here.
+    let pastedCount = 0;
+
+    function upload(file, extraFields) {
         const destination = target();
         if (! destination) return;
 
@@ -336,6 +376,7 @@ function buildImageUpload(editor, root, onBusyChange) {
         const body = new FormData();
         body.append('file', file);
         Object.keys(destination.fields).forEach(function (key) { body.append(key, destination.fields[key]); });
+        if (extraFields) Object.keys(extraFields).forEach(function (key) { body.append(key, extraFields[key]); });
 
         setBusy(true);
         setStatus('Uploading image…', false);
@@ -367,6 +408,8 @@ function buildImageUpload(editor, root, onBusyChange) {
 
     input.addEventListener('change', function () {
         const file = input.files[0];
+        // A picker selection always has its own real filename — never
+        // routed through the auto-naming scheme, so no extraFields here.
         if (file) upload(file);
     });
 
@@ -378,6 +421,24 @@ function buildImageUpload(editor, root, onBusyChange) {
         trigger: function () {
             if (busy || ! target()) return;
             input.click();
+        },
+        // task #4, clipboard paste — a file with no original filename of
+        // its own (see buildClipboardMediaPaste()). An existing task
+        // sends `pasted`+`title` and lets the server resolve the real
+        // name atomically (PastedMediaNamer); the Add Task page has
+        // nothing yet to atomically count against and no concurrent-paste
+        // risk, so it builds the whole name here instead, incrementing
+        // its own local, composition-session-only counter.
+        uploadPasted: function (file) {
+            if (busy) return;
+
+            if (root.dataset.imageTaskId) {
+                upload(file, { pasted: '1', title: currentTaskTitle() });
+            } else if (root.dataset.imagePendingId) {
+                pastedCount += 1;
+                const filename = slugifyTaskTitle(currentTaskTitle()) + '-image-' + pastedCount;
+                upload(file, { filename: filename });
+            }
         },
     };
 }
@@ -533,7 +594,13 @@ function buildVideoUpload(editor, root, onBusyChange) {
         if (onBusyChange) onBusyChange(next);
     }
 
-    function upload(file) {
+    // task #4, clipboard paste — see buildImageUpload()'s identical
+    // counter for the full reasoning; a video paste's numbering is
+    // independent of an image paste's own (a separate counter here, and
+    // a separate file_type in pasted_media server-side).
+    let pastedCount = 0;
+
+    function upload(file, extraFields) {
         const destination = target();
         if (! destination) return;
 
@@ -541,6 +608,7 @@ function buildVideoUpload(editor, root, onBusyChange) {
         const body = new FormData();
         body.append('file', file);
         Object.keys(destination.fields).forEach(function (key) { body.append(key, destination.fields[key]); });
+        if (extraFields) Object.keys(extraFields).forEach(function (key) { body.append(key, extraFields[key]); });
 
         setBusy(true);
         setStatus('Uploading video… 0%', false);
@@ -581,6 +649,8 @@ function buildVideoUpload(editor, root, onBusyChange) {
 
     input.addEventListener('change', function () {
         const file = input.files[0];
+        // A picker selection always has its own real filename — never
+        // routed through the auto-naming scheme, so no extraFields here.
         if (file) upload(file);
     });
 
@@ -592,6 +662,25 @@ function buildVideoUpload(editor, root, onBusyChange) {
         trigger: function () {
             if (busy || ! target()) return;
             input.click();
+        },
+        // task #4, clipboard paste — see buildImageUpload()'s identical
+        // method for the full reasoning. A pasted VIDEO FILE (copied via
+        // file explorer/Finder) reaches this the same way a pasted image
+        // does; raw screen-recording-tool clipboard bytes are the known
+        // inconsistent-browser-support case buildClipboardMediaPaste()'s
+        // own doc comment covers — this method itself doesn't need to
+        // know or care which kind of video data got through, only that
+        // the browser handed it a File/Blob with a video/* type.
+        uploadPasted: function (file) {
+            if (busy) return;
+
+            if (root.dataset.videoTaskId) {
+                upload(file, { pasted: '1', title: currentTaskTitle() });
+            } else if (root.dataset.videoPendingId) {
+                pastedCount += 1;
+                const filename = slugifyTaskTitle(currentTaskTitle()) + '-video-' + pastedCount;
+                upload(file, { filename: filename });
+            }
         },
     };
 }
@@ -709,6 +798,62 @@ function buildDocumentUpload(editor, root, onBusyChange) {
             input.click();
         },
     };
+}
+
+// Clipboard paste of an image or video (task #4, clipboard paste) — a
+// screenshot copied via an OS screenshot tool, or a video FILE copied in
+// the file explorer/Finder, pasted directly into the editor. Treated
+// exactly like a picker selection from here on (imageUpload/videoUpload's
+// own uploadPasted() runs the SAME validation, SAME upload endpoint, SAME
+// inline embedding, SAME Add Task pending-path reconciliation as
+// trigger()'s file — this function's only job is detecting that a paste
+// carries image/video file data at all and picking which of the two to
+// hand it to), so it only changes HOW the file enters the editor and
+// WHAT it gets named (uploadPasted's own auto-naming), never anything
+// about storage, display, or permissions.
+//
+// Only the FIRST file on the clipboard is used — a paste normally carries
+// exactly one screenshot or one video file; multi-file paste support
+// isn't something any picker button here offers either.
+//
+// Raw video bytes copied directly from a screen-recording tool's own
+// clipboard buffer (as opposed to a video FILE copied in a file
+// explorer) have much weaker, inconsistent browser support for exposing
+// playable clipboard data at all — this deliberately doesn't try to
+// force that case: if the browser's clipboard API doesn't hand back a
+// File with a video/* type, event.clipboardData.files is simply empty
+// (or doesn't include it) and this returns false, falling through to
+// default paste handling exactly as if nothing relevant were on the
+// clipboard — no error, since nothing here can tell "unsupported" apart
+// from "there wasn't actually a video on the clipboard" and shouldn't
+// pretend otherwise.
+function buildClipboardMediaPaste(imageUpload, videoUpload) {
+    function handlePaste(view, event) {
+        const files = (event.clipboardData && event.clipboardData.files) || [];
+        if (files.length === 0) return false;
+
+        const file = files[0];
+        const isImage = file.type.indexOf('image/') === 0;
+        const isVideo = file.type.indexOf('video/') === 0;
+
+        if (isImage && imageUpload.isWired() && ! imageUpload.isBusy()) {
+            event.preventDefault();
+            imageUpload.uploadPasted(file);
+
+            return true;
+        }
+
+        if (isVideo && videoUpload.isWired() && ! videoUpload.isBusy()) {
+            event.preventDefault();
+            videoUpload.uploadPasted(file);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    return { handlePaste: handlePaste };
 }
 
 // Smart Links (task #4) — resolves a bare URL to a compact inline chip
@@ -1535,6 +1680,11 @@ export function createRichTextEditor(root) {
     let videoUpload = null;
     let documentUpload = null;
     let linkPreview = null;
+    let clipboardMediaPaste = null;
+    // Description's own autosave-on-blur (task #4, description autosave)
+    // is the only current caller of onSettledBlur() below — a single
+    // callback slot is enough, no consumer needs more than one.
+    let settledBlurCallback = null;
 
     // Trailing empty paragraphs (the editor keeps one after a final code
     // block, or after a block image, so the cursor can leave it) aren't
@@ -1655,13 +1805,22 @@ export function createRichTextEditor(root) {
 
                 return false;
             },
-            // linkPreview is only assigned once the editor itself exists
-            // (see below, same "declared here, assigned after
-            // construction" shape handleKeyDown's own mentions/toolbar
-            // references already use) — a paste before that split second
-            // just isn't intercepted, falling through to default paste
-            // handling, same as any editor instance never wired for it.
+            // clipboardMediaPaste/linkPreview are only assigned once the
+            // editor itself exists (see below, same "declared here,
+            // assigned after construction" shape handleKeyDown's own
+            // mentions/toolbar references already use) — a paste before
+            // that split second just isn't intercepted, falling through
+            // to default paste handling, same as any editor instance
+            // never wired for either. Clipboard media is checked FIRST:
+            // an image/video paste and a bare-URL paste are mutually
+            // exclusive by construction (a clipboard paste event carries
+            // either file data or text, never something meaningful as
+            // both), so the order only matters in that clipboardMediaPaste
+            // must get the chance to preventDefault() first when it does
+            // apply.
             handlePaste: function (view, event) {
+                if (clipboardMediaPaste && clipboardMediaPaste.handlePaste(view, event)) return true;
+
                 return linkPreview ? linkPreview.handlePaste(view, event) : false;
             },
         },
@@ -1677,8 +1836,46 @@ export function createRichTextEditor(root) {
         onBlur: function () {
             // Delayed so a mousedown-picked option still runs first.
             if (mentions) setTimeout(mentions.close, 150);
+            // Same delay for the same reason — see isBlurSettled()'s own
+            // doc comment for what "settled" actually checks.
+            if (settledBlurCallback) {
+                setTimeout(function () {
+                    if (isBlurSettled() && ! anyUploadBusy()) settledBlurCallback();
+                }, 150);
+            }
         },
     });
+
+    // The ProseMirror contenteditable losing DOM focus (TipTap's onBlur,
+    // above) fires constantly during totally ordinary editing — clicking
+    // a toolbar button, opening the link bar's own input, opening the
+    // emoji picker's search box are all, from the browser's point of
+    // view, "focus left the contenteditable" even though the user never
+    // left this editor widget at all. A consumer that wants to know when
+    // focus has genuinely left the WHOLE thing (onSettledBlur() below)
+    // needs this stronger check, not the bare onBlur event: the toolbar,
+    // link bar and upload inputs are all real descendants of `root` (see
+    // the root.prepend(...) call further down), so root.contains(...)
+    // covers those; the emoji picker's own popup is the one piece
+    // deliberately appended to document.body instead (so it can float
+    // above everything, same reason the @mention/emoji ":" suggestion
+    // dropdowns are too) — checked separately since root.contains() can't
+    // see it. The mention/emoji suggestion dropdowns don't need their own
+    // check: their options are picked via mousedown+preventDefault()
+    // specifically so clicking one never steals focus away from the
+    // editor in the first place.
+    function isBlurSettled() {
+        const active = document.activeElement;
+        if (! active || active === document.body) return true;
+        if (root.contains(active)) return false;
+        if (active.closest && active.closest('.rte-emoji-picker')) return false;
+
+        return true;
+    }
+
+    function anyUploadBusy() {
+        return imageUpload.isBusy() || audioUpload.isBusy() || videoUpload.isBusy() || documentUpload.isBusy();
+    }
 
     const emojiPicker = buildEmojiPicker(editor);
     imageUpload = buildImageUpload(editor, root, function (busy) {
@@ -1702,6 +1899,10 @@ export function createRichTextEditor(root) {
     // built last since editorProps.handlePaste above already needed the
     // editor to exist before this could be constructed.
     linkPreview = buildLinkPreview(editor, root);
+    // task #4, clipboard paste — needs imageUpload/videoUpload to already
+    // exist (built above), same reason this is built after them rather
+    // than alongside linkPreview.
+    clipboardMediaPaste = buildClipboardMediaPaste(imageUpload, videoUpload);
     toolbar = buildToolbar(editor, {
         link: function () { linkBar.open(); },
         emoji: function (button) { emojiPicker.toggle(button); },
@@ -1752,6 +1953,15 @@ export function createRichTextEditor(root) {
             if (mentions) mentions.reset();
         },
         getMentionedUserIds: function () { return mentions ? mentions.ids() : []; },
+        // task #4, description autosave — registers `callback` to run once
+        // focus has genuinely left this whole editor widget (not merely
+        // its bare contenteditable — see isBlurSettled() above), and no
+        // upload it owns is still in flight. Not called for every editor
+        // by default; only tasks/_description-field.blade.php's own
+        // inline script wires this up today, to auto-submit the Edit Task
+        // form — Comments' new/edit boxes keep their existing explicit
+        // Post/Save controls, untouched.
+        onSettledBlur: function (callback) { settledBlurCallback = callback; },
         destroy: function () {
             if (mentions) mentions.close();
             emojiPicker.close();

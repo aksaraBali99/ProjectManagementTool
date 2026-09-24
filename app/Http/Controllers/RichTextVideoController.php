@@ -8,6 +8,7 @@ use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\FileStorageService;
+use App\Services\PastedMediaNamer;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,15 @@ class RichTextVideoController extends Controller
         $data = $request->validate([
             'file' => ['required', 'file'],
             'context' => ['required', Rule::in(['description', 'comment'])],
+            // task #4, clipboard paste — see RichTextImageController
+            // ::store()'s identical fields for the full reasoning; a
+            // pasted VIDEO FILE (copied via file explorer/Finder) reaches
+            // this exactly the same way a pasted image does. Raw
+            // screen-recording-tool clipboard bytes are a genuine,
+            // inconsistent browser limitation this deliberately doesn't
+            // try to force — see rich-text-editor.js.
+            'pasted' => ['nullable', 'boolean'],
+            'title' => ['nullable', 'string', 'max:255'],
         ]);
 
         if ($data['context'] === 'description') {
@@ -47,6 +57,19 @@ class RichTextVideoController extends Controller
         } else {
             Gate::authorize('view', $task);
             Gate::authorize('create', Comment::class);
+        }
+
+        if ($data['pasted'] ?? false) {
+            // See RichTextImageController::store()'s identical branch —
+            // the naming and the actual upload happen INSIDE
+            // PastedMediaNamer's own transaction+lock, so a rejected file
+            // (oversized, disallowed type) never burns a number.
+            return $this->upload(fn (FileStorageService $service) => app(PastedMediaNamer::class)->withNextFilename(
+                $task,
+                FileCategory::Video,
+                $data['title'] ?? null,
+                fn (string $filename) => $service->upload($request->file('file'), FileCategory::Video, $task->id, $filename),
+            ));
         }
 
         return $this->upload(fn (FileStorageService $service) => $service->upload($request->file('file'), FileCategory::Video, $task->id));
@@ -68,13 +91,16 @@ class RichTextVideoController extends Controller
             'project_id' => ['required', 'integer', 'exists:projects,id'],
             'department_id' => ['nullable', 'integer'],
             'pending_id' => ['required', 'uuid'],
+            // task #4, clipboard paste — see RichTextImageController
+            // ::storePending()'s identical field for the full reasoning.
+            'filename' => ['nullable', 'string', 'max:100', 'regex:/^[a-z0-9-]+$/'],
         ]);
 
         $project = Project::findOrFail($data['project_id']);
 
         Gate::authorize('create', [Task::class, $project->organization_id, $data['department_id'] ?? null]);
 
-        return $this->upload(fn (FileStorageService $service) => $service->uploadPending($request->file('file'), FileCategory::Video, $data['pending_id']));
+        return $this->upload(fn (FileStorageService $service) => $service->uploadPending($request->file('file'), FileCategory::Video, $data['pending_id'], $data['filename'] ?? null));
     }
 
     private function upload(Closure $attempt): JsonResponse

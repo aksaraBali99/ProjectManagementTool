@@ -180,14 +180,16 @@ function richTextEditorNode(string $pageHtml, string $label): ?DOMElement
 
 /**
  * Task Description's view-mode rendering on the Edit Task page (task #4,
- * view/edit split) — unlike richTextEditorContent(), this isn't an editor's
- * escaped data-content attribute; it's the same unescaped, read-only
- * <x-rich-text> render every other read-only view (task drilldown,
- * comments) already uses, found by its [data-description-field] wrapper.
- * Null when the description is blank (<x-rich-text> renders its $empty
- * placeholder instead of a [data-rich-text-content] element at all in that
- * case). innerHTML, not textContent, since callers check for actual HTML
- * (an <img>/<audio> tag, a width attribute), not just visible text.
+ * view/edit split; Save/Cancel later replaced with autosave-on-blur, but
+ * the read-only view/Edit-button split itself is unchanged) — unlike
+ * richTextEditorContent(), this isn't an editor's escaped data-content
+ * attribute; it's the same unescaped, read-only <x-rich-text> render
+ * every other read-only view (task drilldown, comments) already uses,
+ * found by its [data-description-field] wrapper. Null when the
+ * description is blank (<x-rich-text> renders its $empty placeholder
+ * instead of a [data-rich-text-content] element at all in that case).
+ * innerHTML, not textContent, since callers check for actual HTML (an
+ * <img>/<audio> tag, a width attribute), not just visible text.
  */
 function descriptionViewContent(string $pageHtml): ?string
 {

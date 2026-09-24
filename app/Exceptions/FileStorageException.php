@@ -62,6 +62,11 @@ class FileStorageException extends RuntimeException
         return new self("Failed to generate a URL for file at \"{$path}\".", previous: $previous);
     }
 
+    public static function nameCollision(string $path): self
+    {
+        return new self("A file already exists at \"{$path}\" — try again.");
+    }
+
     private static function formatBytes(int $bytes): string
     {
         return round($bytes / 1_048_576, 1).'MB';

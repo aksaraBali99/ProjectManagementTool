@@ -19,11 +19,16 @@ use Database\Seeders\RoleSeeder;
  * assumed — see tasks/_comments.blade.php): read-only by default, an
  * explicit Edit control, the live editor mounted only once Edit is clicked.
  *
+ * Edit mode itself later dropped its Save/Cancel buttons for autosave-on-
+ * blur (task #4, description autosave) — entering edit mode has no
+ * separate save step and nothing to cancel any more, but the read-only
+ * view / Edit button split this file actually tests is unchanged.
+ *
  * The actual click-to-edit interaction (Edit -> live editor pre-populated
- * -> Save persists & returns to view -> Cancel discards & returns to view)
- * can't be driven from Pest — there's no JS runner in this suite, the same
- * caveat EmojiSupportTest's own shared-component test already documents —
- * so that round trip is covered by a manual browser check instead (see the
+ * -> autosaves and returns to view once focus leaves the editor) can't be
+ * driven from Pest — there's no JS runner in this suite, the same caveat
+ * EmojiSupportTest's own shared-component test already documents — so
+ * that round trip is covered by a manual browser check instead (see the
  * PR description). These tests pin the structural and server-side
  * guarantees an HTTP response can actually verify.
  */
@@ -90,6 +95,26 @@ test('the embedded image in view mode sits inside the exact container the lightb
     $img = (new DOMXPath($document))->query('//*[@data-description-field]//*[@data-rich-text-content]//img')->item(0);
     expect($img)->not->toBeNull();
     expect($img->getAttribute('src'))->toContain('a.jpg');
+});
+
+test('the Save/Cancel buttons from before the autosave-on-blur change are gone entirely, and the read-only view is bordered like every other field', function () {
+    $response = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk();
+
+    $response->assertDontSee('save-description-btn', false)
+        ->assertDontSee('cancel-description-btn', false);
+
+    // .description-view-row itself carries the standard field border/
+    // radius/background (rounded-md border border-gray-300 bg-white),
+    // the same box Title's own <input> uses — not bare unboxed text.
+    $page = $response->getContent();
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?>'.$page);
+    libxml_clear_errors();
+
+    $viewRow = (new DOMXPath($document))->query('//*[contains(@class, "description-view-row")]')->item(0);
+    expect($viewRow)->not->toBeNull();
+    expect($viewRow->getAttribute('class'))->toContain('border');
 });
 
 test('the Edit control only appears for a user with edit permission on this task', function () {

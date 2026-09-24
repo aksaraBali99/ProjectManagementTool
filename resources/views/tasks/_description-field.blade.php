@@ -1,11 +1,28 @@
-{{-- Task Description's own view/edit split (task #4, follow-up fix) —
-     mirrors the exact pattern Comments already used (tasks/_comments.blade.php):
-     read-only <x-rich-text> by default (so an embedded image is clickable
-     for the Phase 3 lightbox — a live TipTap instance intercepts that click
-     for node selection/resize instead), an explicit Edit control rather
-     than click-anywhere-to-edit (Jira's own users report that as an
-     accidental-edit annoyance), and the live editor only mounted once Edit
-     is actually clicked — "no editor initialization at all" in view mode.
+{{-- Task Description's own view/edit split — read-only <x-rich-text> by
+     default (so an embedded image/video is clickable for the Phase 3
+     lightbox — a live TipTap instance intercepts that click for node
+     selection/resize instead), an explicit Edit control rather than
+     click-anywhere-to-edit (Jira's own users report that as an
+     accidental-edit annoyance), and the live editor only mounted once
+     Edit is actually clicked — "no editor initialization at all" in view
+     mode. This is the same shape tasks/_comments.blade.php already uses
+     for editing an EXISTING comment.
+
+     Save/Cancel (task #4, description autosave) is deliberately NOT
+     part of this any more: entering edit mode has no separate save
+     step and nothing to cancel back out of — the whole Edit Task form
+     autosaves the moment focus genuinely leaves the editor (see
+     onSettledBlur() in rich-text-editor.js), the same "click out to
+     save" the task's own instruction asked for. Only HOW the field
+     saves changed; the view/edit split itself, and so the lightbox
+     staying clickable in view mode, is unchanged from before.
+
+     The read-only view row is bordered like every other field's input
+     on this form (Title, Priority, ...) rather than sitting as bare
+     text — the live editor mounted in its place already carries that
+     same border via .rte's own default styling, so the two states read
+     as one consistent field boundary rather than the box appearing only
+     once you start editing.
 
      $task and $value (the current description — old('description', ...)
      already resolved by the caller) are required. Only rendered inside the
@@ -22,28 +39,19 @@
     $iconAttrs = 'width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 @endphp
 <div class="mt-1" data-description-field data-task-id="{{ $task->id }}">
-    {{-- Icon buttons, not captioned ones — a pencil for Edit, a green check
-         for Save, a red X for Cancel, matching the small square icon-button
-         language the rich-text toolbar already uses (.rte-btn) rather than
-         inventing a second button style. gap-4 (not the tighter gap-2 a
-         plain text link used) and ml-4 on the button itself keep them from
-         crowding the content they act on. --}}
-    <div class="description-view-row flex items-start gap-4">
+    {{-- rounded-md border border-gray-300 bg-white px-3 py-2: the exact
+         box every other field's <input>/<select> on this form already
+         uses, so the read-only row reads as a field boundary of its own,
+         not bare floating text — the pencil sits inside that same box
+         rather than as a separate free-floating control beside it. --}}
+    <div class="description-view-row flex items-start justify-between gap-4 rounded-md border border-gray-300 bg-white px-3 py-2">
         {{-- text-[12px] text-[#1F2937]: the exact body-text token this app
              uses for a field's displayed value elsewhere (e.g. the read-only
              Title display just below, tasks/edit.blade.php's own
              $canEdit-false branch) — not an approximate Tailwind gray. --}}
         <x-rich-text :value="$value" class="description-view min-w-0 flex-1 text-[12px] text-[#1F2937]" empty="—" />
-        <button type="button" class="edit-description-btn description-action-btn ml-4 shrink-0" title="Edit description" aria-label="Edit description">
+        <button type="button" class="edit-description-btn shrink-0" title="Edit description" aria-label="Edit description">
             <svg {!! $iconAttrs !!}><path d="M11.5 2.5a1.5 1.5 0 0 1 2 2L5 13l-3 1 1-3z"/><path d="M9.5 4.5l2 2"/></svg>
-        </button>
-    </div>
-    <div class="description-edit-controls mb-2 mt-3 hidden items-center gap-3">
-        <button type="button" class="save-description-btn description-action-btn description-action-btn--save" title="Save" aria-label="Save">
-            <svg {!! $iconAttrs !!}><polyline points="3 8.5 6.5 12 13 4"/></svg>
-        </button>
-        <button type="button" class="cancel-description-btn description-action-btn description-action-btn--cancel" title="Cancel" aria-label="Cancel">
-            <svg {!! $iconAttrs !!}><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
         </button>
     </div>
     <input type="hidden" name="description" value="{{ $descriptionHtml }}" data-description-fallback-input>
@@ -54,7 +62,6 @@
         const taskId = container.dataset.taskId;
         const viewRow = container.querySelector('.description-view-row');
         const editBtn = container.querySelector('.edit-description-btn');
-        const editControls = container.querySelector('.description-edit-controls');
         const fallbackInput = container.querySelector('[data-description-fallback-input]');
         const form = container.closest('form');
 
@@ -73,14 +80,8 @@
 
         editBtn.addEventListener('click', function () {
             const currentHtml = fallbackInput.value;
-            // Snapshot, not clear: some OTHER field on this page may
-            // already be genuinely dirty, and Cancel below must restore
-            // that state exactly, not assume this editor was the only
-            // change in flight (see the guard's own doc comment).
-            const wasDirtyBeforeEdit = form && form.__unsavedGuardIsDirty ? form.__unsavedGuardIsDirty() : false;
 
             viewRow.style.display = 'none';
-            editBtn.style.display = 'none';
             // While the live editor is mounted, ITS OWN hidden input (below)
             // is what should submit as "description" — never two same-named
             // inputs in one form at once.
@@ -110,55 +111,34 @@
             hiddenInput.value = currentHtml;
             editRoot.appendChild(hiddenInput);
 
-            fallbackInput.insertAdjacentElement('afterend', editRoot);
-            editControls.classList.remove('hidden');
-            editControls.classList.add('flex');
+            viewRow.insertAdjacentElement('afterend', editRoot);
 
             withEditor(editRoot).then(function (created) {
                 editor = created;
                 editor.focus();
+
+                // task #4, description autosave: no Save/Cancel step any
+                // more — the whole Edit Task form submits itself the
+                // moment focus genuinely leaves the editor.
+                // onSettledBlur() (rich-text-editor.js) is what tells
+                // "genuinely" apart from "clicked a toolbar button" (see
+                // its own doc comment there). A full-page redirect follows
+                // (TaskManagementController::update()), which naturally
+                // re-renders back in view mode showing the newly saved
+                // content — no client-side "return to view mode" handling
+                // needed here, same as the removed Save button never
+                // needed one either.
+                created.onSettledBlur(function () {
+                    if (form) form.requestSubmit();
+                });
             });
 
-            function restore() {
-                if (editor) editor.destroy();
-                editor = null;
-                editRoot.remove();
-                editControls.classList.add('hidden');
-                editControls.classList.remove('flex');
-                viewRow.style.display = '';
-                editBtn.style.display = '';
-                fallbackInput.setAttribute('name', 'description');
-            }
-
-            function onCancel() {
-                restore();
-                if (form && form.__unsavedGuardSetDirty) form.__unsavedGuardSetDirty(wasDirtyBeforeEdit);
-                cleanup();
-            }
-
-            function onSave() {
-                // No separate persistence endpoint (unlike Comments, which
-                // saves independently of the rest of the task form) —
-                // Description is one field of the same Edit Task form, and
-                // that form already syncs this editor's hidden input on
-                // submit (createRichTextEditor wires that generically for
-                // any root inside a <form>), so submitting the whole form
-                // is both correct and exactly what happens today when
-                // Description was always-live. A full-page redirect follows
-                // (TaskManagementController::update()), which naturally
-                // re-renders in view mode showing the newly saved content —
-                // no client-side "return to view mode" handling needed here.
+            // Ctrl/Cmd+Enter saves immediately too, the same shortcut
+            // every other rich-text box on this app already wires to its
+            // own "submit" action (Comments' Post/Save buttons).
+            editRoot.addEventListener('rte:submit', function () {
                 if (form) form.requestSubmit();
-            }
-
-            container.querySelector('.cancel-description-btn').addEventListener('click', onCancel);
-            container.querySelector('.save-description-btn').addEventListener('click', onSave);
-            editRoot.addEventListener('rte:submit', onSave);
-
-            function cleanup() {
-                container.querySelector('.cancel-description-btn').removeEventListener('click', onCancel);
-                container.querySelector('.save-description-btn').removeEventListener('click', onSave);
-            }
+            });
         });
     })();
 </script>

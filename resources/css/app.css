@@ -648,49 +648,30 @@
    itself (see link-preview-extension.js / link-preview-thumbnail.js),
    so the two chip types can never visually drift apart from each other.
 
-   Description's own Edit/Save/Cancel (task #4, view/edit split) — icon
-   buttons, not captioned ones, bordered like the "Attach"/"Post" secondary
-   buttons elsewhere on this page (unlike .rte-btn's toolbar icons, these sit
-   on a plain background with nothing else marking them as controls, so they
-   need a visible boundary of their own). Save/Cancel get their own color
-   (green/red) directly rather than a shared "is-active" state, since
-   they're two permanently-distinct actions, never a toggled single one. */
-.description-action-btn {
+   Description's own Edit control (task #4, description autosave) — a
+   single pencil icon now, not part of a Save/Cancel pair any more (see
+   tasks/_description-field.blade.php: entering edit mode autosaves on
+   blur instead). Borderless, unlike the old Edit/Save/Cancel trio's
+   bordered-square language: it now sits INSIDE the read-only view's own
+   bordered box (that box is what "looks like a field" — a second nested
+   border on the button itself would be redundant), so a plain hover
+   highlight is enough, closer to .rte-btn's own toolbar-icon treatment
+   than to a standalone secondary button. */
+.edit-description-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 22px;
+    height: 22px;
     border-radius: var(--radius-sm);
-    border: 1px solid #E5E7EB;
-    background: #fff;
-    color: var(--color-gray-600);
+    color: var(--color-gray-500);
     cursor: pointer;
-    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    transition: background-color 120ms ease, color 120ms ease;
 }
 
-.description-action-btn:hover {
-    background: var(--color-gray-50);
-    border-color: #D1D5DB;
+.edit-description-btn:hover {
+    background: var(--color-gray-100);
     color: #1F2937;
-}
-
-.description-action-btn--save {
-    color: #059669;
-}
-
-.description-action-btn--save:hover {
-    background: #ECFDF5;
-    border-color: #A7F3D0;
-}
-
-.description-action-btn--cancel {
-    color: #DC2626;
-}
-
-.description-action-btn--cancel:hover {
-    background: #FEF2F2;
-    border-color: #FECACA;
 }
 
 /* ---------------------------------------------------------------------------
