@@ -16,17 +16,25 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Smart Links (task #4), Tier 1 — a bare URL pasted alone on its own line
- * in the editor calls LinkPreviewController, which resolves it via
+ * Smart Links (task #4) — a bare URL, inserted as new content either by
+ * pasting it alone on its own line or via the toolbar's "insert
+ * hyperlink" button, calls LinkPreviewController, which resolves it via
  * LinkPreviewService (SSRF-guarded fetch + Open Graph parsing, cached in
- * link_previews). The actual client-side paste detection and node
- * insertion (link-preview-extension.js, buildLinkPreview() in
+ * link_previews). The actual client-side detection, node insertion, and
+ * compact-chip rendering (link-preview-extension.js,
+ * link-preview-thumbnail.js, buildLinkPreview()/buildLinkBar() in
  * rich-text-editor.js) is pure JS Pest can't execute — verified separately
  * via manual browser testing (see PR description). These tests cover the
- * server side: what gets resolved, what gets blocked, and what gets
- * cached — the same permission model as
- * RichTextImageController/RichTextAudioController/RichTextVideoController/
- * RichTextDocumentController's two actions, reused as-is.
+ * server side: what gets resolved, what gets blocked, what gets cached,
+ * and — since a follow-up fix reversed the original "no Document" call —
+ * what gets tracked on the task's Documents list and how that's deduped.
+ *
+ * The two client entry points (paste vs. toolbar button) were unified to
+ * both call this exact same endpoint (see buildLinkPreview()'s own doc
+ * comment) — from the server's perspective there's only ever one path,
+ * which is what "the toolbar path is unified with paste" actually reduces
+ * to: this file's tests already exercise that one endpoint identically
+ * regardless of which client UI would have triggered a given request.
  *
  * Google Docs/Sheets/Slides (Tier 2, same task) is a separate follow-up —
  * not covered here yet.
@@ -65,10 +73,14 @@ function makeClientWithProjectAccessForLinkPreview(Organization $org, Project $p
     return $client;
 }
 
-test('a URL with real Open Graph metadata resolves to a preview with the correct fetched title, image and domain', function () {
+// ---------------------------------------------------------------------------
+// Resolution, fallback, SSRF guard, caching
+// ---------------------------------------------------------------------------
+
+test('a URL with real Open Graph metadata resolves to a preview with the correct fetched title and domain', function () {
     Http::fake([
         'example.com/*' => Http::response(
-            '<html><head><meta property="og:title" content="A Great Article"><meta property="og:image" content="https://example.com/cover.png"></head></html>',
+            '<html><head><meta property="og:title" content="A Great Article"></head></html>',
             200
         ),
     ]);
@@ -82,9 +94,12 @@ test('a URL with real Open Graph metadata resolves to a preview with the correct
         'available' => true,
         'url' => 'https://example.com/article',
         'title' => 'A Great Article',
-        'image' => 'https://example.com/cover.png',
         'domain' => 'example.com',
     ]);
+    // No image field in the response at all — the corrected chip design
+    // (task #4 fix) has no thumbnail, so there's nothing to send.
+    $response->assertJsonMissing(['image' => 'https://example.com/article']);
+    expect($response->json())->not->toHaveKey('image');
 
     expect(LinkPreview::where('url', 'https://example.com/article')->firstOrFail())
         ->title->toBe('A Great Article')
@@ -270,7 +285,7 @@ test('a user who can comment but cannot edit the description can still resolve a
     $response->assertOk()->assertJson(['available' => true, 'title' => 'Client Link']);
 
     $comment = $this->actingAs($client)->postJson("/tasks/{$this->task->id}/comments", [
-        'body' => '<p>See <link-preview href="https://example.com/client-link" title="Client Link" domain="example.com" image=""></link-preview></p>',
+        'body' => '<p>See <link-preview href="https://example.com/client-link" domain="example.com">Client Link</link-preview></p>',
     ]);
     $comment->assertCreated();
     expect(Comment::firstOrFail()->body)->toContain('<link-preview');
@@ -312,8 +327,12 @@ test('a link preview resolved while drafting a new task is authorized like creat
     ])->assertForbidden();
 });
 
-test('a link-preview-only description round-trips correctly and is not treated as blank', function () {
-    $html = '<p><link-preview href="https://example.com/x" title="X" domain="example.com" image="https://example.com/x.png"></link-preview></p>';
+// ---------------------------------------------------------------------------
+// Fix 1 — compact chip, not a content-preview card
+// ---------------------------------------------------------------------------
+
+test('the rendered chip is compact — no content-preview/embed structure, just href + domain + a title as plain text', function () {
+    $html = '<p><link-preview href="https://example.com/x" domain="example.com">Example Title</link-preview></p>';
 
     $this->actingAs($this->management)->put("/tasks/{$this->task->id}", [
         'project_id' => $this->task->project_id,
@@ -326,18 +345,24 @@ test('a link-preview-only description round-trips correctly and is not treated a
 
     $stored = $this->task->fresh()->description;
     expect($stored)
-        ->not->toBeNull()
         ->toContain('<link-preview')
-        ->toContain('title="X"')
+        ->toContain('href="https://example.com/x"')
         ->toContain('domain="example.com"')
-        ->toContain('image="https://example.com/x.png"');
-
-    $editPage = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
-    expect(descriptionViewContent($editPage))->toContain('<link-preview');
+        ->toContain('Example Title')
+        ->toContain('</link-preview>')
+        // The corrected design has no thumbnail/content-preview markup of
+        // any kind — no img, no image attribute, no separate title
+        // attribute (title is the chip's own text content, matching
+        // file-chip's name), and no nested block structure a "content
+        // preview" (headers, tables, an iframe-like embed) would need.
+        ->not->toContain('<img')
+        ->not->toContain('<iframe')
+        ->not->toContain('image=')
+        ->not->toContain('title=');
 });
 
-test('a link-preview node does not create a Document record or a task_documents attachment — unlike the file-upload document-embedding feature', function () {
-    $html = '<p><link-preview href="https://example.com/x" title="X" domain="example.com" image=""></link-preview></p>';
+test('a link-preview-only description round-trips correctly and is not treated as blank', function () {
+    $html = '<p><link-preview href="https://example.com/x" domain="example.com">X</link-preview></p>';
 
     $this->actingAs($this->management)->put("/tasks/{$this->task->id}", [
         'project_id' => $this->task->project_id,
@@ -348,6 +373,172 @@ test('a link-preview node does not create a Document record or a task_documents 
         'status' => 'pending',
     ])->assertRedirect();
 
+    $stored = $this->task->fresh()->description;
+    expect($stored)->not->toBeNull()->toContain('<link-preview')->toContain('domain="example.com"');
+
+    $editPage = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
+    expect(descriptionViewContent($editPage))->toContain('<link-preview');
+});
+
+// ---------------------------------------------------------------------------
+// Fix 3 — every link becomes a tracked Document, deduped per task
+// ---------------------------------------------------------------------------
+
+test('resolving a link for an existing task creates a real Document row attached via task_documents, named after the fetched title', function () {
+    Http::fake(['example.com/*' => Http::response('<html><head><meta property="og:title" content="Tracked Article"></head></html>', 200)]);
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/tracked',
+        'context' => 'description',
+    ])->assertOk();
+
+    $document = Document::where('link', 'https://example.com/tracked')->firstOrFail();
+    expect($document->name)->toBe('Tracked Article');
+    expect($document->organization_id)->toBe($this->org->id);
+    expect($document->access_level->value)->toBe('internal');
+    expect($this->task->fresh()->documents->pluck('id')->all())->toBe([$document->id]);
+
+    $this->actingAs($this->management)->get("/documents/{$this->org->id}")->assertOk()->assertSee('Tracked Article');
+});
+
+test('a link that fails to fetch a title still creates a Document record, using the raw URL as its fallback name', function () {
+    Http::fake(['example.com/*' => Http::response('', 404)]);
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/uncaptioned',
+        'context' => 'description',
+    ])->assertOk()->assertJson(['available' => false]);
+
+    $document = Document::where('link', 'https://example.com/uncaptioned')->firstOrFail();
+    expect($document->name)->toBe('https://example.com/uncaptioned');
+    expect($this->task->fresh()->documents->pluck('id')->all())->toBe([$document->id]);
+});
+
+test('pasting the same URL twice within the same task creates only one Document record and one task_documents attachment', function () {
+    Http::fake(['example.com/*' => Http::response('<html><head><meta property="og:title" content="Repeated Link"></head></html>', 200)]);
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/repeated',
+        'context' => 'description',
+    ])->assertOk();
+
+    // The SAME endpoint every client entry point calls (see this file's
+    // own doc comment on the paste/toolbar unification) — a second call
+    // for the identical task+URL is exactly what a second paste, OR the
+    // toolbar's link button used on the same URL, both reduce to.
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/repeated',
+        'context' => 'description',
+    ])->assertOk();
+
+    expect(Document::where('link', 'https://example.com/repeated')->count())->toBe(1);
+    expect($this->task->fresh()->documents()->where('link', 'https://example.com/repeated')->count())->toBe(1);
+});
+
+test('pasting the same URL in two different tasks creates two independent Document records — dedup is scoped per task, not global', function () {
+    Http::fake(['example.com/*' => Http::response('<html><head><meta property="og:title" content="Shared Article"></head></html>', 200)]);
+
+    $otherTask = Task::create([
+        'organization_id' => $this->org->id,
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'title' => 'A different task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/shared-across-tasks',
+        'context' => 'description',
+    ])->assertOk();
+
+    $this->actingAs($this->management)->postJson("/tasks/{$otherTask->id}/link-previews", [
+        'url' => 'https://example.com/shared-across-tasks',
+        'context' => 'description',
+    ])->assertOk();
+
+    expect(Document::where('link', 'https://example.com/shared-across-tasks')->count())->toBe(2);
+    expect($this->task->fresh()->documents()->where('link', 'https://example.com/shared-across-tasks')->count())->toBe(1);
+    expect($otherTask->fresh()->documents()->where('link', 'https://example.com/shared-across-tasks')->count())->toBe(1);
+});
+
+test('deleting the chip from the text leaves the Document and its task_documents attachment intact', function () {
+    Http::fake(['example.com/*' => Http::response('<html><head><meta property="og:title" content="Persistent Link"></head></html>', 200)]);
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/persistent',
+        'context' => 'description',
+    ])->assertOk();
+    $document = Document::where('link', 'https://example.com/persistent')->firstOrFail();
+
+    $this->actingAs($this->management)->put("/tasks/{$this->task->id}", [
+        'project_id' => $this->task->project_id,
+        'department_id' => $this->task->department_id,
+        'title' => $this->task->title,
+        'description' => '<p><link-preview href="https://example.com/persistent" domain="example.com">Persistent Link</link-preview></p>',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertRedirect();
+
+    // Backspace over the chip — matches the same "removal from text ≠
+    // deletion from records" rule already established for file-chip.
+    $this->actingAs($this->management)->put("/tasks/{$this->task->id}", [
+        'project_id' => $this->task->project_id,
+        'department_id' => $this->task->department_id,
+        'title' => $this->task->title,
+        'description' => '<p>No link here anymore</p>',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertRedirect();
+
+    expect($this->task->fresh()->description)->not->toContain('<link-preview');
+    expect(Document::find($document->id))->not->toBeNull();
+    expect($this->task->fresh()->documents->pluck('id')->all())->toBe([$document->id]);
+});
+
+test('a document attached during Add Task via a pasted link creates its Document record only once the task is actually saved', function () {
+    Http::fake(['example.com/*' => Http::response('<html><head><meta property="og:title" content="Draft-time Link"></head></html>', 200)]);
+
+    $this->actingAs($this->management)->postJson('/pending-task-link-previews', [
+        'url' => 'https://example.com/draft-link',
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+    ])->assertOk()->assertJson(['available' => true, 'title' => 'Draft-time Link']);
+
+    // Nothing created yet — resolvePending() deliberately defers, exactly
+    // like RichTextDocumentController::storePending() does for uploads.
     expect(Document::count())->toBe(0);
-    expect($this->task->fresh()->documents)->toBeEmpty();
+
+    $response = $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'title' => 'Drafted with a link',
+        'description' => '<p><link-preview href="https://example.com/draft-link" domain="example.com">Draft-time Link</link-preview></p>',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $response->assertRedirect();
+
+    $task = Task::where('title', 'Drafted with a link')->firstOrFail();
+    $document = Document::where('link', 'https://example.com/draft-link')->firstOrFail();
+    expect($document->name)->toBe('Draft-time Link');
+    expect($task->documents->pluck('id')->all())->toBe([$document->id]);
+});
+
+test('two link-preview chips for the same URL pasted twice while drafting a new task still only create one Document once saved', function () {
+    $html = '<p><link-preview href="https://example.com/dup-in-draft" domain="example.com">Dup</link-preview>'
+        .' and again <link-preview href="https://example.com/dup-in-draft" domain="example.com">Dup</link-preview></p>';
+
+    $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'title' => 'Drafted with a duplicated link',
+        'description' => $html,
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertRedirect();
+
+    $task = Task::where('title', 'Drafted with a duplicated link')->firstOrFail();
+    expect(Document::where('link', 'https://example.com/dup-in-draft')->count())->toBe(1);
+    expect($task->documents()->where('link', 'https://example.com/dup-in-draft')->count())->toBe(1);
 });
