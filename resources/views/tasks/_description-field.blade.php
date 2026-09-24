@@ -96,6 +96,8 @@
             editRoot.dataset.imageContext = 'description';
             editRoot.dataset.audioTaskId = taskId;
             editRoot.dataset.audioContext = 'description';
+            editRoot.dataset.videoTaskId = taskId;
+            editRoot.dataset.videoContext = 'description';
 
             const hiddenInput = document.createElement('input');
             hiddenInput.type = 'hidden';

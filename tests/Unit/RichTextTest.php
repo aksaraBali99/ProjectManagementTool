@@ -10,6 +10,7 @@ test('editor output is recognised as HTML and ordinary prose is not', function (
     'multiple blocks' => ['<h2>T</h2><p>a</p><ul><li><p>b</p></li></ul>', true],
     'code block' => ['<pre><code class="language-js">x</code></pre>', true],
     'audio only' => ['<audio src="https://x/a.mp3" controls></audio>', true],
+    'video only' => ['<video src="https://x/a.mp4" controls></video>', true],
     'surrounding whitespace' => ["  <p>hi</p>\n", true],
     'plain sentence' => ['just some words', false],
     'prose mentioning a tag' => ['use the <b> tag for bold', false],
@@ -52,11 +53,12 @@ test('the sanitizer keeps exactly what the editor can produce', function () {
         .'<ul><li><p>x</p></li></ul><ol><li><p>y</p></li></ol>'
         .'<pre><code class="language-python">print(1)</code></pre>'
         .'<img src="https://cdn.example.com/tasks/5/images/a.jpg" alt="a screenshot">'
-        .'<audio src="https://cdn.example.com/tasks/5/audio/a.mp3" controls></audio>';
+        .'<audio src="https://cdn.example.com/tasks/5/audio/a.mp3" controls></audio>'
+        .'<video src="https://cdn.example.com/tasks/5/video/a.mp4" controls></video>';
 
     $clean = RichText::sanitize($editorOutput);
 
-    foreach (['<h1>A</h1>', '<h2>B</h2>', '<h3>C</h3>', '<strong>b</strong>', '<em>i</em>', '<u>u</u>', '<br', '<ul><li><p>x</p></li></ul>', '<ol><li><p>y</p></li></ol>', 'class="language-python"', 'src="https://cdn.example.com/tasks/5/images/a.jpg"', 'alt="a screenshot"', 'src="https://cdn.example.com/tasks/5/audio/a.mp3"', 'controls', '</audio>'] as $expected) {
+    foreach (['<h1>A</h1>', '<h2>B</h2>', '<h3>C</h3>', '<strong>b</strong>', '<em>i</em>', '<u>u</u>', '<br', '<ul><li><p>x</p></li></ul>', '<ol><li><p>y</p></li></ol>', 'class="language-python"', 'src="https://cdn.example.com/tasks/5/images/a.jpg"', 'alt="a screenshot"', 'src="https://cdn.example.com/tasks/5/audio/a.mp3"', 'controls', '</audio>', 'src="https://cdn.example.com/tasks/5/video/a.mp4"', '</video>'] as $expected) {
         expect($clean)->toContain($expected);
     }
 });
@@ -75,6 +77,9 @@ test('the sanitizer removes anything the editor cannot produce', function (strin
     'audio event handler' => ['<audio src="https://x/a.mp3" onerror="alert(1)"></audio>', 'onerror'],
     'audio data: src' => ['<audio src="data:audio/mp3;base64,AAAA"></audio>', 'data:'],
     'audio autoplay attribute' => ['<audio src="https://x/a.mp3" autoplay></audio>', 'autoplay'],
+    'video event handler' => ['<video src="https://x/a.mp4" onerror="alert(1)"></video>', 'onerror'],
+    'video data: src' => ['<video src="data:video/mp4;base64,AAAA"></video>', 'data:'],
+    'video autoplay attribute' => ['<video src="https://x/a.mp4" autoplay></video>', 'autoplay'],
     'iframe' => ['<p>a</p><iframe src="https://evil"></iframe>', '<iframe'],
     'style attribute' => ['<p style="position:fixed">a</p>', 'style='],
     'arbitrary code class' => ['<pre><code class="fixed inset-0">a</code></pre>', 'fixed'],
@@ -91,6 +96,14 @@ test('a relative audio src is kept, same reasoning as image (task #4 phase 4)', 
 
 test('an audio-only description/comment is real content, not blank (task #4 phase 4, same rule as image-only)', function () {
     expect(RichText::normalize('<audio src="https://x/a.mp3" controls></audio>'))->not->toBeNull();
+});
+
+test('a relative video src is kept, same reasoning as image/audio (task #4 phase 5)', function () {
+    expect(RichText::sanitize('<video src="/storage/tasks/5/video/a.mp4" controls></video>'))->toContain('src="/storage/tasks/5/video/a.mp4"');
+});
+
+test('a video-only description/comment is real content, not blank (task #4 phase 5, same rule as image/audio-only)', function () {
+    expect(RichText::normalize('<video src="https://x/a.mp4" controls></video>'))->not->toBeNull();
 });
 
 test('a span is unwrapped, keeping its text (the editor emoji node markup), and its attributes go', function () {
@@ -146,4 +159,9 @@ test('plainText extracts visible words with block boundaries as newlines', funct
 test('an embedded audio player contributes no readable text, just a line break, same as an image (task #4 phase 4)', function () {
     expect(RichText::plainText('<p>Listen:</p><audio src="https://x/a.mp3" controls></audio><p>after</p>'))
         ->toBe("Listen:\n\nafter");
+});
+
+test('an embedded video player contributes no readable text, just a line break, same as audio/image (task #4 phase 5)', function () {
+    expect(RichText::plainText('<p>Watch:</p><video src="https://x/a.mp4" controls></video><p>after</p>'))
+        ->toBe("Watch:\n\nafter");
 });

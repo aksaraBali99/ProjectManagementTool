@@ -41,6 +41,21 @@ test('sweeps a stale pending file regardless of its media category — audio the
     Storage::disk('r2')->assertExists('tasks/pending/fresh/audio/b.wav');
 });
 
+test('sweeps a stale pending file regardless of its media category — video the same as image/audio', function () {
+    // task #4 phase 5: same confirmation as the audio case above, for the
+    // final media category.
+    Storage::disk('r2')->put('tasks/pending/old/video/a.mp4', 'x');
+    Storage::disk('r2')->put('tasks/pending/fresh/video/b.mp4', 'x');
+
+    touchDiskFile('r2', 'tasks/pending/old/video/a.mp4', now()->subHours(30));
+    touchDiskFile('r2', 'tasks/pending/fresh/video/b.mp4', now()->subHours(2));
+
+    $this->artisan('media:cleanup-stale-pending')->assertExitCode(0);
+
+    Storage::disk('r2')->assertMissing('tasks/pending/old/video/a.mp4');
+    Storage::disk('r2')->assertExists('tasks/pending/fresh/video/b.mp4');
+});
+
 test('running with nothing pending is a no-op, not an error', function () {
     $this->artisan('media:cleanup-stale-pending')->assertExitCode(0);
 });

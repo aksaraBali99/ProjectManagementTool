@@ -36,6 +36,11 @@
     covers every category the Add Task page's editor uploads, since
     FileStorageService::reconcilePendingFiles() moves everything a
     description references in one generic pass on save, not per category.
+
+    Video upload target (task #4 phase 5) — same shape again:
+    $videoTaskId + $videoContext (POSTs to /tasks/{id}/video),
+    $videoPendingId (+ optional initial $videoProjectId/$videoDepartmentId,
+    POSTs to /pending-task-video), the SAME pendingMediaId as image/audio.
 --}}
 @props([
     'name' => null,
@@ -55,6 +60,11 @@
     'audioPendingId' => null,
     'audioProjectId' => null,
     'audioDepartmentId' => null,
+    'videoTaskId' => null,
+    'videoContext' => null,
+    'videoPendingId' => null,
+    'videoProjectId' => null,
+    'videoDepartmentId' => null,
 ])
 
 @php $html = \App\Support\RichText::toHtml($value); @endphp
@@ -71,6 +81,8 @@
     @if ($imagePendingId) data-image-pending-id="{{ $imagePendingId }}" data-image-project-id="{{ $imageProjectId }}" data-image-department-id="{{ $imageDepartmentId }}" @endif
     @if ($audioTaskId) data-audio-task-id="{{ $audioTaskId }}" data-audio-context="{{ $audioContext }}" @endif
     @if ($audioPendingId) data-audio-pending-id="{{ $audioPendingId }}" data-audio-project-id="{{ $audioProjectId }}" data-audio-department-id="{{ $audioDepartmentId }}" @endif
+    @if ($videoTaskId) data-video-task-id="{{ $videoTaskId }}" data-video-context="{{ $videoContext }}" @endif
+    @if ($videoPendingId) data-video-pending-id="{{ $videoPendingId }}" data-video-project-id="{{ $videoProjectId }}" data-video-department-id="{{ $videoDepartmentId }}" @endif
 >
     @if ($name)
         <input type="hidden" name="{{ $name }}" @if ($id) id="{{ $id }}" @endif value="{{ $html }}" data-rte-input>
