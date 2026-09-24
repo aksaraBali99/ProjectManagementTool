@@ -8,7 +8,7 @@
         @foreach ($attachedDocuments as $document)
             <div class="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2" data-document-id="{{ $document->id }}">
                 <div>
-                    <a href="{{ $document->link }}" target="_blank" rel="noopener" class="text-[12px] font-medium text-brand-600 hover:underline">{{ $document->name }}</a>
+                    <a href="{{ route('file-downloads.show', ['url' => $document->link]) }}" target="_blank" rel="noopener" class="text-[12px] font-medium text-brand-600 hover:underline">{{ $document->name }}</a>
                     <span class="ml-2 rounded-sm bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">{{ $document->access_level->label() }}</span>
                 </div>
                 @if ($canEdit)
@@ -120,7 +120,8 @@
             row.className = 'flex items-center justify-between rounded-md border border-gray-200 px-3 py-2';
             row.dataset.documentId = doc.id;
             const accessLabel = doc.access_level.charAt(0).toUpperCase() + doc.access_level.slice(1);
-            row.innerHTML = '<div><a href="' + escapeHtml(doc.link) + '" target="_blank" rel="noopener" class="text-[12px] font-medium text-brand-600 hover:underline">' + escapeHtml(doc.name) + '</a>'
+            const downloadUrl = '/file-downloads?url=' + encodeURIComponent(doc.link);
+            row.innerHTML = '<div><a href="' + escapeHtml(downloadUrl) + '" target="_blank" rel="noopener" class="text-[12px] font-medium text-brand-600 hover:underline">' + escapeHtml(doc.name) + '</a>'
                 + '<span class="ml-2 rounded-sm bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">' + escapeHtml(accessLabel) + '</span></div>'
                 + '<button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>';
             listEl.appendChild(row);

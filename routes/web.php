@@ -153,6 +153,12 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
 
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('/documents/create/{organization?}', [DocumentController::class, 'create'])->name('documents.create');
+    // A standalone top-level path, not /documents/download — the latter
+    // would hit the same "swallowed by the optional-segment route below"
+    // problem /documents/create already has to dodge with ordering, and
+    // this one's real identifier is a `url` query value, not a path
+    // segment, so it never needed to live under /documents/ at all.
+    Route::get('/file-downloads', [DocumentController::class, 'download'])->name('file-downloads.show');
     // Must stay registered after /documents/create/{organization?} above —
     // both are single-optional-segment GET routes, and Laravel matches in
     // registration order, so /documents/create would otherwise be

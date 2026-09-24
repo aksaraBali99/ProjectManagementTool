@@ -90,8 +90,12 @@ test('the standalone Documents page lists a document as a plain new-tab link', f
     $response->assertOk();
     $html = $response->getContent();
 
+    // Routed through /file-downloads (task #4 fix), not linked to the raw
+    // storage/external URL directly, so an uploaded file downloads under
+    // its real name instead of its bare storage key — see
+    // DocumentDownloadTest.php for that behavior itself.
     expect($html)
-        ->toContain('href="https://example.com/project-brief.pdf"')
+        ->toContain('href="'.e(route('file-downloads.show', ['url' => 'https://example.com/project-brief.pdf'])).'"')
         ->toContain('target="_blank"')
         ->toContain('rel="noopener noreferrer"');
 
@@ -115,7 +119,7 @@ test('a document attached to a task via task_documents opens as a plain new-tab 
     $html = $response->getContent();
 
     expect($html)
-        ->toContain('href="https://example.com/project-brief.pdf"')
+        ->toContain('href="'.e(route('file-downloads.show', ['url' => 'https://example.com/project-brief.pdf'])).'"')
         ->toContain('target="_blank"')
         ->toContain('rel="noopener"');
 

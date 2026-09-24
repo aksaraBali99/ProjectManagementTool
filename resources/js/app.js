@@ -280,13 +280,28 @@ function initLightboxDelegation() {
 // just a nicer-looking hyperlink, which already means "opens in a new
 // tab" everywhere else in this app's rich text (RichText's sanitizer
 // forces every plain <a> to target="_blank" too).
+//
+// A file-chip's href is routed through /file-downloads (DocumentController
+// ::download) rather than opened directly — the raw storage URL a file-chip
+// carries is a bare tasks/{id}/documents/{uuid}.ext key, so opening it
+// directly would save under that key, not the file's real name; the
+// download route resolves it back to its Document row and streams it
+// with the real name in Content-Disposition instead (task #4 fix, same
+// motivation as documents/index.blade.php's and tasks/_documents.blade.php's
+// own links). A link-preview's href is always an external URL, never one
+// of our own uploads, so it keeps opening exactly as given.
 function initExternalReferenceDelegation() {
     document.addEventListener('click', function (event) {
-        const reference = event.target.closest('[data-rich-text-content] file-chip, [data-rich-text-content] link-preview');
+        const fileChip = event.target.closest('[data-rich-text-content] file-chip');
+        const linkPreview = event.target.closest('[data-rich-text-content] link-preview');
+        const reference = fileChip || linkPreview;
         if (! reference) return;
 
         const href = reference.getAttribute('href');
-        if (href) window.open(href, '_blank', 'noopener,noreferrer');
+        if (! href) return;
+
+        const target = fileChip ? '/file-downloads?url=' + encodeURIComponent(href) : href;
+        window.open(target, '_blank', 'noopener,noreferrer');
     });
 }
 
