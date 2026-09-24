@@ -1560,8 +1560,8 @@
     "semantic_hash": ""
   },
   "resources/js/rich-text-editor.js": {
-    "mtime": 1790248813.032511,
-    "ast_hash": "fc767f091c9e26746ddd3ede6cd29b3b",
+    "mtime": 1790260639.8372407,
+    "ast_hash": "ce8388d5bee10e3e39b086f1aaf88537",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text-editor.blade.php": {
@@ -1792,6 +1792,16 @@
   "tests/Feature/RichText/DescriptionViewEditModeTest.php": {
     "mtime": 1790251344.1310287,
     "ast_hash": "0c162f9deb745c3b8bc9fc22a9f1e356",
+    "semantic_hash": ""
+  },
+  "tests/Feature/RichText/DragAndDropUploadTest.php": {
+    "mtime": 1790260915.084082,
+    "ast_hash": "6ae4cf80914c07777fd6a0d2a75a69f6",
+    "semantic_hash": ""
+  },
+  "tests/Feature/RichText/ImageAltTextTest.php": {
+    "mtime": 1790260951.3043191,
+    "ast_hash": "b281d120130e0fdb88df6d3d928553aa",
     "semantic_hash": ""
   }
 }
