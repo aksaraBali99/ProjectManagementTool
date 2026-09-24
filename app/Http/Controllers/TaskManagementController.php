@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\DocumentAccessLevel;
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
@@ -264,12 +265,54 @@ class TaskManagementController extends Controller
                 if ($reconciled !== $task->description) {
                     $task->update(['description' => $reconciled]);
                 }
+
+                $this->attachDocumentChips($task, $reconciled);
             }
 
             return $task;
         });
 
         return redirect()->route('tasks.edit', $task)->with('status', 'Task created.');
+    }
+
+    /**
+     * A <file-chip href="...">Name</file-chip> in a just-created task's
+     * Description can only ever have gotten there via the Add Task page's
+     * document button — RichTextDocumentController::storePending()
+     * deliberately never creates a Document row at upload time, since
+     * there's no task_id to attach it to yet (see that controller's own
+     * docblock). This is the other half of that deferral: every file-chip
+     * found here, by construction, is one this exact save is seeing for
+     * the first time, so a Document row + task_documents attachment is
+     * created for each — no "does this one already have a Document row"
+     * check needed, since a real (non-pending) document upload on an
+     * EXISTING task never goes through store() at all.
+     *
+     * Called with the already-reconciled description, so href is already
+     * the permanent tasks/{id}/documents/... URL, not a pending one.
+     */
+    private function attachDocumentChips(Task $task, string $description): void
+    {
+        if (! str_contains($description, '<file-chip')) {
+            return;
+        }
+
+        preg_match_all('/<file-chip href="([^"]*)">([^<]*)<\/file-chip>/', $description, $matches, PREG_SET_ORDER);
+
+        foreach ($matches as $match) {
+            $href = html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $name = html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+            $document = Document::create([
+                'organization_id' => $task->organization_id,
+                'uploaded_by' => auth()->id(),
+                'name' => $name,
+                'link' => $href,
+                'access_level' => DocumentAccessLevel::Internal,
+            ]);
+
+            $task->documents()->attach($document->id);
+        }
     }
 
     public function edit(Task $task): View
