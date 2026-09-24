@@ -52,11 +52,17 @@ export const ResizableVideo = Video.extend({
             // #4 explicitly allows this lower-effort option) — most modern
             // browsers paint a black frame at currentTime 0 until playback
             // has actually started once, so nudging forward a fraction of
-            // a second right after enough data has loaded reliably forces
-            // a real decoded frame to paint instead.
-            video.addEventListener('loadeddata', function onLoadedData() {
-                video.removeEventListener('loadeddata', onLoadedData);
-                if (video.currentTime === 0 && video.duration > 0.1) {
+            // a second forces a real decoded frame to paint instead.
+            // 'loadedmetadata', not 'loadeddata': with preload="metadata"
+            // (deliberate — an unplayed video shouldn't fetch more than
+            // that just to render as a thumbnail) the browser only fetches
+            // duration/dimensions up front, never actual frame data, so
+            // 'loadeddata' never fires on its own here. Setting
+            // currentTime once metadata is known is what triggers the
+            // browser to fetch and decode that one frame.
+            video.addEventListener('loadedmetadata', function onLoadedMetadata() {
+                video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                if (video.duration > 0.1) {
                     try {
                         video.currentTime = Math.min(0.1, video.duration / 2);
                     } catch {

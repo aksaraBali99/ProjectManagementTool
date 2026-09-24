@@ -43,9 +43,14 @@ export function enhanceEmbeddedVideos(scope) {
         // The browser's own first frame, not a generated poster — same
         // small nudge-forward trick as resizable-video.js's editor
         // NodeView, kept identical so the two paths look the same.
-        video.addEventListener('loadeddata', function onLoadedData() {
-            video.removeEventListener('loadeddata', onLoadedData);
-            if (video.currentTime === 0 && video.duration > 0.1) {
+        // 'loadedmetadata', not 'loadeddata': preload="metadata" only
+        // fetches duration/dimensions, never frame data on its own, so
+        // 'loadeddata' never fires here without the seek below happening
+        // first — setting currentTime once metadata is known is what
+        // actually makes the browser fetch and decode that one frame.
+        video.addEventListener('loadedmetadata', function onLoadedMetadata() {
+            video.removeEventListener('loadedmetadata', onLoadedMetadata);
+            if (video.duration > 0.1) {
                 try {
                     video.currentTime = Math.min(0.1, video.duration / 2);
                 } catch {
