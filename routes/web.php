@@ -12,12 +12,14 @@ use App\Http\Controllers\DepartmentManagementController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\KanbanController;
+use App\Http\Controllers\LinkPreviewController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\OrganizationManagementController;
 use App\Http\Controllers\PermissionManagementController;
 use App\Http\Controllers\ProjectManagementController;
 use App\Http\Controllers\RichTextAudioController;
+use App\Http\Controllers\RichTextDocumentController;
 use App\Http\Controllers\RichTextImageController;
 use App\Http\Controllers\RichTextVideoController;
 use App\Http\Controllers\RoleManagementController;
@@ -124,6 +126,21 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::post('/tasks/{task}/video', [RichTextVideoController::class, 'store'])->name('tasks.video.store')->withTrashed();
     Route::post('/pending-task-video', [RichTextVideoController::class, 'storePending'])->name('tasks.video.store-pending');
 
+    // Document upload + embedding in the editor (task #4). Not
+    // /tasks/{task}/documents — that path is already
+    // task-documents.attach below (attaching an EXISTING document by id
+    // via the picker); "document-uploads" disambiguates "upload a NEW
+    // file from the editor" from that.
+    Route::post('/tasks/{task}/document-uploads', [RichTextDocumentController::class, 'store'])->name('tasks.document-uploads.store')->withTrashed();
+    Route::post('/pending-task-document-uploads', [RichTextDocumentController::class, 'storePending'])->name('tasks.document-uploads.store-pending');
+
+    // Smart Links (task #4) — resolves a pasted URL to a title/image/
+    // domain; see LinkPreviewController and LinkPreviewService for why
+    // there's no separate reconciliation-on-save step the way documents
+    // need one.
+    Route::post('/tasks/{task}/link-previews', [LinkPreviewController::class, 'resolve'])->name('tasks.link-previews.resolve')->withTrashed();
+    Route::post('/pending-task-link-previews', [LinkPreviewController::class, 'resolvePending'])->name('tasks.link-previews.resolve-pending');
+
     Route::post('/tasks/{task}/subtasks', [SubtaskController::class, 'store'])->name('subtasks.store');
     Route::patch('/subtasks/{subtask}/toggle', [SubtaskController::class, 'toggle'])->name('subtasks.toggle');
     Route::put('/subtasks/{subtask}', [SubtaskController::class, 'update'])->name('subtasks.update');
@@ -136,6 +153,12 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
 
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('/documents/create/{organization?}', [DocumentController::class, 'create'])->name('documents.create');
+    // A standalone top-level path, not /documents/download — the latter
+    // would hit the same "swallowed by the optional-segment route below"
+    // problem /documents/create already has to dodge with ordering, and
+    // this one's real identifier is a `url` query value, not a path
+    // segment, so it never needed to live under /documents/ at all.
+    Route::get('/file-downloads', [DocumentController::class, 'download'])->name('file-downloads.show');
     // Must stay registered after /documents/create/{organization?} above —
     // both are single-optional-segment GET routes, and Laravel matches in
     // registration order, so /documents/create would otherwise be

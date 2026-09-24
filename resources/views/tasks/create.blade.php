@@ -62,7 +62,7 @@
 
             <div>
                 <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</span>
-                <x-rich-text-editor class="mt-1" name="description" id="description" :value="old('description')" label="Description" placeholder="Add a description…" :image-pending-id="$pendingMediaId" :image-project-id="$project->id" :audio-pending-id="$pendingMediaId" :audio-project-id="$project->id" :video-pending-id="$pendingMediaId" :video-project-id="$project->id" />
+                <x-rich-text-editor class="mt-1" name="description" id="description" :value="old('description')" label="Description" placeholder="Add a description…" :image-pending-id="$pendingMediaId" :image-project-id="$project->id" :audio-pending-id="$pendingMediaId" :audio-project-id="$project->id" :video-pending-id="$pendingMediaId" :video-project-id="$project->id" :document-pending-id="$pendingMediaId" :document-project-id="$project->id" :link-preview-project-id="$project->id" />
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -219,6 +219,10 @@
                         descriptionEditor.dataset.audioDepartmentId = hasNoDepartments ? '' : departmentSelect.value;
                         descriptionEditor.dataset.videoProjectId = projectSelect.value;
                         descriptionEditor.dataset.videoDepartmentId = hasNoDepartments ? '' : departmentSelect.value;
+                        descriptionEditor.dataset.documentProjectId = projectSelect.value;
+                        descriptionEditor.dataset.documentDepartmentId = hasNoDepartments ? '' : departmentSelect.value;
+                        descriptionEditor.dataset.linkPreviewProjectId = projectSelect.value;
+                        descriptionEditor.dataset.linkPreviewDepartmentId = hasNoDepartments ? '' : departmentSelect.value;
                     }
                 }
 

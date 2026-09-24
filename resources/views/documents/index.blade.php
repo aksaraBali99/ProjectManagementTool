@@ -33,7 +33,7 @@
                     @forelse ($documents as $document)
                         <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
                             <td class="text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
-                                <a href="{{ $document->link }}" target="_blank" rel="noopener noreferrer" class="hover:underline">{{ $document->name }}</a>
+                                <a href="{{ route('file-downloads.show', ['url' => $document->link]) }}" target="_blank" rel="noopener noreferrer" class="hover:underline">{{ $document->name }}</a>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Access level</span>

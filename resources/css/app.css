@@ -442,7 +442,8 @@
 
 .rte-image-input,
 .rte-audio-input,
-.rte-video-input {
+.rte-video-input,
+.rte-document-input {
     display: none;
 }
 
@@ -598,7 +599,56 @@
     padding-left: 3px;
 }
 
-/* Description's own Edit/Save/Cancel (task #4, view/edit split) — icon
+/* File-chip (task #4, document upload + embedding) — a small clickable
+   reference card, not an inline preview/embed like image/audio/video
+   above: matches Jira's own attachment-chip treatment. Same border/
+   radius/color tokens as .description-action-btn's bordered-square
+   language rather than inventing a new palette. display: inline-flex (not
+   block, unlike every other media element here) since the TipTap node is
+   genuinely inline — it sits inside a line of text, not on its own row.
+   cursor: pointer only actually opens anything on the read-only render
+   (initFileChipDelegation in app.js, scoped to [data-rich-text-content])
+   — left on the editor's copy too, the same non-functional-hint reasoning
+   .rich-text img/.video-thumb's own cursor already documents. */
+.file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    padding: 3px 10px 3px 8px;
+    margin: 0 2px;
+    border: 1px solid #E5E7EB;
+    border-radius: var(--radius-md);
+    background: var(--color-gray-50);
+    color: var(--color-gray-700);
+    font-size: 11px;
+    line-height: 1.4;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.file-chip-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    color: var(--color-gray-500);
+}
+
+.file-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Link-preview (task #4, Smart Links) needs no CSS rules of its own — an
+   earlier version rendered it as a much larger block-level card with an
+   image thumbnail; the corrected, spec-accurate version is styled as a
+   COMPACT INLINE chip, identical in size and weight to .file-chip above
+   — not merely similar, actually rendered with the .file-chip class
+   itself (see link-preview-extension.js / link-preview-thumbnail.js),
+   so the two chip types can never visually drift apart from each other.
+
+   Description's own Edit/Save/Cancel (task #4, view/edit split) — icon
    buttons, not captioned ones, bordered like the "Attach"/"Post" secondary
    buttons elsewhere on this page (unlike .rte-btn's toolbar icons, these sit
    on a plain background with nothing else marking them as controls, so they

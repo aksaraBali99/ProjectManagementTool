@@ -8,6 +8,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 /**
@@ -183,6 +184,45 @@ class FileStorageService
         } catch (Throwable $e) {
             throw FileStorageException::urlGenerationFailed($path, $e);
         }
+    }
+
+    /**
+     * A previously-issued url() value is what every caller actually has on
+     * hand (a file-chip's saved href, a Document's own `link` column) —
+     * not the disk key — so this takes that URL and works backwards to the
+     * key, rather than asking callers to also track/pass the raw path.
+     *
+     * 'inline' disposition (Storage::response(), not ::download()) rather
+     * than always forcing a save-as: a browser that can render the type
+     * itself (a PDF, an image someone linked as a "document") still shows
+     * it in the tab exactly as before, and a type it can't render (docx,
+     * xlsx, ...) falls back to its own normal "save this" flow — either
+     * way, the filename in the Content-Disposition header this sets is
+     * the real original name, not the tasks/{id}/documents/{uuid}.ext key,
+     * which is what a plain link to the raw storage URL was always
+     * saving the download as.
+     *
+     * Returns null (not an exception) for a $url that isn't one of this
+     * disk's own — an external Smart Link/Document link, e.g. a Google
+     * Docs URL — since there's nothing here to stream; the caller falls
+     * back to a plain redirect for that case instead.
+     */
+    public function download(string $url, string $filename): ?StreamedResponse
+    {
+        $disk = Storage::disk($this->disk);
+        $base = rtrim($disk->url(''), '/');
+
+        if (! str_starts_with($url, $base.'/')) {
+            return null;
+        }
+
+        $path = substr($url, strlen($base) + 1);
+
+        if (! $disk->exists($path)) {
+            return null;
+        }
+
+        return $disk->response($path, $filename);
     }
 
     /**

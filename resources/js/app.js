@@ -194,12 +194,16 @@ function mountRichText(root) {
 }
 
 // Read-only rich text render-time enhancements — saved code blocks are
-// plain <pre><code class="language-x">, colored client-side, and (task #4,
+// plain <pre><code class="language-x">, colored client-side; (task #4,
 // video resize + lightbox) a saved <video> is turned into the same
-// click-to-expand thumbnail the live editor shows. Each only loads its own
-// chunk when there's actually something of that kind to enhance, and
-// re-running this over content that hasn't changed (the comment poll calls
-// it on every row) is a no-op past each one's own first pass.
+// click-to-expand thumbnail the live editor shows; (task #4, document
+// upload + embedding) a saved <file-chip> gets its icon added the same
+// way the live editor's own NodeView shows one; (task #4, Smart Links) a
+// saved <link-preview> gets its image/title/domain card built the same
+// way. Each only loads its own chunk when there's actually something of
+// that kind to enhance, and re-running this over content that hasn't
+// changed (the comment poll calls it on every row) is a no-op past each
+// one's own first pass.
 function highlightRichText(scope) {
     const target = scope || document;
     const passes = [];
@@ -210,6 +214,14 @@ function highlightRichText(scope) {
 
     if (target.querySelector('[data-rich-text-content] video:not([data-video-enhanced])')) {
         passes.push(import('./video-thumbnail.js').then(function (module) { module.enhanceEmbeddedVideos(target); }));
+    }
+
+    if (target.querySelector('[data-rich-text-content] file-chip:not([data-chip-enhanced])')) {
+        passes.push(import('./file-chip-thumbnail.js').then(function (module) { module.enhanceFileChips(target); }));
+    }
+
+    if (target.querySelector('[data-rich-text-content] link-preview:not([data-preview-enhanced])')) {
+        passes.push(import('./link-preview-thumbnail.js').then(function (module) { module.enhanceLinkPreviews(target); }));
     }
 
     return passes.length ? Promise.all(passes) : Promise.resolve();
@@ -258,16 +270,53 @@ function initLightboxDelegation() {
     });
 }
 
+// Click-to-open on a file-chip (task #4, document upload + embedding) or
+// a link-preview card (task #4, Smart Links) — same READ-ONLY-only scoping
+// as image/video's own delegation above and for the same reason (the live
+// editor's copy just selects the atom node on click), but its own
+// listener rather than folded into initLightboxDelegation: neither ever
+// opens a lightbox — a document always opens in a new tab, exactly like
+// the existing Documents page/tab already does, and a link preview is
+// just a nicer-looking hyperlink, which already means "opens in a new
+// tab" everywhere else in this app's rich text (RichText's sanitizer
+// forces every plain <a> to target="_blank" too).
+//
+// A file-chip's href is routed through /file-downloads (DocumentController
+// ::download) rather than opened directly — the raw storage URL a file-chip
+// carries is a bare tasks/{id}/documents/{uuid}.ext key, so opening it
+// directly would save under that key, not the file's real name; the
+// download route resolves it back to its Document row and streams it
+// with the real name in Content-Disposition instead (task #4 fix, same
+// motivation as documents/index.blade.php's and tasks/_documents.blade.php's
+// own links). A link-preview's href is always an external URL, never one
+// of our own uploads, so it keeps opening exactly as given.
+function initExternalReferenceDelegation() {
+    document.addEventListener('click', function (event) {
+        const fileChip = event.target.closest('[data-rich-text-content] file-chip');
+        const linkPreview = event.target.closest('[data-rich-text-content] link-preview');
+        const reference = fileChip || linkPreview;
+        if (! reference) return;
+
+        const href = reference.getAttribute('href');
+        if (! href) return;
+
+        const target = fileChip ? '/file-downloads?url=' + encodeURIComponent(href) : href;
+        window.open(target, '_blank', 'noopener,noreferrer');
+    });
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
         initPhoneInputs();
         initAnalyticsCharts();
         initRichText();
         initLightboxDelegation();
+        initExternalReferenceDelegation();
     });
 } else {
     initPhoneInputs();
     initAnalyticsCharts();
     initRichText();
     initLightboxDelegation();
+    initExternalReferenceDelegation();
 }
