@@ -235,7 +235,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-K9fdqEVc.js",
+    "file": "assets/app-CJB4esKq.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -281,7 +281,7 @@
     "isDynamicEntry": true
   },
   "resources/js/rich-text-editor.js": {
-    "file": "assets/rich-text-editor-BhTEl6bR.js",
+    "file": "assets/rich-text-editor-IZqHN9II.js",
     "name": "rich-text-editor",
     "src": "resources/js/rich-text-editor.js",
     "isDynamicEntry": true,
