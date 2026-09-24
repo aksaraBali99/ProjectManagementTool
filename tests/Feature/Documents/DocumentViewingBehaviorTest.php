@@ -24,13 +24,17 @@ use App\Models\User;
  * listener. Verified clean; see the PR description for the full account
  * of what was checked and why nothing needed to change.
  *
- * A fourth surface named in the task — a "file-chip" node embedding a
- * Document from inside the Description/Comments editor — does not exist
- * in this codebase (no RichTextDocumentController, no chip-related JS);
- * skipped per the task's own instruction to skip a feature that hasn't
- * been built yet. Whoever adds that feature later should extend this file
- * with the same two assertions (new-tab attributes; not inline/embedded)
- * rather than starting a separate test file for it.
+ * A fourth surface named in this phase's original task — a "file-chip"
+ * node embedding a Document from inside the Description/Comments editor —
+ * did not exist yet when this file was written, and was skipped here per
+ * that task's own instruction to skip a feature that hadn't been built.
+ * It has since been built (task #4, document upload + embedding) — its
+ * own new-tab-click and not-inline-preview coverage lives in
+ * DocumentUploadTest.php (tests/Feature/RichText/), not here, since that
+ * feature is fundamentally a rich-text/editor concern (permission model,
+ * FileStorageService reuse, pending-upload reconciliation) shaped like
+ * ImageUploadTest.php/AudioUploadTest.php/VideoUploadTest.php, not a
+ * Documents-page-viewing concern like the rest of this file.
  */
 beforeEach(function () {
     $this->owner = createOwner();
