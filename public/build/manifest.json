@@ -182,7 +182,7 @@
     "src": "node_modules/intl-tel-input/dist/img/flags@2x.webp"
   },
   "resources/css/app.css": {
-    "file": "assets/app-FaxtPLWr.css",
+    "file": "assets/app-Ci8N03Kv.css",
     "name": "app",
     "names": [
       "app.css"
@@ -235,7 +235,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-B0Y0ZyeG.js",
+    "file": "assets/app-BFZDKbzv.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -281,7 +281,7 @@
     "isDynamicEntry": true
   },
   "resources/js/rich-text-editor.js": {
-    "file": "assets/rich-text-editor-BBv7OBaB.js",
+    "file": "assets/rich-text-editor-ce8N86-I.js",
     "name": "rich-text-editor",
     "src": "resources/js/rich-text-editor.js",
     "isDynamicEntry": true,
