@@ -1681,6 +1681,10 @@ export function createRichTextEditor(root) {
     let documentUpload = null;
     let linkPreview = null;
     let clipboardMediaPaste = null;
+    // Description's own autosave-on-blur (task #4, description autosave)
+    // is the only current caller of onSettledBlur() below — a single
+    // callback slot is enough, no consumer needs more than one.
+    let settledBlurCallback = null;
 
     // Trailing empty paragraphs (the editor keeps one after a final code
     // block, or after a block image, so the cursor can leave it) aren't
@@ -1832,8 +1836,46 @@ export function createRichTextEditor(root) {
         onBlur: function () {
             // Delayed so a mousedown-picked option still runs first.
             if (mentions) setTimeout(mentions.close, 150);
+            // Same delay for the same reason — see isBlurSettled()'s own
+            // doc comment for what "settled" actually checks.
+            if (settledBlurCallback) {
+                setTimeout(function () {
+                    if (isBlurSettled() && ! anyUploadBusy()) settledBlurCallback();
+                }, 150);
+            }
         },
     });
+
+    // The ProseMirror contenteditable losing DOM focus (TipTap's onBlur,
+    // above) fires constantly during totally ordinary editing — clicking
+    // a toolbar button, opening the link bar's own input, opening the
+    // emoji picker's search box are all, from the browser's point of
+    // view, "focus left the contenteditable" even though the user never
+    // left this editor widget at all. A consumer that wants to know when
+    // focus has genuinely left the WHOLE thing (onSettledBlur() below)
+    // needs this stronger check, not the bare onBlur event: the toolbar,
+    // link bar and upload inputs are all real descendants of `root` (see
+    // the root.prepend(...) call further down), so root.contains(...)
+    // covers those; the emoji picker's own popup is the one piece
+    // deliberately appended to document.body instead (so it can float
+    // above everything, same reason the @mention/emoji ":" suggestion
+    // dropdowns are too) — checked separately since root.contains() can't
+    // see it. The mention/emoji suggestion dropdowns don't need their own
+    // check: their options are picked via mousedown+preventDefault()
+    // specifically so clicking one never steals focus away from the
+    // editor in the first place.
+    function isBlurSettled() {
+        const active = document.activeElement;
+        if (! active || active === document.body) return true;
+        if (root.contains(active)) return false;
+        if (active.closest && active.closest('.rte-emoji-picker')) return false;
+
+        return true;
+    }
+
+    function anyUploadBusy() {
+        return imageUpload.isBusy() || audioUpload.isBusy() || videoUpload.isBusy() || documentUpload.isBusy();
+    }
 
     const emojiPicker = buildEmojiPicker(editor);
     imageUpload = buildImageUpload(editor, root, function (busy) {
@@ -1911,6 +1953,15 @@ export function createRichTextEditor(root) {
             if (mentions) mentions.reset();
         },
         getMentionedUserIds: function () { return mentions ? mentions.ids() : []; },
+        // task #4, description autosave — registers `callback` to run once
+        // focus has genuinely left this whole editor widget (not merely
+        // its bare contenteditable — see isBlurSettled() above), and no
+        // upload it owns is still in flight. Not called for every editor
+        // by default; only tasks/_description-field.blade.php's own
+        // inline script wires this up today, to auto-submit the Edit Task
+        // form — Comments' new/edit boxes keep their existing explicit
+        // Post/Save controls, untouched.
+        onSettledBlur: function (callback) { settledBlurCallback = callback; },
         destroy: function () {
             if (mentions) mentions.close();
             emojiPicker.close();
