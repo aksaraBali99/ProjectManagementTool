@@ -120,7 +120,7 @@
     "semantic_hash": ""
   },
   "resources/js/app.js": {
-    "mtime": 1790212364.3502536,
+    "mtime": 1790216520.15641,
     "ast_hash": "e5336ceec897fee6a6587c2d797a4592",
     "semantic_hash": ""
   },
@@ -1545,7 +1545,7 @@
     "semantic_hash": ""
   },
   "app/Support/RichText.php": {
-    "mtime": 1790212442.465811,
+    "mtime": 1790216520.099776,
     "ast_hash": "d81385dc03ed6cafdb0c471c80f5585c",
     "semantic_hash": ""
   },
@@ -1560,7 +1560,7 @@
     "semantic_hash": ""
   },
   "resources/js/rich-text-editor.js": {
-    "mtime": 1790212380.4084637,
+    "mtime": 1790216520.1619446,
     "ast_hash": "110c52aac9f9fc3999ec2a1c5e157fbd",
     "semantic_hash": ""
   },
@@ -1590,7 +1590,7 @@
     "semantic_hash": ""
   },
   "tests/Unit/RichTextTest.php": {
-    "mtime": 1790212509.3265274,
+    "mtime": 1790216520.1675448,
     "ast_hash": "e0c770aac99b77916d9ed948ae4745d8",
     "semantic_hash": ""
   },
@@ -1600,7 +1600,7 @@
     "semantic_hash": ""
   },
   "resources/js/lightbox.js": {
-    "mtime": 1790212325.2523725,
+    "mtime": 1790216520.1584206,
     "ast_hash": "491da0988789097e829608afa316eabb",
     "semantic_hash": ""
   },
@@ -1665,7 +1665,7 @@
     "semantic_hash": ""
   },
   "resources/js/video-extension.js": {
-    "mtime": 1790212246.2852335,
+    "mtime": 1790216520.162982,
     "ast_hash": "df05e4edc9143a71ff90972ef8a15337",
     "semantic_hash": ""
   },
@@ -1675,23 +1675,28 @@
     "semantic_hash": ""
   },
   "app/Support/MediaDimensionAttributeSanitizer.php": {
-    "mtime": 1790212426.814701,
+    "mtime": 1790216520.099776,
     "ast_hash": "2437018ebe67ec2bd8c19c36c44178d7",
     "semantic_hash": ""
   },
   "resources/js/resizable-video.js": {
-    "mtime": 1790213109.6553555,
+    "mtime": 1790216520.1584206,
     "ast_hash": "fc3681e0deed8afb653cb1f3f5e94f50",
     "semantic_hash": ""
   },
   "resources/js/video-thumbnail.js": {
-    "mtime": 1790213126.409949,
+    "mtime": 1790216520.165005,
     "ast_hash": "ac649da30b9ae2762c9b4b471436005f",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/VideoResizeTest.php": {
-    "mtime": 1790212551.6988344,
+    "mtime": 1790216520.1655164,
     "ast_hash": "aef8c2428ab1dad1c90d107ebfd3c073",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Documents/DocumentViewingBehaviorTest.php": {
+    "mtime": 1790216712.177422,
+    "ast_hash": "0b18650f69c306947f3f57d84847a526",
     "semantic_hash": ""
   }
 }
