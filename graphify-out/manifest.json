@@ -120,8 +120,8 @@
     "semantic_hash": ""
   },
   "resources/js/app.js": {
-    "mtime": 1790233446.9210024,
-    "ast_hash": "dc1d18b8a6047c896384caa87b9c9128",
+    "mtime": 1790243747.361118,
+    "ast_hash": "8a1b55dd0ee9da042672b934aadbfc06",
     "semantic_hash": ""
   },
   "routes/console.php": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1790233271.0841663,
-    "ast_hash": "3d6e5448ad8ab754d309b2f62455eb9e",
+    "mtime": 1790243701.3195288,
+    "ast_hash": "92aae9cd982a17a6827103372641e82c",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1787710144.9367301,
-    "ast_hash": "2c3677c14aebcf86de64f2595fe43302",
+    "mtime": 1790243694.5735483,
+    "ast_hash": "81279b078b034c4459bfa66c3eb6a1b5",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
-    "mtime": 1787710145.172729,
-    "ast_hash": "05086a5b1f00b397dcbf8b7dab0b482d",
+    "mtime": 1790243733.348143,
+    "ast_hash": "4b265152f1da83680293126a04519001",
     "semantic_hash": ""
   },
   "resources/views/tasks/_subtasks.blade.php": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "resources/views/documents/index.blade.php": {
-    "mtime": 1787710145.0947285,
-    "ast_hash": "55f2c600844c0373987ebbb1c1cf529b",
+    "mtime": 1790243710.306537,
+    "ast_hash": "b8e30bd51970e85f8fee85cd578f6187",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentCreateTest.php": {
@@ -1520,8 +1520,8 @@
     "semantic_hash": ""
   },
   "app/Services/FileStorageService.php": {
-    "mtime": 1790124529.3469932,
-    "ast_hash": "a7df8fa863c9a9fa4ec549a0f57a5127",
+    "mtime": 1790243674.8478856,
+    "ast_hash": "9e56142b5a215a8d5ebe4a39faa5e00b",
     "semantic_hash": ""
   },
   "app/Services/StoredFile.php": {
@@ -1695,8 +1695,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentViewingBehaviorTest.php": {
-    "mtime": 1790228466.7432916,
-    "ast_hash": "4c040881f675a3cbec4cd127c6213c46",
+    "mtime": 1790243995.5686715,
+    "ast_hash": "681168a1fa578c03bedbf6a2dc6fbd73",
     "semantic_hash": ""
   },
   "app/Http/Controllers/LinkPreviewController.php": {
@@ -1767,6 +1767,11 @@
   "tests/Feature/RichText/LinkPreviewTest.php": {
     "mtime": 1790240505.6250668,
     "ast_hash": "f878da0b939b01d71cb42e0d6a6c3f9a",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Documents/DocumentDownloadTest.php": {
+    "mtime": 1790243903.311464,
+    "ast_hash": "1ba400fcf8c18943a81213ee9d02e66d",
     "semantic_hash": ""
   }
 }
