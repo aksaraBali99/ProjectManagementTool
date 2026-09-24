@@ -4,7 +4,7 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Emoji, { emojis as defaultEmojis } from '@tiptap/extension-emoji';
 import { ResizableImage } from './resizable-image.js';
 import { Audio } from './audio-extension.js';
-import { Video } from './video-extension.js';
+import { ResizableVideo } from './resizable-video.js';
 import { isEmojiSupported } from 'is-emoji-supported';
 import { lowlight } from './code-highlight.js';
 
@@ -1308,8 +1308,26 @@ export function createRichTextEditor(root) {
             // plain custom node rather than a NodeView or third-party
             // package.
             Audio,
-            // task #4 phase 5 — same reasoning, see video-extension.js.
-            Video,
+            // task #4, video resize + lightbox: same resize shape as
+            // ResizableImage above — maxWidth 800 matches the exact same
+            // content-column cap images use (resources/css/app.css),
+            // alwaysPreserveAspectRatio: true so dragging any single
+            // handle scales both dimensions together. minWidth 160 (vs.
+            // image's 100) and minHeight 90 (a 16:9-consistent floor) are
+            // video-specific per that task's own instructions — a video
+            // thumbnail small enough to use image's 100px floor reads as
+            // too small to register as "there's a video here."
+            ResizableVideo.configure({
+                resize: {
+                    enabled: true,
+                    directions: ['bottom', 'right', 'bottom-right'],
+                    minWidth: 160,
+                    maxWidth: 800,
+                    minHeight: 90,
+                    maxHeight: 800,
+                    alwaysPreserveAspectRatio: true,
+                },
+            }),
         ],
         editorProps: {
             attributes: { class: 'rte-prose rich-text', role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },

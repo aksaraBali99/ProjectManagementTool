@@ -193,16 +193,26 @@ function mountRichText(root) {
     return richTextMounts.get(root);
 }
 
-// Saved code blocks are plain <pre><code class="language-x">; read-only
-// views get their syntax colors from this client-side pass. Only loads the
-// highlighter chunk when there's actually a code block to color.
+// Read-only rich text render-time enhancements — saved code blocks are
+// plain <pre><code class="language-x">, colored client-side, and (task #4,
+// video resize + lightbox) a saved <video> is turned into the same
+// click-to-expand thumbnail the live editor shows. Each only loads its own
+// chunk when there's actually something of that kind to enhance, and
+// re-running this over content that hasn't changed (the comment poll calls
+// it on every row) is a no-op past each one's own first pass.
 function highlightRichText(scope) {
     const target = scope || document;
-    if (! target.querySelector('[data-rich-text-content] pre code:not([data-highlighted])')) {
-        return Promise.resolve();
+    const passes = [];
+
+    if (target.querySelector('[data-rich-text-content] pre code:not([data-highlighted])')) {
+        passes.push(import('./code-highlight.js').then(function (module) { module.highlightCodeBlocks(target); }));
     }
 
-    return import('./code-highlight.js').then(function (module) { module.highlightCodeBlocks(target); });
+    if (target.querySelector('[data-rich-text-content] video:not([data-video-enhanced])')) {
+        passes.push(import('./video-thumbnail.js').then(function (module) { module.enhanceEmbeddedVideos(target); }));
+    }
+
+    return passes.length ? Promise.all(passes) : Promise.resolve();
 }
 
 window.solavaRichText = { mount: mountRichText, highlight: highlightRichText };
@@ -212,21 +222,39 @@ function initRichText() {
     highlightRichText(document);
 }
 
-// Click-to-enlarge on an embedded image — scoped to READ-ONLY rendered rich
-// text (task drilldown, comment list, the non-editable task view: anywhere
-// carrying `data-rich-text-content`), not the live editing surface, where a
-// click is normally placing the cursor or selecting the image node, not
-// asking to preview it. One delegated listener covers every current image
-// and any a comment row adds later (buildCommentRow/syncComments in
-// tasks/_comments.blade.php), so nothing needs re-wiring per row.
+// Click-to-enlarge on an embedded image, or click-to-expand-and-play on a
+// video thumbnail (task #4, video resize + lightbox) — scoped to
+// READ-ONLY rendered rich text (task drilldown, comment list, the
+// non-editable task view: anywhere carrying `data-rich-text-content`), not
+// the live editing surface, where a click is normally placing the cursor
+// or selecting the node, not asking to preview it. One delegated listener
+// covers every current image/video and any a comment row adds later
+// (buildCommentRow/syncComments in tasks/_comments.blade.php), so nothing
+// needs re-wiring per row.
 function initLightboxDelegation() {
     document.addEventListener('click', function (event) {
         const img = event.target.closest('[data-rich-text-content] img');
-        if (! img) return;
+        if (img) {
+            import('./lightbox.js').then(function (module) {
+                module.openLightbox({ type: 'image', src: img.currentSrc || img.src, alt: img.alt });
+            });
+            return;
+        }
 
-        import('./lightbox.js').then(function (module) {
-            module.openLightbox({ src: img.currentSrc || img.src, alt: img.alt });
-        });
+        // .video-thumb is the wrapper video-thumbnail.js builds around the
+        // actual <video> (pointer-events: none on the video itself, see
+        // app.css, so the click always lands on this wrapper) — matches
+        // resizable-video.js's own editor-side markup, so both read the
+        // same way here even though only the read-only one opens anything.
+        const videoThumb = event.target.closest('[data-rich-text-content] .video-thumb');
+        if (videoThumb) {
+            const video = videoThumb.querySelector('video');
+            if (! video) return;
+
+            import('./lightbox.js').then(function (module) {
+                module.openLightbox({ type: 'video', src: video.currentSrc || video.src });
+            });
+        }
     });
 }
 
