@@ -13,8 +13,10 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  *   - legacy plain text (everything saved before the editor swap, plus
  *     anything written by the Bulk Import feature), and
  *   - HTML produced by the editor (a run of block elements: <p>, <h1-3>,
- *     <ul>/<ol>, <pre>, <audio>, <video>, plus the void <img> block node —
- *     see VOID_BLOCK_TAGS).
+ *     <ul>/<ol>, <pre>, <audio>, <video>, <link-preview>, plus the void
+ *     <img> block node — see VOID_BLOCK_TAGS — and an inline <file-chip>
+ *     living inside a <p> like any other inline content, so it needs no
+ *     entry in either list).
  *
  * The format is detected from the value itself rather than tracked in a
  * column, so the LONGTEXT migration stays a pure widening and no existing
@@ -40,8 +42,11 @@ class RichText
     // audio-extension.js, video-extension.js) render them as
     // <audio ...></audio> / <video ...></video>, ordinary open/close pairs
     // like <pre>, not self-closing tags. They belong here, not in
-    // VOID_BLOCK_TAGS.
-    private const BLOCK_TAGS = 'p|h[1-6]|ul|ol|pre|audio|video';
+    // VOID_BLOCK_TAGS. link-preview (task #4, Smart Links) is the same
+    // shape again — a block-level node (it takes its own line, like
+    // audio/video/img, not inline like file-chip) with no children of its
+    // own, but still a real open/close pair, not self-closing.
+    private const BLOCK_TAGS = 'p|h[1-6]|ul|ol|pre|audio|video|link-preview';
 
     /**
      * Block-level nodes the editor emits with no closing tag (an uploaded
@@ -134,13 +139,17 @@ class RichText
 
         $clean = self::sanitize($value);
 
-        // An image-, audio-, or video-only description/comment has no
-        // visible text at all, but it's still real content, not a blank
-        // editor — plainText() alone would otherwise null it out.
+        // An image-, audio-, video-, or link-preview-only description/
+        // comment has no visible text at all, but it's still real
+        // content, not a blank editor — plainText() alone would otherwise
+        // null it out. A file-chip needs no entry here: its name is real
+        // visible text (see plainText()), so plainText($clean) is already
+        // non-empty whenever one is present.
         if (self::plainText($clean) === ''
             && ! str_contains($clean, '<img')
             && ! str_contains($clean, '<audio')
-            && ! str_contains($clean, '<video')) {
+            && ! str_contains($clean, '<video')
+            && ! str_contains($clean, '<link-preview')) {
             return null;
         }
 
@@ -213,6 +222,41 @@ class RichText
                 // strips it.
                 ->allowElement('audio', ['src', 'controls'])
                 ->allowElement('video', ['src', 'controls', 'width', 'height'])
+                // file-chip (document upload + embedding in editor): a
+                // custom inline element, deliberately not <a> — an <a>'s
+                // href goes through the stricter link-scheme/relative-link
+                // rules (meant for user-typed hyperlinks to arbitrary
+                // sites), while this is a same-origin reference to a file
+                // this app itself stored, exactly like img/audio/video's
+                // src, which already gets the more permissive media rules
+                // instead. Its own click-to-open-in-a-new-tab behavior is
+                // wired in JS (app.js), not inherited from <a>'s native
+                // navigation. The chip's visible name is its own text
+                // content, not a separate attribute — plainText() already
+                // extracts it as ordinary readable text with no extra
+                // handling needed, unlike img/audio/video's "no readable
+                // text" cases.
+                ->allowElement('file-chip', ['href'])
+                // link-preview (Smart Links, task #4): a snapshot taken at
+                // paste time (LinkPreviewService), not a live reference —
+                // title/domain/image are baked in as plain attributes
+                // specifically so viewing this description/comment later
+                // never triggers a fresh fetch or a per-viewer difference
+                // (see the link_previews migration's own docblock for why
+                // that's a deliberate departure from how Jira's Smart
+                // Links work). href here is an arbitrary external URL
+                // (not same-origin like file-chip's), but still goes
+                // through the same lenient media-scheme rules as img/
+                // audio/video/file-chip, not <a>'s stricter link rules —
+                // Symfony's UrlAttributeSanitizer only applies the
+                // stricter path to the literal <a>/<area> elements,
+                // regardless of attribute name (see
+                // UrlAttributeSanitizer::sanitizeAttribute()) — which is
+                // fine here since UrlSsrfGuard already required http/https
+                // before this URL was ever fetched or cached in the first
+                // place. image is the source page's own og:image URL,
+                // same reasoning. title/domain are plain text, not URLs.
+                ->allowElement('link-preview', ['href', 'title', 'domain', 'image'])
                 ->dropElement('script')
                 ->dropElement('style')
                 // Unknown elements are dropped WITH their contents by default.
@@ -224,20 +268,24 @@ class RichText
                 ->allowRelativeLinks(false)
                 ->forceAttribute('a', 'rel', 'noopener noreferrer nofollow')
                 ->forceAttribute('a', 'target', '_blank')
-                // 'src' is sanitized against these same rules for every
-                // element (Symfony's UrlAttributeSanitizer applies them to
-                // anything that isn't an <a>/<area> href) — img, audio and
-                // video are the only ones we allow. The library's own
-                // default additionally allows "data:" here; excluded, since
-                // a base64-embedded file would both defeat the point of
-                // uploading to storage and let a crafted request stuff an
-                // arbitrarily large blob straight into the database.
+                // 'src'/'href' are both sanitized against these same rules
+                // for every element (Symfony's UrlAttributeSanitizer
+                // applies them to anything that isn't an <a>/<area> href,
+                // regardless of the attribute's own name — see
+                // UrlAttributeSanitizer::sanitizeAttribute()) — img, audio,
+                // video and file-chip are the only ones we allow. The
+                // library's own default additionally allows "data:" here;
+                // excluded, since a base64-embedded file would both defeat
+                // the point of uploading to storage and let a crafted
+                // request stuff an arbitrarily large blob straight into
+                // the database.
                 ->allowMediaSchemes(['http', 'https'])
-                // Unlike a link's href, a relative <img>/<audio>/<video> src
-                // carries no real risk (it's just a same-origin GET for
-                // media bytes, same as any other such tag the browser
-                // already loads on this page — no script executes, nothing
-                // crosses origins) — and
+                // Unlike a link's href, a relative <img>/<audio>/<video>/
+                // <file-chip> src/href carries no real risk (it's just a
+                // same-origin GET for bytes this app itself stored, same as
+                // any other such tag the browser already loads on this
+                // page — no script executes, nothing crosses origins) —
+                // and
                 // config('filestorage.disk') is allowed to be 'local' rather
                 // than R2/MinIO (see FileStorageService's docblock), which
                 // legitimately produces relative "/storage/..." URLs.
