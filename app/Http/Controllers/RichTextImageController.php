@@ -60,11 +60,21 @@ class RichTextImageController extends Controller
             Gate::authorize('create', Comment::class);
         }
 
-        $desiredFilename = ($data['pasted'] ?? false)
-            ? app(PastedMediaNamer::class)->nextFilename($task, FileCategory::Image, $data['title'] ?? null)
-            : null;
+        if ($data['pasted'] ?? false) {
+            // The naming and the actual upload happen INSIDE
+            // PastedMediaNamer's own transaction+lock (see its own
+            // docblock) — a rejected file (oversized, disallowed type)
+            // never burns a number, since the pasted_media row is only
+            // written after $service->upload() itself succeeds.
+            return $this->upload(fn (FileStorageService $service) => app(PastedMediaNamer::class)->withNextFilename(
+                $task,
+                FileCategory::Image,
+                $data['title'] ?? null,
+                fn (string $filename) => $service->upload($request->file('file'), FileCategory::Image, $task->id, $filename),
+            ));
+        }
 
-        return $this->upload(fn (FileStorageService $service) => $service->upload($request->file('file'), FileCategory::Image, $task->id, $desiredFilename));
+        return $this->upload(fn (FileStorageService $service) => $service->upload($request->file('file'), FileCategory::Image, $task->id));
     }
 
     /**

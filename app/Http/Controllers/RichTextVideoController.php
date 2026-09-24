@@ -59,11 +59,20 @@ class RichTextVideoController extends Controller
             Gate::authorize('create', Comment::class);
         }
 
-        $desiredFilename = ($data['pasted'] ?? false)
-            ? app(PastedMediaNamer::class)->nextFilename($task, FileCategory::Video, $data['title'] ?? null)
-            : null;
+        if ($data['pasted'] ?? false) {
+            // See RichTextImageController::store()'s identical branch —
+            // the naming and the actual upload happen INSIDE
+            // PastedMediaNamer's own transaction+lock, so a rejected file
+            // (oversized, disallowed type) never burns a number.
+            return $this->upload(fn (FileStorageService $service) => app(PastedMediaNamer::class)->withNextFilename(
+                $task,
+                FileCategory::Video,
+                $data['title'] ?? null,
+                fn (string $filename) => $service->upload($request->file('file'), FileCategory::Video, $task->id, $filename),
+            ));
+        }
 
-        return $this->upload(fn (FileStorageService $service) => $service->upload($request->file('file'), FileCategory::Video, $task->id, $desiredFilename));
+        return $this->upload(fn (FileStorageService $service) => $service->upload($request->file('file'), FileCategory::Video, $task->id));
     }
 
     /**

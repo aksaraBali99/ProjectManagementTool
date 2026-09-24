@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Enums\FileCategory;
+use App\Exceptions\FileStorageException;
 use App\Models\PastedMedia;
 use App\Models\Task;
+use Closure;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -33,14 +35,30 @@ class PastedMediaNamer
      * concurrent pastes (two tabs, two people) for the SAME task can
      * never both count the other's paste as "not there yet" and race to
      * the same n — the second request's transaction simply waits for the
-     * first one's (count + insert) to commit, then counts again and sees
-     * it. A plain "count, then create" with no lock has exactly that race
-     * window between the two steps; this closes it at the database level
-     * rather than trying to do so in PHP.
+     * first one's (count + upload + insert) to commit, then counts again
+     * and sees it. A plain "count, then create" with no lock has exactly
+     * that race window between the two steps; this closes it at the
+     * database level rather than trying to do so in PHP.
+     *
+     * $upload runs INSIDE this same transaction, between computing the
+     * name and recording the pasted_media row — deliberately, not
+     * "compute the name, then separately try the upload": the whole
+     * point of only ever writing a row on a successful store (see the
+     * migration's own docblock) is that a failed upload — an oversized
+     * or disallowed-type file, discovered only once
+     * FileStorageService::validate() actually runs — must NOT burn a
+     * number. Resolving the name first and calling the real upload
+     * (which can throw FileStorageException) second, all under one lock,
+     * is what makes that guarantee hold; a caller that computed the name
+     * up front and uploaded afterward, outside this method, would leak
+     * exactly the gap this is built to avoid.
+     *
+     * @throws FileStorageException whatever $upload itself throws — propagated after
+     *                              rolling back the transaction, so no row is left behind
      */
-    public function nextFilename(Task $task, FileCategory $category, ?string $titleAtPasteTime): string
+    public function withNextFilename(Task $task, FileCategory $category, ?string $titleAtPasteTime, Closure $upload): StoredFile
     {
-        return DB::transaction(function () use ($task, $category, $titleAtPasteTime) {
+        return DB::transaction(function () use ($task, $category, $titleAtPasteTime, $upload) {
             Task::whereKey($task->id)->lockForUpdate()->first();
 
             $n = PastedMedia::where('task_id', $task->id)
@@ -49,6 +67,8 @@ class PastedMediaNamer
 
             $filename = self::buildName($titleAtPasteTime, $category, $n);
 
+            $stored = $upload($filename);
+
             PastedMedia::create([
                 'organization_id' => $task->organization_id,
                 'task_id' => $task->id,
@@ -56,7 +76,7 @@ class PastedMediaNamer
                 'filename' => $filename,
             ]);
 
-            return $filename;
+            return $stored;
         });
     }
 

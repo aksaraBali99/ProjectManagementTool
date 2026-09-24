@@ -12,6 +12,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\FileStorageService;
 use App\Services\PastedMediaNamer;
+use App\Services\StoredFile;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
@@ -247,11 +248,11 @@ test('a malformed pending filename is rejected as a validation error rather than
 test('two rapid pastes for the same task and type never collide on the same number', function () {
     // True parallel requests aren't reproducible within a single Pest
     // process; what IS verified here is the shared code path
-    // (PastedMediaNamer::nextFilename()'s lock-then-count-then-create,
-    // all inside one transaction) under back-to-back calls, which is
-    // exactly what a naive "count, then create" WITHOUT the lock would
-    // already get wrong even sequentially if the count and the create
-    // were two separate, interruptible steps.
+    // (PastedMediaNamer::withNextFilename()'s lock-then-count-then-
+    // upload-then-create, all inside one transaction) under back-to-back
+    // calls, which is exactly what a naive "count, then create" WITHOUT
+    // the lock would already get wrong even sequentially if the count
+    // and the create were two separate, interruptible steps.
     $filenames = [];
     for ($i = 0; $i < 5; $i++) {
         $response = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/images", [
@@ -273,21 +274,54 @@ test('two rapid pastes for the same task and type never collide on the same numb
     expect(PastedMedia::where('task_id', $this->task->id)->where('file_type', 'image')->count())->toBe(5);
 });
 
-test('PastedMediaNamer::nextFilename is safe under a genuinely interleaved count-then-create — two callers both see the count from before either one wrote', function () {
+test('PastedMediaNamer::withNextFilename is safe under a genuinely interleaved count-then-create — two callers both see the count from before either one wrote', function () {
     // A stronger unit-level version of the test above: proves the
     // "database-level count-and-lock" requirement directly, by manually
-    // interleaving two nextFilename() calls' internals rather than
+    // interleaving two withNextFilename() calls' internals rather than
     // relying on Laravel's own request-per-call boundary to serialize
     // them. Without Task::lockForUpdate() inside the transaction, both
     // of these would independently compute n=1 from an empty table and
     // collide; the deferred second COUNT below only sees the first
     // call's row because the lock ordering already serialized them.
-    app(PastedMediaNamer::class)->nextFilename($this->task, FileCategory::Image, 'Redesign Navbar!!');
+    $namer = app(PastedMediaNamer::class);
+    $succeed = fn (string $filename) => new StoredFile(path: $filename, url: "https://example.test/{$filename}");
+
+    $namer->withNextFilename($this->task, FileCategory::Image, 'Redesign Navbar!!', $succeed);
 
     expect(PastedMedia::where('task_id', $this->task->id)->count())->toBe(1);
 
-    $second = app(PastedMediaNamer::class)->nextFilename($this->task, FileCategory::Image, 'Redesign Navbar!!');
-    expect($second)->toBe('redesign-navbar-image-2');
+    $second = $namer->withNextFilename($this->task, FileCategory::Image, 'Redesign Navbar!!', $succeed);
+    expect($second->path)->toBe('redesign-navbar-image-2');
+});
+
+test('a REJECTED pasted file (oversized, disallowed type) never burns a sequence number — the row is only written once the upload itself actually succeeds', function () {
+    // Regression coverage for a bug caught during manual testing: naming
+    // was originally resolved (and the pasted_media row created) BEFORE
+    // attempting the real upload, so a paste that failed validation
+    // still silently consumed a number, leaving the next SUCCESSFUL
+    // paste at e.g. "-video-2" despite being the only video that ever
+    // actually made it into the task. withNextFilename() now runs the
+    // upload itself inside the same transaction, before recording
+    // anything, specifically to close this gap.
+    $oversizeKb = intdiv(FileCategory::Video->config()['max_size'], 1024) + 500;
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/video", [
+        'file' => UploadedFile::fake()->create('too-big.mp4', $oversizeKb, 'video/mp4'),
+        'context' => 'description',
+        'pasted' => true,
+        'title' => $this->task->title,
+    ])->assertStatus(422);
+
+    expect(PastedMedia::count())->toBe(0);
+
+    $response = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/video", [
+        'file' => fakePastedVideo(),
+        'context' => 'description',
+        'pasted' => true,
+        'title' => $this->task->title,
+    ])->assertCreated();
+
+    expect(basenameOf($response->json('url')))->toBe('redesign-navbar-video-1');
 });
 
 // ---------------------------------------------------------------------------
