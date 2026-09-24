@@ -170,7 +170,17 @@ function buildToolbar(editor, handlers) {
 
 // Inline URL entry instead of window.prompt(): styled like the rest of the
 // form, and dismissable with Escape without losing the editor selection.
-function buildLinkBar(editor) {
+//
+// `linkPreview` (task #4 fix) is buildLinkPreview()'s own return value —
+// passed in so this can route its "insert a brand new link, nothing
+// selected" case through the exact same resolveAndInsert() paste
+// detection already uses, rather than the two paths behaving
+// differently (this button used to always insert a plain hyperlink,
+// skipping Smart Links resolution entirely). Formatting ALREADY-SELECTED
+// text as a hyperlink (or editing an existing link's href) is a
+// different action and still never touches linkPreview at all — see
+// applyLink() below.
+function buildLinkBar(editor, linkPreview) {
     const wrap = el('div', 'rte-linkbar');
     wrap.hidden = true;
 
@@ -210,20 +220,25 @@ function buildLinkBar(editor) {
             return;
         }
 
-        const { empty } = editor.state.selection;
+        const { empty, from } = editor.state.selection;
         const onExistingLink = editor.isActive('link');
-        let ok;
 
         if (empty && ! onExistingLink) {
-            // Nothing selected: insert the address itself as the linked text.
-            ok = editor.chain().focus().insertContent({
-                type: 'text',
-                text: href,
-                marks: [{ type: 'link', attrs: { href: href } }],
-            }).run();
-        } else {
-            ok = editor.chain().focus().extendMarkRange('link').setLink({ href: href }).run();
+            // Nothing selected: this is inserting a brand NEW link
+            // reference, not formatting existing text — the same case
+            // handlePaste's own "own line" check exists for, just
+            // reached via the toolbar button instead of a paste. No
+            // synchronous validation result to check here anymore
+            // (resolveAndInsert resolves asynchronously); the server's
+            // own sanitizer is still the real backstop against a
+            // disallowed scheme either way, same as it already is for
+            // any link, however it entered the editor.
+            linkPreview.resolveAndInsert({ from: from, to: from }, href);
+            close();
+            return;
         }
+
+        const ok = editor.chain().focus().extendMarkRange('link').setLink({ href: href }).run();
 
         // false only when the Link extension refused the URL (a disallowed
         // scheme such as javascript:).
@@ -696,12 +711,24 @@ function buildDocumentUpload(editor, root, onBusyChange) {
     };
 }
 
-// Smart Links (task #4) — detects a bare URL pasted alone on its own
-// line and, if the server can resolve a real title for it, replaces it
-// with a preview card instead of leaving it as a plain hyperlink.
-// Unlike every upload builder above, there's no toolbar button and no
-// file input at all: this hooks into paste itself, via handlePaste
-// wired into the Editor's own editorProps (see createRichTextEditor).
+// Smart Links (task #4) — resolves a bare URL to a compact inline chip
+// (icon + title + domain, styled exactly like file-chip — see
+// link-preview-extension.js) via the SAME server-side SSRF-guarded
+// fetch, however the URL entered the editor. Two callers, ONE shared
+// path (task #4 fix — originally the toolbar's link button skipped
+// resolution entirely and always inserted a plain hyperlink, while only
+// a paste got the Smart Links treatment):
+//   - handlePaste, wired into the Editor's own editorProps
+//     (see createRichTextEditor) — a bare URL pasted alone on an
+//     otherwise-empty line (not mid-sentence — that stays untouched).
+//   - resolveAndInsert, called directly by buildLinkBar() for its own
+//     "insert a brand new link, nothing selected" case — the toolbar's
+//     link button is a deliberate, explicit action, so unlike paste
+//     detection it has no "own line" restriction to check; formatting
+//     ALREADY-SELECTED text as a hyperlink (buildLinkBar's other branch)
+//     is a different action entirely and never calls this — that's
+//     changing how existing text looks, not inserting a new link
+//     reference, so it stays a plain mark, same as before this feature.
 //
 // No pending-id concept, unlike image/audio/video/document's own two
 // targets: nothing is ever stored under a task-scoped path here (see
@@ -761,22 +788,55 @@ function buildLinkPreview(editor, root) {
         if (data && data.available) {
             editor.chain().insertContentAt(range, {
                 type: 'linkPreview',
-                attrs: { href: data.url, title: data.title, domain: data.domain, image: data.image },
+                attrs: { href: data.url, title: data.title, domain: data.domain },
             }).run();
         } else {
-            // The pasted text goes back in exactly as originally pasted —
-            // today's existing autolink (StarterKit's Link extension,
-            // autolink: true) turns it into a normal hyperlink the same
-            // way it always has, no different from any other URL typed
-            // or pasted mid-sentence.
+            // The URL goes back in exactly as given — today's existing
+            // autolink (StarterKit's Link extension, autolink: true)
+            // turns it into a normal hyperlink the same way it always
+            // has, no different from any other URL typed or pasted
+            // mid-sentence.
             editor.chain().insertContentAt(range, originalUrl).run();
         }
     }
 
-    function handlePaste(view, event) {
+    // The one shared path both callers above funnel through: replaces
+    // whatever's at `range` with a "Resolving…" placeholder, resolves
+    // `url` server-side, then swaps that placeholder for either the chip
+    // or the plain URL, whichever the response calls for. Not wired for
+    // this editor at all (target() === null): just inserts the plain URL
+    // immediately, matching the toolbar link button's own pre-Smart-Links
+    // behavior exactly, so a rich-text usage that never set the
+    // link-preview data attributes keeps working unchanged.
+    function resolveAndInsert(range, url) {
         const destination = target();
-        if (! destination) return false;
+        if (! destination) {
+            editor.chain().focus().insertContentAt(range, {
+                type: 'text',
+                text: url,
+                marks: [{ type: 'link', attrs: { href: url } }],
+            }).run();
 
+            return;
+        }
+
+        const token = 'Resolving link… ' + Math.random().toString(36).slice(2);
+        editor.chain().focus().insertContentAt(range, token).run();
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const body = new URLSearchParams(Object.assign({ url: url }, destination.fields));
+
+        fetch(destination.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
+            body: body.toString(),
+        })
+            .then(function (response) { return response.json().catch(function () { return { available: false }; }); })
+            .then(function (data) { resolvePlaceholder(token, url, data); })
+            .catch(function () { resolvePlaceholder(token, url, { available: false }); });
+    }
+
+    function handlePaste(view, event) {
         const text = ((event.clipboardData && event.clipboardData.getData('text/plain')) || '').trim();
         if (! BARE_URL_ALONE.test(text)) return false;
 
@@ -786,26 +846,16 @@ function buildLinkPreview(editor, root) {
         if (! empty || $from.parent.textContent.trim() !== '') return false;
 
         event.preventDefault();
-
-        const token = 'Resolving link… ' + Math.random().toString(36).slice(2);
-        editor.chain().focus().insertContentAt({ from: $from.start(), to: $from.end() }, token).run();
-
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-        const body = new URLSearchParams(Object.assign({ url: text }, destination.fields));
-
-        fetch(destination.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
-            body: body.toString(),
-        })
-            .then(function (response) { return response.json().catch(function () { return { available: false }; }); })
-            .then(function (data) { resolvePlaceholder(token, text, data); })
-            .catch(function () { resolvePlaceholder(token, text, { available: false }); });
+        resolveAndInsert({ from: $from.start(), to: $from.end() }, text);
 
         return true;
     }
 
-    return { handlePaste: handlePaste };
+    return {
+        handlePaste: handlePaste,
+        resolveAndInsert: resolveAndInsert,
+        isWired: function () { return target() !== null; },
+    };
 }
 
 // Places a fixed-position popup just below a caret rectangle ({left, top,
@@ -1645,7 +1695,7 @@ export function createRichTextEditor(root) {
         video: function () { videoUpload.trigger(); },
         document: function () { documentUpload.trigger(); },
     });
-    linkBar = buildLinkBar(editor);
+    linkBar = buildLinkBar(editor, linkPreview);
     if (users.length > 0) mentions = setupMentions(editor, users);
 
     if (! imageUpload.isWired()) {
