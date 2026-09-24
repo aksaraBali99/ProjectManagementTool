@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\DocumentAccessLevel;
+use App\Models\Document;
 use App\Models\LinkPreview;
+use App\Models\Task;
 use App\Models\User;
 use App\Support\OpenGraphMetadataParser;
 use App\Support\UrlSsrfGuard;
@@ -10,9 +13,11 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Smart Links (task #4) — turns a bare pasted URL into a title/image/
- * domain snapshot, backed by a global cache (link_previews) so the same
- * URL pasted repeatedly anywhere in the app doesn't re-fetch every time.
+ * Smart Links (task #4) — turns a bare pasted URL into a title/domain
+ * snapshot for a compact inline chip (icon + title + domain, no
+ * thumbnail — see link-preview-extension.js), backed by a global cache
+ * (link_previews) so the same URL pasted repeatedly anywhere in the app
+ * doesn't re-fetch every time.
  *
  * Every fetch is guarded by UrlSsrfGuard first — this is the one place in
  * the app that makes an outbound HTTP request to an arbitrary,
@@ -35,9 +40,9 @@ class LinkPreviewService
 
     private const FETCH_TIMEOUT_SECONDS = 5;
 
-    // Enough for a real page's <head> (where og:title/og:image/<title>
-    // always live) without downloading an entire large page body just to
-    // read four lines of metadata.
+    // Enough for a real page's <head> (where og:title/<title> always
+    // live) without downloading an entire large page body just to read a
+    // couple of lines of metadata.
     private const MAX_BYTES = 200_000;
 
     public function resolve(string $url, ?User $user = null): ?LinkPreviewResult
@@ -57,13 +62,47 @@ class LinkPreviewService
             [
                 'url' => $url,
                 'title' => $result?->title,
-                'image_url' => $result?->image,
                 'domain' => $result?->domain ?? self::domainOf($url) ?? '',
                 'fetched_at' => now(),
             ]
         );
 
         return $result;
+    }
+
+    /**
+     * Tracks $url as a Document attached to $task (task #4's later
+     * reversal of the original "link previews don't create Document
+     * records" decision) — called regardless of whether $title is
+     * available, so an uncaptioned link (the fetch was blocked/failed)
+     * still gets tracked, just named after its raw URL instead of a
+     * fetched title.
+     *
+     * Deduped PER TASK ONLY: an exact `link` match among Documents
+     * already attached to THIS task is left alone rather than
+     * duplicated — the same URL pasted into a DIFFERENT task still gets
+     * its own independent Document row, deliberately (external links
+     * cost nothing to store twice, and sharing one row across tasks
+     * would be a confusing coupling nobody asked for).
+     */
+    public function attachAsDocument(Task $task, string $url, ?string $title): Document
+    {
+        $existing = $task->documents()->where('link', $url)->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $document = Document::create([
+            'organization_id' => $task->organization_id,
+            'uploaded_by' => auth()->id(),
+            'name' => $title !== null && $title !== '' ? $title : $url,
+            'link' => $url,
+            'access_level' => DocumentAccessLevel::Internal,
+        ]);
+
+        $task->documents()->attach($document->id);
+
+        return $document;
     }
 
     private function fromCache(LinkPreview $cached): ?LinkPreviewResult
@@ -79,7 +118,6 @@ class LinkPreviewService
         return new LinkPreviewResult(
             url: $cached->url,
             title: $cached->title,
-            image: $cached->image_url,
             domain: $cached->domain ?? '',
         );
     }
@@ -114,16 +152,15 @@ class LinkPreviewService
         // still bounds how much of a huge page gets handed to the DOM
         // parser, just not the network transfer itself.
         $html = substr($response->body(), 0, self::MAX_BYTES);
-        $meta = OpenGraphMetadataParser::parse($html);
+        $title = OpenGraphMetadataParser::title($html);
 
-        if (empty($meta['title'])) {
+        if (empty($title)) {
             return null;
         }
 
         return new LinkPreviewResult(
             url: $url,
-            title: $meta['title'],
-            image: $meta['image'] ?? null,
+            title: $title,
             domain: self::domainOf($url) ?? '',
         );
     }

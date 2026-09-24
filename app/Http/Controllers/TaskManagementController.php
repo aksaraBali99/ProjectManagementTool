@@ -15,6 +15,9 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\FileStorageService;
+use App\Services\LinkPreviewService;
+use DOMDocument;
+use DOMXPath;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -276,42 +279,68 @@ class TaskManagementController extends Controller
     }
 
     /**
-     * A <file-chip href="...">Name</file-chip> in a just-created task's
-     * Description can only ever have gotten there via the Add Task page's
-     * document button — RichTextDocumentController::storePending()
-     * deliberately never creates a Document row at upload time, since
-     * there's no task_id to attach it to yet (see that controller's own
-     * docblock). This is the other half of that deferral: every file-chip
-     * found here, by construction, is one this exact save is seeing for
-     * the first time, so a Document row + task_documents attachment is
-     * created for each — no "does this one already have a Document row"
-     * check needed, since a real (non-pending) document upload on an
-     * EXISTING task never goes through store() at all.
+     * A <file-chip href="...">Name</file-chip> or
+     * <link-preview href="..." domain="...">Title</link-preview> in a
+     * just-created task's Description can only ever have gotten there via
+     * the Add Task page's document button or a pasted/toolbar-inserted
+     * link — RichTextDocumentController::storePending() and
+     * LinkPreviewController::resolvePending() both deliberately never
+     * create a Document row at that point, since there's no task_id to
+     * attach one to yet (see each controller's own docblock). This is the
+     * other half of that deferral, once a real task_id finally exists.
      *
-     * Called with the already-reconciled description, so href is already
-     * the permanent tasks/{id}/documents/... URL, not a pending one.
+     * file-chip: no "does this one already have a Document row" check
+     * needed — a real (non-pending) document upload on an EXISTING task
+     * never goes through store() at all, so every file-chip found here,
+     * by construction, is one this exact save is seeing for the first
+     * time.
+     *
+     * link-preview: DOES need that check, via
+     * LinkPreviewService::attachAsDocument()'s own per-task dedup — the
+     * same URL could appear in more than one link-preview chip within a
+     * single draft (pasted twice while still on the Add Task page), and
+     * each one after the first should reuse the same Document row, not
+     * duplicate it.
+     *
+     * Called with the already-reconciled description, so a file-chip's
+     * href is already the permanent tasks/{id}/documents/... URL, not a
+     * pending one (link-preview hrefs are external URLs, untouched by
+     * reconciliation either way).
      */
     private function attachDocumentChips(Task $task, string $description): void
     {
-        if (! str_contains($description, '<file-chip')) {
-            return;
+        if (str_contains($description, '<file-chip')) {
+            preg_match_all('/<file-chip href="([^"]*)">([^<]*)<\/file-chip>/', $description, $matches, PREG_SET_ORDER);
+
+            foreach ($matches as $match) {
+                $href = html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $name = html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+                $document = Document::create([
+                    'organization_id' => $task->organization_id,
+                    'uploaded_by' => auth()->id(),
+                    'name' => $name,
+                    'link' => $href,
+                    'access_level' => DocumentAccessLevel::Internal,
+                ]);
+
+                $task->documents()->attach($document->id);
+            }
         }
 
-        preg_match_all('/<file-chip href="([^"]*)">([^<]*)<\/file-chip>/', $description, $matches, PREG_SET_ORDER);
+        if (str_contains($description, '<link-preview')) {
+            $dom = new DOMDocument;
+            libxml_use_internal_errors(true);
+            $dom->loadHTML('<?xml encoding="utf-8" ?>'.$description);
+            libxml_clear_errors();
 
-        foreach ($matches as $match) {
-            $href = html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $name = html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $service = app(LinkPreviewService::class);
 
-            $document = Document::create([
-                'organization_id' => $task->organization_id,
-                'uploaded_by' => auth()->id(),
-                'name' => $name,
-                'link' => $href,
-                'access_level' => DocumentAccessLevel::Internal,
-            ]);
-
-            $task->documents()->attach($document->id);
+            foreach ((new DOMXPath($dom))->query('//link-preview[@href]') as $node) {
+                $href = $node->getAttribute('href');
+                $title = trim($node->textContent);
+                $service->attachAsDocument($task, $href, $title !== '' ? $title : null);
+            }
         }
     }
 

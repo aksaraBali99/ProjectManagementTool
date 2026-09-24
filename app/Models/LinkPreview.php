@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
  * consulted at render time. LinkPreviewService is the only thing that
  * reads or writes this table.
  */
-#[Fillable(['url_hash', 'url', 'title', 'image_url', 'domain', 'fetched_at'])]
+#[Fillable(['url_hash', 'url', 'title', 'domain', 'fetched_at'])]
 class LinkPreview extends Model
 {
     protected function casts(): array
