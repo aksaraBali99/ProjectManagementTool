@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -1680,13 +1680,13 @@
     "semantic_hash": ""
   },
   "resources/js/resizable-video.js": {
-    "mtime": 1790212302.3671167,
-    "ast_hash": "8cbc14bc93afed86c0f284968904bd3c",
+    "mtime": 1790213109.6553555,
+    "ast_hash": "fc3681e0deed8afb653cb1f3f5e94f50",
     "semantic_hash": ""
   },
   "resources/js/video-thumbnail.js": {
-    "mtime": 1790212342.473064,
-    "ast_hash": "b057307fb93bd1a1af227e589dfedc0e",
+    "mtime": 1790213126.409949,
+    "ast_hash": "ac649da30b9ae2762c9b4b471436005f",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/VideoResizeTest.php": {
