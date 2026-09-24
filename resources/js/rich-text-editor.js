@@ -826,14 +826,29 @@ function buildLinkPreview(editor, root) {
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const body = new URLSearchParams(Object.assign({ url: url }, destination.fields));
 
+        // Browsers never time out fetch() on their own — if the server-side
+        // resolve ever stalls (the SSRF guard's DNS lookup has no
+        // configurable timeout of its own, and a shared-hosting resolver
+        // can be slow or flaky), an unbounded fetch leaves the "Resolving
+        // link…" placeholder stuck forever with no way to recover. The
+        // server's own fetch already gives up after 5s
+        // (LinkPreviewService::FETCH_TIMEOUT_SECONDS); this abort is just
+        // the client-side backstop so the placeholder always settles one
+        // way or the other within a bounded time, same as any other
+        // failure resolvePlaceholder() already falls back from.
+        const controller = new AbortController();
+        const timeout = setTimeout(function () { controller.abort(); }, 15000);
+
         fetch(destination.url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
             body: body.toString(),
+            signal: controller.signal,
         })
             .then(function (response) { return response.json().catch(function () { return { available: false }; }); })
             .then(function (data) { resolvePlaceholder(token, url, data); })
-            .catch(function () { resolvePlaceholder(token, url, { available: false }); });
+            .catch(function () { resolvePlaceholder(token, url, { available: false }); })
+            .finally(function () { clearTimeout(timeout); });
     }
 
     function handlePaste(view, event) {
