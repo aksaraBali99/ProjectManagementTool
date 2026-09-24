@@ -179,35 +179,51 @@ function richTextEditorNode(string $pageHtml, string $label): ?DOMElement
 }
 
 /**
- * Task Description's rendered content on the Edit Task page. Description
- * is a permanently-live editor (task #4, description autosave reverted an
- * earlier view/edit split — see tasks/_description-field.blade.php), so
- * this is really just richTextHiddenInputValue($page, 'Description'),
- * kept as its own named helper purely so the many existing call sites
- * across the RichText test suite (predating that revert) didn't all need
- * touching. Null for blank content — the empty string an editor with
- * nothing typed into it still submits is treated as "no content" here,
- * matching this helper's own behavior from when Description had a
- * genuine read-only empty state.
+ * Task Description's view-mode rendering on the Edit Task page (task #4,
+ * view/edit split; Save/Cancel later replaced with autosave-on-blur, but
+ * the read-only view/Edit-button split itself is unchanged) — unlike
+ * richTextEditorContent(), this isn't an editor's escaped data-content
+ * attribute; it's the same unescaped, read-only <x-rich-text> render
+ * every other read-only view (task drilldown, comments) already uses,
+ * found by its [data-description-field] wrapper. Null when the
+ * description is blank (<x-rich-text> renders its $empty placeholder
+ * instead of a [data-rich-text-content] element at all in that case).
+ * innerHTML, not textContent, since callers check for actual HTML (an
+ * <img>/<audio> tag, a width attribute), not just visible text.
  */
 function descriptionViewContent(string $pageHtml): ?string
 {
-    $value = richTextHiddenInputValue($pageHtml, 'Description');
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?>'.$pageHtml);
+    libxml_clear_errors();
 
-    return $value === null || $value === '' ? null : $value;
+    $node = (new DOMXPath($document))->query('//*[@data-description-field]//*[@data-rich-text-content]')->item(0);
+    if ($node === null) {
+        return null;
+    }
+
+    return implode('', array_map(fn ($child) => $document->saveHTML($child), iterator_to_array($node->childNodes)));
 }
 
 /**
- * Description no longer has a separate "fallback" hidden input distinct
- * from the live editor's own — the view/edit split that needed one (task
- * #4, view/edit split) was itself reverted (task #4, description
- * autosave). Now just an alias for descriptionViewContent(), kept so the
- * handful of call sites that named it explicitly (to assert both read the
- * same value) didn't need touching either.
+ * The value Description's own fallback hidden input (data-description-
+ * fallback-input) starts with — what actually submits if the field is
+ * never put into edit mode. Compared against descriptionViewContent() to
+ * confirm both start from the same converted value (task #4, view/edit
+ * split), the same guarantee richTextHiddenInputValue()/
+ * richTextEditorContent() checked for a live editor's own hidden input.
  */
 function descriptionFallbackInputValue(string $pageHtml): ?string
 {
-    return descriptionViewContent($pageHtml);
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?>'.$pageHtml);
+    libxml_clear_errors();
+
+    $node = (new DOMXPath($document))->query('//*[@data-description-fallback-input]')->item(0);
+
+    return $node?->getAttribute('value');
 }
 
 /** Parses an HTML fragment (e.g. editor content) into a DOMDocument for structural assertions. */
