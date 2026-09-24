@@ -442,7 +442,8 @@
 
 .rte-image-input,
 .rte-audio-input,
-.rte-video-input {
+.rte-video-input,
+.rte-document-input {
     display: none;
 }
 
@@ -596,6 +597,108 @@
     /* Optically center the play triangle — an equilateral-ish glyph reads
        left-of-center inside a perfectly round frame otherwise. */
     padding-left: 3px;
+}
+
+/* File-chip (task #4, document upload + embedding) — a small clickable
+   reference card, not an inline preview/embed like image/audio/video
+   above: matches Jira's own attachment-chip treatment. Same border/
+   radius/color tokens as .description-action-btn's bordered-square
+   language rather than inventing a new palette. display: inline-flex (not
+   block, unlike every other media element here) since the TipTap node is
+   genuinely inline — it sits inside a line of text, not on its own row.
+   cursor: pointer only actually opens anything on the read-only render
+   (initFileChipDelegation in app.js, scoped to [data-rich-text-content])
+   — left on the editor's copy too, the same non-functional-hint reasoning
+   .rich-text img/.video-thumb's own cursor already documents. */
+.file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    padding: 3px 10px 3px 8px;
+    margin: 0 2px;
+    border: 1px solid #E5E7EB;
+    border-radius: var(--radius-md);
+    background: var(--color-gray-50);
+    color: var(--color-gray-700);
+    font-size: 11px;
+    line-height: 1.4;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.file-chip-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    color: var(--color-gray-500);
+}
+
+.file-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Link-preview card (task #4, Smart Links) — a block-level card, not an
+   inline chip like .file-chip above: takes its own line, same visual
+   weight as an embedded image, matching Jira/Confluence's own Smart
+   Links layout. Same border/radius/color tokens as .file-chip/
+   .description-action-btn's bordered-square language. max-width caps it
+   at the same content-column width images/video already use, so a card
+   never looks wider than everything else on the page. */
+.link-preview-card {
+    display: flex;
+    align-items: stretch;
+    max-width: 480px;
+    margin: 4px 0;
+    overflow: hidden;
+    border: 1px solid #E5E7EB;
+    border-radius: var(--radius-md);
+    background: #fff;
+    cursor: pointer;
+}
+
+.link-preview-image {
+    width: 96px;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.link-preview-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    padding: 8px 12px;
+}
+
+.link-preview-title {
+    overflow: hidden;
+    color: var(--color-gray-700);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.link-preview-domain {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+    color: var(--color-gray-500);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.link-preview-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
 }
 
 /* Description's own Edit/Save/Cancel (task #4, view/edit split) — icon

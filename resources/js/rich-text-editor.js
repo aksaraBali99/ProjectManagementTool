@@ -5,6 +5,8 @@ import Emoji, { emojis as defaultEmojis } from '@tiptap/extension-emoji';
 import { ResizableImage } from './resizable-image.js';
 import { Audio } from './audio-extension.js';
 import { ResizableVideo } from './resizable-video.js';
+import { FileChip } from './file-chip-extension.js';
+import { LinkPreview } from './link-preview-extension.js';
 import { isEmojiSupported } from 'is-emoji-supported';
 import { lowlight } from './code-highlight.js';
 
@@ -29,6 +31,11 @@ const ICONS = {
     image: '<svg ' + ICON_ATTRS + '><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6.5" r="1.2"/><path d="M2 12l3.5-3.5a1 1 0 0 1 1.4 0L10 11.5m2-2 .6-.6a1 1 0 0 1 1.4 0L14.5 11"/></svg>',
     audio: '<svg ' + ICON_ATTRS + '><path d="M9.5 2.5v9.2a2 2 0 1 1-1-1.73V4.7L5 5.6v6.1a2 2 0 1 1-1-1.73V4.8z" fill="currentColor" stroke="none"/></svg>',
     video: '<svg ' + ICON_ATTRS + '><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><path d="M6.3 6.2v3.6l3.4-1.8z" fill="currentColor" stroke="none"/></svg>',
+    // A paperclip for the toolbar button (the "attach" action) — the
+    // chip's own icon, once inserted, is a plain file glyph instead (see
+    // file-chip-extension.js/file-chip-thumbnail.js), the same
+    // attach-icon-vs-result-icon split Slack/Jira both use.
+    document: '<svg ' + ICON_ATTRS + '><path d="M12 4.2 6.3 9.9a2.3 2.3 0 0 0 3.3 3.3l5.2-5.2a4.1 4.1 0 1 0-5.8-5.8L3.3 7.9a5.9 5.9 0 1 0 8.4 8.4"/></svg>',
 };
 
 const TOOLBAR = [
@@ -51,6 +58,11 @@ const TOOLBAR = [
     { key: 'audio', label: 'Insert audio', html: ICONS.audio, run: null, active: () => false },
     // Same reasoning again (task #4 phase 5).
     { key: 'video', label: 'Insert video', html: ICONS.video, run: null, active: () => false },
+    // task #4, document upload + embedding — not an inline embed like the
+    // three above (see file-chip-extension.js), but still "insert
+    // something at the cursor with no toggled mark/node state of its
+    // own", so the same `active: () => false` shape applies.
+    { key: 'document', label: 'Attach document', html: ICONS.document, run: null, active: () => false },
 ];
 
 const HEADING_OPTIONS = [
@@ -89,7 +101,8 @@ function normalizeHref(raw) {
 }
 
 // `handlers` are the toolbar items with no single ProseMirror command of
-// their own — they open other UI instead: { link, emoji, image, audio, video }.
+// their own — they open other UI instead: { link, emoji, image, audio,
+// video, document }.
 function buildToolbar(editor, handlers) {
     const bar = el('div', 'rte-toolbar', { role: 'toolbar', 'aria-label': 'Text formatting' });
 
@@ -128,6 +141,7 @@ function buildToolbar(editor, handlers) {
             else if (item.key === 'image') handlers.image();
             else if (item.key === 'audio') handlers.audio();
             else if (item.key === 'video') handlers.video();
+            else if (item.key === 'document') handlers.document();
             else item.run(editor);
         });
         bar.appendChild(button);
@@ -565,6 +579,233 @@ function buildVideoUpload(editor, root, onBusyChange) {
             input.click();
         },
     };
+}
+
+// Document upload + embedding (task #4) — same target-resolution shape as
+// image/audio/video's own (data-document-task-id/data-document-context, or
+// data-document-pending-id/data-document-project-id/
+// data-document-department-id), matching RichTextDocumentController's two
+// actions. Unlike the other three, the response carries a `name` alongside
+// `url` (the server always knows the original filename — either the real
+// Document record's own name for an existing task, or just the uploaded
+// file's name for a still-drafting one, see RichTextDocumentController) —
+// setFileChip() needs both to render the chip's label, whereas
+// setImage/setAudio/setVideo only ever needed the url.
+function buildDocumentUpload(editor, root, onBusyChange) {
+    // No single MIME wildcard covers "documents" the way image/*, audio/*
+    // and video/* do — a file-extension allowlist for the OS picker
+    // instead, matching config/filestorage.php's document category
+    // exactly. Purely a client-side filtering convenience; the real
+    // validation is FileStorageService's, server-side.
+    const input = el('input', 'rte-document-input', {
+        type: 'file',
+        accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv',
+        tabindex: '-1',
+        'aria-hidden': 'true',
+    });
+
+    const status = el('div', 'rte-upload-status');
+    status.hidden = true;
+
+    let busy = false;
+
+    function target() {
+        const taskId = root.dataset.documentTaskId;
+        if (taskId) {
+            return { url: '/tasks/' + taskId + '/document-uploads', fields: { context: root.dataset.documentContext || 'comment' } };
+        }
+
+        const pendingId = root.dataset.documentPendingId;
+        if (pendingId) {
+            return {
+                url: '/pending-task-document-uploads',
+                fields: {
+                    pending_id: pendingId,
+                    project_id: root.dataset.documentProjectId || '',
+                    department_id: root.dataset.documentDepartmentId || '',
+                },
+            };
+        }
+
+        return null;
+    }
+
+    function setStatus(message, isError) {
+        status.hidden = ! message;
+        status.textContent = message || '';
+        status.classList.toggle('is-error', !! isError);
+    }
+
+    function setBusy(next) {
+        busy = next;
+        status.classList.toggle('is-busy', next);
+        if (onBusyChange) onBusyChange(next);
+    }
+
+    function upload(file) {
+        const destination = target();
+        if (! destination) return;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const body = new FormData();
+        body.append('file', file);
+        Object.keys(destination.fields).forEach(function (key) { body.append(key, destination.fields[key]); });
+
+        setBusy(true);
+        setStatus('Uploading document…', false);
+
+        fetch(destination.url, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
+            body: body,
+        })
+            .then(function (response) {
+                return response.json().catch(function () { return null; }).then(function (data) {
+                    if (! response.ok) throw new Error((data && data.message) || 'Failed to upload document.');
+
+                    return data;
+                });
+            })
+            .then(function (data) {
+                editor.chain().focus().setFileChip({ href: data.url, name: data.name }).run();
+                setStatus('', false);
+            })
+            .catch(function (error) {
+                setStatus(error.message, true);
+            })
+            .finally(function () {
+                setBusy(false);
+                input.value = '';
+            });
+    }
+
+    input.addEventListener('change', function () {
+        const file = input.files[0];
+        if (file) upload(file);
+    });
+
+    return {
+        element: status,
+        input: input,
+        isWired: function () { return target() !== null; },
+        isBusy: function () { return busy; },
+        trigger: function () {
+            if (busy || ! target()) return;
+            input.click();
+        },
+    };
+}
+
+// Smart Links (task #4) — detects a bare URL pasted alone on its own
+// line and, if the server can resolve a real title for it, replaces it
+// with a preview card instead of leaving it as a plain hyperlink.
+// Unlike every upload builder above, there's no toolbar button and no
+// file input at all: this hooks into paste itself, via handlePaste
+// wired into the Editor's own editorProps (see createRichTextEditor).
+//
+// No pending-id concept, unlike image/audio/video/document's own two
+// targets: nothing is ever stored under a task-scoped path here (see
+// LinkPreviewService/the link_previews migration), so project_id alone
+// — just for the Add Task page's create-task permission check — is
+// enough to signal "this editor is wired for it."
+function buildLinkPreview(editor, root) {
+    const BARE_URL_ALONE = /^https?:\/\/\S+$/i;
+
+    function target() {
+        const taskId = root.dataset.linkPreviewTaskId;
+        if (taskId) {
+            return { url: '/tasks/' + taskId + '/link-previews', fields: { context: root.dataset.linkPreviewContext || 'comment' } };
+        }
+
+        const projectId = root.dataset.linkPreviewProjectId;
+        if (projectId) {
+            return {
+                url: '/pending-task-link-previews',
+                fields: { project_id: projectId, department_id: root.dataset.linkPreviewDepartmentId || '' },
+            };
+        }
+
+        return null;
+    }
+
+    // Finds the CURRENT live position of a placeholder by its exact,
+    // unique text — not a numeric position captured before the async
+    // fetch — deliberately: the document can change elsewhere (the user
+    // keeps typing somewhere else) while a fetch is in flight, which
+    // would make any position captured up front stale by the time the
+    // response comes back. Re-searching the live document at resolve
+    // time is what stays correct regardless of what else changed
+    // meanwhile; if the placeholder text itself was edited/deleted in
+    // that window, there's nothing safe left to replace, and the fetch
+    // result is just dropped.
+    function findPlaceholder(token) {
+        let found = null;
+        editor.state.doc.descendants(function (node, pos) {
+            if (found) return false;
+            if (node.isText && node.text === token) {
+                found = { from: pos, to: pos + token.length };
+
+                return false;
+            }
+
+            return true;
+        });
+
+        return found;
+    }
+
+    function resolvePlaceholder(token, originalUrl, data) {
+        const range = findPlaceholder(token);
+        if (! range) return;
+
+        if (data && data.available) {
+            editor.chain().insertContentAt(range, {
+                type: 'linkPreview',
+                attrs: { href: data.url, title: data.title, domain: data.domain, image: data.image },
+            }).run();
+        } else {
+            // The pasted text goes back in exactly as originally pasted —
+            // today's existing autolink (StarterKit's Link extension,
+            // autolink: true) turns it into a normal hyperlink the same
+            // way it always has, no different from any other URL typed
+            // or pasted mid-sentence.
+            editor.chain().insertContentAt(range, originalUrl).run();
+        }
+    }
+
+    function handlePaste(view, event) {
+        const destination = target();
+        if (! destination) return false;
+
+        const text = ((event.clipboardData && event.clipboardData.getData('text/plain')) || '').trim();
+        if (! BARE_URL_ALONE.test(text)) return false;
+
+        const { $from, empty } = view.state.selection;
+        // "on its own line", not mid-sentence: the paragraph being pasted
+        // into must have no other content already in it.
+        if (! empty || $from.parent.textContent.trim() !== '') return false;
+
+        event.preventDefault();
+
+        const token = 'Resolving link… ' + Math.random().toString(36).slice(2);
+        editor.chain().focus().insertContentAt({ from: $from.start(), to: $from.end() }, token).run();
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const body = new URLSearchParams(Object.assign({ url: text }, destination.fields));
+
+        fetch(destination.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrfToken, Accept: 'application/json' },
+            body: body.toString(),
+        })
+            .then(function (response) { return response.json().catch(function () { return { available: false }; }); })
+            .then(function (data) { resolvePlaceholder(token, text, data); })
+            .catch(function () { resolvePlaceholder(token, text, { available: false }); });
+
+        return true;
+    }
+
+    return { handlePaste: handlePaste };
 }
 
 // Places a fixed-position popup just below a caret rectangle ({left, top,
@@ -1227,6 +1468,8 @@ export function createRichTextEditor(root) {
     let imageUpload = null;
     let audioUpload = null;
     let videoUpload = null;
+    let documentUpload = null;
+    let linkPreview = null;
 
     // Trailing empty paragraphs (the editor keeps one after a final code
     // block, or after a block image, so the cursor can leave it) aren't
@@ -1328,6 +1571,12 @@ export function createRichTextEditor(root) {
                     alwaysPreserveAspectRatio: true,
                 },
             }),
+            // task #4, document upload + embedding — see
+            // file-chip-extension.js for why this is a plain inline atom
+            // node with its own NodeView, not an <a>-based approach.
+            FileChip,
+            // task #4, Smart Links — see link-preview-extension.js.
+            LinkPreview,
         ],
         editorProps: {
             attributes: { class: 'rte-prose rich-text', role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },
@@ -1340,6 +1589,15 @@ export function createRichTextEditor(root) {
                 }
 
                 return false;
+            },
+            // linkPreview is only assigned once the editor itself exists
+            // (see below, same "declared here, assigned after
+            // construction" shape handleKeyDown's own mentions/toolbar
+            // references already use) — a paste before that split second
+            // just isn't intercepted, falling through to default paste
+            // handling, same as any editor instance never wired for it.
+            handlePaste: function (view, event) {
+                return linkPreview ? linkPreview.handlePaste(view, event) : false;
             },
         },
         onUpdate: function () {
@@ -1370,12 +1628,22 @@ export function createRichTextEditor(root) {
         const button = toolbar.button('video');
         if (button) button.disabled = busy;
     });
+    documentUpload = buildDocumentUpload(editor, root, function (busy) {
+        const button = toolbar.button('document');
+        if (button) button.disabled = busy;
+    });
+    // No toolbar entry (there's nothing to click — see buildLinkPreview's
+    // own doc comment) and so no isWired()/hidden-button dance either;
+    // built last since editorProps.handlePaste above already needed the
+    // editor to exist before this could be constructed.
+    linkPreview = buildLinkPreview(editor, root);
     toolbar = buildToolbar(editor, {
         link: function () { linkBar.open(); },
         emoji: function (button) { emojiPicker.toggle(button); },
         image: function () { imageUpload.trigger(); },
         audio: function () { audioUpload.trigger(); },
         video: function () { videoUpload.trigger(); },
+        document: function () { documentUpload.trigger(); },
     });
     linkBar = buildLinkBar(editor);
     if (users.length > 0) mentions = setupMentions(editor, users);
@@ -1395,7 +1663,12 @@ export function createRichTextEditor(root) {
         if (videoButton) videoButton.hidden = true;
     }
 
-    root.prepend(toolbar.element, linkBar.element, imageUpload.element, imageUpload.input, audioUpload.element, audioUpload.input, videoUpload.element, videoUpload.input);
+    if (! documentUpload.isWired()) {
+        const documentButton = toolbar.button('document');
+        if (documentButton) documentButton.hidden = true;
+    }
+
+    root.prepend(toolbar.element, linkBar.element, imageUpload.element, imageUpload.input, audioUpload.element, audioUpload.input, videoUpload.element, videoUpload.input, documentUpload.element, documentUpload.input);
     root.appendChild(content);
 
     const form = root.closest('form');

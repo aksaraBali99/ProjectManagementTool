@@ -41,6 +41,28 @@
     $videoTaskId + $videoContext (POSTs to /tasks/{id}/video),
     $videoPendingId (+ optional initial $videoProjectId/$videoDepartmentId,
     POSTs to /pending-task-video), the SAME pendingMediaId as image/audio.
+
+    Document upload target (task #4, document upload + embedding) — same
+    shape again: $documentTaskId + $documentContext (POSTs to
+    /tasks/{id}/document-uploads), $documentPendingId (+ optional initial
+    $documentProjectId/$documentDepartmentId, POSTs to
+    /pending-task-document-uploads), the SAME pendingMediaId as
+    image/audio/video. Unlike those three, attaching a document is NOT an
+    inline preview/embed — it inserts a small clickable file-chip and
+    (existing task only; see RichTextDocumentController) attaches a real
+    Document to the task via task_documents, the same record the
+    Documents page/tab and the "attach an existing document" picker below
+    the editor both already use.
+
+    Link-preview target (task #4, Smart Links) — same $taskId/$context
+    (POSTs to /tasks/{id}/link-previews) shape as the others, but no
+    pending-id: $linkPreviewProjectId alone (+ optional initial
+    $linkPreviewDepartmentId, POSTs to /pending-task-link-previews) is
+    enough to wire the Add Task page, since nothing here is ever stored
+    under a task-scoped path (see LinkPreviewService) the way a pending
+    file upload needs one. There's no toolbar button for this one at all
+    — see buildLinkPreview() in rich-text-editor.js — it's triggered by
+    pasting a bare URL alone on its own line, not a click.
 --}}
 @props([
     'name' => null,
@@ -65,6 +87,15 @@
     'videoPendingId' => null,
     'videoProjectId' => null,
     'videoDepartmentId' => null,
+    'documentTaskId' => null,
+    'documentContext' => null,
+    'documentPendingId' => null,
+    'documentProjectId' => null,
+    'documentDepartmentId' => null,
+    'linkPreviewTaskId' => null,
+    'linkPreviewContext' => null,
+    'linkPreviewProjectId' => null,
+    'linkPreviewDepartmentId' => null,
 ])
 
 @php $html = \App\Support\RichText::toHtml($value); @endphp
@@ -83,6 +114,10 @@
     @if ($audioPendingId) data-audio-pending-id="{{ $audioPendingId }}" data-audio-project-id="{{ $audioProjectId }}" data-audio-department-id="{{ $audioDepartmentId }}" @endif
     @if ($videoTaskId) data-video-task-id="{{ $videoTaskId }}" data-video-context="{{ $videoContext }}" @endif
     @if ($videoPendingId) data-video-pending-id="{{ $videoPendingId }}" data-video-project-id="{{ $videoProjectId }}" data-video-department-id="{{ $videoDepartmentId }}" @endif
+    @if ($documentTaskId) data-document-task-id="{{ $documentTaskId }}" data-document-context="{{ $documentContext }}" @endif
+    @if ($documentPendingId) data-document-pending-id="{{ $documentPendingId }}" data-document-project-id="{{ $documentProjectId }}" data-document-department-id="{{ $documentDepartmentId }}" @endif
+    @if ($linkPreviewTaskId) data-link-preview-task-id="{{ $linkPreviewTaskId }}" data-link-preview-context="{{ $linkPreviewContext }}" @endif
+    @if ($linkPreviewProjectId) data-link-preview-project-id="{{ $linkPreviewProjectId }}" data-link-preview-department-id="{{ $linkPreviewDepartmentId }}" @endif
 >
     @if ($name)
         <input type="hidden" name="{{ $name }}" @if ($id) id="{{ $id }}" @endif value="{{ $html }}" data-rte-input>
