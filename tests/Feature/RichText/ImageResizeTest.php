@@ -86,6 +86,8 @@ test('reloading the Edit Task page after a resize-and-save shows the resized dim
         ->put("/tasks/{$this->task->id}", imageResizeTaskPayload($this->task, $resized))
         ->assertRedirect();
 
+    // task #4 (view/edit split): Description opens read-only by default,
+    // so this checks the same read-only view every other reload check does.
     $editPage = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
     $editorContent = descriptionViewContent($editPage);
 

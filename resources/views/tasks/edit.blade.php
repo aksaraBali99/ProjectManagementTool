@@ -69,13 +69,14 @@
             </div>
 
             <div>
-                <label for="description" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</label>
-                {{-- Permanently-live editor that autosaves on blur (task #4,
-                     description autosave) — see
+                <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</span>
+                {{-- View/edit split, autosave on blur instead of Save/Cancel
+                     (task #4, description autosave) — see
                      tasks/_description-field.blade.php. Always reached with
                      edit permission here (this whole block is inside
                      @if ($canEdit), the identical TaskPolicy::update check
-                     Description's own image/audio upload already uses). --}}
+                     Description's own image/audio upload already uses), so
+                     the Edit control is unconditional in this partial. --}}
                 @include('tasks._description-field', ['task' => $task, 'value' => old('description', $task->description)])
             </div>
 

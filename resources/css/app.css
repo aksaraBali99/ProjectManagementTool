@@ -648,12 +648,31 @@
    itself (see link-preview-extension.js / link-preview-thumbnail.js),
    so the two chip types can never visually drift apart from each other.
 
-   Description's own Edit/Save/Cancel controls (task #4, view/edit split)
-   were removed again in a later follow-up — Description is back to being
-   a permanently-live editor that autosaves on blur (see
-   tasks/_description-field.blade.php), the same shape the Add Task page's
-   own editor always had, so there's no separate button style needed here
-   any more. */
+   Description's own Edit control (task #4, description autosave) — a
+   single pencil icon now, not part of a Save/Cancel pair any more (see
+   tasks/_description-field.blade.php: entering edit mode autosaves on
+   blur instead). Borderless, unlike the old Edit/Save/Cancel trio's
+   bordered-square language: it now sits INSIDE the read-only view's own
+   bordered box (that box is what "looks like a field" — a second nested
+   border on the button itself would be redundant), so a plain hover
+   highlight is enough, closer to .rte-btn's own toolbar-icon treatment
+   than to a standalone secondary button. */
+.edit-description-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-sm);
+    color: var(--color-gray-500);
+    cursor: pointer;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+.edit-description-btn:hover {
+    background: var(--color-gray-100);
+    color: #1F2937;
+}
 
 /* ---------------------------------------------------------------------------
    Lightbox (click-to-enlarge) — reusable, not specific to rich-text images;

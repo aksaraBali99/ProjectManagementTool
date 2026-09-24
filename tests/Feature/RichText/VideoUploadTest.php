@@ -257,9 +257,9 @@ test('video uploaded on the Add Task page moves to the real task path once the t
     Storage::disk('r2')->assertMissing($pendingPath);
 
     // The rewritten URL actually renders, as a real <video> element, on
-    // reload, via the Edit Task page's Description editor
-    // (descriptionViewContent() reads that editor's own hidden input,
-    // same as every other reload check in this file).
+    // reload, via the Edit Task page's read-only Description view (task
+    // #4, view/edit split — descriptionViewContent() parses that view's
+    // own container, same as every other reload check in this file).
     $editPage = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit")->assertOk()->getContent();
     $editorContent = descriptionViewContent($editPage);
     expect($editorContent)->toContain("tasks/{$task->id}/video/")->toContain('<video');
