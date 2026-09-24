@@ -235,7 +235,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-Bg_W3S3O.js",
+    "file": "assets/app-DlFX3FrF.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -267,7 +267,7 @@
     "isDynamicEntry": true
   },
   "resources/js/rich-text-editor.js": {
-    "file": "assets/rich-text-editor-BChWODrY.js",
+    "file": "assets/rich-text-editor-CLDWQeYo.js",
     "name": "rich-text-editor",
     "src": "resources/js/rich-text-editor.js",
     "isDynamicEntry": true,
@@ -276,7 +276,7 @@
     ]
   },
   "resources/js/video-thumbnail.js": {
-    "file": "assets/video-thumbnail-CKRhYIMg.js",
+    "file": "assets/video-thumbnail-DBUTopwE.js",
     "name": "video-thumbnail",
     "src": "resources/js/video-thumbnail.js",
     "isDynamicEntry": true
