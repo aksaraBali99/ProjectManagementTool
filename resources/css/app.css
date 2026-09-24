@@ -480,11 +480,13 @@
    every read-only render (this exact class, just not the live editor,
    which sets an inline style that already beats the stylesheet) — the
    documented "resize lost on reload" failure mode, just via CSS specificity
-   rather than a parsing/persistence bug. cursor:zoom-in only actually opens
-   anything on the read-only render (see initLightboxDelegation in app.js,
-   scoped to [data-rich-text-content]) — left on the live editor's copy too
-   since ProseMirror's own node-select click isn't affected by it, just the
-   pointer hint.
+   rather than a parsing/persistence bug. cursor:pointer (not the earlier
+   zoom-in magnifying glass — dropped per user feedback: it read as an odd,
+   overly specific cue rather than a plain "this is clickable" one) only
+   actually opens anything on the read-only render (see
+   initLightboxDelegation in app.js, scoped to [data-rich-text-content]) —
+   left on the live editor's copy too since ProseMirror's own node-select
+   click isn't affected by it, just the pointer hint.
 */
 .rich-text img {
     display: block;
@@ -492,7 +494,7 @@
     margin: 4px 0;
     border: 1px solid #E5E7EB;
     border-radius: var(--radius-md);
-    cursor: zoom-in;
+    cursor: pointer;
 }
 
 .rich-text img:not([width]) {
@@ -540,12 +542,14 @@
    by the resized width/height HTML attributes (data-has-size) or this
    default 16:9 box. max-width matches the content column's own cap
    (ResizableVideo's maxWidth: 800, resources/js/rich-text-editor.js) so an
-   unresized video never overflows it either. cursor: zoom-in only actually
-   opens the lightbox on the read-only render (initLightboxDelegation in
-   app.js, scoped to [data-rich-text-content]) — left on the editor's copy
-   too since ProseMirror's own node-select click isn't affected by it, just
-   the pointer hint, the same reasoning .rich-text img's own cursor already
-   documents. */
+   unresized video never overflows it either. cursor: pointer (not zoom-in
+   — the click here plays a video, not "zooms" into it, and per user
+   feedback a plain pointer is the more meaningful cue for that action)
+   only actually opens the lightbox on the read-only render
+   (initLightboxDelegation in app.js, scoped to [data-rich-text-content])
+   — left on the editor's copy too since ProseMirror's own node-select
+   click isn't affected by it, just the pointer hint, the same reasoning
+   .rich-text img's own cursor already documents. */
 .video-thumb {
     position: relative;
     display: block;
@@ -554,7 +558,7 @@
     margin: 4px 0;
     background: #000;
     border-radius: var(--radius-md);
-    cursor: zoom-in;
+    cursor: pointer;
 }
 
 .video-thumb:not([data-has-size]) {
