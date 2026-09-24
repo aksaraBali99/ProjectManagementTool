@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1790227878.9325135,
-    "ast_hash": "c1e197b0282c2636daccb827bc1037a0",
+    "mtime": 1790240260.1285803,
+    "ast_hash": "343eb8e514ee970c6843dbbb6e3d2a12",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -1545,8 +1545,8 @@
     "semantic_hash": ""
   },
   "app/Support/RichText.php": {
-    "mtime": 1790233356.867726,
-    "ast_hash": "e9ec341b52ac7f66cdb3d5ea2f59b9bd",
+    "mtime": 1790236686.1861472,
+    "ast_hash": "6dab6eeea88690bdc6e021569ed8787c",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php": {
@@ -1560,8 +1560,8 @@
     "semantic_hash": ""
   },
   "resources/js/rich-text-editor.js": {
-    "mtime": 1790233664.6964648,
-    "ast_hash": "34f33c9d7019d7612ee7bbb8d10f36a2",
+    "mtime": 1790240385.2291312,
+    "ast_hash": "96016457c9a6fd9b17865e12bed16723",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text-editor.blade.php": {
@@ -1700,8 +1700,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/LinkPreviewController.php": {
-    "mtime": 1790233253.318667,
-    "ast_hash": "345b12db31703d8b7b7c635905fdebfb",
+    "mtime": 1790240217.779,
+    "ast_hash": "8999b278b653e1fe6548eb027e9b7df8",
     "semantic_hash": ""
   },
   "app/Http/Controllers/RichTextDocumentController.php": {
@@ -1710,23 +1710,23 @@
     "semantic_hash": ""
   },
   "app/Models/LinkPreview.php": {
-    "mtime": 1790233111.19197,
-    "ast_hash": "c71c28212fc2f1a8c9f39c7e3dc0b221",
+    "mtime": 1790240127.8887289,
+    "ast_hash": "d7e11d1ef407bc4efcc993dfe0cfaa57",
     "semantic_hash": ""
   },
   "app/Services/LinkPreviewResult.php": {
-    "mtime": 1790233191.6886342,
-    "ast_hash": "f9f28f48f5b681c47b5070a24d10ff95",
+    "mtime": 1790240139.708048,
+    "ast_hash": "f8caa44c2510dba86dd83ad8bc41bba4",
     "semantic_hash": ""
   },
   "app/Services/LinkPreviewService.php": {
-    "mtime": 1790234543.1725755,
-    "ast_hash": "b24531f3a96e39652bdc1723fcc7640f",
+    "mtime": 1790240195.371294,
+    "ast_hash": "91f981088ae6d2688b2c736c529efe1a",
     "semantic_hash": ""
   },
   "app/Support/OpenGraphMetadataParser.php": {
-    "mtime": 1790233153.658185,
-    "ast_hash": "a867af98f9b42eb90fbc8e743a4a2737",
+    "mtime": 1790240156.0919068,
+    "ast_hash": "b5da92931eac64e58f24a83a1404a934",
     "semantic_hash": ""
   },
   "app/Support/UrlSsrfGuard.php": {
@@ -1735,8 +1735,8 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_09_24_145813_create_link_previews_table.php": {
-    "mtime": 1790233104.353369,
-    "ast_hash": "240f41f29a8d4ba2fcd85c74d756fd22",
+    "mtime": 1790240116.0659258,
+    "ast_hash": "6331aa41f2635d15a9eba8270c52fd09",
     "semantic_hash": ""
   },
   "resources/js/file-chip-extension.js": {
@@ -1750,13 +1750,13 @@
     "semantic_hash": ""
   },
   "resources/js/link-preview-extension.js": {
-    "mtime": 1790233383.3458416,
-    "ast_hash": "014a8ef9fecf36f8c772deffabfc98ce",
+    "mtime": 1790236592.5251248,
+    "ast_hash": "f067c6c0efa80132e31c11b03e471acc",
     "semantic_hash": ""
   },
   "resources/js/link-preview-thumbnail.js": {
-    "mtime": 1790233394.9223173,
-    "ast_hash": "d93915678d41bb0501a0cd0f81622cad",
+    "mtime": 1790236614.8757985,
+    "ast_hash": "68b3980df2cbe21dbc5bae26008a7a2b",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/DocumentUploadTest.php": {
@@ -1765,8 +1765,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/LinkPreviewTest.php": {
-    "mtime": 1790234954.698496,
-    "ast_hash": "8d154c53df4188aae81ca3de0bab2bc5",
+    "mtime": 1790240505.6250668,
+    "ast_hash": "f878da0b939b01d71cb42e0d6a6c3f9a",
     "semantic_hash": ""
   }
 }
