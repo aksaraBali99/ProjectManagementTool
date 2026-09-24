@@ -480,11 +480,13 @@
    every read-only render (this exact class, just not the live editor,
    which sets an inline style that already beats the stylesheet) — the
    documented "resize lost on reload" failure mode, just via CSS specificity
-   rather than a parsing/persistence bug. cursor:zoom-in only actually opens
-   anything on the read-only render (see initLightboxDelegation in app.js,
-   scoped to [data-rich-text-content]) — left on the live editor's copy too
-   since ProseMirror's own node-select click isn't affected by it, just the
-   pointer hint.
+   rather than a parsing/persistence bug. cursor:pointer (not the earlier
+   zoom-in magnifying glass — dropped per user feedback: it read as an odd,
+   overly specific cue rather than a plain "this is clickable" one) only
+   actually opens anything on the read-only render (see
+   initLightboxDelegation in app.js, scoped to [data-rich-text-content]) —
+   left on the live editor's copy too since ProseMirror's own node-select
+   click isn't affected by it, just the pointer hint.
 */
 .rich-text img {
     display: block;
@@ -492,7 +494,7 @@
     margin: 4px 0;
     border: 1px solid #E5E7EB;
     border-radius: var(--radius-md);
-    cursor: zoom-in;
+    cursor: pointer;
 }
 
 .rich-text img:not([width]) {
@@ -516,18 +518,84 @@
     border-radius: var(--radius-md);
 }
 
-/* Embedded video (task #4 phase 5) — same treatment as .rich-text img
-   above (max-width: 100% of the content column, never audio's forced
-   width: 100%), since unlike audio a video actually has meaningful
-   intrinsic dimensions worth respecting rather than normalizing away.
-   max-height keeps a vertically long recording from dominating the page,
-   the same reasoning as img's own max-height for an unsized image. */
+/* Embedded video (task #4 phase 5) — a bare fallback only: as of the video
+   resize + lightbox follow-up, every video a user actually sees is always
+   wrapped in .video-thumb below, in both the editor (resizable-video.js's
+   NodeView) and read-only rendering (video-thumbnail.js, run async on
+   page load) — this rule only covers the brief window before that JS pass
+   runs on a freshly server-rendered read-only page, the same
+   before-JS-runs gap code blocks have before code-highlight.js colors
+   them. */
 .rich-text video {
     display: block;
     max-width: 100%;
     max-height: 480px;
     margin: 4px 0;
     border-radius: var(--radius-md);
+}
+
+/* Click-to-expand video thumbnail (task #4, video resize + lightbox) — the
+   composite element both resizable-video.js (editor) and
+   video-thumbnail.js (read-only) build: a <video> showing its own
+   browser-decoded first frame (no generated poster, no native controls —
+   they're stripped/never rendered) plus a play-icon overlay, sized either
+   by the resized width/height HTML attributes (data-has-size) or this
+   default 16:9 box. max-width matches the content column's own cap
+   (ResizableVideo's maxWidth: 800, resources/js/rich-text-editor.js) so an
+   unresized video never overflows it either. cursor: pointer (not zoom-in
+   — the click here plays a video, not "zooms" into it, and per user
+   feedback a plain pointer is the more meaningful cue for that action)
+   only actually opens the lightbox on the read-only render
+   (initLightboxDelegation in app.js, scoped to [data-rich-text-content])
+   — left on the editor's copy too since ProseMirror's own node-select
+   click isn't affected by it, just the pointer hint, the same reasoning
+   .rich-text img's own cursor already documents. */
+.video-thumb {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    max-width: 100%;
+    margin: 4px 0;
+    background: #000;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.video-thumb:not([data-has-size]) {
+    width: 360px;
+    aspect-ratio: 16 / 9;
+}
+
+.video-thumb video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+.video-thumb-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.video-thumb-play-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.55);
+    color: #fff;
+    /* Optically center the play triangle — an equilateral-ish glyph reads
+       left-of-center inside a perfectly round frame otherwise. */
+    padding-left: 3px;
 }
 
 /* Description's own Edit/Save/Cancel (task #4, view/edit split) — icon
@@ -597,6 +665,19 @@
 }
 
 .lightbox-image {
+    display: block;
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+    cursor: default;
+}
+
+/* Expanded video playback (task #4, video resize + lightbox) — same cap as
+   .lightbox-image, deliberately NOT sized from whatever the inline
+   thumbnail had been resized to: this is the one fixed "full size"
+   regardless of preview size, per that task's explicit requirement. */
+.lightbox-video {
     display: block;
     max-width: 90vw;
     max-height: 90vh;

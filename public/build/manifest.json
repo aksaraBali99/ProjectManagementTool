@@ -182,7 +182,7 @@
     "src": "node_modules/intl-tel-input/dist/img/flags@2x.webp"
   },
   "resources/css/app.css": {
-    "file": "assets/app-6rrQCqYQ.css",
+    "file": "assets/app-CXuZuONy.css",
     "name": "app",
     "names": [
       "app.css"
@@ -235,7 +235,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-Bi1fyckK.js",
+    "file": "assets/app-DlFX3FrF.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -243,6 +243,7 @@
       "node_modules/chart.js/dist/chart.js",
       "resources/js/rich-text-editor.js",
       "resources/js/code-highlight.js",
+      "resources/js/video-thumbnail.js",
       "resources/js/lightbox.js"
     ],
     "css": [
@@ -260,18 +261,24 @@
     "isDynamicEntry": true
   },
   "resources/js/lightbox.js": {
-    "file": "assets/lightbox-DwmPTT0Z.js",
+    "file": "assets/lightbox-uivaYhrk.js",
     "name": "lightbox",
     "src": "resources/js/lightbox.js",
     "isDynamicEntry": true
   },
   "resources/js/rich-text-editor.js": {
-    "file": "assets/rich-text-editor-Dn00NvDp.js",
+    "file": "assets/rich-text-editor-CLDWQeYo.js",
     "name": "rich-text-editor",
     "src": "resources/js/rich-text-editor.js",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/code-highlight.js"
     ]
+  },
+  "resources/js/video-thumbnail.js": {
+    "file": "assets/video-thumbnail-DBUTopwE.js",
+    "name": "video-thumbnail",
+    "src": "resources/js/video-thumbnail.js",
+    "isDynamicEntry": true
   }
 }

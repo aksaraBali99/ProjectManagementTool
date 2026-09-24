@@ -196,21 +196,23 @@ class RichText
                 ->allowElement('pre')
                 ->allowElement('code', ['class'])
                 ->allowElement('a', ['href'])
-                // width/height (task #4, image resize): TipTap's resize
-                // handles save the new size as real width/height attributes
-                // on the node — never inline style — via its own attribute/
-                // render pipeline, so the allowlist has to carry them or
-                // every resize is silently thrown away the moment the
-                // description/comment round-trips through save(). Bounds
-                // are enforced by ImageDimensionAttributeSanitizer, not
-                // trusted from the client alone.
+                // width/height (task #4, image resize; extended to video
+                // by the video resize + lightbox follow-up): TipTap's
+                // resize handles save the new size as real width/height
+                // attributes on the node — never inline style — via its
+                // own attribute/render pipeline, so the allowlist has to
+                // carry them or every resize is silently thrown away the
+                // moment the description/comment round-trips through
+                // save(). Bounds are enforced by
+                // MediaDimensionAttributeSanitizer, not trusted from the
+                // client alone.
                 ->allowElement('img', ['src', 'alt', 'width', 'height'])
                 // controls (task #4 phases 4-5): always present — see the
                 // Audio/Video nodes' addAttributes() — but still has to be
                 // allowlisted like any other attribute, or the sanitizer
                 // strips it.
                 ->allowElement('audio', ['src', 'controls'])
-                ->allowElement('video', ['src', 'controls'])
+                ->allowElement('video', ['src', 'controls', 'width', 'height'])
                 ->dropElement('script')
                 ->dropElement('style')
                 // Unknown elements are dropped WITH their contents by default.
@@ -243,7 +245,7 @@ class RichText
                 // for no real security gain.
                 ->allowRelativeMedias(true)
                 ->withAttributeSanitizer(new CodeLanguageClassSanitizer)
-                ->withAttributeSanitizer(new ImageDimensionAttributeSanitizer)
+                ->withAttributeSanitizer(new MediaDimensionAttributeSanitizer)
                 // The library's default is 20,000 bytes, and beyond that it
                 // returns an empty string rather than the input — a long
                 // description would silently vanish on save.

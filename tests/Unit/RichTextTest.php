@@ -54,11 +54,11 @@ test('the sanitizer keeps exactly what the editor can produce', function () {
         .'<pre><code class="language-python">print(1)</code></pre>'
         .'<img src="https://cdn.example.com/tasks/5/images/a.jpg" alt="a screenshot">'
         .'<audio src="https://cdn.example.com/tasks/5/audio/a.mp3" controls></audio>'
-        .'<video src="https://cdn.example.com/tasks/5/video/a.mp4" controls></video>';
+        .'<video src="https://cdn.example.com/tasks/5/video/a.mp4" controls width="400" height="225"></video>';
 
     $clean = RichText::sanitize($editorOutput);
 
-    foreach (['<h1>A</h1>', '<h2>B</h2>', '<h3>C</h3>', '<strong>b</strong>', '<em>i</em>', '<u>u</u>', '<br', '<ul><li><p>x</p></li></ul>', '<ol><li><p>y</p></li></ol>', 'class="language-python"', 'src="https://cdn.example.com/tasks/5/images/a.jpg"', 'alt="a screenshot"', 'src="https://cdn.example.com/tasks/5/audio/a.mp3"', 'controls', '</audio>', 'src="https://cdn.example.com/tasks/5/video/a.mp4"', '</video>'] as $expected) {
+    foreach (['<h1>A</h1>', '<h2>B</h2>', '<h3>C</h3>', '<strong>b</strong>', '<em>i</em>', '<u>u</u>', '<br', '<ul><li><p>x</p></li></ul>', '<ol><li><p>y</p></li></ol>', 'class="language-python"', 'src="https://cdn.example.com/tasks/5/images/a.jpg"', 'alt="a screenshot"', 'src="https://cdn.example.com/tasks/5/audio/a.mp3"', 'controls', '</audio>', 'src="https://cdn.example.com/tasks/5/video/a.mp4"', 'width="400"', 'height="225"', '</video>'] as $expected) {
         expect($clean)->toContain($expected);
     }
 });
@@ -133,6 +133,12 @@ test('an image\'s width and height survive sanitizing — the resized dimensions
         ->toContain('height="300"');
 });
 
+test('a video\'s width and height survive sanitizing the same way (task #4, video resize + lightbox)', function () {
+    expect(RichText::sanitize('<video src="https://x/y.mp4" controls width="400" height="225"></video>'))
+        ->toContain('width="400"')
+        ->toContain('height="225"');
+});
+
 test('a well-formed pixel width/height is kept and an implausible one is dropped, per dimension', function (string $dirty, bool $widthSurvives, bool $heightSurvives) {
     $clean = RichText::sanitize($dirty);
 
@@ -146,6 +152,12 @@ test('a well-formed pixel width/height is kept and an implausible one is dropped
     'zero' => ['<img src="https://x/y.jpg" width="0" height="300">', false, true],
     'negative' => ['<img src="https://x/y.jpg" width="-400" height="300">', false, true],
     'decimal' => ['<img src="https://x/y.jpg" width="400.5" height="300">', false, true],
+    // MediaDimensionAttributeSanitizer (task #4, video resize + lightbox)
+    // is shared with img — these confirm it actually applies to <video>
+    // too, not just that img still works.
+    'video both valid' => ['<video src="https://x/y.mp4" controls width="400" height="225"></video>', true, true],
+    'video width over the ceiling' => ['<video src="https://x/y.mp4" controls width="99999" height="225"></video>', false, true],
+    'video non-numeric height' => ['<video src="https://x/y.mp4" controls width="400" height="abc"></video>', true, false],
 ]);
 
 test('plainText extracts visible words with block boundaries as newlines', function () {

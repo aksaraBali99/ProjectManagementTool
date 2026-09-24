@@ -5,11 +5,13 @@ import { Node, mergeAttributes } from '@tiptap/core';
 // progressive playback via native HTML5 <video> (Cloudflare R2, no
 // dedicated streaming service, no adaptive bitrate — see the Rich Media
 // Enhancement Guide), so a custom node mirroring audio-extension.js is
-// enough. No custom NodeView: native <video controls> play/pause/seek/
-// volume/fullscreen already work normally inside a contentEditable
-// ancestor in every real browser, the same reason audio's node doesn't
-// need one either. No poster/thumbnail generation for this phase — out of
-// scope per task #4 phase 5, flagged back rather than added speculatively.
+// enough for the *schema*.
+//
+// This node itself still has no NodeView (unlike resizable-video.js's
+// ResizableVideo, which is what the editor actually registers as of the
+// video resize + lightbox follow-up) — it exists on its own so
+// resizable-video.js has a plain node to .extend(), the same relationship
+// resizable-image.js has with @tiptap/extension-image's own Image.
 //
 // atom: true (no editable content, can't place a cursor "inside" it) and
 // draggable: true match how the Image and Audio nodes both behave —
@@ -28,11 +30,30 @@ export const Video = Node.create({
             // Always rendered — same reasoning as Audio's controls
             // attribute: this app never offers a controls-less player,
             // so it's a fixed part of every video node's HTML output,
-            // not a real editor-controlled attribute.
+            // not a real editor-controlled attribute. Kept even though the
+            // inline embed no longer shows native controls (task #4, video
+            // resize + lightbox) — the *expanded* lightbox playback still
+            // wants a real `<video controls>`, and this stays the one
+            // signal, harmless either way, that this app's videos are
+            // always meant to be user-controllable somewhere.
             controls: {
                 default: true,
                 parseHTML: () => true,
                 renderHTML: () => ({ controls: 'controls' }),
+            },
+            // width/height (task #4, video resize) — same plain
+            // default-attribute shape as @tiptap/extension-image's own
+            // width/height (no custom parseHTML/renderHTML needed: TipTap's
+            // default attribute handling already reads/writes a same-named
+            // HTML attribute when a value is present). Only ever written by
+            // ResizableVideo's onCommit (resizable-video.js); absent on
+            // every video saved before this feature, which is exactly the
+            // "no resize data" backward-compat case.
+            width: {
+                default: null,
+            },
+            height: {
+                default: null,
             },
         };
     },
