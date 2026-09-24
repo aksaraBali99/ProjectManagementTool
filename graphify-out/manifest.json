@@ -120,8 +120,8 @@
     "semantic_hash": ""
   },
   "resources/js/app.js": {
-    "mtime": 1790216520.15641,
-    "ast_hash": "e5336ceec897fee6a6587c2d797a4592",
+    "mtime": 1790233446.9210024,
+    "ast_hash": "dc1d18b8a6047c896384caa87b9c9128",
     "semantic_hash": ""
   },
   "routes/console.php": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1790211679.7018814,
-    "ast_hash": "2a8d759e00267ad52865d9df5ef5b88d",
+    "mtime": 1790233271.0841663,
+    "ast_hash": "3d6e5448ad8ab754d309b2f62455eb9e",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1790124529.3442116,
-    "ast_hash": "27d6e3ed5631fd36c066fac40a7ec6b5",
+    "mtime": 1790227878.9325135,
+    "ast_hash": "c1e197b0282c2636daccb827bc1037a0",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -780,8 +780,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
-    "mtime": 1790211679.693627,
-    "ast_hash": "4b4566397e50c92cbedd32f9260a3cb5",
+    "mtime": 1790233736.915517,
+    "ast_hash": "170e03beb43075f6ad4a3b11ef365787",
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
@@ -795,8 +795,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/create.blade.php": {
-    "mtime": 1790211679.6972094,
-    "ast_hash": "da9dd71eb464c71e4f8c397e96576839",
+    "mtime": 1790233761.9865322,
+    "ast_hash": "39e01a6eb2a8593c3ea802d21ae9065b",
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
@@ -1545,8 +1545,8 @@
     "semantic_hash": ""
   },
   "app/Support/RichText.php": {
-    "mtime": 1790216520.099776,
-    "ast_hash": "d81385dc03ed6cafdb0c471c80f5585c",
+    "mtime": 1790233356.867726,
+    "ast_hash": "e9ec341b52ac7f66cdb3d5ea2f59b9bd",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php": {
@@ -1560,13 +1560,13 @@
     "semantic_hash": ""
   },
   "resources/js/rich-text-editor.js": {
-    "mtime": 1790216520.1619446,
-    "ast_hash": "110c52aac9f9fc3999ec2a1c5e157fbd",
+    "mtime": 1790233664.6964648,
+    "ast_hash": "34f33c9d7019d7612ee7bbb8d10f36a2",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text-editor.blade.php": {
-    "mtime": 1790211679.6900434,
-    "ast_hash": "9f8011dbfea98607dc5e9405096542cd",
+    "mtime": 1790233713.6360724,
+    "ast_hash": "43ab143f996f552de054821c9e85ebe9",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text.blade.php": {
@@ -1650,8 +1650,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_description-field.blade.php": {
-    "mtime": 1790211679.6960974,
-    "ast_hash": "79edb7c65fc12cb61bcb2c117c4ed763",
+    "mtime": 1790233719.6344569,
+    "ast_hash": "6af0f3735ad539a980b0465da326128c",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/DescriptionViewEditModeTest.php": {
@@ -1695,8 +1695,78 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentViewingBehaviorTest.php": {
-    "mtime": 1790216712.177422,
-    "ast_hash": "0b18650f69c306947f3f57d84847a526",
+    "mtime": 1790228466.7432916,
+    "ast_hash": "4c040881f675a3cbec4cd127c6213c46",
+    "semantic_hash": ""
+  },
+  "app/Http/Controllers/LinkPreviewController.php": {
+    "mtime": 1790233253.318667,
+    "ast_hash": "345b12db31703d8b7b7c635905fdebfb",
+    "semantic_hash": ""
+  },
+  "app/Http/Controllers/RichTextDocumentController.php": {
+    "mtime": 1790227832.3803048,
+    "ast_hash": "3c87092bd63b2c2f7593b94b4cfa090b",
+    "semantic_hash": ""
+  },
+  "app/Models/LinkPreview.php": {
+    "mtime": 1790233111.19197,
+    "ast_hash": "c71c28212fc2f1a8c9f39c7e3dc0b221",
+    "semantic_hash": ""
+  },
+  "app/Services/LinkPreviewResult.php": {
+    "mtime": 1790233191.6886342,
+    "ast_hash": "f9f28f48f5b681c47b5070a24d10ff95",
+    "semantic_hash": ""
+  },
+  "app/Services/LinkPreviewService.php": {
+    "mtime": 1790234543.1725755,
+    "ast_hash": "b24531f3a96e39652bdc1723fcc7640f",
+    "semantic_hash": ""
+  },
+  "app/Support/OpenGraphMetadataParser.php": {
+    "mtime": 1790233153.658185,
+    "ast_hash": "a867af98f9b42eb90fbc8e743a4a2737",
+    "semantic_hash": ""
+  },
+  "app/Support/UrlSsrfGuard.php": {
+    "mtime": 1790234953.3347,
+    "ast_hash": "ee23ff92ad59327b8ebbbd5242e58578",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_09_24_145813_create_link_previews_table.php": {
+    "mtime": 1790233104.353369,
+    "ast_hash": "240f41f29a8d4ba2fcd85c74d756fd22",
+    "semantic_hash": ""
+  },
+  "resources/js/file-chip-extension.js": {
+    "mtime": 1790227902.541152,
+    "ast_hash": "b71b6ea8b8d029cb2fe46dcb33ecb93d",
+    "semantic_hash": ""
+  },
+  "resources/js/file-chip-thumbnail.js": {
+    "mtime": 1790227929.5132346,
+    "ast_hash": "62d2e69b309bcc4456912e75e03353d5",
+    "semantic_hash": ""
+  },
+  "resources/js/link-preview-extension.js": {
+    "mtime": 1790233383.3458416,
+    "ast_hash": "014a8ef9fecf36f8c772deffabfc98ce",
+    "semantic_hash": ""
+  },
+  "resources/js/link-preview-thumbnail.js": {
+    "mtime": 1790233394.9223173,
+    "ast_hash": "d93915678d41bb0501a0cd0f81622cad",
+    "semantic_hash": ""
+  },
+  "tests/Feature/RichText/DocumentUploadTest.php": {
+    "mtime": 1790228535.0488462,
+    "ast_hash": "4862306c26bd2ba8059357b91a449a98",
+    "semantic_hash": ""
+  },
+  "tests/Feature/RichText/LinkPreviewTest.php": {
+    "mtime": 1790234954.698496,
+    "ast_hash": "8d154c53df4188aae81ca3de0bab2bc5",
     "semantic_hash": ""
   }
 }
