@@ -4,7 +4,15 @@
 
 @section('content')
 <div>
-    <h1 class="text-[14px] font-medium text-[#1F2937]">Kanban</h1>
+    <div class="flex items-center justify-between">
+        <h1 class="text-[14px] font-medium text-[#1F2937]">Kanban</h1>
+        @if ($organization && $canCreate)
+            <a href="{{ route('tasks.create', $organization->projects()->orderBy('name')->first()) }}"
+               class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
+                + Add task
+            </a>
+        @endif
+    </div>
 
     @if ($organizations->isEmpty())
         <p class="mt-6 text-[12px] text-gray-500">{{ $emptyMessage ?? "You don't have access to any companies yet." }}</p>
@@ -28,7 +36,7 @@
                     </div>
                     <div class="kanban-column-body min-h-[80px] space-y-2 p-2">
                         @forelse ($column['tasks'] as $item)
-                            @php [$task, $canEdit] = [$item['task'], $item['canEdit']] @endphp
+                            @php [$task, $canEdit, $canReassign] = [$item['task'], $item['canEdit'], $item['canReassign']] @endphp
                             <div class="kanban-card flex items-start justify-between gap-2 rounded-md border border-gray-200 p-2 {{ $canEdit ? 'cursor-move' : '' }}"
                                  style="background-color: {{ $task->priority->badgeBackground() }}"
                                  draggable="{{ $canEdit ? 'true' : 'false' }}" data-task-id="{{ $task->id }}">
@@ -45,6 +53,20 @@
                                                 data-task-id="{{ $task->id }}" {{ $canEdit ? '' : 'disabled' }}>
                                             @foreach (\App\Enums\TaskStatus::cases() as $statusOption)
                                                 <option value="{{ $statusOption->value }}" {{ $task->status === $statusOption ? 'selected' : '' }}>{{ $statusOption->label() }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    {{-- Same compact sizing as the status select above (border/padding/
+                                         text size) — a separate row rather than crowding a third control
+                                         into the priority/status row. Always rendered (never hidden) and
+                                         disabled rather than removed when the viewer can't reassign, same
+                                         "show, don't hide" pattern as the status select. --}}
+                                    <div class="mt-1.5 flex justify-end">
+                                        <select class="kanban-assignee-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
+                                                data-task-id="{{ $task->id }}" {{ $canReassign ? '' : 'disabled' }}>
+                                            <option value="">Unassigned</option>
+                                            @foreach (($staffByProject[$task->project_id] ?? []) as $option)
+                                                <option value="{{ $option['id'] }}" {{ (int) $task->assignee_id === $option['id'] ? 'selected' : '' }}>{{ $option['name'] }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -119,6 +141,42 @@
         board.querySelectorAll('.kanban-status-select').forEach(function (select) {
             select.addEventListener('change', function () {
                 changeStatus(select.dataset.taskId, select.value);
+            });
+        });
+
+        function changeAssignee(taskId, assigneeId) {
+            fetch('/tasks/' + taskId + '/assignee', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ assignee_id: assigneeId || null }),
+            })
+                .then(function (response) {
+                    if (response.ok) {
+                        // Full reload, same as changeStatus() - this is what
+                        // keeps the card's avatar in sync with whoever is
+                        // now actually assigned, without needing to
+                        // duplicate avatar-rendering logic in JS.
+                        window.location.reload();
+                        return;
+                    }
+                    return response.json().catch(function () { return null; }).then(function (data) {
+                        const fieldErrors = data && data.errors ? Object.values(data.errors)[0] : null;
+                        throw new Error((Array.isArray(fieldErrors) && fieldErrors[0]) || (data && data.message) || 'Failed to change assignee.');
+                    });
+                })
+                .catch(function (error) {
+                    alert(error.message);
+                    window.location.reload();
+                });
+        }
+
+        board.querySelectorAll('.kanban-assignee-select').forEach(function (select) {
+            select.addEventListener('change', function () {
+                changeAssignee(select.dataset.taskId, select.value);
             });
         });
     })();

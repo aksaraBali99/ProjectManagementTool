@@ -6,6 +6,7 @@ use App\Models\AccessPermission;
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -362,6 +363,58 @@ test('a column\'s status color applies only to its header, not the whole column,
     preg_match('/<div class="flex items-center justify-between rounded-t-lg border-b border-gray-200 px-3 py-2"\s+style="background-color: ([^;"]+)/', $html, $headerMatch);
     expect($headerMatch)->not->toBeEmpty();
     expect($headerMatch[1])->toBe(TaskStatus::Pending->badgeBackground());
+});
+
+test('management sees an Add Task button on Kanban, linking to the active company\'s alphabetically-first project', function () {
+    // A second project sorting before "Project A" specifically exercises
+    // the orderBy('name')->first() default, not just "the only project
+    // that happens to exist."
+    $earlierProject = Project::create([
+        'organization_id' => $this->orgA->id,
+        'name' => 'AAA Earlier Project',
+        'description' => 'd',
+    ]);
+
+    $response = $this->actingAs($this->management)->get('/kanban/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertSee('+ Add task');
+    $response->assertSee(route('tasks.create', $earlierProject), false);
+});
+
+test('a staff user without create_edit_tasks does not see the Kanban Add Task button, even with department access', function () {
+    $staff = makeStaffOnKanban($this->orgA, $this->deptA);
+
+    // Sanity check: view_kanban alone (Staff's default grant) is not
+    // create_edit_tasks — no permission manipulation needed to hit this,
+    // it's the seeded default.
+    $response = $this->actingAs($staff)->get('/kanban/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertDontSee('+ Add task');
+});
+
+test('granting create_edit_tasks to Staff makes the Kanban Add Task button appear for a staff user with department access', function () {
+    $staff = makeStaffOnKanban($this->orgA, $this->deptA);
+
+    $staffRole = Role::where('slug', 'staff')->firstOrFail();
+    $createEditTasksId = Permission::where('slug', 'create_edit_tasks')->firstOrFail()->id;
+    $staffRole->permissions()->syncWithoutDetaching([$createEditTasksId]);
+
+    $response = $this->actingAs($staff)->get('/kanban/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertSee('+ Add task');
+    $response->assertSee(route('tasks.create', $this->projectA), false);
+});
+
+test('a user with no Kanban access at all sees no Add Task button alongside the "no access" message', function () {
+    $orphan = User::factory()->create();
+
+    $response = $this->actingAs($orphan)->get('/kanban');
+
+    $response->assertOk();
+    $response->assertDontSee('+ Add task');
 });
 
 test('the whole board sits inside a pale wash of the active company\'s own color', function () {

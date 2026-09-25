@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\DocumentAccessLevel;
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
+use App\Http\Controllers\Concerns\BuildsAssigneeOptions;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
+use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Http\Requests\Tasks\StoreTaskRequest;
 use App\Http\Requests\Tasks\UpdateTaskRequest;
 use App\Models\Department;
@@ -26,11 +28,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class TaskManagementController extends Controller
 {
-    use ResolvesCurrentOrganization;
+    use BuildsAssigneeOptions, ResolvesCurrentOrganization, ValidatesTaskAssignment;
 
     public function index(?Organization $organization = null): View
     {
@@ -452,6 +455,42 @@ class TaskManagementController extends Controller
     }
 
     /**
+     * Reassignment via the Kanban card's compact assignee select. Gated by
+     * the same 'update' policy the full Edit Task page's Assignee field
+     * uses (create_edit_tasks + department access, or management, or the
+     * task's own current assignee) - not the narrower 'updateStatus'
+     * capability the status select/drag-and-drop use, since handing a task
+     * to someone else is a bigger action than moving your own card.
+     * assignee_id eligibility reuses ValidatesTaskAssignment, the same
+     * check UpdateTaskRequest applies to the full form, so the two can't
+     * drift out of sync. TaskObserver::updated() logs the audit_log entry
+     * (task.reassigned) automatically off this update() call.
+     */
+    public function updateAssignee(Request $request, Task $task): JsonResponse
+    {
+        Gate::authorize('update', $task);
+
+        $data = $request->validate([
+            'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($task->project, $data['assignee_id'])) {
+            throw ValidationException::withMessages(['assignee_id' => 'Select a user assigned to this project.']);
+        }
+
+        $task->update(['assignee_id' => $data['assignee_id'] ?? null]);
+        $task->load('assignee');
+
+        return response()->json([
+            'task' => [
+                'id' => $task->id,
+                'assignee_id' => $task->assignee_id,
+                'assignee_name' => $task->assignee?->name,
+            ],
+        ]);
+    }
+
+    /**
      * @param  Collection<int, Project>  $projects
      * @return array{projectOrganizations: array<int, int>, departmentsByOrganization: array<int, array<int, array{id: int, name: string}>>, staffByProject: array<int, array<int, array{id: int, name: string}>>}
      */
@@ -480,59 +519,5 @@ class TaskManagementController extends Controller
             'departmentsByOrganization' => $departmentsByOrganization,
             'staffByProject' => $this->staffOptionsByProject($projects),
         ];
-    }
-
-    /**
-     * Assignee options for a task/subtask are anyone attached to the
-     * project — via project_staff (any role: management, staff, ...) or
-     * project_clients (the project's client) — not scoped to a "Staff"
-     * role, and not every company member company-wide, UNIONed with
-     * anyone holding a global role (super_admin/owner). Global-role users
-     * are deliberately never added to project_staff/project_clients —
-     * they're global by design, not scoped to any one project — so
-     * they're merged into every project's option list here rather than
-     * needing an explicit membership row of their own (matches
-     * ValidatesTaskAssignment::isAssignableStaffForProject(), the
-     * server-side check for a submitted assignee id, so the two can't
-     * drift out of sync). Joins the pivots directly rather than relying
-     * on eager-loaded relations, so this works whether $projects is an
-     * Eloquent or a plain Support collection (e.g.
-     * Task::with('project')->get()->pluck('project')).
-     *
-     * @param  Collection<int, Project>  $projects
-     * @return array<int, array<int, array{id: int, name: string}>> keyed by project id
-     */
-    private function staffOptionsByProject(Collection $projects): array
-    {
-        if ($projects->isEmpty()) {
-            return [];
-        }
-
-        $projectIds = $projects->pluck('id');
-
-        $staffRows = DB::table('project_staff')
-            ->join('users', 'users.id', '=', 'project_staff.user_id')
-            ->whereIn('project_staff.project_id', $projectIds)
-            ->get(['project_staff.project_id', 'users.id', 'users.name']);
-
-        $clientRows = DB::table('project_clients')
-            ->join('users', 'users.id', '=', 'project_clients.user_id')
-            ->whereIn('project_clients.project_id', $projectIds)
-            ->get(['project_clients.project_id', 'users.id', 'users.name']);
-
-        $globalRoleUsers = User::withGlobalRole()->orderBy('name')->get(['id', 'name']);
-
-        $membersByProject = $staffRows->concat($clientRows)->groupBy('project_id');
-
-        return $projects->mapWithKeys(function (Project $project) use ($membersByProject, $globalRoleUsers) {
-            $members = ($membersByProject->get($project->id) ?? collect())
-                ->map(fn ($row) => ['id' => $row->id, 'name' => $row->name])
-                ->concat($globalRoleUsers->map(fn ($user) => ['id' => $user->id, 'name' => $user->name]))
-                ->unique('id')
-                ->sortBy('name')
-                ->values();
-
-            return [$project->id => $members];
-        })->all();
     }
 }
