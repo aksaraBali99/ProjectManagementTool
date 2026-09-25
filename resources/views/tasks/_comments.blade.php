@@ -5,17 +5,22 @@
      Threading (task #70, phase 2) matches Jira Cloud's real behavior:
      EVERY comment — top-level or itself a reply — shows a "Reply"
      action, but storage stays genuinely flat/one-level regardless of
-     which one was clicked (CommentController::resolveReply() always
-     re-parents to the top-level ancestor). Replies render as ONE flat,
-     chronologically-ordered list under their top-level comment, with no
-     deeper visual nesting — the auto-inserted @mention at the start of
-     each reply (see resolveReply()/store()) is what conveys who a
+     which one was clicked (CommentController::resolveParentCommentId()
+     always re-parents to the top-level ancestor). Replies render as ONE
+     flat, chronologically-ordered list under their top-level comment,
+     with no deeper visual nesting — the mention pre-filled into the
+     reply editor (see openReplyCompose() below) is what conveys who a
      specific reply was actually addressing, not indentation. Both live
      in the same comments table/query — see Comment::replies()/
      parentComment() — grouped here into topLevelComments +
      repliesByParent for the initial render; the 7s poll (syncComments()
      below) groups the same shape from a single flat fetch client-side,
-     using the exact same rule (parent_comment_id null = top-level). --}}
+     using the exact same rule (parent_comment_id null = top-level).
+
+     Every mention (whether typed manually or pre-filled by clicking
+     Reply) is plain "@Full Name" text tracked client-side, not a special
+     rich-text node — see rich-text-editor.js's setupMentions(), the same
+     mechanism the main new-comment editor already uses. --}}
 @php
     $topLevelComments = $task->comments->whereNull('parent_comment_id')->sortBy('created_at')->values();
     $repliesByParent = $task->comments->whereNotNull('parent_comment_id')->groupBy('parent_comment_id');
@@ -25,7 +30,7 @@
         @forelse ($topLevelComments as $comment)
             @php $canEditComment = auth()->user()->can('update', $comment); @endphp
             <div class="comment-thread" data-comment-id="{{ $comment->id }}">
-                <div class="comment-card rounded-md bg-white border border-gray-200 px-3 py-2" data-comment-id="{{ $comment->id }}" data-can-edit="{{ $canEditComment ? '1' : '0' }}">
+                <div class="comment-card rounded-md bg-white border border-gray-200 px-3 py-2" data-comment-id="{{ $comment->id }}" data-can-edit="{{ $canEditComment ? '1' : '0' }}" data-author-id="{{ $comment->user_id }}" data-author-name="{{ $comment->user->name }}">
                     <div class="flex items-center justify-between">
                         <span class="inline-flex items-center gap-1.5">
                             <x-avatar :user="$comment->user" size="18px" />
@@ -48,17 +53,14 @@
                              comment (anyone who can view the task) — not gated by
                              canEditComment, which only governs editing/deleting
                              THIS PARTICULAR comment. Shown on every comment,
-                             including replies (see the reply cards below) — the
-                             one thing that differs per comment is who ends up
-                             auto-mentioned, resolved server-side from whichever
-                             comment was actually clicked. --}}
+                             including replies (see the reply cards below). --}}
                         <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
                     </div>
                 </div>
                 <div class="replies-list mt-2 ml-6 space-y-2">
                     @foreach ($repliesByParent->get($comment->id, collect())->sortBy('created_at') as $reply)
                         @php $canEditReply = auth()->user()->can('update', $reply); @endphp
-                        <div class="comment-card rounded-md bg-white border border-gray-200 px-3 py-2" data-comment-id="{{ $reply->id }}" data-can-edit="{{ $canEditReply ? '1' : '0' }}">
+                        <div class="comment-card rounded-md bg-white border border-gray-200 px-3 py-2" data-comment-id="{{ $reply->id }}" data-can-edit="{{ $canEditReply ? '1' : '0' }}" data-author-id="{{ $reply->user_id }}" data-author-name="{{ $reply->user->name }}">
                             <div class="flex items-center justify-between">
                                 <span class="inline-flex items-center gap-1.5">
                                     <x-avatar :user="$reply->user" size="18px" />
@@ -166,14 +168,19 @@
         // The visual card shared by a top-level comment and a reply alike
         // (avatar/name/timestamp/body/actions) — every comment gets a
         // Reply action, top-level or itself a reply (matches Jira: who
-        // ends up auto-mentioned is resolved server-side from whichever
+        // ends up pre-filled as a mention is resolved from whichever
         // comment was actually clicked, not from a fixed "only top-level"
-        // rule).
+        // rule — see openReplyCompose()). authorId/authorName carry
+        // through to dataset so a reply posted THIS session (no page
+        // reload) can itself be replied to correctly, same as one loaded
+        // from the initial Blade render.
         function buildCommentCard(comment) {
             const card = document.createElement('div');
             card.className = 'comment-card rounded-md bg-white border border-gray-200 px-3 py-2';
             card.dataset.commentId = comment.id;
             card.dataset.canEdit = comment.can_edit ? '1' : '0';
+            card.dataset.authorId = comment.user_id;
+            card.dataset.authorName = comment.user_name;
 
             const editDeleteHtml = comment.can_edit
                 ? '<button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>'
@@ -279,12 +286,33 @@
         // arriving via syncComments() while this is open only ever
         // touches .replies-list and can't disturb an in-progress draft
         // here. The resulting reply is always parented to clickedCard's
-        // OWN id (top-level or reply) — the server (resolveReply())
-        // re-parents it to the top-level ancestor for storage and
-        // auto-mentions clickedCard's actual author, whoever that is.
+        // OWN id (top-level or reply) — the server
+        // (resolveParentCommentId()) re-parents it to the top-level
+        // ancestor for storage.
+        //
+        // Pre-fills the editor with a REAL, removable mention of
+        // clickedCard's author — not a server-side guarantee (see
+        // CommentController::store()'s own docblock for why that was
+        // deliberately dropped): setupMentions()'s seedFromText() (rich-
+        // text-editor.js) scans this initial content the same way it
+        // would scan any pre-loaded content, so if the user deletes the
+        // "@Name" text before posting, getMentionedUserIds() correctly
+        // stops reporting it — real freedom to remove it, not a cosmetic
+        // placeholder the server overrides anyway. Only pre-filled when
+        // the author is actually in mentionableUsers: that list already
+        // excludes yourself (no self-mention, matching the manual-mention
+        // rule), and naturally excludes anyone who's since lost view
+        // access to this task (Task::viewableUsers(), the Phase 1 fix) -
+        // skipping the pre-fill for either case is the safe default
+        // rather than mentioning someone the eligibility check would
+        // reject anyway.
         function openReplyCompose(clickedCard) {
             const thread = clickedCard.closest('.comment-thread');
             if (thread.querySelector('.reply-compose')) return; // already open
+
+            const authorId = Number(clickedCard.dataset.authorId);
+            const authorName = clickedCard.dataset.authorName;
+            const authorIsMentionable = mentionableUsers.some(function (user) { return user.id === authorId; });
 
             const compose = document.createElement('div');
             compose.className = 'reply-compose mt-2 ml-6';
@@ -293,6 +321,9 @@
             editRoot.className = 'reply-editor rte-loading';
             editRoot.setAttribute('data-rich-text', '');
             editRoot.setAttribute('data-compact', '');
+            if (authorIsMentionable) {
+                editRoot.dataset.content = '<p>@' + escapeHtml(authorName) + ' </p>';
+            }
             editRoot.dataset.label = 'Reply';
             editRoot.dataset.mentions = JSON.stringify(mentionableUsers);
             editRoot.dataset.imageTaskId = taskId;

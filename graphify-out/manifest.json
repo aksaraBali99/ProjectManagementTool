@@ -700,8 +700,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/CommentController.php": {
-    "mtime": 1790339728.9475756,
-    "ast_hash": "f581d65700e1d3a2756b3e7ae3d1a876",
+    "mtime": 1790341732.679996,
+    "ast_hash": "6f67db20efb7fd5c24ef5281ab00f246",
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
@@ -780,8 +780,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
-    "mtime": 1790339880.416897,
-    "ast_hash": "b30a5642079a33a97104b230bc2774c6",
+    "mtime": 1790341785.1710174,
+    "ast_hash": "288a88d10332caafa4bccd417af9d6aa",
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
@@ -1825,8 +1825,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Kanban/KanbanAssigneeTest.php": {
-    "mtime": 1790327776.490943,
-    "ast_hash": "80d67e1656569b70839a5536ba9f44a3",
+    "mtime": 1790340500.205646,
+    "ast_hash": "b2350fcafcd7707a7194d35a9416d998",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskReturnToTest.php": {
@@ -1845,8 +1845,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Comments/CommentReplyTest.php": {
-    "mtime": 1790339940.135118,
-    "ast_hash": "21c00f05281921a5359fc42c261db047",
+    "mtime": 1790341898.5306249,
+    "ast_hash": "23bf4be908e80bd6b285d13f4771bcf3",
     "semantic_hash": ""
   },
   "tests/Feature/DeleteConfirmationTest.php": {

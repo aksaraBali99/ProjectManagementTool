@@ -38,6 +38,7 @@ class CommentController extends Controller
                 'body' => $comment->body,
                 'body_html' => RichText::toHtml($comment->body),
                 'body_hash' => md5($comment->body),
+                'user_id' => $comment->user_id,
                 'user_name' => $comment->user->name,
                 'user_initials' => $comment->user->initials(),
                 'user_avatar_bg' => $comment->user->avatarBackground(),
@@ -62,34 +63,32 @@ class CommentController extends Controller
             'mentioned_user_ids.*' => ['integer'],
             // The comment the "Reply" action was actually clicked on -
             // top-level or itself a reply, either is valid input here.
-            // resolveReply() re-parents it to the top-level ancestor for
-            // storage (see that method's own docblock for why).
+            // resolveParentCommentId() re-parents it to the top-level
+            // ancestor for storage (see that method's own docblock for
+            // why).
             'parent_comment_id' => ['nullable', 'integer', 'exists:comments,id'],
         ]);
 
-        $reply = $this->resolveReply($task, $data['parent_comment_id'] ?? null);
-
+        $parentCommentId = $this->resolveParentCommentId($task, $data['parent_comment_id'] ?? null);
         $body = $this->cleanBody($data['body']);
-        $mentionedIds = $data['mentioned_user_ids'] ?? [];
 
-        // Auto-mention whoever's comment was actually replied to - not a
-        // separate notification system, just a real mention prepended to
-        // the body, reusing the exact same mention pipeline (eligibility
-        // check, self-exclusion, notification) a manually-typed one goes
-        // through via syncMentions() below. No auto-mention (text or
-        // notification) when replying to your own comment.
-        if ($reply && $reply['authorId'] !== auth()->id()) {
-            $body = '<p>@'.e($reply['authorName']).'</p>'.$body;
-            $mentionedIds[] = $reply['authorId'];
-        }
-
+        // The auto-mention itself (inserting "@Name " and deciding
+        // whether it's still there at submit time) is entirely the
+        // client's doing now — see openReplyCompose() in
+        // tasks/_comments.blade.php, which pre-fills the reply editor
+        // with a real, removable mention of whoever's comment was
+        // clicked. That's what gives the user actual freedom to delete
+        // it before posting: this endpoint never re-adds or second-
+        // guesses what mentioned_user_ids says, for a reply or a
+        // top-level comment alike - both go through the exact same
+        // syncMentions() call below.
         $comment = $task->comments()->create([
             'user_id' => auth()->id(),
-            'parent_comment_id' => $reply['parentCommentId'] ?? null,
+            'parent_comment_id' => $parentCommentId,
             'body' => $body,
         ]);
 
-        $this->syncMentions($comment, $task, $mentionedIds);
+        $this->syncMentions($comment, $task, $data['mentioned_user_ids'] ?? []);
 
         return response()->json([
             'comment' => [
@@ -98,6 +97,7 @@ class CommentController extends Controller
                 'body' => $comment->body,
                 'body_html' => RichText::toHtml($comment->body),
                 'body_hash' => md5($comment->body),
+                'user_id' => $comment->user_id,
                 'user_name' => auth()->user()->name,
                 'user_initials' => auth()->user()->initials(),
                 'user_avatar_bg' => auth()->user()->avatarBackground(),
@@ -145,30 +145,21 @@ class CommentController extends Controller
      * itself a reply; either way this re-parents the new comment to the
      * ORIGINAL top-level ancestor for storage (a reply's own
      * parent_comment_id is always already that ancestor, by this same
-     * invariant, so one hop up is always enough — never recurses). The
-     * person actually being auto-mentioned (see store()) is still
-     * whichever comment was clicked, which is NOT necessarily the same
-     * person as the top-level comment's author.
-     *
-     * @return array{parentCommentId: int, authorId: int, authorName: string}|null
+     * invariant, so one hop up is always enough — never recurses).
      */
-    private function resolveReply(Task $task, ?int $clickedCommentId): ?array
+    private function resolveParentCommentId(Task $task, ?int $clickedCommentId): ?int
     {
         if ($clickedCommentId === null) {
             return null;
         }
 
-        $clicked = Comment::with('user')->find($clickedCommentId);
+        $clicked = Comment::find($clickedCommentId);
 
         if (! $clicked || $clicked->task_id !== $task->id) {
             throw ValidationException::withMessages(['parent_comment_id' => 'You can only reply to a comment on this task.']);
         }
 
-        return [
-            'parentCommentId' => $clicked->parent_comment_id ?? $clicked->id,
-            'authorId' => $clicked->user_id,
-            'authorName' => $clicked->user->name,
-        ];
+        return $clicked->parent_comment_id ?? $clicked->id;
     }
 
     /**

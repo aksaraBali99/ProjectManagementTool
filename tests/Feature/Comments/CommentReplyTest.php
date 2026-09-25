@@ -16,11 +16,21 @@ use Illuminate\Support\Facades\Notification;
  * Threaded replies on Task comments (task #70, phase 2), matching Jira
  * Cloud's real behavior: every comment — top-level or itself a reply —
  * shows a "Reply" action, but storage stays genuinely flat/one-level
- * regardless of which one was clicked (CommentController::resolveReply()
- * always re-parents to the top-level ancestor). Replying auto-inserts a
- * real @mention of whoever's comment was actually clicked, reusing the
- * EXISTING mention/notification pipeline (MentionedInCommentNotification)
- * rather than a separate notification type.
+ * regardless of which one was clicked
+ * (CommentController::resolveParentCommentId() always re-parents to the
+ * top-level ancestor).
+ *
+ * The mention-of-whoever-you're-replying-to is a CLIENT-SIDE pre-fill
+ * (openReplyCompose() in tasks/_comments.blade.php), not a server-side
+ * guarantee — the user can delete it before posting, so this endpoint
+ * never re-adds or second-guesses mentioned_user_ids for a reply. What
+ * IS tested here at the HTTP level: the data-author-id/data-author-name
+ * attributes the client-side pre-fill depends on are actually rendered,
+ * and a reply's mentioned_user_ids (however they got there) go through
+ * the exact same eligibility+notification pipeline
+ * (MentionedInCommentNotification) a top-level comment's do — no
+ * separate notification type. The live pre-fill/removal behavior itself
+ * needs a real browser to verify (see the PR description).
  */
 beforeEach(function () {
     $this->owner = createOwner();
@@ -167,67 +177,103 @@ test('a staff member without department access to the task cannot reply', functi
     expect($this->topLevel->fresh()->replies()->count())->toBe(0);
 });
 
-test('replying to someone\'s comment auto-inserts a real mention of that comment\'s author, which triggers the existing mention notification', function () {
+test('every comment card carries the data-author-id/data-author-name the client-side reply pre-fill depends on', function () {
+    $staff = makeEligibleStaff($this->org, $this->dept);
+    $reply = Comment::create(['task_id' => $this->task->id, 'user_id' => $staff->id, 'parent_comment_id' => $this->topLevel->id, 'body' => 'A reply']);
+
+    $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?>'.$page);
+    libxml_clear_errors();
+    $xpath = new DOMXPath($document);
+
+    $cases = [
+        [$this->topLevel->id, $this->management],
+        [$reply->id, $staff],
+    ];
+
+    foreach ($cases as [$commentId, $author]) {
+        $card = null;
+        foreach ($xpath->query('//*[contains(@class, "comment-card")]') as $node) {
+            if ($node->getAttribute('data-comment-id') === (string) $commentId) {
+                $card = $node;
+            }
+        }
+        expect($card)->not->toBeNull();
+        expect($card->getAttribute('data-author-id'))->toBe((string) $author->id);
+        expect($card->getAttribute('data-author-name'))->toBe($author->name);
+    }
+});
+
+test('a mention on a reply (however it got into mentioned_user_ids — an auto-filled one the user kept, or a manually-typed one) notifies through the exact same pipeline as a top-level comment\'s', function () {
     Notification::fake();
     $staff = makeEligibleStaff($this->org, $this->dept);
 
-    $response = $this->actingAs($staff)->postJson("/tasks/{$this->task->id}/comments", [
-        'body' => 'Sounds good',
+    // Simulates what the client sends if the auto-filled mention survives
+    // to submission — this endpoint has no special "reply mention"
+    // handling, it's the identical syncMentions() call a top-level
+    // comment goes through.
+    $this->actingAs($staff)->postJson("/tasks/{$this->task->id}/comments", [
+        'body' => '@'.$this->management->name.' sounds good',
         'parent_comment_id' => $this->topLevel->id,
-    ]);
+        'mentioned_user_ids' => [$this->management->id],
+    ])->assertCreated();
 
-    $response->assertCreated();
-
-    // The auto-mention is REAL content in the stored body, not a
-    // side-channel notification payload — it uses the exact same
-    // "@FullName" plain-text convention a manually-typed mention does
-    // (this editor has no special mention node/markup — see
-    // RichText's own sanitizer allowlist).
-    $reply = Comment::where('body', 'like', '%Sounds good%')->firstOrFail();
-    expect($reply->body)->toContain('@'.$this->management->name);
-
-    // And it's recorded as a real mention (the pivot), notified via the
-    // existing MentionedInCommentNotification - no separate notification
-    // type.
+    $reply = Comment::where('body', 'like', '%sounds good%')->firstOrFail();
     expect($reply->mentionedUsers()->pluck('users.id')->all())->toBe([$this->management->id]);
     Notification::assertSentTo($this->management, MentionedInCommentNotification::class);
 });
 
-test('replying to your OWN comment does not insert a self-mention or self-notify', function () {
+test('a reply posted with no mentioned_user_ids at all does not notify the comment\'s author — simulates the user deleting the pre-filled mention before posting', function () {
     Notification::fake();
+    $staff = makeEligibleStaff($this->org, $this->dept);
 
-    $response = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [
-        'body' => 'Replying to myself',
+    $this->actingAs($staff)->postJson("/tasks/{$this->task->id}/comments", [
+        'body' => 'Sounds good',
         'parent_comment_id' => $this->topLevel->id,
-    ]);
+        // No mentioned_user_ids — the user had the freedom to remove the
+        // pre-filled mention, and did.
+    ])->assertCreated();
 
-    $response->assertCreated();
-
-    $reply = Comment::where('body', 'like', '%Replying to myself%')->firstOrFail();
-    expect($reply->body)->not->toContain('@'.$this->management->name);
+    $reply = Comment::where('body', 'like', '%Sounds good%')->firstOrFail();
     expect($reply->mentionedUsers()->count())->toBe(0);
     Notification::assertNothingSentTo($this->management);
 });
 
-test('a reply containing both the auto-mention and a manually-typed mention of someone else notifies both people independently', function () {
+test('a self-mention on your own reply is still filtered out server-side even if somehow submitted, matching syncMentions()\'s existing rule', function () {
+    Notification::fake();
+
+    // The client-side pre-fill already skips this case (the author isn't
+    // in mentionableUsers, which excludes yourself) — this confirms the
+    // backend's own independent safeguard in syncMentions() still holds
+    // regardless, the same guarantee a manual self-mention already had.
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [
+        'body' => 'Replying to myself',
+        'parent_comment_id' => $this->topLevel->id,
+        'mentioned_user_ids' => [$this->management->id],
+    ])->assertCreated();
+
+    $reply = Comment::where('body', 'like', '%Replying to myself%')->firstOrFail();
+    expect($reply->mentionedUsers()->count())->toBe(0);
+    Notification::assertNothingSentTo($this->management);
+});
+
+test('a reply with two different mentioned_user_ids notifies both people independently', function () {
     Notification::fake();
     $mentioned = makeEligibleStaff($this->org, $this->dept);
     $replier = makeEligibleStaff($this->org, $this->dept);
 
     $this->actingAs($replier)->postJson("/tasks/{$this->task->id}/comments", [
-        'body' => 'Also cc @'.$mentioned->name,
+        'body' => '@'.$this->management->name.' also cc @'.$mentioned->name,
         'parent_comment_id' => $this->topLevel->id,
-        'mentioned_user_ids' => [$mentioned->id],
+        'mentioned_user_ids' => [$this->management->id, $mentioned->id],
     ])->assertCreated();
 
-    // Two independent reasons, two independent recipients, same
-    // notification type for both (the existing mention system) — the
-    // auto-mention of the comment's author (management) and the
-    // manually-typed mention of $mentioned both fire.
     Notification::assertSentTo($this->management, MentionedInCommentNotification::class);
     Notification::assertSentTo($mentioned, MentionedInCommentNotification::class);
 
-    $reply = Comment::where('body', 'like', '%Also cc%')->firstOrFail();
+    $reply = Comment::where('body', 'like', '%also cc%')->firstOrFail();
     expect($reply->mentionedUsers()->pluck('users.id')->sort()->values()->all())
         ->toBe(collect([$this->management->id, $mentioned->id])->sort()->values()->all());
 });
