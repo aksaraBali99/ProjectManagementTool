@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AccessPermission;
 use App\Models\Comment;
 use App\Models\Department;
 use App\Models\Organization;
@@ -38,9 +39,27 @@ beforeEach(function () {
     ]);
 });
 
-function makeProjectMember(Project $project): User
+/**
+ * A legitimately eligible team member — not just attached to the project
+ * (project_staff), but also actually able to VIEW the task, via real
+ * department access. Task::viewableUsers() (what mention eligibility is
+ * now built on) requires the latter; project_staff attachment alone was
+ * the pre-fix leak this test suite now guards against.
+ */
+function makeProjectMember(Project $project, Department $department): User
 {
     $user = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $project->organization_id,
+        'user_id' => $user->id,
+        'role_id' => Role::where('slug', 'staff')->first()->id,
+    ]);
+    AccessPermission::create([
+        'user_id' => $user->id,
+        'organization_id' => $project->organization_id,
+        'department_id' => $department->id,
+        'allowed' => true,
+    ]);
     $project->staff()->attach($user->id);
 
     return $user;
@@ -48,7 +67,7 @@ function makeProjectMember(Project $project): User
 
 test('mentioning a project member in a comment notifies them once, even if mentioned twice', function () {
     Notification::fake();
-    $mentioned = makeProjectMember($this->projectA);
+    $mentioned = makeProjectMember($this->projectA, $this->deptA);
 
     $response = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [
         'body' => '@'.$mentioned->name.' please check this, @'.$mentioned->name.' thanks',
@@ -64,7 +83,7 @@ test('mentioning a project member in a comment notifies them once, even if menti
 
 test('the mention notification links to the task edit page and names the task', function () {
     Notification::fake();
-    $mentioned = makeProjectMember($this->projectA);
+    $mentioned = makeProjectMember($this->projectA, $this->deptA);
 
     $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [
         'body' => '@'.$mentioned->name,
@@ -108,8 +127,8 @@ test('mentioning yourself does not send yourself a notification', function () {
 
 test('editing a comment to add a new mention notifies only the newly added user', function () {
     Notification::fake();
-    $first = makeProjectMember($this->projectA);
-    $second = makeProjectMember($this->projectA);
+    $first = makeProjectMember($this->projectA, $this->deptA);
+    $second = makeProjectMember($this->projectA, $this->deptA);
 
     $created = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [
         'body' => '@'.$first->name,
@@ -130,7 +149,7 @@ test('editing a comment to add a new mention notifies only the newly added user'
 
 test('removing a mention on edit drops the pivot row without notifying anyone new', function () {
     Notification::fake();
-    $mentioned = makeProjectMember($this->projectA);
+    $mentioned = makeProjectMember($this->projectA, $this->deptA);
 
     $created = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [
         'body' => '@'.$mentioned->name,
