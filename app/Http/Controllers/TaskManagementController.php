@@ -49,7 +49,6 @@ class TaskManagementController extends Controller
                 'tasks' => collect(),
                 'showInactive' => false,
                 'canCreate' => false,
-                'canAddDocuments' => false,
             ]);
         }
 
@@ -132,7 +131,6 @@ class TaskManagementController extends Controller
             'tasks' => $tasks,
             'showInactive' => $showInactive,
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
-            'canAddDocuments' => Gate::allows('create', [Document::class, $organization->id]),
             'staffByProject' => $this->staffOptionsByProject($projectsInList),
             'filters' => $filters,
             'sort' => $sort,
