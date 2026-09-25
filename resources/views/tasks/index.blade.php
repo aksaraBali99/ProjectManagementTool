@@ -8,7 +8,7 @@
         <h1 class="text-[14px] font-medium text-[#1F2937]">Tasks</h1>
         <div class="flex items-center gap-3">
             @if ($organization && $canCreate)
-                <a href="{{ route('tasks.create', $organization->projects()->orderBy('name')->first()) }}"
+                <a href="{{ route('tasks.create', ['project' => $organization->projects()->orderBy('name')->first(), 'return_to' => url()->full(), 'return_label' => 'Tasks']) }}"
                    class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                     + Add task
                 </a>
@@ -199,7 +199,7 @@
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
                                 <button type="button" class="drilldown-btn text-[11px] text-gray-500 hover:text-gray-700 md:hidden" data-target="{{ $task->id }}">+</button>
-                                <a href="{{ route('tasks.edit', $task) }}" class="flex-1 hover:underline">{{ $task->title }}</a>
+                                <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Tasks']) }}" class="flex-1 hover:underline">{{ $task->title }}</a>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Project</span>
@@ -244,7 +244,7 @@
                             @endif
                             <td class="flex items-center justify-end gap-2 py-1 text-[11px] md:table-cell md:px-3 md:py-2.5 md:text-right">
                                 @if ($canEditTask)
-                                    <a href="{{ route('tasks.edit', $task) }}" class="text-brand-600 hover:underline">Edit</a>
+                                    <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Tasks']) }}" class="text-brand-600 hover:underline">Edit</a>
                                 @endif
                                 @if ($canDeactivateTask)
                                     <form method="POST" action="{{ route('tasks.toggle-active', $task) }}" class="inline">

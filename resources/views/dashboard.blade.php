@@ -17,7 +17,7 @@
             </div>
             <div class="divide-y divide-[#FECACA]">
                 @forelse ($activeTasks as $task)
-                    <a href="{{ route('tasks.edit', $task) }}" class="flex items-center justify-between px-3 py-2 hover:bg-[#FEE2E2]">
+                    <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Dashboard']) }}" class="flex items-center justify-between px-3 py-2 hover:bg-[#FEE2E2]">
                         <div>
                             <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
                             <p class="mt-0.5 text-[10px] text-gray-500">
@@ -47,7 +47,7 @@
                     </div>
                     <div class="space-y-1.5 p-2">
                         @forelse ($group as $task)
-                            <a href="{{ route('tasks.edit', $task) }}"
+                            <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Dashboard']) }}"
                                class="block rounded-md border-l-4 px-4 py-2 hover:opacity-90"
                                style="border-left-color: {{ $priority->badgeText() }}; background-color: {{ $priority->badgeBackground() }};">
                                 <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
@@ -103,7 +103,7 @@
                             ? $task->subtasks->firstWhere('assignee_id', auth()->id())
                             : null;
                     @endphp
-                    <a href="{{ route('tasks.edit', $task) }}" class="block px-3 py-2 hover:bg-gray-50">
+                    <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Dashboard']) }}" class="block px-3 py-2 hover:bg-gray-50">
                         <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
                         <p class="mt-0.5 text-[10px] text-gray-500">
                             {{ $task->project->name }}

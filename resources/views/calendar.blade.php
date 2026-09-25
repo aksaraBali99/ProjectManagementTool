@@ -7,7 +7,7 @@
     <div class="flex items-center justify-between">
         <h1 class="text-[14px] font-medium text-[#1F2937]">Calendar</h1>
         @if ($organization && $canCreate)
-            <a href="{{ route('tasks.create', $defaultProject) }}"
+            <a href="{{ route('tasks.create', ['project' => $defaultProject, 'return_to' => url()->full(), 'return_label' => 'Calendar']) }}"
                class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                 + Add task
             </a>
@@ -87,14 +87,14 @@
                             </div>
                             <div class="min-h-[280px] p-2">
                                 @if ($canCreate)
-                                    <a href="{{ route('tasks.create', $defaultProject) }}?due_date={{ $day['date']->toDateString() }}"
+                                    <a href="{{ route('tasks.create', ['project' => $defaultProject, 'due_date' => $day['date']->toDateString(), 'return_to' => url()->full(), 'return_label' => 'Calendar']) }}"
                                        class="mb-2 block text-[11px] text-gray-500 hover:text-gray-700">
                                         + Add task
                                     </a>
                                 @endif
                                 <div class="space-y-1">
                                     @foreach ($day['tasks'] as $task)
-                                        <a href="{{ route('tasks.edit', $task) }}" title="{{ $task->title }}"
+                                        <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Calendar']) }}" title="{{ $task->title }}"
                                            class="block truncate rounded px-1.5 py-1 text-[11px] font-medium"
                                            style="background-color: {{ $task->priority->badgeBackground() }}; color: {{ $task->priority->badgeText() }};">
                                             {{ $task->title }}
@@ -128,7 +128,7 @@
                                 </div>
                                 <div class="mt-1 space-y-1">
                                     @foreach ($day['tasks'] as $task)
-                                        <a href="{{ route('tasks.edit', $task) }}" title="{{ $task->title }}"
+                                        <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Calendar']) }}" title="{{ $task->title }}"
                                            class="block truncate rounded px-1.5 py-0.5 text-[10px] font-medium"
                                            style="background-color: {{ $task->priority->badgeBackground() }}; color: {{ $task->priority->badgeText() }};">
                                             {{ $task->title }}
@@ -136,7 +136,7 @@
                                     @endforeach
                                 </div>
                                 @if ($canCreate)
-                                    <a href="{{ route('tasks.create', $defaultProject) }}?due_date={{ $day['date']->toDateString() }}"
+                                    <a href="{{ route('tasks.create', ['project' => $defaultProject, 'due_date' => $day['date']->toDateString(), 'return_to' => url()->full(), 'return_label' => 'Calendar']) }}"
                                        class="mt-1 block text-[10px] text-gray-500 hover:text-gray-700">
                                         + Add task
                                     </a>

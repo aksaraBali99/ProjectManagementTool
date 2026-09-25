@@ -186,7 +186,7 @@
                                                     <tr class="block px-3 py-2 md:table-row md:px-0 md:py-0">
                                                         <td class="flex items-center justify-between gap-2 py-1 text-[11px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2">
                                                             <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Title</span>
-                                                            <a href="{{ route('tasks.edit', $task) }}" class="hover:underline">{{ $task->title }}</a>
+                                                            <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Projects']) }}" class="hover:underline">{{ $task->title }}</a>
                                                         </td>
                                                         <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2">
                                                             <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Department</span>

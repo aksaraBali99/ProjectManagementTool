@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="mx-auto max-w-2xl">
-    <a href="{{ route('projects.index') }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← Projects</a>
+    <a href="{{ $returnToUrl }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← {{ $returnToLabel }}</a>
 
     <h1 class="mt-2 text-[14px] font-medium text-[#1F2937]">Add task</h1>
 
@@ -140,7 +140,7 @@
                 <button type="submit" id="create-task-submit" class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">
                     Create task
                 </button>
-                <a href="{{ route('projects.index') }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
+                <a href="{{ $returnToUrl }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
             </div>
         </form>
 
