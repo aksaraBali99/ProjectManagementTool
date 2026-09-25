@@ -5,12 +5,12 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1552 nodes · 3942 edges · 184 communities (149 shown, 35 thin omitted)
+- 1552 nodes · 3942 edges · 184 communities (150 shown, 34 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 248 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `34a5dab0`
+- Built from commit: `aca2deba`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -50,8 +50,7 @@
 - tasks/create.blade.php
 - ValidatesTaskAssignment.php
 - User
-- ProjectPolicy
-- NotificationSetting
+- FileStorageException
 - Document
 - Organization
 - setup
@@ -70,12 +69,13 @@
 - Illuminate\Http\UploadedFile
 - CalendarController.php
 - Role.php
-- FileStorageException
+- LoginRequest
 - config
 - NotificationEventType.php
 - task-colors/edit.blade.php
 - Illuminate\Http\RedirectResponse
 - AuditLog
+- NotificationSetting
 - require
 - OrganizationManagementController.php
 - TagsImportBatch.php
@@ -83,7 +83,6 @@
 - Task
 - AuditEventMailNotification.php
 - Illuminate\Validation\Validator
-- config
 - HasAdminConfigurableColors.php
 - Closure
 - static
@@ -91,16 +90,16 @@
 - StoreProjectRequest
 - UpdateTaskStatusColorsRequest
 - Subtask
-- LoginRequest
+- ProjectPolicy
 - UpdateRoleRequest
 - UpdateUserRequest
 - 2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php
-- post-create-project-cmd
+- config
 - Illuminate\Foundation\Http\FormRequest
 - RolePolicy
 - UpdateProjectRequest
+- post-create-project-cmd
 - keywords
-- CommentMentionHighlightTest.php
 - Illuminate\Database\Eloquent\Relations\BelongsToMany
 
 ## God Nodes (most connected - your core abstractions)
@@ -130,7 +129,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (184 total, 35 thin omitted)
+## Communities (184 total, 34 thin omitted)
 
 ### Community 1 - "ImportValidator"
 Cohesion: 0.11
@@ -173,8 +172,8 @@ Cohesion: 0.25
 Nodes (7): About Laravel, Agentic Development, Code of Conduct, Contributing, Learning Laravel, License, Security Vulnerabilities
 
 ### Community 14 - "OrgMember"
-Cohesion: 0.20
-Nodes (3): OrgMember, makeStaffForDocumentCreate(), joinOrg()
+Cohesion: 0.19
+Nodes (4): OrgMember, Illuminate\Support\Facades\Notification, makeStaffForDocumentCreate(), joinOrg()
 
 ### Community 15 - "users/create.blade.php"
 Cohesion: 0.50
@@ -204,9 +203,9 @@ Nodes (5): SubtaskController, isAssignableStaffForProject(), StoreTaskRequest, U
 Cohesion: 0.05
 Nodes (15): User, AuditLogPolicy, CommentPolicy, DepartmentPolicy, DocumentPolicy, OrganizationPolicy, TaskPolicy, UserPolicy (+7 more)
 
-### Community 90 - "NotificationSetting"
-Cohesion: 0.23
-Nodes (3): NotificationSetting, NotificationSettingPolicy, givePersonalTaskAssignedRule()
+### Community 88 - "FileStorageException"
+Cohesion: 0.26
+Nodes (3): FileStorageException, self, Throwable
 
 ### Community 91 - "Document"
 Cohesion: 0.28
@@ -264,10 +263,6 @@ Nodes (14): FileStorageService, StoredFile, Illuminate\Http\UploadedFile, fakeAu
 Cohesion: 0.54
 Nodes (3): CalendarController, Carbon, Illuminate\Support\Carbon
 
-### Community 119 - "FileStorageException"
-Cohesion: 0.26
-Nodes (3): FileStorageException, self, Throwable
-
 ### Community 120 - "config"
 Cohesion: 0.22
 Nodes (9): pestphp/pest-plugin, php-http/discovery, config, allow-plugins, optimize-autoloader, platform, preferred-install, sort-packages (+1 more)
@@ -279,6 +274,10 @@ Nodes (6): AccessControlController, GoogleAuthController, DocumentController, No
 ### Community 134 - "AuditLog"
 Cohesion: 0.12
 Nodes (4): AuditLog, AuditEventDatabaseNotification, AuditEventNotifier, NotificationEventType
+
+### Community 139 - "NotificationSetting"
+Cohesion: 0.23
+Nodes (3): NotificationSetting, NotificationSettingPolicy, givePersonalTaskAssignedRule()
 
 ### Community 140 - "require"
 Cohesion: 0.22
@@ -324,13 +323,13 @@ Nodes (3): Subtask, SubtaskObserver, SubtaskPolicy
 Cohesion: 0.83
 Nodes (3): down(), isSqlite(), up()
 
-### Community 172 - "post-create-project-cmd"
-Cohesion: 0.50
-Nodes (4): post-create-project-cmd, @php artisan key:generate --ansi, @php artisan migrate --graceful --ansi, @php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\
-
 ### Community 174 - "Illuminate\Foundation\Http\FormRequest"
 Cohesion: 0.14
 Nodes (5): UpdateDepartmentRequest, UploadImportRequest, UpdateTaskPriorityColorsRequest, UpdateUserPasswordRequest, Illuminate\Foundation\Http\FormRequest
+
+### Community 179 - "post-create-project-cmd"
+Cohesion: 0.50
+Nodes (4): post-create-project-cmd, @php artisan key:generate --ansi, @php artisan migrate --graceful --ansi, @php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\
 
 ### Community 180 - "keywords"
 Cohesion: 0.67
@@ -343,16 +342,16 @@ Nodes (3): Permission, PermissionSeeder, Illuminate\Database\Eloquent\Relations\
 ## Knowledge Gaps
 - **133 isolated node(s):** `$schema`, `name`, `type`, `description`, `laravel` (+128 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **35 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `ImportValidator`, `.boardOrganizationIds`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `AuditLog`, `Task.php`, `User.php`, `OrgMember`, `Task`, `Closure`, `UserManagementController`, `Subtask`, `LoginRequest`, `RolePolicy`, `ImportTemplateBuilder`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `ValidatesTaskAssignment.php`, `ProjectPolicy`, `NotificationSetting`, `Document`, `Organization`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\Http\Request`, `BootstrapEnvironment`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `TaskManagementController.php`, `Comment`, `Role.php`, `NotificationEventType.php`?**
+- **Why does `User` connect `User` to `ImportValidator`, `.boardOrganizationIds`, `Illuminate\Database\Eloquent\Model`, `Task.php`, `Illuminate\Http\RedirectResponse`, `AuditLog`, `NotificationSetting`, `User.php`, `OrgMember`, `Task`, `Closure`, `UserManagementController`, `Subtask`, `ProjectPolicy`, `RolePolicy`, `ImportTemplateBuilder`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `ValidatesTaskAssignment.php`, `Document`, `Organization`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\Http\Request`, `BootstrapEnvironment`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `TaskManagementController.php`, `Comment`, `Role.php`, `LoginRequest`, `NotificationEventType.php`?**
   _High betweenness centrality (0.130) - this node is a cross-community bridge._
 - **Why does `Organization` connect `Organization` to `StoreDepartmentRequest`, `ImportValidator`, `.boardOrganizationIds`, `Illuminate\Database\Seeder`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `Task.php`, `FileCategory.php`, `User.php`, `OrgMember`, `OrganizationManagementController.php`, `Task`, `Illuminate\Validation\Validator`, `ImportTemplateBuilder`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `User`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\Http\Request`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `TaskManagementController.php`, `CalendarController.php`, `Role.php`?**
   _High betweenness centrality (0.058) - this node is a cross-community bridge._
-- **Why does `Task` connect `Task` to `ImportValidator`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `Task.php`, `FileCategory.php`, `User.php`, `OrgMember`, `Subtask`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `ValidatesTaskAssignment.php`, `User`, `Document`, `Organization`, `Illuminate\Http\Request`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `TaskManagementController.php`, `Comment`, `Illuminate\Http\JsonResponse`, `CalendarController.php`, `Role.php`?**
+- **Why does `Task` connect `Task` to `ImportValidator`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `Task.php`, `FileCategory.php`, `User.php`, `OrgMember`, `Subtask`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `ValidatesTaskAssignment.php`, `User`, `Document`, `Organization`, `Illuminate\Http\Request`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `TaskManagementController.php`, `Comment`, `Illuminate\Http\JsonResponse`, `CalendarController.php`?**
   _High betweenness centrality (0.056) - this node is a cross-community bridge._
 - **Are the 21 inferred relationships involving `User` (e.g. with `.index()` and `.__invoke()`) actually correct?**
   _`User` has 21 INFERRED edges - model-reasoned connections that need verification._
