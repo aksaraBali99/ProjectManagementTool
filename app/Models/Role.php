@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['name', 'slug', 'description', 'is_system'])]
 class Role extends Model
@@ -44,9 +45,24 @@ class Role extends Model
         return $query->whereNotIn('slug', self::GLOBAL_SLUGS);
     }
 
+    /**
+     * Global role holders (Super Admin/Owner) — the user_roles pivot.
+     * Management/Staff/Client are never assigned here; they hold their
+     * role per-company via org_members instead (see orgMembers()).
+     */
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_roles');
+    }
+
+    /**
+     * Org-scoped role assignments (org_members.role_id) — how Management,
+     * Staff, and Client hold their role, one row per company they hold it
+     * in. Super Admin/Owner never appear here, only via users() above.
+     */
+    public function orgMembers(): HasMany
+    {
+        return $this->hasMany(OrgMember::class);
     }
 
     public function permissions(): BelongsToMany
