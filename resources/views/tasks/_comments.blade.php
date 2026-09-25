@@ -2,14 +2,20 @@
      matches the pattern used by tasks/_subtasks.blade.php since this also
      renders once per drilldown row on the task list.
 
-     Threading (task #70, phase 2) is capped at one level: a top-level
-     comment ("thread") plus a flat list of replies underneath it, never a
-     reply-to-a-reply. Both live in the same comments table/query — see
-     Comment::replies()/parentComment() — grouped here into
-     topLevelComments + repliesByParent for the initial render; the 7s
-     poll (syncComments() below) groups the same shape from a single flat
-     fetch client-side, using the exact same rule (parent_comment_id null
-     = top-level). --}}
+     Threading (task #70, phase 2) matches Jira Cloud's real behavior:
+     EVERY comment — top-level or itself a reply — shows a "Reply"
+     action, but storage stays genuinely flat/one-level regardless of
+     which one was clicked (CommentController::resolveReply() always
+     re-parents to the top-level ancestor). Replies render as ONE flat,
+     chronologically-ordered list under their top-level comment, with no
+     deeper visual nesting — the auto-inserted @mention at the start of
+     each reply (see resolveReply()/store()) is what conveys who a
+     specific reply was actually addressing, not indentation. Both live
+     in the same comments table/query — see Comment::replies()/
+     parentComment() — grouped here into topLevelComments +
+     repliesByParent for the initial render; the 7s poll (syncComments()
+     below) groups the same shape from a single flat fetch client-side,
+     using the exact same rule (parent_comment_id null = top-level). --}}
 @php
     $topLevelComments = $task->comments->whereNull('parent_comment_id')->sortBy('created_at')->values();
     $repliesByParent = $task->comments->whereNotNull('parent_comment_id')->groupBy('parent_comment_id');
@@ -41,8 +47,11 @@
                         {{-- Replying follows the same rule as posting a top-level
                              comment (anyone who can view the task) — not gated by
                              canEditComment, which only governs editing/deleting
-                             THIS PARTICULAR comment. Never shown on a reply itself,
-                             since replies can't be nested further. --}}
+                             THIS PARTICULAR comment. Shown on every comment,
+                             including replies (see the reply cards below) — the
+                             one thing that differs per comment is who ends up
+                             auto-mentioned, resolved server-side from whichever
+                             comment was actually clicked. --}}
                         <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
                     </div>
                 </div>
@@ -58,12 +67,13 @@
                                 <span class="text-[10px] text-gray-400">{{ $reply->created_at->format('M j, Y g:ia') }}</span>
                             </div>
                             <x-rich-text :value="$reply->body" class="comment-body-text mt-1 text-[12px] text-gray-700" :data-body-hash="md5($reply->body)" />
-                            @if ($canEditReply)
-                                <div class="comment-actions mt-1 flex items-center gap-2">
+                            <div class="comment-actions mt-1 flex items-center gap-2">
+                                @if ($canEditReply)
                                     <button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>
                                     <button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>
-                                </div>
-                            @endif
+                                @endif
+                                <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -154,10 +164,11 @@
         }
 
         // The visual card shared by a top-level comment and a reply alike
-        // (avatar/name/timestamp/body/actions) — the only difference is
-        // the Reply action, which only ever shows on a top-level comment's
-        // own card (comment.parent_comment_id is falsy), never on a reply,
-        // since replies can't be nested further.
+        // (avatar/name/timestamp/body/actions) — every comment gets a
+        // Reply action, top-level or itself a reply (matches Jira: who
+        // ends up auto-mentioned is resolved server-side from whichever
+        // comment was actually clicked, not from a fixed "only top-level"
+        // rule).
         function buildCommentCard(comment) {
             const card = document.createElement('div');
             card.className = 'comment-card rounded-md bg-white border border-gray-200 px-3 py-2';
@@ -168,12 +179,8 @@
                 ? '<button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>'
                     + '<button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>'
                 : '';
-            const replyHtml = comment.parent_comment_id
-                ? ''
-                : '<button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>';
-            const actionsHtml = (editDeleteHtml || replyHtml)
-                ? '<div class="comment-actions mt-1 flex items-center gap-2">' + editDeleteHtml + replyHtml + '</div>'
-                : '';
+            const replyHtml = '<button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>';
+            const actionsHtml = '<div class="comment-actions mt-1 flex items-center gap-2">' + editDeleteHtml + replyHtml + '</div>';
 
             const avatarStyle = 'background-color: ' + comment.user_avatar_bg + '; color: ' + comment.user_avatar_text
                 + '; width: 18px; height: 18px; font-size: calc(18px * 0.43);';
@@ -220,6 +227,32 @@
             return container.querySelector('.comment-thread[data-comment-id="' + commentId + '"]');
         }
 
+        // Inserts a new element (a .comment-thread into .comment-list, or
+        // a reply's .comment-card into a thread's .replies-list — same
+        // helper either way, since both containers hold direct children
+        // keyed by data-comment-id) at its correct CHRONOLOGICAL position
+        // rather than always at the end. Comment ids are auto-increment
+        // and therefore already order-equivalent to created_at, so a
+        // numeric id comparison is simpler and more reliable than parsing
+        // the display-formatted created_at string back into a sortable
+        // value. Kept generic (container + element + id, no assumption
+        // about what kind of element it is) so Phase 4's reactions can
+        // reuse it rather than needing a second insertion strategy.
+        function insertInOrder(container, element, commentId) {
+            const existing = Array.prototype.filter.call(container.children, function (child) {
+                return child.dataset && child.dataset.commentId !== undefined;
+            });
+
+            for (let i = 0; i < existing.length; i++) {
+                if (Number(existing[i].dataset.commentId) > commentId) {
+                    container.insertBefore(element, existing[i]);
+                    return;
+                }
+            }
+
+            container.appendChild(element);
+        }
+
         function removeEmptyState() {
             const empty = listEl.querySelector('.comment-empty');
             if (empty) empty.remove();
@@ -234,16 +267,23 @@
             }
         }
 
-        // Builds and opens a reply-compose box under the given top-level
-        // card's thread — created on demand (same lazy create/destroy
-        // pattern as the Edit-in-place editor below), not pre-rendered by
-        // Blade, so a page with many comments doesn't mount a hidden TipTap
-        // instance per thread up front. Appended as a sibling AFTER
-        // .replies-list, never inside it, so a new reply arriving via
-        // syncComments() while this is open only ever touches .replies-list
-        // and can't disturb an in-progress draft here.
-        function openReplyCompose(topLevelCard) {
-            const thread = topLevelCard.closest('.comment-thread');
+        // Builds and opens a reply-compose box under clickedCard's own
+        // thread — clickedCard can be a top-level comment's card OR a
+        // reply's card, either way .closest('.comment-thread') finds the
+        // right ancestor (a reply's card already lives nested inside its
+        // thread's own subtree). Created on demand (same lazy
+        // create/destroy pattern as the Edit-in-place editor below), not
+        // pre-rendered by Blade, so a page with many comments doesn't
+        // mount a hidden TipTap instance per thread up front. Appended as
+        // a sibling AFTER .replies-list, never inside it, so a new reply
+        // arriving via syncComments() while this is open only ever
+        // touches .replies-list and can't disturb an in-progress draft
+        // here. The resulting reply is always parented to clickedCard's
+        // OWN id (top-level or reply) — the server (resolveReply())
+        // re-parents it to the top-level ancestor for storage and
+        // auto-mentions clickedCard's actual author, whoever that is.
+        function openReplyCompose(clickedCard) {
+            const thread = clickedCard.closest('.comment-thread');
             if (thread.querySelector('.reply-compose')) return; // already open
 
             const compose = document.createElement('div');
@@ -301,7 +341,7 @@
                 requestOrThrow('/tasks/' + taskId + '/comments', 'POST', {
                     body: editor.getHTML(),
                     mentioned_user_ids: editor.getMentionedUserIds(),
-                    parent_comment_id: Number(topLevelCard.dataset.commentId),
+                    parent_comment_id: Number(clickedCard.dataset.commentId),
                 }, 'Failed to post reply.')
                     .then(function (response) {
                         return response.json();
@@ -309,7 +349,7 @@
                     .then(function (data) {
                         const repliesList = thread.querySelector('.replies-list');
                         const card = buildCommentCard(Object.assign({}, data.comment, { can_edit: true }));
-                        repliesList.appendChild(card);
+                        insertInOrder(repliesList, card, data.comment.id);
                         wireCard(card);
                         highlightCode(card);
                         closeCompose();
@@ -324,8 +364,8 @@
         }
 
         // Wired once per comment CARD (top-level or reply alike) for
-        // Edit/Delete, plus Reply when present (top-level only). The card
-        // is the identity element for editing state — a currently-open
+        // Edit/Delete (when permitted) and Reply (always). The card is
+        // the identity element for editing state — a currently-open
         // Edit-in-place editor or reply-compose box is found relative to
         // it, never assumed from the wider thread.
         function wireCard(card) {
@@ -451,7 +491,7 @@
                         removeEmptyState();
 
                         const thread = buildCommentThread(Object.assign({}, data.comment, { can_edit: true }));
-                        listEl.appendChild(thread);
+                        insertInOrder(listEl, thread, data.comment.id);
                         wireCard(thread.querySelector('.comment-card'));
                         highlightCode(thread);
                         editor.clear();
@@ -483,10 +523,15 @@
         // turn comes — replies can never arrive before the comment they're
         // replying to. Every insertion targets a specific container
         // (.comment-list for a new thread, a specific thread's
-        // .replies-list for a new reply) rather than rebuilding anything
-        // wholesale, which is what keeps an open Edit-in-place editor, an
-        // open reply-compose draft, and the page's scroll position all
-        // untouched by a routine poll tick.
+        // .replies-list for a new reply) via insertInOrder() rather than
+        // appending blindly or rebuilding anything wholesale — a new
+        // reply lands at its correct chronological position even if it
+        // wasn't the very latest thing across the whole task (e.g. a
+        // reply to an older thread arriving after a newer top-level
+        // comment already has). This targeted-container approach is also
+        // what keeps an open Edit-in-place editor, an open reply-compose
+        // draft, and the page's scroll position all untouched by a
+        // routine poll tick.
         function syncComments() {
             if (container.offsetParent === null) return;
 
@@ -507,7 +552,7 @@
 
                             if (! comment.parent_comment_id) {
                                 const thread = buildCommentThread(comment);
-                                listEl.appendChild(thread);
+                                insertInOrder(listEl, thread, comment.id);
                                 wireCard(thread.querySelector('.comment-card'));
                                 highlightCode(thread);
                                 return;
@@ -519,7 +564,7 @@
                             if (! parentThread) return;
 
                             const card = buildCommentCard(comment);
-                            parentThread.querySelector('.replies-list').appendChild(card);
+                            insertInOrder(parentThread.querySelector('.replies-list'), card, comment.id);
                             wireCard(card);
                             highlightCode(card);
                             return;

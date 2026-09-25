@@ -6,7 +6,6 @@ use App\Models\Comment;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\MentionedInCommentNotification;
-use App\Notifications\RepliedToCommentNotification;
 use App\Support\RichText;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,19 +60,36 @@ class CommentController extends Controller
             'body' => ['required', 'string', 'max:500000'],
             'mentioned_user_ids' => ['sometimes', 'array'],
             'mentioned_user_ids.*' => ['integer'],
+            // The comment the "Reply" action was actually clicked on -
+            // top-level or itself a reply, either is valid input here.
+            // resolveReply() re-parents it to the top-level ancestor for
+            // storage (see that method's own docblock for why).
             'parent_comment_id' => ['nullable', 'integer', 'exists:comments,id'],
         ]);
 
-        $parentCommentId = $this->resolveParentCommentId($task, $data['parent_comment_id'] ?? null);
+        $reply = $this->resolveReply($task, $data['parent_comment_id'] ?? null);
+
+        $body = $this->cleanBody($data['body']);
+        $mentionedIds = $data['mentioned_user_ids'] ?? [];
+
+        // Auto-mention whoever's comment was actually replied to - not a
+        // separate notification system, just a real mention prepended to
+        // the body, reusing the exact same mention pipeline (eligibility
+        // check, self-exclusion, notification) a manually-typed one goes
+        // through via syncMentions() below. No auto-mention (text or
+        // notification) when replying to your own comment.
+        if ($reply && $reply['authorId'] !== auth()->id()) {
+            $body = '<p>@'.e($reply['authorName']).'</p>'.$body;
+            $mentionedIds[] = $reply['authorId'];
+        }
 
         $comment = $task->comments()->create([
             'user_id' => auth()->id(),
-            'parent_comment_id' => $parentCommentId,
-            'body' => $this->cleanBody($data['body']),
+            'parent_comment_id' => $reply['parentCommentId'] ?? null,
+            'body' => $body,
         ]);
 
-        $this->syncMentions($comment, $task, $data['mentioned_user_ids'] ?? []);
-        $this->notifyReply($comment);
+        $this->syncMentions($comment, $task, $mentionedIds);
 
         return response()->json([
             'comment' => [
@@ -123,53 +139,36 @@ class CommentController extends Controller
     }
 
     /**
-     * Enforces the one-level cap server-side, not just in the UI (only
-     * the "Reply" action, shown on top-level comments alone, ever sends a
-     * parent_comment_id in the first place, but a crafted request could
-     * send any id): a reply's parent must belong to THIS task and must
-     * itself be top-level (its own parent_comment_id is null) — never
-     * another reply. Returns null for an ordinary top-level comment.
+     * Threading is always genuinely flat/one-level in storage, no matter
+     * which comment the "Reply" action was clicked on — matching Jira's
+     * real behavior. The clicked comment can be a top-level comment OR
+     * itself a reply; either way this re-parents the new comment to the
+     * ORIGINAL top-level ancestor for storage (a reply's own
+     * parent_comment_id is always already that ancestor, by this same
+     * invariant, so one hop up is always enough — never recurses). The
+     * person actually being auto-mentioned (see store()) is still
+     * whichever comment was clicked, which is NOT necessarily the same
+     * person as the top-level comment's author.
+     *
+     * @return array{parentCommentId: int, authorId: int, authorName: string}|null
      */
-    private function resolveParentCommentId(Task $task, ?int $parentCommentId): ?int
+    private function resolveReply(Task $task, ?int $clickedCommentId): ?array
     {
-        if ($parentCommentId === null) {
+        if ($clickedCommentId === null) {
             return null;
         }
 
-        $parent = Comment::find($parentCommentId);
+        $clicked = Comment::with('user')->find($clickedCommentId);
 
-        if (! $parent || $parent->task_id !== $task->id || $parent->parent_comment_id !== null) {
-            throw ValidationException::withMessages(['parent_comment_id' => 'Replies can only be added to a top-level comment on this task.']);
+        if (! $clicked || $clicked->task_id !== $task->id) {
+            throw ValidationException::withMessages(['parent_comment_id' => 'You can only reply to a comment on this task.']);
         }
 
-        return $parent->id;
-    }
-
-    /**
-     * A reply notifies the ORIGINAL (top-level) comment's author,
-     * unconditionally — see RepliedToCommentNotification's own docblock
-     * for why this bypasses NotificationSetting entirely, the same way a
-     * mention does. No-op for an ordinary top-level comment (no one to
-     * notify) and for replying to your own comment (no self-notification,
-     * matching the mention notification's own "never notify yourself"
-     * rule). Independent of syncMentions() — a reply that also mentions
-     * someone fires both notifications, to whichever recipients apply,
-     * since they answer two different questions ("who authored the
-     * comment being replied to" vs. "who was named in this text").
-     */
-    private function notifyReply(Comment $reply): void
-    {
-        if ($reply->parent_comment_id === null) {
-            return;
-        }
-
-        $parent = Comment::with('user')->find($reply->parent_comment_id);
-
-        if (! $parent || $parent->user_id === $reply->user_id) {
-            return;
-        }
-
-        $parent->user->notify(new RepliedToCommentNotification($reply));
+        return [
+            'parentCommentId' => $clicked->parent_comment_id ?? $clicked->id,
+            'authorId' => $clicked->user_id,
+            'authorName' => $clicked->user->name,
+        ];
     }
 
     /**
