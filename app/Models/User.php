@@ -441,6 +441,30 @@ class User extends Authenticatable
     }
 
     /**
+     * The organization IDs this user can create documents in — mirrors
+     * DocumentPolicy::create() exactly. Kept separate from
+     * manageableOrganizationIds() on purpose: that helper only knows about
+     * create_edit_projects/create_edit_tasks, so reusing it here would
+     * incorrectly leak a documents-only-permission user into Project/Task
+     * management contexts (and vice versa, exclude a documents-only user
+     * who holds neither of those two permissions).
+     *
+     * @return array<int, int>
+     */
+    public function documentManageableOrganizationIds(): array
+    {
+        if ($this->isSuperAdmin() || $this->isOwner()) {
+            return Organization::where('is_active', true)->pluck('id')->all();
+        }
+
+        return Collection::make($this->visibleOrganizationIds())
+            ->filter(fn ($organizationId) => $this->hasPermission('manage_documents', $organizationId)
+                && ($this->isManagementInOrg($organizationId) || $this->isStaffInOrg($organizationId)))
+            ->values()
+            ->all();
+    }
+
+    /**
      * Why boardOrganizationIds($permissionSlug) came up empty, so the
      * Dashboard/Kanban empty state can say something accurate instead of
      * one generic message for every cause. Checked in priority order: a
