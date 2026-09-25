@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "app/Models/User.php": {
-    "mtime": 1790308127.4280138,
-    "ast_hash": "2dc2ce8d458cde8b4c2210d2c2d40693",
+    "mtime": 1790320754.0142772,
+    "ast_hash": "86641b71fbc2eb81b6056b1cefeaff3b",
     "semantic_hash": ""
   },
   "app/Providers/AppServiceProvider.php": {
@@ -270,7 +270,7 @@
     "semantic_hash": ""
   },
   "app/Models/Role.php": {
-    "mtime": 1790308152.2588978,
+    "mtime": 1790321409.3900633,
     "ast_hash": "24c759d92850a569c13d10a4a6d759e2",
     "semantic_hash": ""
   },
@@ -460,7 +460,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/RoleManagementController.php": {
-    "mtime": 1790308152.316051,
+    "mtime": 1790321409.3880532,
     "ast_hash": "4d5955bf5c9025db7230b7714d11c251",
     "semantic_hash": ""
   },
@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1790308127.423943,
-    "ast_hash": "81279b078b034c4459bfa66c3eb6a1b5",
+    "mtime": 1790320754.0045218,
+    "ast_hash": "9b221fec1a90329052f6bca3619df786",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1790308127.4280138,
-    "ast_hash": "343eb8e514ee970c6843dbbb6e3d2a12",
+    "mtime": 1790320754.0095217,
+    "ast_hash": "9f323878bcce7eb627ab042ee002d26e",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -745,8 +745,8 @@
     "semantic_hash": ""
   },
   "app/Policies/DocumentPolicy.php": {
-    "mtime": 1790308127.4280138,
-    "ast_hash": "c471205f931aac70f56f49226cd67d1a",
+    "mtime": 1790320754.0142772,
+    "ast_hash": "c19f018715ee3e11321846223037c8cc",
     "semantic_hash": ""
   },
   "app/Policies/SubtaskPolicy.php": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
-    "mtime": 1790308127.4599545,
-    "ast_hash": "4b265152f1da83680293126a04519001",
+    "mtime": 1790320754.0547748,
+    "ast_hash": "d19f8f39733b9a778c0b976a01f915c2",
     "semantic_hash": ""
   },
   "resources/views/tasks/_subtasks.blade.php": {
@@ -800,8 +800,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1790308127.4664576,
-    "ast_hash": "e1267b24571eafd55e40e9c13ad92a2f",
+    "mtime": 1790320754.0567763,
+    "ast_hash": "e26539785f0faa1e90a6d9187da0734c",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
@@ -1805,8 +1805,18 @@
     "semantic_hash": ""
   },
   "tests/Feature/Roles/RoleUsersCountTest.php": {
-    "mtime": 1790308152.439695,
+    "mtime": 1790321409.4323826,
     "ast_hash": "9fa3371f7ba4f44f3fafb71b42c75b67",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Documents/DocumentManagePermissionToggleTest.php": {
+    "mtime": 1790320754.0597775,
+    "ast_hash": "b78d0ca3d9274b4d4333d0441d5def1c",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Tasks/TaskDocumentPermissionTest.php": {
+    "mtime": 1790321837.4404767,
+    "ast_hash": "f457fb6d2f6c9bc1766693bfdba351e7",
     "semantic_hash": ""
   }
 }

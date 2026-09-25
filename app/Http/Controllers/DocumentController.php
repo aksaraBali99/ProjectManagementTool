@@ -57,7 +57,7 @@ class DocumentController extends Controller
 
     public function create(?Organization $organization = null): View
     {
-        $manageableOrgIds = auth()->user()->manageableOrganizationIds();
+        $manageableOrgIds = auth()->user()->documentManageableOrganizationIds();
         abort_if(empty($manageableOrgIds), 403);
 
         $organizations = Organization::whereIn('id', $manageableOrgIds)

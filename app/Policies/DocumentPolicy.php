@@ -40,14 +40,10 @@ class DocumentPolicy
 
     public function create(User $user, int $organizationId): bool
     {
-        if ($user->isSuperAdmin() || $user->isOwner()) {
-            return true;
-        }
-
         if (! $user->hasPermission('manage_documents', $organizationId)) {
             return false;
         }
 
-        return $user->isManagementInOrg($organizationId);
+        return $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId) || $user->isStaffInOrg($organizationId);
     }
 }
