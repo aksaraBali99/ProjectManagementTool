@@ -6,6 +6,7 @@ use App\Models\Comment;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\MentionedInCommentNotification;
+use App\Notifications\RepliedToCommentNotification;
 use App\Support\RichText;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,11 +23,19 @@ class CommentController extends Controller
     {
         Gate::authorize('view', $task);
 
+        // A single flat fetch of every comment on this task — both
+        // top-level and replies live in the same table/query. Grouping
+        // (top-level + its replies nested underneath) happens client-side
+        // in _comments.blade.php's syncComments(), same as the initial
+        // page load groups the same shape server-side in the Blade
+        // partial — current volume is small enough that this doesn't need
+        // a more complex query strategy.
         $comments = $task->comments()->with('user')->orderBy('created_at')->get();
 
         return response()->json([
             'comments' => $comments->map(fn (Comment $comment) => [
                 'id' => $comment->id,
+                'parent_comment_id' => $comment->parent_comment_id,
                 'body' => $comment->body,
                 'body_html' => RichText::toHtml($comment->body),
                 'body_hash' => md5($comment->body),
@@ -52,18 +61,24 @@ class CommentController extends Controller
             'body' => ['required', 'string', 'max:500000'],
             'mentioned_user_ids' => ['sometimes', 'array'],
             'mentioned_user_ids.*' => ['integer'],
+            'parent_comment_id' => ['nullable', 'integer', 'exists:comments,id'],
         ]);
+
+        $parentCommentId = $this->resolveParentCommentId($task, $data['parent_comment_id'] ?? null);
 
         $comment = $task->comments()->create([
             'user_id' => auth()->id(),
+            'parent_comment_id' => $parentCommentId,
             'body' => $this->cleanBody($data['body']),
         ]);
 
         $this->syncMentions($comment, $task, $data['mentioned_user_ids'] ?? []);
+        $this->notifyReply($comment);
 
         return response()->json([
             'comment' => [
                 'id' => $comment->id,
+                'parent_comment_id' => $comment->parent_comment_id,
                 'body' => $comment->body,
                 'body_html' => RichText::toHtml($comment->body),
                 'body_hash' => md5($comment->body),
@@ -105,6 +120,56 @@ class CommentController extends Controller
         $comment->delete();
 
         return response()->json(['deleted' => true]);
+    }
+
+    /**
+     * Enforces the one-level cap server-side, not just in the UI (only
+     * the "Reply" action, shown on top-level comments alone, ever sends a
+     * parent_comment_id in the first place, but a crafted request could
+     * send any id): a reply's parent must belong to THIS task and must
+     * itself be top-level (its own parent_comment_id is null) — never
+     * another reply. Returns null for an ordinary top-level comment.
+     */
+    private function resolveParentCommentId(Task $task, ?int $parentCommentId): ?int
+    {
+        if ($parentCommentId === null) {
+            return null;
+        }
+
+        $parent = Comment::find($parentCommentId);
+
+        if (! $parent || $parent->task_id !== $task->id || $parent->parent_comment_id !== null) {
+            throw ValidationException::withMessages(['parent_comment_id' => 'Replies can only be added to a top-level comment on this task.']);
+        }
+
+        return $parent->id;
+    }
+
+    /**
+     * A reply notifies the ORIGINAL (top-level) comment's author,
+     * unconditionally — see RepliedToCommentNotification's own docblock
+     * for why this bypasses NotificationSetting entirely, the same way a
+     * mention does. No-op for an ordinary top-level comment (no one to
+     * notify) and for replying to your own comment (no self-notification,
+     * matching the mention notification's own "never notify yourself"
+     * rule). Independent of syncMentions() — a reply that also mentions
+     * someone fires both notifications, to whichever recipients apply,
+     * since they answer two different questions ("who authored the
+     * comment being replied to" vs. "who was named in this text").
+     */
+    private function notifyReply(Comment $reply): void
+    {
+        if ($reply->parent_comment_id === null) {
+            return;
+        }
+
+        $parent = Comment::with('user')->find($reply->parent_comment_id);
+
+        if (! $parent || $parent->user_id === $reply->user_id) {
+            return;
+        }
+
+        $parent->user->notify(new RepliedToCommentNotification($reply));
     }
 
     /**
