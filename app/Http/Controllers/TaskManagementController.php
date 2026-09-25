@@ -380,6 +380,13 @@ class TaskManagementController extends Controller
             'projects' => $projects,
             'canEdit' => auth()->user()->can('update', $task),
             'canDeactivate' => auth()->user()->can('delete', $task),
+            // Deliberately separate from canEdit: creating a new document
+            // (DocumentPolicy::create, gated by manage_documents) is a
+            // different capability from editing this task, even though the
+            // two happen to overlap for most roles today. Attaching an
+            // EXISTING document, and detaching one, are task-editing
+            // actions and stay under canEdit.
+            'canManageDocuments' => Gate::allows('create', [Document::class, $task->organization_id]),
             'attachedDocuments' => $attachedDocuments,
             'availableDocuments' => $availableDocuments,
         ], $this->cascadingOptions($projects)));

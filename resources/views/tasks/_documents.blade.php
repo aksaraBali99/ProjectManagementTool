@@ -31,7 +31,12 @@
             </select>
             <button type="button" class="attach-document-btn rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">Attach</button>
         </div>
+    @endif
 
+    {{-- Creating a new document is a different capability from editing
+         this task (DocumentPolicy::create / manage_documents) — gated
+         separately from $canEdit above, not folded into it. --}}
+    @if ($canManageDocuments)
         <button type="button" class="toggle-new-document mt-2 text-[11px] font-medium text-brand-600 hover:underline">+ Add new document</button>
         <div class="new-document-form mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3">
             <input type="text" class="new-document-name w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Document name">

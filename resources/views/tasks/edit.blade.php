@@ -194,7 +194,7 @@
     <div class="mt-6">
         <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Documents</span>
         <div class="mt-2">
-            @include('tasks._documents', ['task' => $task, 'canEdit' => $canEdit, 'attachedDocuments' => $attachedDocuments, 'availableDocuments' => $availableDocuments])
+            @include('tasks._documents', ['task' => $task, 'canEdit' => $canEdit, 'canManageDocuments' => $canManageDocuments, 'attachedDocuments' => $attachedDocuments, 'availableDocuments' => $availableDocuments])
         </div>
     </div>
 
