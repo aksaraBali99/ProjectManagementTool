@@ -5,7 +5,7 @@
     "semantic_hash": ""
   },
   "app/Models/User.php": {
-    "mtime": 1790322407.7439685,
+    "mtime": 1790349271.1569476,
     "ast_hash": "86641b71fbc2eb81b6056b1cefeaff3b",
     "semantic_hash": ""
   },
@@ -120,8 +120,8 @@
     "semantic_hash": ""
   },
   "resources/js/app.js": {
-    "mtime": 1790343530.378121,
-    "ast_hash": "b445c44ccaba5ca4530e348f549f6cd0",
+    "mtime": 1790347114.299403,
+    "ast_hash": "53b5e133d646e17a8376a54ffcb59654",
     "semantic_hash": ""
   },
   "routes/console.php": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1790327776.4889102,
-    "ast_hash": "b86d72edba943ccdae7ee6beb8d7d77b",
+    "mtime": 1790347047.2949262,
+    "ast_hash": "0fa340659f5ca3cdb1da6481080c0520",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -230,8 +230,8 @@
     "semantic_hash": ""
   },
   "app/Models/Comment.php": {
-    "mtime": 1790343063.4371061,
-    "ast_hash": "bf51dff2f58fbc695b6a33924f49e10c",
+    "mtime": 1790347014.391624,
+    "ast_hash": "0aff1b243d82ff8a30b612c3370e09cc",
     "semantic_hash": ""
   },
   "app/Models/Concerns/BelongsToOrganization.php": {
@@ -285,8 +285,8 @@
     "semantic_hash": ""
   },
   "app/Policies/CommentPolicy.php": {
-    "mtime": 1787209693.693795,
-    "ast_hash": "c9b9899111486ace1cb3c5d14da8ed76",
+    "mtime": 1790349293.8854043,
+    "ast_hash": "36ca32f5d58586ed1eb58a01c4204bda",
     "semantic_hash": ""
   },
   "app/Policies/ProjectPolicy.php": {
@@ -555,7 +555,7 @@
     "semantic_hash": ""
   },
   "resources/views/layouts/authenticated.blade.php": {
-    "mtime": 1790343488.6936874,
+    "mtime": 1790346268.6346495,
     "ast_hash": "0f108f3a64017743764a0ef453d2187f",
     "semantic_hash": ""
   },
@@ -700,8 +700,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/CommentController.php": {
-    "mtime": 1790343591.0584245,
-    "ast_hash": "21ce9de6b3388431900036ded4a4a10f",
+    "mtime": 1790349408.0224936,
+    "ast_hash": "7efef2891a63474bd0afa7b5cbe42f8a",
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1790343541.5677948,
-    "ast_hash": "2268bdd83c9cc65459eb87d1d2321269",
+    "mtime": 1790349390.1181748,
+    "ast_hash": "fecc9163531ee114ad01f7086610df16",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -780,8 +780,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
-    "mtime": 1790343689.4047804,
-    "ast_hash": "d244ab22bc7c7c0a80ef5ffe50d0278e",
+    "mtime": 1790349370.2004175,
+    "ast_hash": "d0e82fe79bfa1c3576d9ea93fa31d55a",
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
@@ -1560,8 +1560,8 @@
     "semantic_hash": ""
   },
   "resources/js/rich-text-editor.js": {
-    "mtime": 1790295141.8933454,
-    "ast_hash": "ce8388d5bee10e3e39b086f1aaf88537",
+    "mtime": 1790346733.221318,
+    "ast_hash": "7fb9bedc90bb0548928e410a3d7c9f0f",
     "semantic_hash": ""
   },
   "resources/views/components/rich-text-editor.blade.php": {
@@ -1610,8 +1610,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/EmojiSupportTest.php": {
-    "mtime": 1790251285.1690745,
-    "ast_hash": "4780ec0ad94f33c5b320c571a264e6fa",
+    "mtime": 1790347482.3922746,
+    "ast_hash": "d7fad17c97f54827963ee89baa8e3f00",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/ImageResizeTest.php": {
@@ -1860,13 +1860,33 @@
     "semantic_hash": ""
   },
   "resources/js/mention-highlight.js": {
-    "mtime": 1790343519.8011446,
+    "mtime": 1790346268.6326492,
     "ast_hash": "a19331ea56839ee8693c9a4448d1e8ba",
     "semantic_hash": ""
   },
   "tests/Feature/Comments/CommentMentionHighlightTest.php": {
-    "mtime": 1790343875.74893,
+    "mtime": 1790346268.6411872,
     "ast_hash": "2bff48607e1689914e00071d38e1910f",
+    "semantic_hash": ""
+  },
+  "app/Http/Controllers/CommentReactionController.php": {
+    "mtime": 1790347027.392878,
+    "ast_hash": "2791d1f403ad72a73a6f50c324034d6b",
+    "semantic_hash": ""
+  },
+  "app/Models/CommentReaction.php": {
+    "mtime": 1790346996.7339568,
+    "ast_hash": "f66ef29bfbfe7a88a499eebd34aad6d0",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_09_25_020000_create_comment_reactions_table.php": {
+    "mtime": 1790346954.71243,
+    "ast_hash": "2c2fd77ab5b6970b3a0862dbe336ad6a",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Comments/CommentReactionTest.php": {
+    "mtime": 1790348023.9996097,
+    "ast_hash": "88c802ed4dbc7bef147d489ce3cd0b40",
     "semantic_hash": ""
   }
 }

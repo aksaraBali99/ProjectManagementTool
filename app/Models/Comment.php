@@ -59,4 +59,54 @@ class Comment extends Model
     {
         return $this->belongsToMany(User::class, 'comment_mentions');
     }
+
+    /**
+     * task #70 phase 4: every emoji reaction on this comment, one row per
+     * (user, comment) — CommentReactionController enforces that via the
+     * comment_reactions table's unique(comment_id, user_id) constraint, so
+     * a person always has at most one reaction here, never several.
+     */
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(CommentReaction::class);
+    }
+
+    /**
+     * Aggregated {emoji, count, user_names, reacted_by_me} for every
+     * distinct emoji reacted with on this comment. Pure in-memory grouping
+     * over an ALREADY EAGER-LOADED reactions.user relation — this method
+     * never issues a query of its own. That's what keeps rendering an
+     * entire task's comment list (however many comments/reactions it has)
+     * at one aggregate query total for reactions, not a query per comment:
+     * callers eager-load 'comments.reactions.user' once
+     * (TaskManagementController, CommentController::index()) and this just
+     * reshapes what's already in memory. $viewerId is a plain in-memory
+     * comparison too — never a query of its own.
+     */
+    public function reactionSummary(?int $viewerId): array
+    {
+        return $this->reactions
+            ->groupBy('emoji')
+            ->map(fn ($group, $emoji) => [
+                'emoji' => $emoji,
+                'count' => $group->count(),
+                'user_names' => $group->pluck('user.name')->all(),
+                'reacted_by_me' => $viewerId !== null && $group->contains('user_id', $viewerId),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * A cheap fingerprint of reactionSummary(), for the 7s comment poll
+     * (tasks/_comments.blade.php's syncComments()) to detect "did this
+     * comment's reactions change" independently of "did its body change" —
+     * the same body_hash idiom Phase 2/3 already established, extended
+     * with its own hash rather than folded into body_hash, since a
+     * reaction can change with the body completely untouched.
+     */
+    public function reactionsHash(?int $viewerId): string
+    {
+        return md5(json_encode($this->reactionSummary($viewerId)));
+    }
 }

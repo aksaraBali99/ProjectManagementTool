@@ -61,7 +61,7 @@ class TaskManagementController extends Controller
 
         $visibleScope = fn () => Task::visibleTo($user, $organization->id);
 
-        $query = $visibleScope()->with(['project', 'department', 'assignee', 'subtasks', 'comments.user', 'comments.mentionedUsers']);
+        $query = $visibleScope()->with(['project', 'department', 'assignee', 'subtasks', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user']);
 
         if ($showInactive) {
             $query->withTrashed();
@@ -447,8 +447,10 @@ class TaskManagementController extends Controller
 
         $returnTo = $this->resolveReturnTo(route('tasks.index', $task->organization_id));
 
+        $task->load('subtasks', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
+
         return view('tasks.edit', array_merge([
-            'task' => $task->load('subtasks', 'comments.user', 'comments.mentionedUsers'),
+            'task' => $task,
             'project' => $project,
             'projects' => $projects,
             'returnToUrl' => $returnTo['url'],

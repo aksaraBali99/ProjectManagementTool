@@ -237,7 +237,18 @@ function highlightRichText(scope) {
     return passes.length ? Promise.all(passes) : Promise.resolve();
 }
 
-window.solavaRichText = { mount: mountRichText, highlight: highlightRichText };
+// task #70 phase 4: on-demand access to the SAME emoji dataset/search/
+// picker pipeline the rich-text toolbar's own :emoji: button uses (see
+// rich-text-editor.js's buildEmojiPicker() docblock) — for the comment
+// reaction button (tasks/_comments.blade.php), which has no live editor
+// of its own to mount, so this doesn't go through mountRichText()'s
+// viewport-lazy path at all, just the same dynamic import already used
+// there. Returns a promise (the module load), not the picker itself.
+function buildEmojiPicker(options) {
+    return import('./rich-text-editor.js').then(function (module) { return module.buildEmojiPicker(options); });
+}
+
+window.solavaRichText = { mount: mountRichText, highlight: highlightRichText, buildEmojiPicker: buildEmojiPicker };
 
 function initRichText() {
     document.querySelectorAll('[data-rich-text]').forEach(mountRichText);

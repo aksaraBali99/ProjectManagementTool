@@ -443,6 +443,42 @@
     color: #fff;
 }
 
+/* task #70 phase 4: aggregated emoji-reaction pills under a comment/reply
+   (tasks/_comments.blade.php's renderReactions()) — "👍 3", clickable to
+   toggle YOUR OWN reaction to that same emoji (same add/replace/remove
+   rule the picker itself uses), title="" carries the "who reacted" names
+   for a native hover tooltip. .is-mine (a reaction that includes the
+   current viewer) gets the brand border/tint so it's clear at a glance
+   which pills are "you", the same "you" language .mention-you already
+   established for mentions — just a border here, not a solid fill, since
+   several pills can be .is-mine at once and a solid-fill treatment for
+   every one would compete with .mention-you's own meaning. */
+.reaction-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    border-radius: 999px;
+    border: 1px solid #E5E7EB;
+    background: #F9FAFB;
+    padding: 1px 7px;
+    font-size: 11px;
+    line-height: 16px;
+    color: #374151;
+}
+
+.reaction-pill:hover {
+    background: #F3F4F6;
+}
+
+.reaction-pill.is-mine {
+    border-color: var(--color-brand-600);
+    background: var(--color-brand-50);
+}
+
+.reaction-count {
+    font-weight: 500;
+}
+
 .rte-mentions {
     position: fixed;
     z-index: 60;
