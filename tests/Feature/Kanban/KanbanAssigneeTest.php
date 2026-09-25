@@ -189,7 +189,11 @@ test('the Kanban card\'s assignee select is enabled for management, pre-selected
     // Same class list (border/padding/text size) as .kanban-status-select
     // — the user's explicit "same size as the status field" ask.
     expect($html)->toContain('kanban-assignee-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px]');
-    expect($html)->toMatch('/<option value="'.$assignee->id.'"[^>]*selected[^>]*>'.preg_quote($assignee->name, '/').'/');
+    // e() first, matching Blade's own {{ }} escaping — a Faker-generated
+    // name containing an apostrophe (e.g. "O'Connell") renders as
+    // "&#039;" in the actual HTML, which the raw un-escaped name would
+    // never match.
+    expect($html)->toMatch('/<option value="'.$assignee->id.'"[^>]*selected[^>]*>'.preg_quote(e($assignee->name), '/').'/');
 });
 
 test('the Kanban card\'s assignee select is present but disabled for a staff user who cannot reassign', function () {

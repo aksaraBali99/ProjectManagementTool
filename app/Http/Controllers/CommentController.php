@@ -22,14 +22,23 @@ class CommentController extends Controller
     {
         Gate::authorize('view', $task);
 
+        // A single flat fetch of every comment on this task — both
+        // top-level and replies live in the same table/query. Grouping
+        // (top-level + its replies nested underneath) happens client-side
+        // in _comments.blade.php's syncComments(), same as the initial
+        // page load groups the same shape server-side in the Blade
+        // partial — current volume is small enough that this doesn't need
+        // a more complex query strategy.
         $comments = $task->comments()->with('user')->orderBy('created_at')->get();
 
         return response()->json([
             'comments' => $comments->map(fn (Comment $comment) => [
                 'id' => $comment->id,
+                'parent_comment_id' => $comment->parent_comment_id,
                 'body' => $comment->body,
                 'body_html' => RichText::toHtml($comment->body),
                 'body_hash' => md5($comment->body),
+                'user_id' => $comment->user_id,
                 'user_name' => $comment->user->name,
                 'user_initials' => $comment->user->initials(),
                 'user_avatar_bg' => $comment->user->avatarBackground(),
@@ -52,11 +61,31 @@ class CommentController extends Controller
             'body' => ['required', 'string', 'max:500000'],
             'mentioned_user_ids' => ['sometimes', 'array'],
             'mentioned_user_ids.*' => ['integer'],
+            // The comment the "Reply" action was actually clicked on -
+            // top-level or itself a reply, either is valid input here.
+            // resolveParentCommentId() re-parents it to the top-level
+            // ancestor for storage (see that method's own docblock for
+            // why).
+            'parent_comment_id' => ['nullable', 'integer', 'exists:comments,id'],
         ]);
 
+        $parentCommentId = $this->resolveParentCommentId($task, $data['parent_comment_id'] ?? null);
+        $body = $this->cleanBody($data['body']);
+
+        // The auto-mention itself (inserting "@Name " and deciding
+        // whether it's still there at submit time) is entirely the
+        // client's doing now — see openReplyCompose() in
+        // tasks/_comments.blade.php, which pre-fills the reply editor
+        // with a real, removable mention of whoever's comment was
+        // clicked. That's what gives the user actual freedom to delete
+        // it before posting: this endpoint never re-adds or second-
+        // guesses what mentioned_user_ids says, for a reply or a
+        // top-level comment alike - both go through the exact same
+        // syncMentions() call below.
         $comment = $task->comments()->create([
             'user_id' => auth()->id(),
-            'body' => $this->cleanBody($data['body']),
+            'parent_comment_id' => $parentCommentId,
+            'body' => $body,
         ]);
 
         $this->syncMentions($comment, $task, $data['mentioned_user_ids'] ?? []);
@@ -64,9 +93,11 @@ class CommentController extends Controller
         return response()->json([
             'comment' => [
                 'id' => $comment->id,
+                'parent_comment_id' => $comment->parent_comment_id,
                 'body' => $comment->body,
                 'body_html' => RichText::toHtml($comment->body),
                 'body_hash' => md5($comment->body),
+                'user_id' => $comment->user_id,
                 'user_name' => auth()->user()->name,
                 'user_initials' => auth()->user()->initials(),
                 'user_avatar_bg' => auth()->user()->avatarBackground(),
@@ -105,6 +136,30 @@ class CommentController extends Controller
         $comment->delete();
 
         return response()->json(['deleted' => true]);
+    }
+
+    /**
+     * Threading is always genuinely flat/one-level in storage, no matter
+     * which comment the "Reply" action was clicked on — matching Jira's
+     * real behavior. The clicked comment can be a top-level comment OR
+     * itself a reply; either way this re-parents the new comment to the
+     * ORIGINAL top-level ancestor for storage (a reply's own
+     * parent_comment_id is always already that ancestor, by this same
+     * invariant, so one hop up is always enough — never recurses).
+     */
+    private function resolveParentCommentId(Task $task, ?int $clickedCommentId): ?int
+    {
+        if ($clickedCommentId === null) {
+            return null;
+        }
+
+        $clicked = Comment::find($clickedCommentId);
+
+        if (! $clicked || $clicked->task_id !== $task->id) {
+            throw ValidationException::withMessages(['parent_comment_id' => 'You can only reply to a comment on this task.']);
+        }
+
+        return $clicked->parent_comment_id ?? $clicked->id;
     }
 
     /**
