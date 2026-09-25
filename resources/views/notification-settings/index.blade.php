@@ -168,7 +168,7 @@
                                     @method('PATCH')
                                     <button type="submit" class="text-[11px] text-brand-600 hover:underline">{{ $rule->is_active ? 'Deactivate' : 'Activate' }}</button>
                                 </form>
-                                <form method="POST" action="{{ route('notification-settings.rules.destroy', $rule) }}" class="ml-2 inline">
+                                <form method="POST" action="{{ route('notification-settings.rules.destroy', $rule) }}" class="ml-2 inline" onsubmit="return confirm('Delete this notification rule? This cannot be undone.');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-[11px] text-gray-500 hover:underline">Delete</button>

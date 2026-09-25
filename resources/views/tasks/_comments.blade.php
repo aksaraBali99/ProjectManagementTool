@@ -239,6 +239,8 @@
 
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', function () {
+                    if (! confirm('Delete this comment? This cannot be undone.')) return;
+
                     requestOrThrow('/comments/' + row.dataset.commentId, 'DELETE', undefined, 'Failed to delete comment.')
                         .then(function () {
                             row.remove();
