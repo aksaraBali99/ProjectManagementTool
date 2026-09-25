@@ -5,7 +5,7 @@
 @section('content')
 <div class="mx-auto max-w-2xl">
     <div class="flex items-center justify-between">
-        <a href="{{ route('tasks.index', $task->organization_id) }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← Tasks</a>
+        <a href="{{ $returnToUrl }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← {{ $returnToLabel }}</a>
         @if ($canEdit && $canDeactivate)
             <form method="POST" action="{{ route('tasks.toggle-active', $task) }}">
                 @csrf
@@ -130,7 +130,7 @@
                 <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                     Save changes
                 </button>
-                <a href="{{ route('projects.index', $project->organization_id) }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
+                <a href="{{ $returnToUrl }}" class="text-[12px] text-gray-600 hover:underline">Cancel</a>
             </div>
         </form>
 

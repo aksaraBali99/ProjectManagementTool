@@ -7,7 +7,7 @@
     <div class="flex items-center justify-between">
         <h1 class="text-[14px] font-medium text-[#1F2937]">Kanban</h1>
         @if ($organization && $canCreate)
-            <a href="{{ route('tasks.create', $organization->projects()->orderBy('name')->first()) }}"
+            <a href="{{ route('tasks.create', ['project' => $organization->projects()->orderBy('name')->first(), 'return_to' => url()->full(), 'return_label' => 'Kanban']) }}"
                class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                 + Add task
             </a>
@@ -41,7 +41,7 @@
                                  style="background-color: {{ $task->priority->badgeBackground() }}"
                                  draggable="{{ $canEdit ? 'true' : 'false' }}" data-task-id="{{ $task->id }}">
                                 <div class="min-w-0 flex-1">
-                                    <a href="{{ route('tasks.edit', $task) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline">{{ $task->title }}</a>
+                                    <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Kanban']) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline">{{ $task->title }}</a>
                                     <p class="mt-1 text-[10px] text-gray-500">
                                         {{ $task->project->name }}
                                         @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
