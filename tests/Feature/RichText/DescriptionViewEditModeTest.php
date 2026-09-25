@@ -133,6 +133,35 @@ test('the Edit control only appears for a user with edit permission on this task
     $noEditPage->assertSee('a.jpg', false);
 });
 
+/**
+ * task #4 follow-up: sticky Edit button. The actual "still visible after
+ * scrolling past its original spot" behavior is a real-browser check (see
+ * the PR description) — Pest can't scroll a rendered page — but the
+ * server-rendered `sticky` class is the one thing an HTTP response can
+ * verify, and it's gated by the exact same $canEdit permission check the
+ * button's own existence already was (see the test above): there's no
+ * separate "make it sticky" flag to get out of sync with "should this user
+ * see the button at all" in the first place, since it's the same element.
+ */
+test('the Edit button is sticky, and only for a user who has edit permission at all', function () {
+    $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
+
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?>'.$page);
+    libxml_clear_errors();
+
+    $editBtn = (new DOMXPath($document))->query('//*[contains(@class, "edit-description-btn")]')->item(0);
+    expect($editBtn)->not->toBeNull();
+    expect($editBtn->getAttribute('class'))->toContain('sticky');
+
+    // A user with no edit permission never gets this element at all — so
+    // there's no sticky button for them to see, at any scroll position.
+    $client = makeClientWithProjectAccessForDescription($this->org, $this->project);
+    $this->actingAs($client)->get("/tasks/{$this->task->id}/edit")->assertOk()
+        ->assertDontSee('edit-description-btn', false);
+});
+
 test('a user without edit permission cannot update the description via a direct request either, not just a hidden button', function () {
     $client = makeClientWithProjectAccessForDescription($this->org, $this->project);
 

@@ -50,7 +50,27 @@
              Title display just below, tasks/edit.blade.php's own
              $canEdit-false branch) — not an approximate Tailwind gray. --}}
         <x-rich-text :value="$value" class="description-view min-w-0 flex-1 text-[12px] text-[#1F2937]" empty="—" />
-        <button type="button" class="edit-description-btn shrink-0" title="Edit description" aria-label="Edit description">
+        {{-- task #4: sticky, not just a fixed spot in the row — on a long
+             Description, scrolling past this row (the button included)
+             used to mean scrolling all the way back up just to start
+             editing. `sticky top-3` keeps it pinned within the viewport
+             (12px down from the top, since nothing else on this page is
+             itself sticky/fixed at the top to clash with — the header and
+             sidebar aren't) for as long as any part of .description-view-row
+             is still in view, then scrolls away normally once the whole
+             row has passed — same idea as a floating "copy" button on a
+             long chat message. Stays in its normal flex-row column (the
+             row's own justify-between already puts it at the right edge);
+             `sticky` only affects its vertical offset, not that. No extra
+             JS or permission check needed here: this button already only
+             exists in the DOM for a user with edit rights (this whole
+             partial is gated by tasks/edit.blade.php's $canEdit branch),
+             and clicking it already hides the entire view row — sticky
+             button included — the moment the live editor mounts (see
+             viewRow.style.display = 'none' below), so it can't linger
+             once Save/Cancel-equivalent (autosave-on-blur) editing has
+             taken over. --}}
+        <button type="button" class="edit-description-btn shrink-0 sticky top-3" title="Edit description" aria-label="Edit description">
             <svg {!! $iconAttrs !!}><path d="M11.5 2.5a1.5 1.5 0 0 1 2 2L5 13l-3 1 1-3z"/><path d="M9.5 4.5l2 2"/></svg>
         </button>
     </div>

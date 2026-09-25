@@ -120,7 +120,7 @@
     "semantic_hash": ""
   },
   "resources/js/app.js": {
-    "mtime": 1790347114.299403,
+    "mtime": 1790351177.3505738,
     "ast_hash": "53b5e133d646e17a8376a54ffcb59654",
     "semantic_hash": ""
   },
@@ -130,7 +130,7 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1790347047.2949262,
+    "mtime": 1790351177.360659,
     "ast_hash": "0fa340659f5ca3cdb1da6481080c0520",
     "semantic_hash": ""
   },
@@ -230,7 +230,7 @@
     "semantic_hash": ""
   },
   "app/Models/Comment.php": {
-    "mtime": 1790347014.391624,
+    "mtime": 1790351177.279903,
     "ast_hash": "0aff1b243d82ff8a30b612c3370e09cc",
     "semantic_hash": ""
   },
@@ -285,7 +285,7 @@
     "semantic_hash": ""
   },
   "app/Policies/CommentPolicy.php": {
-    "mtime": 1790349293.8854043,
+    "mtime": 1790351177.284424,
     "ast_hash": "36ca32f5d58586ed1eb58a01c4204bda",
     "semantic_hash": ""
   },
@@ -700,7 +700,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/CommentController.php": {
-    "mtime": 1790349408.0224936,
+    "mtime": 1790351177.2728548,
     "ast_hash": "7efef2891a63474bd0afa7b5cbe42f8a",
     "semantic_hash": ""
   },
@@ -725,7 +725,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1790349390.1181748,
+    "mtime": 1790351177.2773838,
     "ast_hash": "fecc9163531ee114ad01f7086610df16",
     "semantic_hash": ""
   },
@@ -780,7 +780,7 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
-    "mtime": 1790350479.8879125,
+    "mtime": 1790351177.3576543,
     "ast_hash": "db5a17cc353bd51a064693620c7c0e0b",
     "semantic_hash": ""
   },
@@ -1560,7 +1560,7 @@
     "semantic_hash": ""
   },
   "resources/js/rich-text-editor.js": {
-    "mtime": 1790346733.221318,
+    "mtime": 1790351177.3546443,
     "ast_hash": "7fb9bedc90bb0548928e410a3d7c9f0f",
     "semantic_hash": ""
   },
@@ -1610,7 +1610,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/EmojiSupportTest.php": {
-    "mtime": 1790347482.3922746,
+    "mtime": 1790351177.3672545,
     "ast_hash": "d7fad17c97f54827963ee89baa8e3f00",
     "semantic_hash": ""
   },
@@ -1650,8 +1650,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_description-field.blade.php": {
-    "mtime": 1790295141.9003665,
-    "ast_hash": "a89915c20b0e7f11ca346c506cc81d8b",
+    "mtime": 1790351631.8083217,
+    "ast_hash": "5976e180304961af6d2c44d8733fa495",
     "semantic_hash": ""
   },
   "app/Http/Controllers/RichTextVideoController.php": {
@@ -1790,8 +1790,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/DescriptionViewEditModeTest.php": {
-    "mtime": 1790295141.9146972,
-    "ast_hash": "0c162f9deb745c3b8bc9fc22a9f1e356",
+    "mtime": 1790351688.1375935,
+    "ast_hash": "08f49085ae4f5983e94fb286d02b3350",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/DragAndDropUploadTest.php": {
@@ -1870,23 +1870,28 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/CommentReactionController.php": {
-    "mtime": 1790347027.392878,
+    "mtime": 1790351177.2743733,
     "ast_hash": "2791d1f403ad72a73a6f50c324034d6b",
     "semantic_hash": ""
   },
   "app/Models/CommentReaction.php": {
-    "mtime": 1790346996.7339568,
+    "mtime": 1790351177.2819037,
     "ast_hash": "f66ef29bfbfe7a88a499eebd34aad6d0",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_25_020000_create_comment_reactions_table.php": {
-    "mtime": 1790346954.71243,
+    "mtime": 1790351177.286424,
     "ast_hash": "2c2fd77ab5b6970b3a0862dbe336ad6a",
     "semantic_hash": ""
   },
   "tests/Feature/Comments/CommentReactionTest.php": {
-    "mtime": 1790348023.9996097,
+    "mtime": 1790351177.3616552,
     "ast_hash": "88c802ed4dbc7bef147d489ce3cd0b40",
+    "semantic_hash": ""
+  },
+  "tests/Feature/RichText/ResizeHandleStylingTest.php": {
+    "mtime": 1790351709.212109,
+    "ast_hash": "9033fa533381adc0bfdac8f1977b6cd1",
     "semantic_hash": ""
   }
 }
