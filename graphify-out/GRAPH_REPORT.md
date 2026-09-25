@@ -1,16 +1,16 @@
-# Graph Report - ProjectManagementTool  (2026-09-25)
+# Graph Report - ProjectManagementTool  (2026-09-26)
 
 ## Corpus Check
-- 376 files · ~170,290 words
+- 377 files · ~171,122 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1570 nodes · 3999 edges · 181 communities (146 shown, 35 thin omitted)
+- 1571 nodes · 3999 edges · 183 communities (148 shown, 35 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 253 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `dadbd711`
+- Built from commit: `0cb775df`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -28,7 +28,6 @@
 - auth.php
 - LARAVEL_README.md
 - AppServiceProvider.php
-- Role.php
 - users/create.blade.php
 - users/edit.blade.php
 - tasks/edit.blade.php
@@ -94,7 +93,7 @@
 - UpdateRoleRequest
 - UpdateUserRequest
 - 2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php
-- post-create-project-cmd
+- CommentMentionHighlightTest.php
 - Role
 - keywords
 - Illuminate\Database\Eloquent\Relations\BelongsToMany
@@ -126,7 +125,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (181 total, 35 thin omitted)
+## Communities (183 total, 35 thin omitted)
 
 ### Community 0 - "FileCategory.php"
 Cohesion: 0.23
@@ -153,8 +152,8 @@ Cohesion: 0.20
 Nodes (10): require-dev, fakerphp/faker, laravel/pail, laravel/pao, laravel/pint, mockery/mockery, nunomaduro/collision, pestphp/pest (+2 more)
 
 ### Community 8 - "scripts"
-Cohesion: 0.14
-Nodes (14): scripts, dev, post-autoload-dump, post-update-cmd, pre-package-uninstall, test, Composer\\Config::disableProcessTimeout, Illuminate\\Foundation\\ComposerScripts::postAutoloadDump (+6 more)
+Cohesion: 0.11
+Nodes (18): scripts, dev, post-autoload-dump, post-create-project-cmd, post-update-cmd, pre-package-uninstall, test, Composer\\Config::disableProcessTimeout (+10 more)
 
 ### Community 9 - "dependencies"
 Cohesion: 0.04
@@ -246,7 +245,7 @@ Nodes (30): FileStorageException, self, FileStorageService, StoredFile, DateTime
 
 ### Community 118 - "OrgMember"
 Cohesion: 0.17
-Nodes (5): OrgMember, findCommentCardBody(), DOMElement, makeStaffForDocumentCreate(), joinOrg()
+Nodes (4): OrgMember, Illuminate\Support\Facades\Notification, makeStaffForDocumentCreate(), joinOrg()
 
 ### Community 120 - "config"
 Cohesion: 0.22
@@ -304,10 +303,6 @@ Nodes (15): DepartmentManagementController, StoreDepartmentRequest, AccessPermis
 Cohesion: 0.83
 Nodes (3): down(), isSqlite(), up()
 
-### Community 172 - "post-create-project-cmd"
-Cohesion: 0.50
-Nodes (4): post-create-project-cmd, @php artisan key:generate --ansi, @php artisan migrate --graceful --ansi, @php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\
-
 ### Community 178 - "Role"
 Cohesion: 0.12
 Nodes (7): RoleManagementController, Role, RolePolicy, Illuminate\Database\Eloquent\Builder, toggleStaffManageDocuments(), makeClientWithProjectAccessForLinkPreview(), makeClientOnProject()
@@ -329,11 +324,11 @@ Nodes (3): Permission, PermissionSeeder, Illuminate\Database\Eloquent\Relations\
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `User` connect `User` to `ImportValidator`, `.boardOrganizationIds`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `AuditLog`, `Task.php`, `NotificationSetting`, `User.php`, `Role.php`, `Subtask`, `UpdateProjectRequest`, `UserManagementController`, `Department`, `Role`, `ImportTemplateBuilder`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `TaskManagementController`, `ProjectManagementController`, `Document`, `Organization`, `Illuminate\Database\Eloquent\Relations\HasMany`, `BootstrapEnvironment`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `LinkPreviewService.php`, `Comment`, `Illuminate\Http\UploadedFile`, `AuditEventNotifier`, `OrgMember`, `LoginRequest`, `NotificationEventType.php`?**
-  _High betweenness centrality (0.131) - this node is a cross-community bridge._
+  _High betweenness centrality (0.135) - this node is a cross-community bridge._
 - **Why does `Organization` connect `Organization` to `ImportValidator`, `.boardOrganizationIds`, `Illuminate\Database\Seeder`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `Task.php`, `User.php`, `Role.php`, `Illuminate\Validation\Validator`, `UserManagementController`, `Department`, `ImportTemplateBuilder`, `Role`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `User`, `TaskManagementController`, `ProjectManagementController`, `Document`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `Illuminate\Http\Request`, `OrgMember`?**
   _High betweenness centrality (0.059) - this node is a cross-community bridge._
-- **Why does `Task` connect `Task` to `FileCategory.php`, `ImportValidator`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `Task.php`, `Role.php`, `Subtask`, `Department`, `Role`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `User`, `TaskManagementController`, `Document`, `Organization`, `Illuminate\Database\Eloquent\Relations\HasMany`, `RichText`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `LinkPreviewService.php`, `Comment`, `Illuminate\Http\Request`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+- **Why does `Task` connect `Task` to `FileCategory.php`, `ImportValidator`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `Task.php`, `Role.php`, `Subtask`, `Department`, `Role`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `User`, `TaskManagementController`, `Document`, `Organization`, `Illuminate\Database\Eloquent\Relations\HasMany`, `RichText`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `LinkPreviewService.php`, `Comment`, `Illuminate\Http\Request`, `OrgMember`?**
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
 - **Are the 21 inferred relationships involving `User` (e.g. with `.index()` and `.__invoke()`) actually correct?**
   _`User` has 21 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 21 inferred relationships involving `Organization` (e.g. with `.__invoke()` and `.index()`) actually correct?**

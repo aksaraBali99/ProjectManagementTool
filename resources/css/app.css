@@ -1114,51 +1114,82 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Image resize (task #4) — TipTap's ResizableNodeView (@tiptap/core) always
-   attaches its handle elements to the DOM; visibility is entirely up to
-   this stylesheet. Hidden until the image node is the current ProseMirror
-   selection (a single click on an atomic node like <img> selects it), so
-   the editor stays visually clean otherwise — handles never show on a
-   read-only render (.rich-text without an editable ProseMirror ancestor)
-   either, since nothing there ever gets a ProseMirror-selectednode class.
+   Image AND video resize (task #4) — both resizable-image.js and
+   resizable-video.js build on the exact same @tiptap/core ResizableNodeView
+   (see each file's own header comment), attaching the identical
+   [data-resize-container]/[data-resize-wrapper]/[data-resize-handle]
+   structure either way, which is why one set of rules below already
+   applies to both consistently — nothing here is image- or video-specific.
+   ResizableNodeView always attaches handle elements to the DOM; visibility
+   is entirely up to this stylesheet. Hidden until the node is the current
+   ProseMirror selection (a single click on an atomic node like <img>/the
+   video thumbnail selects it), so the editor stays visually clean
+   otherwise — handles never show on a read-only render (.rich-text without
+   an editable ProseMirror ancestor) either, since nothing there ever gets
+   a ProseMirror-selectednode class.
+
+   Restyled (task #4 follow-up) to a Google Docs/Notion-style compact
+   pattern: a subtle hairline outline around the whole selected element
+   (outline, not border, so it never affects layout/box size) plus small
+   8x8px squares only at the handle positions this app actually configures
+   (directions: ['bottom', 'right', 'bottom-right'] in rich-text-editor.js
+   — unchanged, this is styling only, not a change to which directions
+   are resizable) — replacing the old look, where ResizableNodeView's own
+   default behavior of a "bottom"/"right" edge handle spanning the FULL
+   width/height, filled solid brand-green, read as one thick, bright,
+   continuous line running along two sides rather than a deliberate handle.
    --------------------------------------------------------------------------- */
 
 [data-resize-container] {
     position: relative;
 }
 
+.ProseMirror-selectednode[data-resize-container] [data-resize-wrapper] {
+    outline: 1px solid rgb(0 0 0 / 0.15);
+    outline-offset: -1px;
+}
+
 [data-resize-handle] {
     display: none;
-    background: var(--color-brand-600);
-    border: 1.5px solid #fff;
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border: 1px solid var(--color-brand-600);
     border-radius: 2px;
-    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.15);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.12);
 }
 
 .ProseMirror-selectednode[data-resize-container] [data-resize-handle] {
     display: block;
 }
 
-/* Edge handles span the full width/height (ResizableNodeView sets
-   left/right or top/bottom to 0 itself) — only their cross-axis thickness
-   and cursor are this stylesheet's job. */
+/* "bottom"/"right" are edge handles — ResizableNodeView's own JS sets
+   left:0;right:0 (or top:0;bottom:0) inline on them to span the full
+   width/height by default. The !important overrides only that inline
+   POSITIONING so each renders as a small square centered on its edge's
+   midpoint instead, same as Google Docs/Notion's own edge handles —
+   ResizableNodeView's drag-direction math (which axis moves, min/max,
+   aspect-ratio) is entirely independent of this and is untouched. */
 [data-resize-handle="bottom"] {
-    height: 6px;
-    margin-bottom: -3px;
+    left: 50% !important;
+    right: auto !important;
+    margin-left: -4px;
+    margin-bottom: -4px;
     cursor: ns-resize;
 }
 
 [data-resize-handle="right"] {
-    width: 6px;
-    margin-right: -3px;
+    top: 50% !important;
+    bottom: auto !important;
+    margin-top: -4px;
+    margin-right: -4px;
     cursor: ew-resize;
 }
 
 /* The corner handle gets no sizing from ResizableNodeView (only
-   bottom:0;right:0) — a small square straddling the corner. */
+   bottom:0;right:0) — already just a small square straddling the corner,
+   only its exact size/offset changed to match the edge handles above. */
 [data-resize-handle="bottom-right"] {
-    width: 11px;
-    height: 11px;
-    margin: 0 -5px -5px 0;
+    margin: 0 -4px -4px 0;
     cursor: nwse-resize;
 }

@@ -4766,16 +4766,16 @@
       "norm_label": ".notify()"
     },
     {
-      "label": "findCommentCardBody()",
+      "label": "decodedMentionIds()",
       "file_type": "code",
-      "source_file": "tests/Feature/Comments/CommentMentionHighlightTest.php",
-      "source_location": "L81",
+      "source_file": "tests/Feature/Comments/CommentMentionEligibilityTest.php",
+      "source_location": "L104",
       "_callable": true,
       "_origin": "ast",
-      "id": "tests_feature_comments_commentmentionhighlighttest_findcommentcardbody",
+      "id": "tests_feature_comments_commentmentioneligibilitytest_decodedmentionids",
       "community": 118,
       "community_name": "OrgMember",
-      "norm_label": "findcommentcardbody()"
+      "norm_label": "decodedmentionids()"
     },
     {
       "label": "makeStaffForDocumentCreate()",
@@ -5736,18 +5736,6 @@
       "community": 139,
       "community_name": "NotificationSetting",
       "norm_label": "givepersonaltaskassignedrule()"
-    },
-    {
-      "label": "decodedMentionIds()",
-      "file_type": "code",
-      "source_file": "tests/Feature/Comments/CommentMentionEligibilityTest.php",
-      "source_location": "L104",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_comments_commentmentioneligibilitytest_decodedmentionids",
-      "community": 14,
-      "community_name": "Role.php",
-      "norm_label": "decodedmentionids()"
     },
     {
       "label": "changeTaskStatus()",
@@ -7550,6 +7538,42 @@
       "norm_label": "up()"
     },
     {
+      "label": "longtextMigration()",
+      "file_type": "code",
+      "source_file": "tests/Feature/RichText/LongtextMigrationTest.php",
+      "source_location": "L12",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_richtext_longtextmigrationtest_longtextmigration",
+      "community": 172,
+      "community_name": "LongtextMigrationTest.php",
+      "norm_label": "longtextmigration()"
+    },
+    {
+      "label": "tableShape()",
+      "file_type": "code",
+      "source_file": "tests/Feature/RichText/LongtextMigrationTest.php",
+      "source_location": "L29",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_richtext_longtextmigrationtest_tableshape",
+      "community": 172,
+      "community_name": "LongtextMigrationTest.php",
+      "norm_label": "tableshape()"
+    },
+    {
+      "label": "widenedColumnNullability()",
+      "file_type": "code",
+      "source_file": "tests/Feature/RichText/LongtextMigrationTest.php",
+      "source_location": "L18",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_richtext_longtextmigrationtest_widenedcolumnnullability",
+      "community": 172,
+      "community_name": "LongtextMigrationTest.php",
+      "norm_label": "widenedcolumnnullability()"
+    },
+    {
       "label": "down()",
       "file_type": "code",
       "source_file": "database/migrations/2026_09_24_200000_create_pasted_media_table.php",
@@ -7572,6 +7596,18 @@
       "community": 173,
       "community_name": "2026_09_24_200000_create_pasted_media_table.php",
       "norm_label": "up()"
+    },
+    {
+      "label": "findCommentCardBody()",
+      "file_type": "code",
+      "source_file": "tests/Feature/Comments/CommentMentionHighlightTest.php",
+      "source_location": "L81",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_comments_commentmentionhighlighttest_findcommentcardbody",
+      "community": 177,
+      "community_name": "CommentMentionHighlightTest.php",
+      "norm_label": "findcommentcardbody()"
     },
     {
       "label": ".edit()",
@@ -8894,6 +8930,18 @@
       "norm_label": ".project()"
     },
     {
+      "label": "assertNotRenderedAsInlineMedia()",
+      "file_type": "code",
+      "source_file": "tests/Feature/Documents/DocumentViewingBehaviorTest.php",
+      "source_location": "L67",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_documents_documentviewingbehaviortest_assertnotrenderedasinlinemedia",
+      "community": 4,
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "assertnotrenderedasinlinemedia()"
+    },
+    {
       "label": "buildEmojiPicker()",
       "file_type": "code",
       "source_file": "resources/js/app.js",
@@ -9662,18 +9710,6 @@
       "norm_label": "up()"
     },
     {
-      "label": "assertNotRenderedAsInlineMedia()",
-      "file_type": "code",
-      "source_file": "tests/Feature/Documents/DocumentViewingBehaviorTest.php",
-      "source_location": "L67",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_documents_documentviewingbehaviortest_assertnotrenderedasinlinemedia",
-      "community": 5,
-      "community_name": "Task.php",
-      "norm_label": "assertnotrenderedasinlinemedia()"
-    },
-    {
       "label": "validTaskRow()",
       "file_type": "code",
       "source_file": "tests/Feature/Import/ImportTasksValidationTest.php",
@@ -9696,42 +9732,6 @@
       "community": 5,
       "community_name": "Task.php",
       "norm_label": "validprojectpayload()"
-    },
-    {
-      "label": "longtextMigration()",
-      "file_type": "code",
-      "source_file": "tests/Feature/RichText/LongtextMigrationTest.php",
-      "source_location": "L12",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_richtext_longtextmigrationtest_longtextmigration",
-      "community": 5,
-      "community_name": "Task.php",
-      "norm_label": "longtextmigration()"
-    },
-    {
-      "label": "tableShape()",
-      "file_type": "code",
-      "source_file": "tests/Feature/RichText/LongtextMigrationTest.php",
-      "source_location": "L29",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_richtext_longtextmigrationtest_tableshape",
-      "community": 5,
-      "community_name": "Task.php",
-      "norm_label": "tableshape()"
-    },
-    {
-      "label": "widenedColumnNullability()",
-      "file_type": "code",
-      "source_file": "tests/Feature/RichText/LongtextMigrationTest.php",
-      "source_location": "L18",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_richtext_longtextmigrationtest_widenedcolumnnullability",
-      "community": 5,
-      "community_name": "Task.php",
-      "norm_label": "widenedcolumnnullability()"
     },
     {
       "label": "allPriorityColorsPayload()",
@@ -12693,6 +12693,17 @@
       "norm_label": "accesspermission.php"
     },
     {
+      "label": "MentionedInCommentNotification.php",
+      "file_type": "code",
+      "source_file": "app/Notifications/MentionedInCommentNotification.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_notifications_mentionedincommentnotification",
+      "community": 118,
+      "community_name": "OrgMember",
+      "norm_label": "mentionedincommentnotification.php"
+    },
+    {
       "label": "CompanyRoleSyncer.php",
       "file_type": "code",
       "source_file": "app/Services/CompanyRoleSyncer.php",
@@ -12713,6 +12724,17 @@
       "community": 118,
       "community_name": "OrgMember",
       "norm_label": "userseeder.php"
+    },
+    {
+      "label": "Illuminate\\Support\\Facades\\Notification",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "illuminate_support_facades_notification",
+      "community": 118,
+      "community_name": "OrgMember",
+      "norm_label": "illuminate\\support\\facades\\notification"
     },
     {
       "label": "AccessControlTest.php",
@@ -12737,26 +12759,48 @@
       "norm_label": "calendartest.php"
     },
     {
-      "label": "CommentMentionHighlightTest.php",
+      "label": "CommentMentionEligibilityTest.php",
       "file_type": "code",
-      "source_file": "tests/Feature/Comments/CommentMentionHighlightTest.php",
+      "source_file": "tests/Feature/Comments/CommentMentionEligibilityTest.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "tests_feature_comments_commentmentionhighlighttest",
+      "id": "tests_feature_comments_commentmentioneligibilitytest",
       "community": 118,
       "community_name": "OrgMember",
-      "norm_label": "commentmentionhighlighttest.php"
+      "norm_label": "commentmentioneligibilitytest.php"
     },
     {
-      "label": "DOMElement",
+      "label": "CommentMentionTest.php",
       "file_type": "code",
-      "source_file": "",
-      "source_location": "",
+      "source_file": "tests/Feature/Comments/CommentMentionTest.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "tests_feature_comments_commentmentionhighlighttest_php_domelement",
+      "id": "tests_feature_comments_commentmentiontest",
       "community": 118,
       "community_name": "OrgMember",
-      "norm_label": "domelement"
+      "norm_label": "commentmentiontest.php"
+    },
+    {
+      "label": "CommentReactionTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/Comments/CommentReactionTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_comments_commentreactiontest",
+      "community": 118,
+      "community_name": "OrgMember",
+      "norm_label": "commentreactiontest.php"
+    },
+    {
+      "label": "CommentReplyTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/Comments/CommentReplyTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_comments_commentreplytest",
+      "community": 118,
+      "community_name": "OrgMember",
+      "norm_label": "commentreplytest.php"
     },
     {
       "label": "DepartmentManagementTest.php",
@@ -12781,15 +12825,15 @@
       "norm_label": "documentcreatetest.php"
     },
     {
-      "label": "RoleBasedAccessTest.php",
+      "label": "CommentRichTextTest.php",
       "file_type": "code",
-      "source_file": "tests/Feature/RoleBasedAccessTest.php",
+      "source_file": "tests/Feature/RichText/CommentRichTextTest.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "tests_feature_rolebasedaccesstest",
+      "id": "tests_feature_richtext_commentrichtexttest",
       "community": 118,
       "community_name": "OrgMember",
-      "norm_label": "rolebasedaccesstest.php"
+      "norm_label": "commentrichtexttest.php"
     },
     {
       "label": "TaskViewableUsersTest.php",
@@ -13430,17 +13474,6 @@
       "norm_label": "role.php"
     },
     {
-      "label": "MentionedInCommentNotification.php",
-      "file_type": "code",
-      "source_file": "app/Notifications/MentionedInCommentNotification.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_notifications_mentionedincommentnotification",
-      "community": 14,
-      "community_name": "Role.php",
-      "norm_label": "mentionedincommentnotification.php"
-    },
-    {
       "label": "PermissionSeeder.php",
       "file_type": "code",
       "source_file": "database/seeders/PermissionSeeder.php",
@@ -13461,61 +13494,6 @@
       "community": 14,
       "community_name": "Role.php",
       "norm_label": "roleseeder.php"
-    },
-    {
-      "label": "Illuminate\\Support\\Facades\\Notification",
-      "file_type": "code",
-      "source_file": "",
-      "source_location": "",
-      "_origin": "ast",
-      "id": "illuminate_support_facades_notification",
-      "community": 14,
-      "community_name": "Role.php",
-      "norm_label": "illuminate\\support\\facades\\notification"
-    },
-    {
-      "label": "CommentMentionEligibilityTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/Comments/CommentMentionEligibilityTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_comments_commentmentioneligibilitytest",
-      "community": 14,
-      "community_name": "Role.php",
-      "norm_label": "commentmentioneligibilitytest.php"
-    },
-    {
-      "label": "CommentMentionTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/Comments/CommentMentionTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_comments_commentmentiontest",
-      "community": 14,
-      "community_name": "Role.php",
-      "norm_label": "commentmentiontest.php"
-    },
-    {
-      "label": "CommentReactionTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/Comments/CommentReactionTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_comments_commentreactiontest",
-      "community": 14,
-      "community_name": "Role.php",
-      "norm_label": "commentreactiontest.php"
-    },
-    {
-      "label": "CommentReplyTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/Comments/CommentReplyTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_comments_commentreplytest",
-      "community": 14,
-      "community_name": "Role.php",
-      "norm_label": "commentreplytest.php"
     },
     {
       "label": "DocumentDownloadTest.php",
@@ -13571,17 +13549,6 @@
       "community": 14,
       "community_name": "Role.php",
       "norm_label": "clipboardmediapastetest.php"
-    },
-    {
-      "label": "CommentRichTextTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/RichText/CommentRichTextTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_richtext_commentrichtexttest",
-      "community": 14,
-      "community_name": "Role.php",
-      "norm_label": "commentrichtexttest.php"
     },
     {
       "label": "DescriptionViewEditModeTest.php",
@@ -13703,6 +13670,17 @@
       "community": 14,
       "community_name": "Role.php",
       "norm_label": "videouploadtest.php"
+    },
+    {
+      "label": "RoleBasedAccessTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/RoleBasedAccessTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_rolebasedaccesstest",
+      "community": 14,
+      "community_name": "Role.php",
+      "norm_label": "rolebasedaccesstest.php"
     },
     {
       "label": "TaskStartDateTest.php",
@@ -14981,48 +14959,15 @@
       "norm_label": "2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php"
     },
     {
-      "label": "post-create-project-cmd",
+      "label": "LongtextMigrationTest.php",
       "file_type": "code",
-      "source_file": "composer.json",
-      "source_location": "L68",
+      "source_file": "tests/Feature/RichText/LongtextMigrationTest.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "composer_scripts_post_create_project_cmd",
+      "id": "tests_feature_richtext_longtextmigrationtest",
       "community": 172,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "post-create-project-cmd"
-    },
-    {
-      "label": "@php artisan key:generate --ansi",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
-      "_origin": "ast",
-      "id": "ref_php_artisan_key_generate_ansi",
-      "community": 172,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "@php artisan key:generate --ansi"
-    },
-    {
-      "label": "@php artisan migrate --graceful --ansi",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
-      "_origin": "ast",
-      "id": "ref_php_artisan_migrate_graceful_ansi",
-      "community": 172,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "@php artisan migrate --graceful --ansi"
-    },
-    {
-      "label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
-      "_origin": "ast",
-      "id": "ref_php_r_file_exists_database_database_sqlite_touch_database_database_sqlite",
-      "community": 172,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\"
+      "community_name": "LongtextMigrationTest.php",
+      "norm_label": "longtextmigrationtest.php"
     },
     {
       "label": "2026_09_24_200000_create_pasted_media_table.php",
@@ -15069,6 +15014,28 @@
       "norm_label": "rich-text-editor.blade.php"
     },
     {
+      "label": "CommentMentionHighlightTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/Comments/CommentMentionHighlightTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_comments_commentmentionhighlighttest",
+      "community": 177,
+      "community_name": "CommentMentionHighlightTest.php",
+      "norm_label": "commentmentionhighlighttest.php"
+    },
+    {
+      "label": "DOMElement",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "tests_feature_comments_commentmentionhighlighttest_php_domelement",
+      "community": 177,
+      "community_name": "CommentMentionHighlightTest.php",
+      "norm_label": "domelement"
+    },
+    {
       "label": "RoleManagementController.php",
       "file_type": "code",
       "source_file": "app/Http/Controllers/RoleManagementController.php",
@@ -15111,6 +15078,17 @@
       "community": 178,
       "community_name": "Role",
       "norm_label": "documentmanagepermissiontoggletest.php"
+    },
+    {
+      "label": "ResizeHandleStylingTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/RichText/ResizeHandleStylingTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_richtext_resizehandlestylingtest",
+      "community": 179,
+      "community_name": "ResizeHandleStylingTest.php",
+      "norm_label": "resizehandlestylingtest.php"
     },
     {
       "label": "0001_01_01_000000_create_users_table.php",
@@ -15617,6 +15595,17 @@
       "community": 4,
       "community_name": "Illuminate\\Database\\Eloquent\\Model",
       "norm_label": "deleteconfirmationtest.php"
+    },
+    {
+      "label": "DocumentViewingBehaviorTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/Documents/DocumentViewingBehaviorTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_documents_documentviewingbehaviortest",
+      "community": 4,
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "documentviewingbehaviortest.php"
     },
     {
       "label": "ImportBatchSchemaTest.php",
@@ -16312,17 +16301,6 @@
       "norm_label": "2026_08_17_001000_create_tasks_table.php"
     },
     {
-      "label": "DocumentViewingBehaviorTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/Documents/DocumentViewingBehaviorTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_documents_documentviewingbehaviortest",
-      "community": 5,
-      "community_name": "Task.php",
-      "norm_label": "documentviewingbehaviortest.php"
-    },
-    {
       "label": "ImportDuplicateWarningTest.php",
       "file_type": "code",
       "source_file": "tests/Feature/Import/ImportDuplicateWarningTest.php",
@@ -16387,17 +16365,6 @@
       "community": 5,
       "community_name": "Task.php",
       "norm_label": "projectmanagementtest.php"
-    },
-    {
-      "label": "LongtextMigrationTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/RichText/LongtextMigrationTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_richtext_longtextmigrationtest",
-      "community": 5,
-      "community_name": "Task.php",
-      "norm_label": "longtextmigrationtest.php"
     },
     {
       "label": "TaskPriorityColorTest.php",
@@ -17203,6 +17170,17 @@
       "norm_label": "post-autoload-dump"
     },
     {
+      "label": "post-create-project-cmd",
+      "file_type": "code",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "composer_scripts_post_create_project_cmd",
+      "community": 8,
+      "community_name": "scripts",
+      "norm_label": "post-create-project-cmd"
+    },
+    {
       "label": "post-update-cmd",
       "file_type": "code",
       "source_file": "composer.json",
@@ -17291,6 +17269,28 @@
       "norm_label": "@php artisan dev"
     },
     {
+      "label": "@php artisan key:generate --ansi",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_artisan_key_generate_ansi",
+      "community": 8,
+      "community_name": "scripts",
+      "norm_label": "@php artisan key:generate --ansi"
+    },
+    {
+      "label": "@php artisan migrate --graceful --ansi",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_artisan_migrate_graceful_ansi",
+      "community": 8,
+      "community_name": "scripts",
+      "norm_label": "@php artisan migrate --graceful --ansi"
+    },
+    {
       "label": "@php artisan package:discover --ansi",
       "file_type": "concept",
       "source_file": "composer.json",
@@ -17322,6 +17322,17 @@
       "community": 8,
       "community_name": "scripts",
       "norm_label": "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+    },
+    {
+      "label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_r_file_exists_database_database_sqlite_touch_database_database_sqlite",
+      "community": 8,
+      "community_name": "scripts",
+      "norm_label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\"
     },
     {
       "label": "_inline-validation.blade.php",
@@ -65095,5 +65106,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "dadbd711904cd366d365da2d001d7ecc76876a0f"
+  "built_at_commit": "0cb775df842e851b4799a9fc02d2349008518142"
 }
