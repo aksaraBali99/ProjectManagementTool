@@ -270,7 +270,7 @@
 
                                 <div class="mt-3 text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Comments</div>
                                 <div class="mt-1">
-                                    @include('tasks._comments', ['task' => $task, 'mentionableUsers' => collect($staffByProject[$task->project_id] ?? [])->reject(fn ($member) => $member['id'] === auth()->id())->values()])
+                                    @include('tasks._comments', ['task' => $task, 'mentionableUsers' => $task->viewableUsers()->reject(fn ($user) => $user->id === auth()->id())->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()])
                                 </div>
                             </td>
                         </tr>

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Models\Comment;
 use App\Models\Task;
 use App\Models\User;
@@ -15,8 +14,6 @@ use Illuminate\Validation\ValidationException;
 
 class CommentController extends Controller
 {
-    use ValidatesTaskAssignment;
-
     private const MAX_BODY_TEXT_LENGTH = 2000;
 
     private const MAX_BODY_HTML_LENGTH = 100000;
@@ -135,20 +132,27 @@ class CommentController extends Controller
 
     /**
      * Validates the submitted mention IDs against who's actually eligible
-     * for this task (the same project_staff/project_clients set the
-     * Assignee dropdown offers — ValidatesTaskAssignment's own definition
-     * of "eligible"), then syncs the pivot and notifies only newly
-     * attached rows. sync()'s 'attached' list is what makes "mention the
-     * same person twice" and "re-save an unchanged mention on edit" both
-     * notify at most once — a dedupe already handled by the pivot itself,
-     * not something this method needs to track separately.
+     * for this task — Task::viewableUsers(), the exact set of people who
+     * could pass TaskPolicy::view() for this task, NOT the broader
+     * project_staff/project_clients "assignable to this project" set
+     * ValidatesTaskAssignment answers. Those two used to be treated as
+     * the same thing here, which was a real permission leak: a staff
+     * member attached to the project but lacking department access to
+     * this specific task could be mentioned into (and notified about) a
+     * task they can't actually open. Then syncs the pivot and notifies
+     * only newly attached rows. sync()'s 'attached' list is what makes
+     * "mention the same person twice" and "re-save an unchanged mention
+     * on edit" both notify at most once — a dedupe already handled by the
+     * pivot itself, not something this method needs to track separately.
      */
     private function syncMentions(Comment $comment, Task $task, array $mentionedIds): void
     {
+        $viewableUserIds = $task->viewableUsers()->pluck('id')->all();
+
         $eligibleIds = collect($mentionedIds)
             ->map(fn ($id) => (int) $id)
             ->unique()
-            ->filter(fn ($id) => $id !== $comment->user_id && $this->isAssignableStaffForProject($task->project, $id))
+            ->filter(fn ($id) => $id !== $comment->user_id && in_array($id, $viewableUserIds, true))
             ->values()
             ->all();
 

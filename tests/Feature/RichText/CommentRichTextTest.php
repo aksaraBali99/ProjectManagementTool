@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AccessPermission;
 use App\Models\AuditLog;
 use App\Models\Comment;
 use App\Models\Department;
@@ -193,6 +194,17 @@ test('plain-text comment submissions from older clients are still accepted and s
 test('mentioning someone in a formatted comment still notifies them', function () {
     Notification::fake();
     $mentioned = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $this->org->id,
+        'user_id' => $mentioned->id,
+        'role_id' => Role::where('slug', 'staff')->first()->id,
+    ]);
+    AccessPermission::create([
+        'user_id' => $mentioned->id,
+        'organization_id' => $this->org->id,
+        'department_id' => $this->task->department_id,
+        'allowed' => true,
+    ]);
     $this->project->staff()->attach($mentioned->id);
 
     $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [
