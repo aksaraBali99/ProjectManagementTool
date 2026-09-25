@@ -100,6 +100,11 @@
             const btn = row.querySelector('.detach-document-btn');
             if (! btn) return;
             btn.addEventListener('click', function () {
+                // Detaching only unlinks the document from this task - it
+                // stays in the company's document library - but still
+                // worth a confirmation since it's one accidental click away.
+                if (! confirm('Remove this document from the task? It will stay in the company\'s document library.')) return;
+
                 const documentId = row.dataset.documentId;
                 requestOrThrow('/tasks/' + taskId + '/documents/' + documentId, 'DELETE', undefined, 'Failed to detach document.')
                     .then(function () {

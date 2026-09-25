@@ -236,6 +236,8 @@
 
             if (removeBtn) {
                 removeBtn.addEventListener('click', function () {
+                    if (! confirm('Delete this subtask? This cannot be undone.')) return;
+
                     const subtaskId = row.dataset.subtaskId;
                     requestOrThrow('/subtasks/' + subtaskId, 'DELETE', undefined, 'Failed to delete.')
                         .then(function () {
