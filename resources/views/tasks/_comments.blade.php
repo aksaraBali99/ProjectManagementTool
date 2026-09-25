@@ -36,6 +36,17 @@
     // this initial render had the identical N+1).
     $canEditOwnComments = app(\App\Policies\CommentPolicy::class)->canEditOwnComments(auth()->user(), $task->organization_id);
     $isSuperAdminOrOwner = auth()->user()->isSuperAdmin() || auth()->user()->isOwner();
+
+    // task #70 phase 4 follow-up: a smiley-plus icon instead of a plain
+    // "React" text link, matching the stroke-based icon style
+    // rich-text-editor.js's own ICON_ATTRS/ICONS.emoji already use
+    // (14x14 rendered, 16x16 viewBox, currentColor stroke) — no existing
+    // "add reaction" glyph in this codebase to copy, so this combines
+    // that same smiley with a small "+" the way Slack/Discord's own
+    // add-reaction icon does. buildCommentCard() in the script below
+    // renders the identical markup for a card built client-side.
+    $reactIconAttrs = 'width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    $reactIcon = '<svg '.$reactIconAttrs.'><circle cx="6.3" cy="6.3" r="4.8"/><circle cx="4.7" cy="5.2" r=".6" fill="currentColor" stroke="none"/><circle cx="7.9" cy="5.2" r=".6" fill="currentColor" stroke="none"/><path d="M4.1 7.6a3.1 3.1 0 0 0 4.4 0"/><line x1="11.5" y1="10" x2="11.5" y2="14"/><line x1="9.5" y1="12" x2="13.5" y2="12"/></svg>';
 @endphp
 <div class="comment-container" data-task-id="{{ $task->id }}">
     <div class="comment-list space-y-3">
@@ -81,7 +92,7 @@
                         <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
                         {{-- Same permission rule as Reply — anyone who can view
                              the task can react, not gated by canEditComment. --}}
-                        <button type="button" class="react-comment-btn text-[10px] text-brand-600 hover:underline">React</button>
+                        <button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">{!! $reactIcon !!}</button>
                     </div>
                 </div>
                 <div class="replies-list mt-2 ml-6 space-y-2">
@@ -107,7 +118,7 @@
                                     <button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>
                                 @endif
                                 <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
-                                <button type="button" class="react-comment-btn text-[10px] text-brand-600 hover:underline">React</button>
+                                <button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">{!! $reactIcon !!}</button>
                             </div>
                         </div>
                     @endforeach
@@ -320,7 +331,14 @@
                     + '<button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>'
                 : '';
             const replyHtml = '<button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>';
-            const reactHtml = '<button type="button" class="react-comment-btn text-[10px] text-brand-600 hover:underline">React</button>';
+            // Identical markup to the server-rendered button above (same
+            // smiley-plus icon, same title/aria-label) — see this file's
+            // top @php block for why this glyph was chosen.
+            const reactHtml = '<button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">'
+                + '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                + '<circle cx="6.3" cy="6.3" r="4.8"/><circle cx="4.7" cy="5.2" r=".6" fill="currentColor" stroke="none"/><circle cx="7.9" cy="5.2" r=".6" fill="currentColor" stroke="none"/>'
+                + '<path d="M4.1 7.6a3.1 3.1 0 0 0 4.4 0"/><line x1="11.5" y1="10" x2="11.5" y2="14"/><line x1="9.5" y1="12" x2="13.5" y2="12"/></svg>'
+                + '</button>';
             const actionsHtml = '<div class="comment-actions mt-1 flex items-center gap-2">' + editDeleteHtml + replyHtml + reactHtml + '</div>';
             // Always empty at build time — a comment JS builds here is either
             // brand new (nobody could have reacted yet) or freshly discovered

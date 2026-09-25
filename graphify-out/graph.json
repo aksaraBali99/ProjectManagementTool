@@ -979,6 +979,32 @@
       "norm_label": "taskobserver"
     },
     {
+      "label": "Subtask",
+      "file_type": "code",
+      "source_file": "app/Models/Subtask.php",
+      "source_location": "L11",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_models_subtask_subtask",
+      "community": 149,
+      "community_name": "Subtask",
+      "norm_label": "subtask"
+    },
+    {
+      "label": "SubtaskObserver",
+      "file_type": "code",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L20",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_observers_subtaskobserver_subtaskobserver",
+      "community": 149,
+      "community_name": "Subtask",
+      "norm_label": "subtaskobserver"
+    },
+    {
       "label": "UpdateTaskPriorityColorsRequest",
       "file_type": "code",
       "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
@@ -1109,30 +1135,17 @@
       "norm_label": "updatetaskstatuscolorsrequest"
     },
     {
-      "label": "Subtask",
+      "label": "StoreProjectRequest",
       "file_type": "code",
-      "source_file": "app/Models/Subtask.php",
-      "source_location": "L11",
+      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
+      "source_location": "L12",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_models_subtask_subtask",
+      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest",
       "community": 165,
-      "community_name": "Subtask",
-      "norm_label": "subtask"
-    },
-    {
-      "label": "SubtaskObserver",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L20",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver",
-      "community": 165,
-      "community_name": "Subtask",
-      "norm_label": "subtaskobserver"
+      "community_name": "StoreProjectRequest",
+      "norm_label": "storeprojectrequest"
     },
     {
       "label": "DepartmentManagementController",
@@ -1187,6 +1200,19 @@
       "norm_label": "department"
     },
     {
+      "label": "UpdateRoleRequest",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Roles/UpdateRoleRequest.php",
+      "source_location": "L9",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_requests_roles_updaterolerequest_updaterolerequest",
+      "community": 168,
+      "community_name": "UpdateRoleRequest",
+      "norm_label": "updaterolerequest"
+    },
+    {
       "label": "UpdateUserRequest",
       "file_type": "code",
       "source_file": "app/Http/Requests/Users/UpdateUserRequest.php",
@@ -1198,32 +1224,6 @@
       "community": 169,
       "community_name": "UpdateUserRequest",
       "norm_label": "updateuserrequest"
-    },
-    {
-      "label": "StoreProjectRequest",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
-      "source_location": "L12",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest",
-      "community": 174,
-      "community_name": "StoreProjectRequest",
-      "norm_label": "storeprojectrequest"
-    },
-    {
-      "label": "UpdateRoleRequest",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Roles/UpdateRoleRequest.php",
-      "source_location": "L9",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_requests_roles_updaterolerequest_updaterolerequest",
-      "community": 177,
-      "community_name": "UpdateRoleRequest",
-      "norm_label": "updaterolerequest"
     },
     {
       "label": "RoleManagementController",
@@ -6314,6 +6314,90 @@
       "norm_label": "up()"
     },
     {
+      "label": ".assignee()",
+      "file_type": "code",
+      "source_file": "app/Models/Subtask.php",
+      "source_location": "L33",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_subtask_subtask_assignee",
+      "community": 149,
+      "community_name": "Subtask",
+      "norm_label": ".assignee()"
+    },
+    {
+      "label": ".casts()",
+      "file_type": "code",
+      "source_file": "app/Models/Subtask.php",
+      "source_location": "L15",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_subtask_subtask_casts",
+      "community": 149,
+      "community_name": "Subtask",
+      "norm_label": ".casts()"
+    },
+    {
+      "label": ".task()",
+      "file_type": "code",
+      "source_file": "app/Models/Subtask.php",
+      "source_location": "L28",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_models_subtask_subtask_task",
+      "community": 149,
+      "community_name": "Subtask",
+      "norm_label": ".task()"
+    },
+    {
+      "label": ".created()",
+      "file_type": "code",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L26",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_subtaskobserver_subtaskobserver_created",
+      "community": 149,
+      "community_name": "Subtask",
+      "norm_label": ".created()"
+    },
+    {
+      "label": ".deleted()",
+      "file_type": "code",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L63",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_subtaskobserver_subtaskobserver_deleted",
+      "community": 149,
+      "community_name": "Subtask",
+      "norm_label": ".deleted()"
+    },
+    {
+      "label": ".log()",
+      "file_type": "code",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L70",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_subtaskobserver_subtaskobserver_log",
+      "community": 149,
+      "community_name": "Subtask",
+      "norm_label": ".log()"
+    },
+    {
+      "label": ".updated()",
+      "file_type": "code",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L33",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_observers_subtaskobserver_subtaskobserver_updated",
+      "community": 149,
+      "community_name": "Subtask",
+      "norm_label": ".updated()"
+    },
+    {
       "label": "down()",
       "file_type": "code",
       "source_file": "database/migrations/2026_08_25_020000_add_project_id_title_index_to_tasks_table.php",
@@ -6926,88 +7010,52 @@
       "norm_label": ".withvalidator()"
     },
     {
-      "label": ".assignee()",
+      "label": ".attributes()",
       "file_type": "code",
-      "source_file": "app/Models/Subtask.php",
-      "source_location": "L33",
+      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
+      "source_location": "L44",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_models_subtask_subtask_assignee",
+      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_attributes",
       "community": 165,
-      "community_name": "Subtask",
-      "norm_label": ".assignee()"
+      "community_name": "StoreProjectRequest",
+      "norm_label": ".attributes()"
     },
     {
-      "label": ".casts()",
+      "label": ".authorize()",
       "file_type": "code",
-      "source_file": "app/Models/Subtask.php",
-      "source_location": "L15",
+      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
+      "source_location": "L14",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_models_subtask_subtask_casts",
+      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_authorize",
       "community": 165,
-      "community_name": "Subtask",
-      "norm_label": ".casts()"
+      "community_name": "StoreProjectRequest",
+      "norm_label": ".authorize()"
     },
     {
-      "label": ".task()",
+      "label": ".prepareForValidation()",
       "file_type": "code",
-      "source_file": "app/Models/Subtask.php",
-      "source_location": "L28",
+      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
+      "source_location": "L19",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_models_subtask_subtask_task",
+      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_prepareforvalidation",
       "community": 165,
-      "community_name": "Subtask",
-      "norm_label": ".task()"
+      "community_name": "StoreProjectRequest",
+      "norm_label": ".prepareforvalidation()"
     },
     {
-      "label": ".created()",
+      "label": ".rules()",
       "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L26",
+      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
+      "source_location": "L27",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver_created",
+      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_rules",
       "community": 165,
-      "community_name": "Subtask",
-      "norm_label": ".created()"
-    },
-    {
-      "label": ".deleted()",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L63",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver_deleted",
-      "community": 165,
-      "community_name": "Subtask",
-      "norm_label": ".deleted()"
-    },
-    {
-      "label": ".log()",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L70",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver_log",
-      "community": 165,
-      "community_name": "Subtask",
-      "norm_label": ".log()"
-    },
-    {
-      "label": ".updated()",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L33",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver_subtaskobserver_updated",
-      "community": 165,
-      "community_name": "Subtask",
-      "norm_label": ".updated()"
+      "community_name": "StoreProjectRequest",
+      "norm_label": ".rules()"
     },
     {
       "label": ".index()",
@@ -7346,6 +7394,42 @@
       "norm_label": "up()"
     },
     {
+      "label": ".authorize()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Roles/UpdateRoleRequest.php",
+      "source_location": "L11",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_roles_updaterolerequest_updaterolerequest_authorize",
+      "community": 168,
+      "community_name": "UpdateRoleRequest",
+      "norm_label": ".authorize()"
+    },
+    {
+      "label": ".rules()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Roles/UpdateRoleRequest.php",
+      "source_location": "L16",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_roles_updaterolerequest_updaterolerequest_rules",
+      "community": 168,
+      "community_name": "UpdateRoleRequest",
+      "norm_label": ".rules()"
+    },
+    {
+      "label": ".withValidator()",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Roles/UpdateRoleRequest.php",
+      "source_location": "L32",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_requests_roles_updaterolerequest_updaterolerequest_withvalidator",
+      "community": 168,
+      "community_name": "UpdateRoleRequest",
+      "norm_label": ".withvalidator()"
+    },
+    {
       "label": ".attributes()",
       "file_type": "code",
       "source_file": "app/Http/Requests/Users/UpdateUserRequest.php",
@@ -7488,90 +7572,6 @@
       "community": 173,
       "community_name": "2026_09_24_200000_create_pasted_media_table.php",
       "norm_label": "up()"
-    },
-    {
-      "label": ".attributes()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
-      "source_location": "L44",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_attributes",
-      "community": 174,
-      "community_name": "StoreProjectRequest",
-      "norm_label": ".attributes()"
-    },
-    {
-      "label": ".authorize()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
-      "source_location": "L14",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_authorize",
-      "community": 174,
-      "community_name": "StoreProjectRequest",
-      "norm_label": ".authorize()"
-    },
-    {
-      "label": ".prepareForValidation()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
-      "source_location": "L19",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_prepareforvalidation",
-      "community": 174,
-      "community_name": "StoreProjectRequest",
-      "norm_label": ".prepareforvalidation()"
-    },
-    {
-      "label": ".rules()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
-      "source_location": "L27",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_rules",
-      "community": 174,
-      "community_name": "StoreProjectRequest",
-      "norm_label": ".rules()"
-    },
-    {
-      "label": ".authorize()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Roles/UpdateRoleRequest.php",
-      "source_location": "L11",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_roles_updaterolerequest_updaterolerequest_authorize",
-      "community": 177,
-      "community_name": "UpdateRoleRequest",
-      "norm_label": ".authorize()"
-    },
-    {
-      "label": ".rules()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Roles/UpdateRoleRequest.php",
-      "source_location": "L16",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_roles_updaterolerequest_updaterolerequest_rules",
-      "community": 177,
-      "community_name": "UpdateRoleRequest",
-      "norm_label": ".rules()"
-    },
-    {
-      "label": ".withValidator()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Roles/UpdateRoleRequest.php",
-      "source_location": "L32",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_roles_updaterolerequest_updaterolerequest_withvalidator",
-      "community": 177,
-      "community_name": "UpdateRoleRequest",
-      "norm_label": ".withvalidator()"
     },
     {
       "label": ".edit()",
@@ -14398,48 +14398,37 @@
       "norm_label": "2026_08_27_010100_add_must_change_password_to_users_table.php"
     },
     {
-      "label": "post-create-project-cmd",
+      "label": "Subtask.php",
       "file_type": "code",
-      "source_file": "composer.json",
-      "source_location": "L68",
+      "source_file": "app/Models/Subtask.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "composer_scripts_post_create_project_cmd",
+      "id": "app_models_subtask",
       "community": 149,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "post-create-project-cmd"
+      "community_name": "Subtask",
+      "norm_label": "subtask.php"
     },
     {
-      "label": "@php artisan key:generate --ansi",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
+      "label": "SubtaskObserver.php",
+      "file_type": "code",
+      "source_file": "app/Observers/SubtaskObserver.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "ref_php_artisan_key_generate_ansi",
+      "id": "app_observers_subtaskobserver",
       "community": 149,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "@php artisan key:generate --ansi"
+      "community_name": "Subtask",
+      "norm_label": "subtaskobserver.php"
     },
     {
-      "label": "@php artisan migrate --graceful --ansi",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
+      "label": "TaskPolicy.php",
+      "file_type": "code",
+      "source_file": "app/Policies/TaskPolicy.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "ref_php_artisan_migrate_graceful_ansi",
+      "id": "app_policies_taskpolicy",
       "community": 149,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "@php artisan migrate --graceful --ansi"
-    },
-    {
-      "label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
-      "_origin": "ast",
-      "id": "ref_php_r_file_exists_database_database_sqlite_touch_database_database_sqlite",
-      "community": 149,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\"
+      "community_name": "Subtask",
+      "norm_label": "taskpolicy.php"
     },
     {
       "label": "users/create.blade.php",
@@ -14871,39 +14860,6 @@
       "norm_label": "updatetaskstatuscolorsrequest.php"
     },
     {
-      "label": "Subtask.php",
-      "file_type": "code",
-      "source_file": "app/Models/Subtask.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_models_subtask",
-      "community": 165,
-      "community_name": "Subtask",
-      "norm_label": "subtask.php"
-    },
-    {
-      "label": "SubtaskObserver.php",
-      "file_type": "code",
-      "source_file": "app/Observers/SubtaskObserver.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_observers_subtaskobserver",
-      "community": 165,
-      "community_name": "Subtask",
-      "norm_label": "subtaskobserver.php"
-    },
-    {
-      "label": "TaskPolicy.php",
-      "file_type": "code",
-      "source_file": "app/Policies/TaskPolicy.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_policies_taskpolicy",
-      "community": 165,
-      "community_name": "Subtask",
-      "norm_label": "taskpolicy.php"
-    },
-    {
       "label": "DepartmentManagementController.php",
       "file_type": "code",
       "source_file": "app/Http/Controllers/DepartmentManagementController.php",
@@ -14924,6 +14880,17 @@
       "community": 167,
       "community_name": "2026_09_25_000000_add_parent_comment_id_to_comments_table.php",
       "norm_label": "2026_09_25_000000_add_parent_comment_id_to_comments_table.php"
+    },
+    {
+      "label": "UpdateRoleRequest.php",
+      "file_type": "code",
+      "source_file": "app/Http/Requests/Roles/UpdateRoleRequest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_http_requests_roles_updaterolerequest",
+      "community": 168,
+      "community_name": "UpdateRoleRequest",
+      "norm_label": "updaterolerequest.php"
     },
     {
       "label": "tasks/edit.blade.php",
@@ -15014,6 +14981,50 @@
       "norm_label": "2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php"
     },
     {
+      "label": "post-create-project-cmd",
+      "file_type": "code",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "composer_scripts_post_create_project_cmd",
+      "community": 172,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "post-create-project-cmd"
+    },
+    {
+      "label": "@php artisan key:generate --ansi",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_artisan_key_generate_ansi",
+      "community": 172,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "@php artisan key:generate --ansi"
+    },
+    {
+      "label": "@php artisan migrate --graceful --ansi",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_artisan_migrate_graceful_ansi",
+      "community": 172,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "@php artisan migrate --graceful --ansi"
+    },
+    {
+      "label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_r_file_exists_database_database_sqlite_touch_database_database_sqlite",
+      "community": 172,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\"
+    },
+    {
       "label": "2026_09_24_200000_create_pasted_media_table.php",
       "file_type": "code",
       "source_file": "database/migrations/2026_09_24_200000_create_pasted_media_table.php",
@@ -15023,6 +15034,17 @@
       "community": 173,
       "community_name": "2026_09_24_200000_create_pasted_media_table.php",
       "norm_label": "2026_09_24_200000_create_pasted_media_table.php"
+    },
+    {
+      "label": "chart.js",
+      "file_type": "code",
+      "source_file": "chart.js",
+      "confidence": "EXTRACTED",
+      "_origin": "ast",
+      "id": "chart_js_chart_js",
+      "community": 174,
+      "community_name": "chart.js",
+      "norm_label": "chart.js"
     },
     {
       "label": "rich-text.blade.php",
@@ -15045,17 +15067,6 @@
       "community": 176,
       "community_name": "rich-text-editor.blade.php",
       "norm_label": "rich-text-editor.blade.php"
-    },
-    {
-      "label": "UpdateRoleRequest.php",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Roles/UpdateRoleRequest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_requests_roles_updaterolerequest",
-      "community": 177,
-      "community_name": "UpdateRoleRequest",
-      "norm_label": "updaterolerequest.php"
     },
     {
       "label": "RoleManagementController.php",
@@ -15144,17 +15155,6 @@
       "community": 180,
       "community_name": "keywords",
       "norm_label": "laravel"
-    },
-    {
-      "label": "chart.js",
-      "file_type": "code",
-      "source_file": "chart.js",
-      "confidence": "EXTRACTED",
-      "_origin": "ast",
-      "id": "chart_js_chart_js",
-      "community": 181,
-      "community_name": "chart.js",
-      "norm_label": "chart.js"
     },
     {
       "label": "2026_09_24_145813_create_link_previews_table.php",
@@ -65095,5 +65095,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "5b657ace07e5a386b697e09ae38d251d69a44451"
+  "built_at_commit": "dadbd711904cd366d365da2d001d7ecc76876a0f"
 }

@@ -1,7 +1,7 @@
 # Graph Report - ProjectManagementTool  (2026-09-25)
 
 ## Corpus Check
-- 376 files · ~170,066 words
+- 376 files · ~170,290 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5b657ace`
+- Built from commit: `dadbd711`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -82,19 +82,19 @@
 - TagsImportBatch.php
 - psr-4
 - Task
-- post-create-project-cmd
+- Subtask
 - Illuminate\Validation\Validator
 - HasAdminConfigurableColors.php
 - UpdateProjectRequest
 - static
 - UserManagementController
 - UpdateTaskStatusColorsRequest
-- Subtask
+- StoreProjectRequest
 - Department
+- UpdateRoleRequest
 - UpdateUserRequest
 - 2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php
-- StoreProjectRequest
-- UpdateRoleRequest
+- post-create-project-cmd
 - Role
 - keywords
 - Illuminate\Database\Eloquent\Relations\BelongsToMany
@@ -280,10 +280,6 @@ Nodes (5): autoload, psr-4, App\\, Database\\Factories\\, Database\\Seeders\\
 Cohesion: 0.15
 Nodes (10): Task, MentionedInCommentNotification, TaskObserver, Illuminate\Database\Eloquent\SoftDeletes, emojiTaskPayload(), altTextTaskUpdate(), imageResizeTaskPayload(), makeTaskWithDescription() (+2 more)
 
-### Community 149 - "post-create-project-cmd"
-Cohesion: 0.50
-Nodes (4): post-create-project-cmd, @php artisan key:generate --ansi, @php artisan migrate --graceful --ansi, @php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\
-
 ### Community 151 - "Illuminate\Validation\Validator"
 Cohesion: 0.13
 Nodes (6): UpdateTaskPriorityColorsRequest, validateCompanyRoles(), validateSuperAdminGrant(), StoreUserRequest, CompanyRoleRules, Illuminate\Validation\Validator
@@ -308,6 +304,10 @@ Nodes (15): DepartmentManagementController, StoreDepartmentRequest, AccessPermis
 Cohesion: 0.83
 Nodes (3): down(), isSqlite(), up()
 
+### Community 172 - "post-create-project-cmd"
+Cohesion: 0.50
+Nodes (4): post-create-project-cmd, @php artisan key:generate --ansi, @php artisan migrate --graceful --ansi, @php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\
+
 ### Community 178 - "Role"
 Cohesion: 0.12
 Nodes (7): RoleManagementController, Role, RolePolicy, Illuminate\Database\Eloquent\Builder, toggleStaffManageDocuments(), makeClientWithProjectAccessForLinkPreview(), makeClientOnProject()
@@ -328,7 +328,7 @@ Nodes (3): Permission, PermissionSeeder, Illuminate\Database\Eloquent\Relations\
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `ImportValidator`, `.boardOrganizationIds`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `AuditLog`, `Task.php`, `NotificationSetting`, `User.php`, `Role.php`, `UpdateProjectRequest`, `UserManagementController`, `Subtask`, `Department`, `Role`, `ImportTemplateBuilder`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `TaskManagementController`, `ProjectManagementController`, `Document`, `Organization`, `Illuminate\Database\Eloquent\Relations\HasMany`, `BootstrapEnvironment`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `LinkPreviewService.php`, `Comment`, `Illuminate\Http\UploadedFile`, `AuditEventNotifier`, `OrgMember`, `LoginRequest`, `NotificationEventType.php`?**
+- **Why does `User` connect `User` to `ImportValidator`, `.boardOrganizationIds`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `AuditLog`, `Task.php`, `NotificationSetting`, `User.php`, `Role.php`, `Subtask`, `UpdateProjectRequest`, `UserManagementController`, `Department`, `Role`, `ImportTemplateBuilder`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `TaskManagementController`, `ProjectManagementController`, `Document`, `Organization`, `Illuminate\Database\Eloquent\Relations\HasMany`, `BootstrapEnvironment`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `LinkPreviewService.php`, `Comment`, `Illuminate\Http\UploadedFile`, `AuditEventNotifier`, `OrgMember`, `LoginRequest`, `NotificationEventType.php`?**
   _High betweenness centrality (0.131) - this node is a cross-community bridge._
 - **Why does `Organization` connect `Organization` to `ImportValidator`, `.boardOrganizationIds`, `Illuminate\Database\Seeder`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `Task.php`, `User.php`, `Role.php`, `Illuminate\Validation\Validator`, `UserManagementController`, `Department`, `ImportTemplateBuilder`, `Role`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`, `User`, `TaskManagementController`, `ProjectManagementController`, `Document`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Illuminate\View\View`, `Illuminate\Support\Collection`, `ImportBatch`, `Illuminate\Http\Request`, `OrgMember`?**
   _High betweenness centrality (0.059) - this node is a cross-community bridge._
