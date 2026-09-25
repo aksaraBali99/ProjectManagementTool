@@ -43,7 +43,7 @@
                          what the 7s poll compares to tell whether a body changed, since
                          comparing innerHTML against the server string would never match
                          once the browser re-serializes it. --}}
-                    <x-rich-text :value="$comment->body" class="comment-body-text mt-1 text-[12px] text-gray-700" :data-body-hash="md5($comment->body)" />
+                    <x-rich-text :value="$comment->body" class="comment-body-text mt-1 text-[12px] text-gray-700" :data-body-hash="md5($comment->body)" :data-mentioned-users="$comment->mentionedUsers->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->toJson()" />
                     <div class="comment-actions mt-1 flex items-center gap-2">
                         @if ($canEditComment)
                             <button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>
@@ -68,7 +68,7 @@
                                 </span>
                                 <span class="text-[10px] text-gray-400">{{ $reply->created_at->format('M j, Y g:ia') }}</span>
                             </div>
-                            <x-rich-text :value="$reply->body" class="comment-body-text mt-1 text-[12px] text-gray-700" :data-body-hash="md5($reply->body)" />
+                            <x-rich-text :value="$reply->body" class="comment-body-text mt-1 text-[12px] text-gray-700" :data-body-hash="md5($reply->body)" :data-mentioned-users="$reply->mentionedUsers->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->toJson()" />
                             <div class="comment-actions mt-1 flex items-center gap-2">
                                 @if ($canEditReply)
                                     <button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>
@@ -103,6 +103,19 @@
         const errorEl = container.querySelector('.comment-error');
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const mentionableUsers = @json($mentionableUsers ?? []);
+
+        // task #70 phase 3: captures each server-rendered comment body's
+        // PRISTINE html (before mention-highlight.js wraps any "@Name"
+        // text in a <span>) into its own dataset, since this inline
+        // script — synchronous, runs during initial HTML parsing — always
+        // executes before app.js's module code (deferred by default) can
+        // call highlightRichText() and mutate these bodies. Editing a
+        // comment always reads from this raw copy, never from the live
+        // (possibly already-highlighted) .innerHTML — see the edit-button
+        // handler further down.
+        container.querySelectorAll('.comment-body-text[data-rich-text-content]').forEach(function (bodyText) {
+            bodyText.dataset.rawHtml = bodyText.innerHTML;
+        });
 
         // The rich-text editor (TipTap, shared with the task description) is
         // mounted by app.js, which is a deferred module script and so hasn't
@@ -154,12 +167,17 @@
         }
 
         // comment.body_html is server-sanitized (RichText::toHtml), never the
-        // raw stored value — safe to assign as markup.
-        function buildBodyElement(html, hash) {
+        // raw stored value — safe to assign as markup. dataset.rawHtml keeps
+        // that exact string around (task #70 phase 3) so a later Edit click
+        // always re-seeds the editor from it, not from .innerHTML, which
+        // mention-highlight.js may since have wrapped in <span class="mention">.
+        function buildBodyElement(html, hash, mentionedUsers) {
             const body = document.createElement('div');
             body.className = 'comment-body-text rich-text mt-1 text-[12px] text-gray-700';
             body.setAttribute('data-rich-text-content', '');
             body.dataset.bodyHash = hash;
+            body.dataset.rawHtml = html;
+            body.dataset.mentionedUsers = JSON.stringify(mentionedUsers || []);
             body.innerHTML = html;
 
             return body;
@@ -202,7 +220,7 @@
                 + actionsHtml;
 
             const actions = card.querySelector('.comment-actions');
-            const body = buildBodyElement(comment.body_html, comment.body_hash);
+            const body = buildBodyElement(comment.body_html, comment.body_hash, comment.mentioned_users);
             if (actions) actions.before(body);
             else card.appendChild(body);
 
@@ -417,8 +435,13 @@
                     const bodyText = card.querySelector('.comment-body-text');
                     if (! bodyText) return; // already editing
 
-                    const currentHtml = bodyText.innerHTML;
+                    // task #70 phase 3: dataset.rawHtml, not .innerHTML — the
+                    // latter may already carry mention-highlight.js's
+                    // <span class="mention"> wrappers, which must never leak
+                    // into what gets edited/re-saved.
+                    const currentHtml = bodyText.dataset.rawHtml;
                     const currentHash = bodyText.dataset.bodyHash;
+                    const currentMentionedUsers = JSON.parse(bodyText.dataset.mentionedUsers || '[]');
 
                     const editRoot = document.createElement('div');
                     editRoot.className = 'comment-edit-editor rte-loading mt-1';
@@ -452,9 +475,9 @@
                         editor.focus();
                     });
 
-                    function restore(html, hash) {
+                    function restore(html, hash, mentionedUsers) {
                         if (editor) editor.destroy();
-                        const restored = buildBodyElement(html, hash);
+                        const restored = buildBodyElement(html, hash, mentionedUsers);
                         editRoot.replaceWith(restored);
                         controls.remove();
                         card.querySelector('.comment-actions').style.display = '';
@@ -462,7 +485,7 @@
                     }
 
                     controls.querySelector('.cancel-comment-btn').addEventListener('click', function () {
-                        restore(currentHtml, currentHash);
+                        restore(currentHtml, currentHash, currentMentionedUsers);
                     });
 
                     const saveBtn = controls.querySelector('.save-comment-btn');
@@ -474,7 +497,7 @@
                                 return response.json();
                             })
                             .then(function (data) {
-                                restore(data.comment.body_html, data.comment.body_hash);
+                                restore(data.comment.body_html, data.comment.body_hash, data.comment.mentioned_users);
                             })
                             .catch(function (error) {
                                 alert(error.message);
@@ -607,6 +630,8 @@
                         if (bodyText && bodyText.dataset.bodyHash !== comment.body_hash) {
                             bodyText.innerHTML = comment.body_html;
                             bodyText.dataset.bodyHash = comment.body_hash;
+                            bodyText.dataset.rawHtml = comment.body_html;
+                            bodyText.dataset.mentionedUsers = JSON.stringify(comment.mentioned_users || []);
                             highlightCode(bodyText);
                         }
                     });

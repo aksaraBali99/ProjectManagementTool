@@ -407,6 +407,42 @@
     pointer-events: none;
 }
 
+/* task #70 phase 3: highlighting for a RENDERED @mention (mention-
+   highlight.js wraps one in a `.mention` span, never the .rte-mentions
+   autocomplete dropdown above, which is a different thing entirely — the
+   live suggestion list while typing, not saved content). .mention is the
+   base "this text names someone" pill — the same radius-sm + brand-50/700
+   tint this app's other badges/pills already use. .mention-you is added
+   ADDITIONALLY, client-side, only for the viewer that mention actually
+   names: a solid brand-600 fill rather than a light tint, so it reads as
+   unmistakably more prominent at a glance, matching Jira's own "this one's
+   about you" treatment, without reaching for a hue outside this app's
+   single-accent palette.
+
+   Purely background/color-based, deliberately — font-size, font-weight
+   and line-height are all pinned to `inherit` (not just left unset) so a
+   mention can never visually read as a different SCALE than the text
+   around it, only a different color/fill. A previous pass here still had
+   font-weight: 500/600, which — especially at this app's small comment
+   text size, in Inter — reads as visibly BIGGER even at the exact same
+   font-size, since a heavier weight has more ink/bigger apparent
+   x-height. That's what you were actually seeing as "the font looks
+   bigger". */
+.mention {
+    background: var(--color-brand-50);
+    color: var(--color-brand-700);
+    border-radius: var(--radius-sm);
+    padding: 0 4px;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+}
+
+.mention-you {
+    background: var(--color-brand-600);
+    color: #fff;
+}
+
 .rte-mentions {
     position: fixed;
     z-index: 60;

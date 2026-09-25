@@ -29,7 +29,7 @@ class CommentController extends Controller
         // page load groups the same shape server-side in the Blade
         // partial — current volume is small enough that this doesn't need
         // a more complex query strategy.
-        $comments = $task->comments()->with('user')->orderBy('created_at')->get();
+        $comments = $task->comments()->with(['user', 'mentionedUsers'])->orderBy('created_at')->get();
 
         return response()->json([
             'comments' => $comments->map(fn (Comment $comment) => [
@@ -45,6 +45,7 @@ class CommentController extends Controller
                 'user_avatar_text' => $comment->user->avatarText(),
                 'created_at' => $comment->created_at->format('M j, Y g:ia'),
                 'can_edit' => Gate::allows('update', $comment),
+                'mentioned_users' => $this->mentionedUsersPayload($comment),
             ])->values(),
         ]);
     }
@@ -103,6 +104,7 @@ class CommentController extends Controller
                 'user_avatar_bg' => auth()->user()->avatarBackground(),
                 'user_avatar_text' => auth()->user()->avatarText(),
                 'created_at' => $comment->created_at->format('M j, Y g:ia'),
+                'mentioned_users' => $this->mentionedUsersPayload($comment),
             ],
         ], 201);
     }
@@ -126,6 +128,7 @@ class CommentController extends Controller
             'body' => $comment->body,
             'body_html' => RichText::toHtml($comment->body),
             'body_hash' => md5($comment->body),
+            'mentioned_users' => $this->mentionedUsersPayload($comment),
         ]]);
     }
 
@@ -220,5 +223,24 @@ class CommentController extends Controller
         User::whereIn('id', $result['attached'])->get()->each(
             fn (User $user) => $user->notify(new MentionedInCommentNotification($task))
         );
+    }
+
+    /**
+     * task #70 phase 3: the {id, name} shape mention-highlight.js needs to
+     * know WHICH "@Name" occurrences in a rendered comment body are real
+     * mentions worth highlighting — read straight off the same
+     * Comment::mentionedUsers() pivot syncMentions() above already
+     * maintains, not re-derived from the text. index() eager-loads this
+     * relation across the whole collection (no N+1 there); store()/
+     * update() each touch a single comment, so a lazy-load here is one
+     * extra query for one row, not a pattern that scales with comment
+     * count.
+     */
+    private function mentionedUsersPayload(Comment $comment): array
+    {
+        return $comment->mentionedUsers->map(fn (User $user) => [
+            'id' => $user->id,
+            'name' => $user->name,
+        ])->values()->all();
     }
 }

@@ -1,5 +1,6 @@
 import intlTelInput from 'intl-tel-input/intlTelInputWithUtils';
 import 'intl-tel-input/dist/css/intlTelInput.css';
+import { highlightMentions } from './mention-highlight.js';
 
 function initPhoneInputs() {
     document.querySelectorAll('[data-phone-input]').forEach(function (input) {
@@ -207,6 +208,15 @@ function mountRichText(root) {
 function highlightRichText(scope) {
     const target = scope || document;
     const passes = [];
+
+    // task #70 phase 3: @mention highlighting. No dynamic import — unlike
+    // the enhancements below, this has no external library behind it and
+    // applies to nearly every comment body, so lazy-loading it as its own
+    // chunk would cost more than it saves. Safe to call unconditionally;
+    // it's a no-op over content with no data-mentioned-users at all
+    // (Task Description, which doesn't support @mentions — see its own
+    // docblock in mention-highlight.js).
+    highlightMentions(target);
 
     if (target.querySelector('[data-rich-text-content] pre code:not([data-highlighted])')) {
         passes.push(import('./code-highlight.js').then(function (module) { module.highlightCodeBlocks(target); }));
