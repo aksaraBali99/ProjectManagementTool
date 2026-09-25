@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "resources/views/kanban.blade.php": {
-    "mtime": 1790328789.583618,
-    "ast_hash": "872007aec4b7a0c16a5d0534d048b00b",
+    "mtime": 1790353479.101965,
+    "ast_hash": "fd623e7471479073a4fc57a34564ad87",
     "semantic_hash": ""
   },
   "tests/Feature/Dashboard/DashboardTest.php": {
@@ -1650,7 +1650,7 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_description-field.blade.php": {
-    "mtime": 1790351631.8083217,
+    "mtime": 1790353441.3636532,
     "ast_hash": "5976e180304961af6d2c44d8733fa495",
     "semantic_hash": ""
   },
@@ -1790,7 +1790,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/DescriptionViewEditModeTest.php": {
-    "mtime": 1790351688.1375935,
+    "mtime": 1790353441.3656743,
     "ast_hash": "08f49085ae4f5983e94fb286d02b3350",
     "semantic_hash": ""
   },
@@ -1825,8 +1825,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Kanban/KanbanAssigneeTest.php": {
-    "mtime": 1790343063.489837,
-    "ast_hash": "b2350fcafcd7707a7194d35a9416d998",
+    "mtime": 1790353565.454807,
+    "ast_hash": "d64b0158745d02f4d7447030f9d76b32",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskReturnToTest.php": {
@@ -1890,8 +1890,13 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/ResizeHandleStylingTest.php": {
-    "mtime": 1790351709.212109,
+    "mtime": 1790353441.3666725,
     "ast_hash": "9033fa533381adc0bfdac8f1977b6cd1",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Kanban/KanbanCardLayoutTest.php": {
+    "mtime": 1790353657.3025868,
+    "ast_hash": "8d3bbe43bba72240dbc003930abd56fc",
     "semantic_hash": ""
   }
 }

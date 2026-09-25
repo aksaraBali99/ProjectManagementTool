@@ -164,7 +164,7 @@ test('a task\'s own current assignee can reassign it away, even without create_e
     expect($task->fresh()->assignee_id)->toBe($newAssignee->id);
 });
 
-test('the Kanban card\'s assignee select is enabled for management, pre-selected to the current assignee, sized like the status select', function () {
+test('the Kanban card\'s assignee select is enabled for management, pre-selected to the current assignee, with a fixed width regardless of the name', function () {
     $assignee = makeStaffForKanbanAssignee($this->orgA, $this->deptA);
     $this->projectA->staff()->attach($assignee->id);
 
@@ -186,9 +186,10 @@ test('the Kanban card\'s assignee select is enabled for management, pre-selected
     expect($item['canReassign'])->toBeTrue();
 
     $html = $response->getContent();
-    // Same class list (border/padding/text size) as .kanban-status-select
-    // — the user's explicit "same size as the status field" ask.
-    expect($html)->toContain('kanban-assignee-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px]');
+    // task #71: fixed width + truncate — no longer sized to fit whichever
+    // name happens to be selected (that was the actual bug this replaced:
+    // the dropdown's own width used to vary with the assignee's name).
+    expect($html)->toContain('kanban-assignee-select w-20 truncate rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px]');
     // e() first, matching Blade's own {{ }} escaping — a Faker-generated
     // name containing an apostrophe (e.g. "O'Connell") renders as
     // "&#039;" in the actual HTML, which the raw un-escaped name would
