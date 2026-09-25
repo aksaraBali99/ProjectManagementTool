@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
+use App\Http\Controllers\Concerns\BuildsAssigneeOptions;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\Organization;
 use App\Models\Task;
@@ -12,7 +13,7 @@ use Illuminate\View\View;
 
 class KanbanController extends Controller
 {
-    use ResolvesCurrentOrganization;
+    use BuildsAssigneeOptions, ResolvesCurrentOrganization;
 
     public function __invoke(?Organization $organization = null): View
     {
@@ -29,6 +30,8 @@ class KanbanController extends Controller
                 'organization' => null,
                 'columns' => collect(),
                 'emptyMessage' => $user->boardAccessDeniedReason('view_kanban')->message(),
+                'canCreate' => false,
+                'staffByProject' => [],
             ]);
         }
 
@@ -55,13 +58,29 @@ class KanbanController extends Controller
                 ->map(fn (Task $task) => [
                     'task' => $task,
                     'canEdit' => Gate::allows('updateStatus', $task),
+                    // Reassignment is gated by the FULL 'update' policy
+                    // (create_edit_tasks + department access, or
+                    // management, or the task's own current assignee) —
+                    // deliberately not the narrower 'updateStatus' capability
+                    // 'canEdit' above uses, since handing a task to someone
+                    // else is a bigger action than moving your own card.
+                    'canReassign' => Gate::allows('update', $task),
                 ]),
         ]);
+
+        $projectsInList = $tasks->pluck('project')->filter()->unique('id')->values();
 
         return view('kanban', [
             'organizations' => $organizations,
             'organization' => $organization,
             'columns' => $columns,
+            // Same gate the Tasks list page's own "+ Add task" button uses
+            // (create_edit_tasks, narrowed to allowed departments for
+            // Staff) - viewing the board (view_kanban) and creating a task
+            // in it are separate permissions, so this can't be assumed
+            // from having reached this far.
+            'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
+            'staffByProject' => $this->staffOptionsByProject($projectsInList),
         ]);
     }
 }

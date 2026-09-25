@@ -109,6 +109,7 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::put('/tasks/{task}', [TaskManagementController::class, 'update'])->name('tasks.update')->withTrashed();
     Route::patch('/tasks/{task}/toggle-active', [TaskManagementController::class, 'toggleActive'])->name('tasks.toggle-active')->withTrashed();
     Route::patch('/tasks/{task}/status', [TaskManagementController::class, 'updateStatus'])->name('tasks.update-status');
+    Route::patch('/tasks/{task}/assignee', [TaskManagementController::class, 'updateAssignee'])->name('tasks.update-assignee');
 
     // ->withTrashed(): matches tasks.edit/update above — a deactivated
     // task's Description is still reachable/editable there, so its image
