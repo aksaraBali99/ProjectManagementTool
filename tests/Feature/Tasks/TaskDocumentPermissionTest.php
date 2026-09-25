@@ -3,6 +3,7 @@
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -74,7 +75,7 @@ test('the same staff assignee still sees the attach-existing-document controls, 
 
 test('granting manage_documents to Staff makes the Add Document button appear for the same assignee', function () {
     $staffRole = Role::where('slug', 'staff')->firstOrFail();
-    $manageDocumentsId = \App\Models\Permission::where('slug', 'manage_documents')->firstOrFail()->id;
+    $manageDocumentsId = Permission::where('slug', 'manage_documents')->firstOrFail()->id;
     $staffRole->permissions()->syncWithoutDetaching([$manageDocumentsId]);
 
     $response = $this->actingAs($this->staffAssignee)->get("/tasks/{$this->task->id}/edit");

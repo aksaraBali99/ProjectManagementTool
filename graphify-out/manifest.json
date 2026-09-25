@@ -1815,8 +1815,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentPermissionTest.php": {
-    "mtime": 1790320754.0612872,
-    "ast_hash": "9927d270fa9caa71cea445d47cab70a4",
+    "mtime": 1790321837.4404767,
+    "ast_hash": "f457fb6d2f6c9bc1766693bfdba351e7",
     "semantic_hash": ""
   }
 }
