@@ -34,19 +34,35 @@ class CommentPolicy
 
     public function update(User $user, Comment $comment): bool
     {
-        if ($user->isSuperAdmin() || $user->isOwner()) {
-            return true;
-        }
-
-        if (! $user->hasPermission('add_edit_own_comment', $comment->task->organization_id)) {
-            return false;
-        }
-
-        return $comment->user_id === $user->id;
+        return $this->canEditOwnComments($user, $comment->task->organization_id)
+            ? ($user->isSuperAdmin() || $user->isOwner() || $comment->user_id === $user->id)
+            : false;
     }
 
     public function delete(User $user, Comment $comment): bool
     {
         return $this->update($user, $comment);
+    }
+
+    /**
+     * The part of update()'s rule that DOESN'T depend on which specific
+     * comment is being checked — only on the user and which organization
+     * the comment's task belongs to. Pulled out so a caller rendering many
+     * comments from the SAME task (CommentController::index(),
+     * tasks/_comments.blade.php) can compute this once per request and
+     * reuse it, rather than calling Gate::allows('update', $comment) fresh
+     * per comment/reply — a real N+1 (isSuperAdmin()/isOwner()/
+     * hasPermission() each ran their own query on every call, with no
+     * memoization of their own), surfaced by task #70 phase 4's own
+     * query-count regression test. Deliberately NOT cached on User itself
+     * — a role/permission change and a re-check of it can legitimately
+     * happen within the same PHP process without a real request boundary
+     * between them (several existing tests do exactly this), so any cache
+     * living longer than one controller method's own local scope risks
+     * going stale.
+     */
+    public function canEditOwnComments(User $user, int $organizationId): bool
+    {
+        return $user->isSuperAdmin() || $user->isOwner() || $user->hasPermission('add_edit_own_comment', $organizationId);
     }
 }

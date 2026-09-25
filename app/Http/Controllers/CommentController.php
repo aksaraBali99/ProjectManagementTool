@@ -6,6 +6,7 @@ use App\Models\Comment;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\MentionedInCommentNotification;
+use App\Policies\CommentPolicy;
 use App\Support\RichText;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,20 @@ class CommentController extends Controller
         // page load groups the same shape server-side in the Blade
         // partial — current volume is small enough that this doesn't need
         // a more complex query strategy.
-        $comments = $task->comments()->with(['user', 'mentionedUsers'])->orderBy('created_at')->get();
+        $comments = $task->comments()->with(['user', 'mentionedUsers', 'reactions.user'])->orderBy('created_at')->get();
+
+        // The org/permission part of CommentPolicy::update()'s rule is the
+        // SAME for every comment on this task (they all belong to the same
+        // organization) — computed once here, rather than via
+        // Gate::allows('update', $comment) freshly for every comment/reply,
+        // which re-ran isSuperAdmin()/isOwner()/hasPermission() (each its
+        // own query) once per row. That was a real N+1, surfaced by task
+        // #70 phase 4's own query-count regression test on this endpoint.
+        // See CommentPolicy::canEditOwnComments()'s own docblock for why
+        // this isn't cached on User itself instead.
+        $user = auth()->user();
+        $canEditOwnComments = app(CommentPolicy::class)->canEditOwnComments($user, $task->organization_id);
+        $isSuperAdminOrOwner = $user->isSuperAdmin() || $user->isOwner();
 
         return response()->json([
             'comments' => $comments->map(fn (Comment $comment) => [
@@ -44,8 +58,10 @@ class CommentController extends Controller
                 'user_avatar_bg' => $comment->user->avatarBackground(),
                 'user_avatar_text' => $comment->user->avatarText(),
                 'created_at' => $comment->created_at->format('M j, Y g:ia'),
-                'can_edit' => Gate::allows('update', $comment),
+                'can_edit' => $canEditOwnComments && ($isSuperAdminOrOwner || $comment->user_id === $user->id),
                 'mentioned_users' => $this->mentionedUsersPayload($comment),
+                'reactions' => $comment->reactionSummary(auth()->id()),
+                'reactions_hash' => $comment->reactionsHash(auth()->id()),
             ])->values(),
         ]);
     }
@@ -105,6 +121,12 @@ class CommentController extends Controller
                 'user_avatar_text' => auth()->user()->avatarText(),
                 'created_at' => $comment->created_at->format('M j, Y g:ia'),
                 'mentioned_users' => $this->mentionedUsersPayload($comment),
+                // Always empty for a comment created THIS request — nobody
+                // could have reacted yet — but computed the same way as
+                // everywhere else rather than hardcoded, so this can never
+                // drift from reactionSummary()'s actual shape.
+                'reactions' => $comment->reactionSummary(auth()->id()),
+                'reactions_hash' => $comment->reactionsHash(auth()->id()),
             ],
         ], 201);
     }
@@ -129,6 +151,8 @@ class CommentController extends Controller
             'body_html' => RichText::toHtml($comment->body),
             'body_hash' => md5($comment->body),
             'mentioned_users' => $this->mentionedUsersPayload($comment),
+            'reactions' => $comment->reactionSummary(auth()->id()),
+            'reactions_hash' => $comment->reactionsHash(auth()->id()),
         ]]);
     }
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\CommentReactionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentManagementController;
 use App\Http\Controllers\DocumentController;
@@ -151,6 +152,7 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
     Route::put('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+    Route::post('/comments/{comment}/reactions', [CommentReactionController::class, 'store'])->name('comments.reactions.store');
 
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('/documents/create/{organization?}', [DocumentController::class, 'create'])->name('documents.create');

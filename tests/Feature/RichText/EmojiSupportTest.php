@@ -216,7 +216,20 @@ test('the Description editor and the Comment editor are the same shared componen
         ->all();
     expect($constructors)->toBe(['rich-text-editor.js']);
 
-    expect(file_get_contents(resource_path('views/tasks/_comments.blade.php')))->not->toContain('Emoji');
+    // task #70 phase 4: _comments.blade.php now DOES reference emoji — its
+    // comment-reaction picker — but only ever through
+    // window.solavaRichText.buildEmojiPicker(), the shared module's own
+    // export (rich-text-editor.js's buildEmojiPicker(), refactored in this
+    // same phase to no longer require a live editor instance). What this
+    // guards against is a SECOND, diverged implementation: no import of the
+    // extension, no Emoji.configure(), no dataset/search pipeline of its
+    // own — that would defeat the entire point of reusing the toolbar
+    // picker's dataset/search/rendering rather than rebuilding it.
+    $commentsSource = file_get_contents(resource_path('views/tasks/_comments.blade.php'));
+    expect($commentsSource)
+        ->not->toContain("from '@tiptap/extension-emoji'")
+        ->not->toContain('Emoji.configure(')
+        ->toContain('window.solavaRichText.buildEmojiPicker(');
 });
 
 test('the shared editor registers the emoji extension with native-only rendering and an autocomplete', function () {
@@ -231,7 +244,9 @@ test('the shared editor registers the emoji extension with native-only rendering
         // ...typed emoticons like ":)" are left as text...
         ->toContain('enableEmoticons: false')
         // ...and the ":" autocomplete is supplied (the extension ships none).
-        ->toContain('items: function (props) { return searchEmojis(props.editor, props.query); }')
+        // task #70 phase 4: searchEmojis() no longer takes an editor
+        // argument (see the standalone-emoji-picker refactor test below).
+        ->toContain('items: function (props) { return searchEmojis(props.query); }')
         ->toContain('render: emojiSuggestionRenderer');
 
     // Emoji nodes are unwrapped to the plain character before the HTML is saved.
@@ -252,12 +267,33 @@ test('the toolbar has an emoji picker button directly after the code block butto
     expect($keys[1][$codeBlockIndex + 1] ?? null)->toBe('emoji');
 
     // It opens a picker that inserts through the extension's own command (so
-    // bold/italic around the cursor carry over) and only from the native pool.
+    // bold/italic around the cursor carry over) and only from the native
+    // pool. task #70 phase 4: buildEmojiPicker() takes an options object
+    // (onPick/onClose) rather than an editor directly — the toolbar's own
+    // onPick is what still calls .setEmoji() — so the reaction picker
+    // (tasks/_comments.blade.php) can build one without any live editor of
+    // its own; availableEmojis() itself no longer takes an editor argument
+    // at all (see the standalone-picker refactor test below).
     expect($source)
-        ->toContain('function buildEmojiPicker(editor)')
+        ->toContain('export function buildEmojiPicker(options)')
         ->toContain('.setEmoji(item.name)')
-        ->toContain('availableEmojis(editor)')
+        ->toContain('availableEmojis()')
         ->toContain('emoji: function (button) { emojiPicker.toggle(button); }');
+});
+
+test('the emoji picker is standalone — its dataset/search work without a live editor, for the comment-reaction picker to reuse', function () {
+    $source = file_get_contents(resource_path('js/rich-text-editor.js'));
+
+    // task #70 phase 4's identified refactor: the device-support check uses
+    // the standalone is-emoji-supported package directly, not the Emoji
+    // extension's own per-instance copy of the same check
+    // (editor.storage.emoji.isSupported) — that editor dependency was the
+    // only reason this dataset/search pipeline couldn't run without one.
+    expect($source)
+        ->toContain("import { isEmojiSupported } from 'is-emoji-supported'")
+        ->toContain('isEmojiSupported(item.emoji)')
+        ->toContain('function availableEmojis()')
+        ->toContain('function searchEmojis(query, limits)');
 });
 
 test('the committed production build contains the emoji extension in the editor chunk', function () {

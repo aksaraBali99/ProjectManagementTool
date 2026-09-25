@@ -1609,13 +1609,22 @@ function flagsRenderable() {
 // fall back to offering everything. The skin-tone/hair swatches in the
 // "components" group aren't standalone emoji to insert. Computed once: device
 // support doesn't change while the page is open.
+//
+// Uses the standalone isEmojiSupported() (the same is-emoji-supported
+// package already imported above for flagsRenderable()) rather than
+// editor.storage.emoji.isSupported(item) — the Emoji extension's own
+// per-instance copy of the identical check. That editor dependency was
+// the only reason this whole dataset/search pipeline couldn't run
+// without a live TipTap editor instance; dropping it (task #70 phase 4)
+// is what lets the comment-reaction picker reuse it as-is, with no live
+// editor of its own.
 let availableCache = null;
 
-function availableEmojis(editor) {
+function availableEmojis() {
     if (availableCache === null) {
         const supported = NATIVE_EMOJIS.filter(function (item) {
             return item.group !== 'components'
-                && editor.storage.emoji.isSupported(item)
+                && isEmojiSupported(item.emoji)
                 && (flagsRenderable() || ! FLAG_EMOJI.test(item.emoji));
         });
         availableCache = supported.length > 0 ? supported : NATIVE_EMOJIS.filter(function (item) { return item.group !== 'components'; });
@@ -1632,13 +1641,13 @@ const EMOJI_MAX_RESULTS = 8;
 // unrelated alias of a long-named emoji). Tiers: a label starting with the
 // query, then containing it, then a keyword tag starting with it; within a
 // tier the shortest label wins ("smile" before "smile_cat").
-function searchEmojis(editor, query, limits) {
+function searchEmojis(query, limits) {
     const min = limits && limits.min !== undefined ? limits.min : EMOJI_MIN_QUERY;
     const max = limits && limits.max !== undefined ? limits.max : EMOJI_MAX_RESULTS;
     const needle = query.toLowerCase();
     if (needle.length < min) return [];
 
-    const pool = availableEmojis(editor);
+    const pool = availableEmojis();
 
     const ranked = [];
     pool.forEach(function (item) {
@@ -1807,7 +1816,21 @@ function emojiPickerIsOpen() {
     return openEmojiPicker !== null;
 }
 
-function buildEmojiPicker(editor) {
+// task #70 phase 4: editor-agnostic — the toolbar's own :emoji: button and
+// the comment-reaction picker (tasks/_comments.blade.php, via
+// window.solavaRichText.buildEmojiPicker()) both build one of these, each
+// supplying its own onPick()/onClose() rather than this file assuming a
+// live TipTap editor exists to insert into. options.onPick(item) is called
+// with the chosen emoji item once the panel's own bookkeeping (remembering
+// it as "recent", closing the panel) is done; options.onClose() is called
+// on Escape or an outside click. Neither is required — a caller that
+// leaves one out simply gets no side effect for that moment (e.g. no
+// picker actually wires onClose, since only the toolbar's editor needs to
+// reclaim focus when the picker closes without a pick).
+export function buildEmojiPicker(options) {
+    const onPick = (options && options.onPick) || function () {};
+    const onClose = (options && options.onClose) || function () {};
+
     let panel = null;
     let anchor = null;
     let searchInput = null;
@@ -1832,7 +1855,7 @@ function buildEmojiPicker(editor) {
     }
 
     function itemsFor(key) {
-        const pool = availableEmojis(editor);
+        const pool = availableEmojis();
         if (key === 'recent') {
             return readRecentEmojiNames()
                 .map(function (name) { return byName.get(name); })
@@ -1861,10 +1884,7 @@ function buildEmojiPicker(editor) {
     function pick(item) {
         rememberEmoji(item.name);
         close();
-        editor.chain().focus().setEmoji(item.name).run();
-        // TipTap's focus() finishes on the next animation frame; closing the
-        // popover already dropped focus, so put it back immediately too.
-        editor.view.focus();
+        onPick(item);
     }
 
     function renderGrid(items, heading) {
@@ -1932,7 +1952,7 @@ function buildEmojiPicker(editor) {
 
         activeKey = null;
         renderTabs();
-        renderGrid(searchEmojis(editor, query, { min: 1, max: EMOJI_SEARCH_MAX }), 'Search results');
+        renderGrid(searchEmojis(query, { min: 1, max: EMOJI_SEARCH_MAX }), 'Search results');
     }
 
     function reposition() {
@@ -1994,8 +2014,7 @@ function buildEmojiPicker(editor) {
             if (event.key === 'Escape') {
                 event.preventDefault();
                 close();
-                editor.commands.focus();
-                editor.view.focus();
+                onClose();
             }
         });
 
@@ -2277,7 +2296,7 @@ export function createRichTextEditor(root) {
                 emojis: NATIVE_EMOJIS,
                 enableEmoticons: false,
                 suggestion: {
-                    items: function (props) { return searchEmojis(props.editor, props.query); },
+                    items: function (props) { return searchEmojis(props.query); },
                     render: emojiSuggestionRenderer,
                 },
             }),
@@ -2482,7 +2501,18 @@ export function createRichTextEditor(root) {
         return imageUpload.isBusy() || audioUpload.isBusy() || videoUpload.isBusy() || documentUpload.isBusy();
     }
 
-    const emojiPicker = buildEmojiPicker(editor);
+    const emojiPicker = buildEmojiPicker({
+        onPick: function (item) {
+            editor.chain().focus().setEmoji(item.name).run();
+            // TipTap's focus() finishes on the next animation frame; closing
+            // the popover already dropped focus, so put it back immediately too.
+            editor.view.focus();
+        },
+        onClose: function () {
+            editor.commands.focus();
+            editor.view.focus();
+        },
+    });
     // task #4, alt text — built before imageUpload, which needs altPrompt
     // to exist already (see its own upload()).
     altPrompt = buildAltTextPrompt(editor);

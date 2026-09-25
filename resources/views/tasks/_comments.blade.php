@@ -24,11 +24,34 @@
 @php
     $topLevelComments = $task->comments->whereNull('parent_comment_id')->sortBy('created_at')->values();
     $repliesByParent = $task->comments->whereNotNull('parent_comment_id')->groupBy('parent_comment_id');
+
+    // The org/permission part of CommentPolicy::update()'s rule is the
+    // SAME for every comment/reply on this page (they all belong to this
+    // one task's organization) — computed once here rather than via
+    // auth()->user()->can('update', $comment) per comment/reply below,
+    // which re-ran isSuperAdmin()/isOwner()/hasPermission() (each its own
+    // query) once per row. See CommentPolicy::canEditOwnComments()'s own
+    // docblock for the full story (task #70 phase 4's query-count
+    // regression test surfaced this on the JSON polling endpoint;
+    // this initial render had the identical N+1).
+    $canEditOwnComments = app(\App\Policies\CommentPolicy::class)->canEditOwnComments(auth()->user(), $task->organization_id);
+    $isSuperAdminOrOwner = auth()->user()->isSuperAdmin() || auth()->user()->isOwner();
+
+    // task #70 phase 4 follow-up: a smiley-plus icon instead of a plain
+    // "React" text link, matching the stroke-based icon style
+    // rich-text-editor.js's own ICON_ATTRS/ICONS.emoji already use
+    // (14x14 rendered, 16x16 viewBox, currentColor stroke) — no existing
+    // "add reaction" glyph in this codebase to copy, so this combines
+    // that same smiley with a small "+" the way Slack/Discord's own
+    // add-reaction icon does. buildCommentCard() in the script below
+    // renders the identical markup for a card built client-side.
+    $reactIconAttrs = 'width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    $reactIcon = '<svg '.$reactIconAttrs.'><circle cx="6.3" cy="6.3" r="4.8"/><circle cx="4.7" cy="5.2" r=".6" fill="currentColor" stroke="none"/><circle cx="7.9" cy="5.2" r=".6" fill="currentColor" stroke="none"/><path d="M4.1 7.6a3.1 3.1 0 0 0 4.4 0"/><line x1="11.5" y1="10" x2="11.5" y2="14"/><line x1="9.5" y1="12" x2="13.5" y2="12"/></svg>';
 @endphp
 <div class="comment-container" data-task-id="{{ $task->id }}">
     <div class="comment-list space-y-3">
         @forelse ($topLevelComments as $comment)
-            @php $canEditComment = auth()->user()->can('update', $comment); @endphp
+            @php $canEditComment = $canEditOwnComments && ($isSuperAdminOrOwner || $comment->user_id === auth()->id()); @endphp
             <div class="comment-thread" data-comment-id="{{ $comment->id }}">
                 <div class="comment-card rounded-md bg-white border border-gray-200 px-3 py-2" data-comment-id="{{ $comment->id }}" data-can-edit="{{ $canEditComment ? '1' : '0' }}" data-author-id="{{ $comment->user_id }}" data-author-name="{{ $comment->user->name }}">
                     <div class="flex items-center justify-between">
@@ -44,6 +67,18 @@
                          comparing innerHTML against the server string would never match
                          once the browser re-serializes it. --}}
                     <x-rich-text :value="$comment->body" class="comment-body-text mt-1 text-[12px] text-gray-700" :data-body-hash="md5($comment->body)" :data-mentioned-users="$comment->mentionedUsers->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->toJson()" />
+                    {{-- task #70 phase 4: reaction pills, one per distinct emoji
+                         reacted with on this comment — Comment::reactionSummary()
+                         does the aggregation in memory (comments.reactions.user
+                         is eager-loaded at the task level, see
+                         TaskManagementController), so rendering this whole list
+                         costs zero extra queries beyond that one relation load,
+                         however many comments/reactions the task has. --}}
+                    <div class="reactions-list mt-1 flex flex-wrap items-center gap-1" data-reactions-hash="{{ $comment->reactionsHash(auth()->id()) }}">
+                        @foreach ($comment->reactionSummary(auth()->id()) as $reaction)
+                            <button type="button" class="reaction-pill{{ $reaction['reacted_by_me'] ? ' is-mine' : '' }}" data-emoji="{{ $reaction['emoji'] }}" title="{{ implode(', ', $reaction['user_names']) }}">{{ $reaction['emoji'] }} <span class="reaction-count">{{ $reaction['count'] }}</span></button>
+                        @endforeach
+                    </div>
                     <div class="comment-actions mt-1 flex items-center gap-2">
                         @if ($canEditComment)
                             <button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>
@@ -55,11 +90,14 @@
                              THIS PARTICULAR comment. Shown on every comment,
                              including replies (see the reply cards below). --}}
                         <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
+                        {{-- Same permission rule as Reply — anyone who can view
+                             the task can react, not gated by canEditComment. --}}
+                        <button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">{!! $reactIcon !!}</button>
                     </div>
                 </div>
                 <div class="replies-list mt-2 ml-6 space-y-2">
                     @foreach ($repliesByParent->get($comment->id, collect())->sortBy('created_at') as $reply)
-                        @php $canEditReply = auth()->user()->can('update', $reply); @endphp
+                        @php $canEditReply = $canEditOwnComments && ($isSuperAdminOrOwner || $reply->user_id === auth()->id()); @endphp
                         <div class="comment-card rounded-md bg-white border border-gray-200 px-3 py-2" data-comment-id="{{ $reply->id }}" data-can-edit="{{ $canEditReply ? '1' : '0' }}" data-author-id="{{ $reply->user_id }}" data-author-name="{{ $reply->user->name }}">
                             <div class="flex items-center justify-between">
                                 <span class="inline-flex items-center gap-1.5">
@@ -69,12 +107,18 @@
                                 <span class="text-[10px] text-gray-400">{{ $reply->created_at->format('M j, Y g:ia') }}</span>
                             </div>
                             <x-rich-text :value="$reply->body" class="comment-body-text mt-1 text-[12px] text-gray-700" :data-body-hash="md5($reply->body)" :data-mentioned-users="$reply->mentionedUsers->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->toJson()" />
+                            <div class="reactions-list mt-1 flex flex-wrap items-center gap-1" data-reactions-hash="{{ $reply->reactionsHash(auth()->id()) }}">
+                                @foreach ($reply->reactionSummary(auth()->id()) as $reaction)
+                                    <button type="button" class="reaction-pill{{ $reaction['reacted_by_me'] ? ' is-mine' : '' }}" data-emoji="{{ $reaction['emoji'] }}" title="{{ implode(', ', $reaction['user_names']) }}">{{ $reaction['emoji'] }} <span class="reaction-count">{{ $reaction['count'] }}</span></button>
+                                @endforeach
+                            </div>
                             <div class="comment-actions mt-1 flex items-center gap-2">
                                 @if ($canEditReply)
                                     <button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>
                                     <button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>
                                 @endif
                                 <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
+                                <button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">{!! $reactIcon !!}</button>
                             </div>
                         </div>
                     @endforeach
@@ -183,6 +227,88 @@
             return body;
         }
 
+        // task #70 phase 4: (re)builds a comment/reply card's reactions-list
+        // from the {emoji, count, user_names, reacted_by_me} shape both
+        // CommentController and CommentReactionController return (the exact
+        // same shape Comment::reactionSummary() produces, and the initial
+        // Blade render already used) — one function, reused for a freshly
+        // posted comment (empty), a reaction just added/replaced/removed
+        // (postReaction()'s own response) and a reaction discovered via the
+        // 7s poll (syncComments()) alike, so all three can never render this
+        // differently from one another. Rebuilds the whole list rather than
+        // diffing individual pills — reaction counts are small enough that
+        // this is simpler and in practice no more work than a real diff.
+        function renderReactions(card, reactions) {
+            const list = card.querySelector('.reactions-list');
+            if (! list) return;
+
+            list.innerHTML = '';
+            reactions.forEach(function (reaction) {
+                const pill = document.createElement('button');
+                pill.type = 'button';
+                pill.className = 'reaction-pill' + (reaction.reacted_by_me ? ' is-mine' : '');
+                pill.dataset.emoji = reaction.emoji;
+                pill.title = reaction.user_names.join(', ');
+                pill.appendChild(document.createTextNode(reaction.emoji + ' '));
+                const count = document.createElement('span');
+                count.className = 'reaction-count';
+                count.textContent = String(reaction.count);
+                pill.appendChild(count);
+                list.appendChild(pill);
+            });
+        }
+
+        // One reaction picker for the whole comment section — reused across
+        // every comment/reply's own React button rather than building one
+        // per card, the same singleton-popover approach the toolbar's own
+        // :emoji: button already uses (buildEmojiPicker() closes any
+        // previously open picker before opening another). reactionTarget
+        // records which comment the currently open (or most recently
+        // opened) picker is FOR, read by onPick() at the moment a choice is
+        // actually made — the picker itself has no notion of "which
+        // comment", only this wrapper does.
+        let reactionTarget = null;
+        let reactionPickerPromise = null;
+
+        function getReactionPicker() {
+            if (! reactionPickerPromise) {
+                reactionPickerPromise = window.solavaRichText.buildEmojiPicker({
+                    onPick: function (item) {
+                        if (reactionTarget !== null) postReaction(reactionTarget, item.emoji);
+                    },
+                });
+            }
+
+            return reactionPickerPromise;
+        }
+
+        function openReactionPicker(commentId, button) {
+            reactionTarget = commentId;
+            getReactionPicker().then(function (picker) { picker.toggle(button); });
+        }
+
+        // The single toggle endpoint for add/replace/remove alike
+        // (CommentReactionController::store() decides which, based on
+        // whatever this user's existing reaction on this comment already
+        // is) — used both when picking an emoji from the picker and when
+        // clicking an existing pill directly (a pill click always targets
+        // the SAME emoji already shown on it, so clicking your own pill
+        // un-reacts, and clicking someone else's pill adds/switches your
+        // own reaction to that emoji — one code path either way).
+        function postReaction(commentId, emoji) {
+            requestOrThrow('/comments/' + commentId + '/reactions', 'POST', { emoji: emoji }, 'Failed to react.')
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    const card = findCard(commentId);
+                    if (! card) return;
+                    renderReactions(card, data.reactions);
+                    card.querySelector('.reactions-list').dataset.reactionsHash = data.reactions_hash;
+                })
+                .catch(function (error) {
+                    alert(error.message);
+                });
+        }
+
         // The visual card shared by a top-level comment and a reply alike
         // (avatar/name/timestamp/body/actions) — every comment gets a
         // Reply action, top-level or itself a reply (matches Jira: who
@@ -205,7 +331,20 @@
                     + '<button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>'
                 : '';
             const replyHtml = '<button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>';
-            const actionsHtml = '<div class="comment-actions mt-1 flex items-center gap-2">' + editDeleteHtml + replyHtml + '</div>';
+            // Identical markup to the server-rendered button above (same
+            // smiley-plus icon, same title/aria-label) — see this file's
+            // top @php block for why this glyph was chosen.
+            const reactHtml = '<button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">'
+                + '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                + '<circle cx="6.3" cy="6.3" r="4.8"/><circle cx="4.7" cy="5.2" r=".6" fill="currentColor" stroke="none"/><circle cx="7.9" cy="5.2" r=".6" fill="currentColor" stroke="none"/>'
+                + '<path d="M4.1 7.6a3.1 3.1 0 0 0 4.4 0"/><line x1="11.5" y1="10" x2="11.5" y2="14"/><line x1="9.5" y1="12" x2="13.5" y2="12"/></svg>'
+                + '</button>';
+            const actionsHtml = '<div class="comment-actions mt-1 flex items-center gap-2">' + editDeleteHtml + replyHtml + reactHtml + '</div>';
+            // Always empty at build time — a comment JS builds here is either
+            // brand new (nobody could have reacted yet) or freshly discovered
+            // by the poll (which, if it already has reactions, rebuilds this
+            // via renderReactions() right after — see both call sites below).
+            const reactionsHtml = '<div class="reactions-list mt-1 flex flex-wrap items-center gap-1" data-reactions-hash=""></div>';
 
             const avatarStyle = 'background-color: ' + comment.user_avatar_bg + '; color: ' + comment.user_avatar_text
                 + '; width: 18px; height: 18px; font-size: calc(18px * 0.43);';
@@ -217,12 +356,16 @@
                 + '</span>'
                 + '<span class="text-[10px] text-gray-400">' + escapeHtml(comment.created_at) + '</span>'
                 + '</div>'
+                + reactionsHtml
                 + actionsHtml;
 
             const actions = card.querySelector('.comment-actions');
             const body = buildBodyElement(comment.body_html, comment.body_hash, comment.mentioned_users);
             if (actions) actions.before(body);
             else card.appendChild(body);
+
+            renderReactions(card, comment.reactions || []);
+            card.querySelector('.reactions-list').dataset.reactionsHash = comment.reactions_hash || '';
 
             return card;
         }
@@ -530,6 +673,25 @@
 
         container.querySelectorAll('.comment-card').forEach(wireCard);
 
+        // Delegated (not per-card) — covers every React button and reaction
+        // pill uniformly, whether server-rendered on initial load or built
+        // later by buildCommentCard()/renderReactions(), with no separate
+        // wiring step needed when a new card/pill is added.
+        container.addEventListener('click', function (event) {
+            const reactBtn = event.target.closest('.react-comment-btn');
+            if (reactBtn) {
+                const card = reactBtn.closest('.comment-card');
+                if (card) openReactionPicker(card.dataset.commentId, reactBtn);
+                return;
+            }
+
+            const pill = event.target.closest('.reaction-pill');
+            if (pill) {
+                const card = pill.closest('.comment-card');
+                if (card) postReaction(card.dataset.commentId, pill.dataset.emoji);
+            }
+        });
+
         postBtn.addEventListener('click', function () {
             withEditor(editorRoot).then(function (editor) {
                 if (editor.isEmpty()) return;
@@ -633,6 +795,17 @@
                             bodyText.dataset.rawHtml = comment.body_html;
                             bodyText.dataset.mentionedUsers = JSON.stringify(comment.mentioned_users || []);
                             highlightCode(bodyText);
+                        }
+
+                        // task #70 phase 4: independent of the body_hash check
+                        // above — a reaction from someone else can arrive
+                        // with the comment's own body completely unchanged,
+                        // and vice versa. Same extensible-diffing idiom
+                        // Phase 2/3 already used, just its own hash.
+                        const reactionsList = existing.querySelector('.reactions-list');
+                        if (reactionsList && reactionsList.dataset.reactionsHash !== comment.reactions_hash) {
+                            renderReactions(existing, comment.reactions);
+                            reactionsList.dataset.reactionsHash = comment.reactions_hash;
                         }
                     });
 
