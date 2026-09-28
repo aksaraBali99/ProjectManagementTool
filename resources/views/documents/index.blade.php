@@ -193,6 +193,7 @@
                                             <p class="blocked-message font-medium text-red-800"></p>
                                             <ul class="blocked-task-list mt-1.5 space-y-1"></ul>
                                             <p class="blocked-hidden-count mt-1 text-gray-500"></p>
+                                            <button type="button" class="cancel-delete-document-btn mt-2 text-[12px] text-gray-600 hover:underline">Cancel</button>
                                         </div>
                                         <div class="delete-document-confirm hidden rounded-md border border-gray-200 p-3 text-[12px]">
                                             <p class="delete-confirm-message text-[#1F2937]"></p>
@@ -492,10 +493,13 @@
                     });
             }
 
-            const cancelDeleteBtn = deletePanel.querySelector('.cancel-delete-document-btn');
-            if (cancelDeleteBtn) {
-                cancelDeleteBtn.addEventListener('click', closeAllPanels);
-            }
+            // Two Cancel buttons share this class — one in the blocked
+            // (linked-tasks) state, one in the plain delete-confirmation
+            // state — both just close the panel without unlinking or
+            // deleting anything.
+            deletePanel.querySelectorAll('.cancel-delete-document-btn').forEach(function (btn) {
+                btn.addEventListener('click', closeAllPanels);
+            });
 
             const confirmDeleteBtn = deletePanel.querySelector('.confirm-delete-document-btn');
             if (confirmDeleteBtn) {
