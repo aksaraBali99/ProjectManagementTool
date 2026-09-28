@@ -14,8 +14,11 @@
     @php
         // Sticky across a validation-error redisplay: whichever mode was
         // actually submitted (a `file` upload has no `old()` value at
-        // all, so `old('link')` alone can't tell these apart).
-        $initialMode = old('_mode', 'link');
+        // all, so `old('link')` alone can't tell these apart) — takes
+        // priority over $initialMode, the "+ New" menu's own preselection
+        // (DocumentController::create()'s ?mode=upload|link), which only
+        // matters on a fresh, error-free visit to this page.
+        $initialMode = old('_mode', $initialMode);
     @endphp
 
     <form method="POST" action="{{ route('documents.store') }}" enctype="multipart/form-data" class="mt-6 space-y-4" id="create-document-form" novalidate>

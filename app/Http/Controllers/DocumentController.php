@@ -204,6 +204,15 @@ class DocumentController extends Controller
         return view('documents.create', [
             'organization' => $organization,
             'folder' => $folder,
+            // task #73: the "+ New" menu's Upload file / Add link items
+            // preselect this page's mode via ?mode=upload|link — a soft
+            // UX preselection, not form data, so an unrecognized/missing
+            // value just falls back to 'link' rather than erroring. The
+            // view itself still lets old('_mode', ...) override this on a
+            // validation-error redisplay, so resubmitting after a mistake
+            // keeps whichever mode was actually being used, not resets to
+            // whatever the link that opened the page originally asked for.
+            'initialMode' => $request->query('mode') === 'upload' ? 'upload' : 'link',
             // task #73 phase 1: a Client-role uploader (manage_documents
             // stays tickable for Client) never sees the access-level
             // dropdown at all — the form always saves Public for them,

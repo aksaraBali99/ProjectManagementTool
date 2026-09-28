@@ -105,12 +105,12 @@ test('the Add Document page\'s access level options come from DocumentAccessLeve
     }
 });
 
-test('the "+ Add new document" button appears on the Documents list for management but not staff', function () {
+test('the "+ New" menu appears on the Documents list for management but not staff', function () {
     $staff = makeStaffForDocumentCreate($this->orgA);
 
     $this->actingAs($this->management)->get('/documents/'.$this->orgA->id)
-        ->assertSee('+ Add new document');
+        ->assertSee('+ New');
 
     $this->actingAs($staff)->get('/documents/'.$this->orgA->id)
-        ->assertDontSee('+ Add new document');
+        ->assertDontSee('+ New');
 });

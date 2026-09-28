@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1790597979.5877895,
-    "ast_hash": "336c614bb848c1ba2ab11761127bb786",
+    "mtime": 1790601329.667145,
+    "ast_hash": "ab20d87cab9c429be6f08a04b2dc2ede",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -910,18 +910,18 @@
     "semantic_hash": ""
   },
   "resources/views/documents/create.blade.php": {
-    "mtime": 1790581344.9135046,
-    "ast_hash": "314dd07907c5a28f945af39f7775d370",
+    "mtime": 1790601337.4753387,
+    "ast_hash": "a31e62e5f009145636d3b2ea140365f0",
     "semantic_hash": ""
   },
   "resources/views/documents/index.blade.php": {
-    "mtime": 1790587801.8234258,
-    "ast_hash": "17b3c18864374dbe1f82c22bfdba60f8",
+    "mtime": 1790602113.758333,
+    "ast_hash": "39eafb87be549a1e273f43bba85d610d",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentCreateTest.php": {
-    "mtime": 1787710145.2337258,
-    "ast_hash": "b11e5562b39110f8e6b2c7d417f965a4",
+    "mtime": 1790601660.1018956,
+    "ast_hash": "06e42ac8f282bac64c7283d7f4f26611",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentListTest.php": {
@@ -1810,8 +1810,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentManagePermissionToggleTest.php": {
-    "mtime": 1790322407.7733011,
-    "ast_hash": "b78d0ca3d9274b4d4333d0441d5def1c",
+    "mtime": 1790601728.6647377,
+    "ast_hash": "734e1f675b6a99a663911b8f7789fc2a",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentPermissionTest.php": {
@@ -1992,6 +1992,11 @@
   "tests/Feature/Documents/DocumentChipStatusTest.php": {
     "mtime": 1790583310.6544044,
     "ast_hash": "f62784b278358593a76dc1f59588673c",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Documents/DocumentsNewMenuTest.php": {
+    "mtime": 1790602181.1868482,
+    "ast_hash": "9732fe0d3bf28822f605e958f3117ed6",
     "semantic_hash": ""
   }
 }

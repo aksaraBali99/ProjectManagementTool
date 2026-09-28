@@ -66,7 +66,7 @@ test('toggling manage_documents ON for Staff makes the Add Document button appea
 
     $this->actingAs($this->staff)->get('/documents/'.$this->org->id)
         ->assertOk()
-        ->assertSee('+ Add new document');
+        ->assertSee('+ New');
 
     $this->actingAs($this->staff)->get('/documents/create/'.$this->org->id)
         ->assertOk()
@@ -93,7 +93,7 @@ test('toggling manage_documents OFF for Staff (after having been ON) hides the b
 
     $this->actingAs($this->staff)->get('/documents/'.$this->org->id)
         ->assertOk()
-        ->assertDontSee('+ Add new document');
+        ->assertDontSee('+ New');
 
     $this->actingAs($this->staff)->get('/documents/create/'.$this->org->id)->assertForbidden();
 
@@ -112,7 +112,7 @@ test('toggling manage_documents OFF for Staff (after having been ON) hides the b
 test('without manage_documents, Staff never sees or can use the Add Document button/page/endpoint by default (regression guard)', function () {
     $this->actingAs($this->staff)->get('/documents/'.$this->org->id)
         ->assertOk()
-        ->assertDontSee('+ Add new document');
+        ->assertDontSee('+ New');
 
     $this->actingAs($this->staff)->get('/documents/create/'.$this->org->id)->assertForbidden();
 

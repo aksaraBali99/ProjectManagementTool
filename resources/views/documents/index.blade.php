@@ -4,15 +4,7 @@
 
 @section('content')
 <div>
-    <div class="flex items-center justify-between">
-        <h1 class="text-[14px] font-medium text-[#1F2937]">Documents</h1>
-        @if ($organization && $canManage)
-            <a href="{{ route('documents.create', array_filter(['organization' => $organization->id, 'folder' => $folder?->id])) }}"
-               class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
-                + Add new document
-            </a>
-        @endif
-    </div>
+    <h1 class="text-[14px] font-medium text-[#1F2937]">Documents</h1>
 
     @if (session('status'))
         <div class="mt-3 rounded-md bg-brand-50 px-3 py-2 text-[12px] text-brand-800">{{ session('status') }}</div>
@@ -22,33 +14,90 @@
         <p class="mt-6 text-[12px] text-gray-500">You don't have access to any companies yet.</p>
     @else
         <x-company-tabs :organizations="$organizations" :active="$organization" route="documents.index">
-        {{-- Breadcrumb: company root > folder > subfolder. Switching
-             company tab (the tabs above) always lands on that company's
-             root — this nav is only about moving within the CURRENT tab. --}}
-        <nav class="mb-3 flex flex-wrap items-center gap-1 text-[11px]" aria-label="Folder breadcrumb">
-            <a href="{{ route('documents.index', $organization) }}"
-               class="{{ $folder === null ? 'font-medium text-[#1F2937]' : 'text-gray-500 hover:underline' }}">
-                {{ $organization->name }}
-            </a>
-            @foreach ($breadcrumb as $crumb)
-                <span class="text-gray-400">/</span>
-                <a href="{{ route('documents.index', ['organization' => $organization, 'folder' => $crumb->id]) }}"
-                   class="{{ $folder && $folder->id === $crumb->id ? 'font-medium text-[#1F2937]' : 'text-gray-500 hover:underline' }}">
-                    {{ $crumb->name }}
+        {{-- task #73: ONE "+ New" menu replaces the old header "+ Add new
+             document" button and the separate "+ New folder" link — both
+             acted on the current company/folder, so the control lives
+             here, on the breadcrumb row, not in the page header above the
+             tabs. flex-wrap so a long breadcrumb wraps onto its own line
+             on a narrow screen rather than pushing the button off-screen
+             or shrinking it. --}}
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
+            {{-- Breadcrumb: company root > folder > subfolder. Switching
+                 company tab (the tabs above) always lands on that
+                 company's root — this nav is only about moving within
+                 the CURRENT tab. --}}
+            <nav class="flex flex-wrap items-center gap-1 text-[11px]" aria-label="Folder breadcrumb">
+                <a href="{{ route('documents.index', $organization) }}"
+                   class="{{ $folder === null ? 'font-medium text-[#1F2937]' : 'text-gray-500 hover:underline' }}">
+                    {{ $organization->name }}
                 </a>
-            @endforeach
-        </nav>
+                @foreach ($breadcrumb as $crumb)
+                    <span class="text-gray-400">/</span>
+                    <a href="{{ route('documents.index', ['organization' => $organization, 'folder' => $crumb->id]) }}"
+                       class="{{ $folder && $folder->id === $crumb->id ? 'font-medium text-[#1F2937]' : 'text-gray-500 hover:underline' }}">
+                        {{ $crumb->name }}
+                    </a>
+                @endforeach
+            </nav>
 
-        @if ($canManageFolders)
-            <div class="mb-3">
-                <button type="button" class="new-folder-toggle text-[11px] font-medium text-brand-600 hover:underline">+ New folder</button>
-                <div class="new-folder-form mt-2 hidden flex items-start gap-2 rounded-md border border-gray-200 p-3">
-                    <div class="flex-1">
-                        <input type="text" class="new-folder-name w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Folder name">
-                        <p class="new-folder-error mt-1 text-[11px] text-red-600" style="display: none;"></p>
+            {{-- task #73: manage_documents in THIS company (the same
+                 check the old header button already used) decides whether
+                 the whole menu renders at all — no button, not a disabled
+                 one, when it doesn't pass. Upload file / Add link /
+                 New folder all sit behind this one gate; none of them
+                 have their own separate visibility check (their
+                 endpoints still enforce the real permission regardless). --}}
+            @if ($canManage)
+                {{-- ml-auto: when the breadcrumb is long enough to wrap
+                     (flex-wrap above), this button drops onto its own line
+                     alone — without ml-auto it would sit flush left on that
+                     line instead of staying right-aligned, which also drags
+                     its right-0-anchored dropdown off the left edge of a
+                     narrow viewport. --}}
+                <div class="relative ml-auto shrink-0" data-new-menu>
+                    <button type="button"
+                        class="new-menu-toggle inline-flex items-center gap-1 rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700"
+                        aria-haspopup="menu" aria-expanded="false">
+                        + New
+                        <i class="ti ti-chevron-down text-[12px]" aria-hidden="true"></i>
+                    </button>
+                    <div class="new-menu-dropdown absolute right-0 z-20 mt-1 hidden w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg" role="menu" aria-label="Create new">
+                        <a href="{{ route('documents.create', array_filter(['organization' => $organization->id, 'folder' => $folder?->id, 'mode' => 'upload'])) }}"
+                           role="menuitem" tabindex="-1"
+                           class="new-menu-item flex items-center gap-2 px-3 py-2 text-[12px] text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none">
+                            <i class="ti ti-upload text-[14px] text-gray-500" aria-hidden="true"></i>
+                            Upload file
+                        </a>
+                        <a href="{{ route('documents.create', array_filter(['organization' => $organization->id, 'folder' => $folder?->id, 'mode' => 'link'])) }}"
+                           role="menuitem" tabindex="-1"
+                           class="new-menu-item flex items-center gap-2 px-3 py-2 text-[12px] text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none">
+                            <i class="ti ti-link text-[14px] text-gray-500" aria-hidden="true"></i>
+                            Add link
+                        </a>
+                        <button type="button" data-new-menu-action="new-folder"
+                           role="menuitem" tabindex="-1"
+                           class="new-menu-item flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none">
+                            <i class="ti ti-folder-plus text-[14px] text-gray-500" aria-hidden="true"></i>
+                            New folder
+                        </button>
                     </div>
-                    <button type="button" class="create-folder-btn rounded-md bg-brand-600 px-3 py-2 text-[12px] font-medium text-white hover:bg-brand-700">Create</button>
                 </div>
+            @endif
+        </div>
+
+        {{-- New folder: same existing inline form as before, just opened
+             from the "+ New" menu's own item instead of a dedicated
+             always-visible link. Gated separately from $canManage above
+             (DocumentFolderPolicy::create(), not DocumentPolicy::create())
+             even though the two agree for every real role today, so this
+             stays correct if that ever changes. --}}
+        @if ($canManageFolders)
+            <div class="new-folder-form mb-3 hidden flex items-start gap-2 rounded-md border border-gray-200 p-3">
+                <div class="flex-1">
+                    <input type="text" class="new-folder-name w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Folder name">
+                    <p class="new-folder-error mt-1 text-[11px] text-red-600" style="display: none;"></p>
+                </div>
+                <button type="button" class="create-folder-btn rounded-md bg-brand-600 px-3 py-2 text-[12px] font-medium text-white hover:bg-brand-700">Create</button>
             </div>
         @endif
 
@@ -258,14 +307,106 @@
             });
         }
 
-        // + New folder
-        const toggleBtn = document.querySelector('.new-folder-toggle');
-        const newFolderForm = document.querySelector('.new-folder-form');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', function () {
-                newFolderForm.classList.toggle('hidden');
+        // task #73: the create menu — a plain button + role="menu"
+        // dropdown, since the app has no existing menu/dropdown component
+        // to reuse. Only one can ever be open at a time (there's only one
+        // per page — the menu is per company tab, and only one tab's
+        // panel is ever rendered), so this doesn't need to coordinate
+        // across multiple instances the way the per-row Edit/Delete
+        // panels below do.
+        const newMenuRoot = document.querySelector('[data-new-menu]');
+        if (newMenuRoot) {
+            const menuToggle = newMenuRoot.querySelector('.new-menu-toggle');
+            const menuDropdown = newMenuRoot.querySelector('.new-menu-dropdown');
+            const menuItems = Array.prototype.slice.call(newMenuRoot.querySelectorAll('[role="menuitem"]'));
+
+            function openMenu() {
+                menuDropdown.classList.remove('hidden');
+                menuToggle.setAttribute('aria-expanded', 'true');
+            }
+
+            function closeMenu(returnFocus) {
+                menuDropdown.classList.add('hidden');
+                menuToggle.setAttribute('aria-expanded', 'false');
+                if (returnFocus) menuToggle.focus();
+            }
+
+            function isOpen() {
+                return ! menuDropdown.classList.contains('hidden');
+            }
+
+            menuToggle.addEventListener('click', function () {
+                if (isOpen()) {
+                    closeMenu(false);
+                } else {
+                    openMenu();
+                    if (menuItems[0]) menuItems[0].focus();
+                }
             });
+
+            // Enter/Space opening the button is native <button> behavior
+            // already (both fire a click) — this only adds the part native
+            // behavior doesn't cover: arrow-key movement between items,
+            // and jumping straight to the first/last item on open.
+            menuToggle.addEventListener('keydown', function (event) {
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    openMenu();
+                    const index = event.key === 'ArrowDown' ? 0 : menuItems.length - 1;
+                    if (menuItems[index]) menuItems[index].focus();
+                }
+            });
+
+            menuItems.forEach(function (item, index) {
+                item.addEventListener('keydown', function (event) {
+                    if (event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        const next = menuItems[(index + 1) % menuItems.length];
+                        if (next) next.focus();
+                    } else if (event.key === 'ArrowUp') {
+                        event.preventDefault();
+                        const previous = menuItems[(index - 1 + menuItems.length) % menuItems.length];
+                        if (previous) previous.focus();
+                    } else if (event.key === 'Escape') {
+                        event.preventDefault();
+                        closeMenu(true);
+                    } else if (event.key === 'Tab') {
+                        // Tabbing out of the menu closes it, same as
+                        // clicking outside — it shouldn't stay open once
+                        // focus has moved elsewhere on the page.
+                        closeMenu(false);
+                    }
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (isOpen() && ! newMenuRoot.contains(event.target)) {
+                    closeMenu(false);
+                }
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && isOpen() && newMenuRoot.contains(document.activeElement)) {
+                    closeMenu(true);
+                }
+            });
+
+            // The folder-creation item is the one menu entry that isn't a
+            // plain link — it opens the same existing inline form the old
+            // standalone folder-creation link used to, just triggered from
+            // here now.
+            const newFolderMenuItem = newMenuRoot.querySelector('[data-new-menu-action="new-folder"]');
+            const newFolderFormEl = document.querySelector('.new-folder-form');
+            if (newFolderMenuItem && newFolderFormEl) {
+                newFolderMenuItem.addEventListener('click', function () {
+                    closeMenu(false);
+                    newFolderFormEl.classList.remove('hidden');
+                    const nameInput = newFolderFormEl.querySelector('.new-folder-name');
+                    if (nameInput) nameInput.focus();
+                });
+            }
         }
+
         const createFolderBtn = document.querySelector('.create-folder-btn');
         if (createFolderBtn) {
             createFolderBtn.addEventListener('click', function () {
