@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "",
+    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
