@@ -374,6 +374,66 @@ class DocumentController extends Controller
     }
 
     /**
+     * task #73: the "Linked tasks" popover's lazy-loaded content. Gated on
+     * view() (not update()'s manage_documents, like dependencies() above) —
+     * this only reveals task titles/links, the same information the
+     * Documents-page row itself already implies you can see, to anyone who
+     * can already see the document; it isn't an edit/delete surface. A
+     * viewer who can't view the document gets a plain 404, revealing
+     * nothing about whether it exists.
+     *
+     * Deliberately NOT DocumentDependencyService::summarize(): that method
+     * uses withTrashed() because deletion-blocking cares about a link to a
+     * task even after the task is deactivated. This popover is a plain
+     * "what is this attached to" display for the viewer to click into, so
+     * a soft-deleted task is excluded entirely here — it never appears,
+     * viewable or hidden, and doesn't count toward either total. That's
+     * also why the popover's own totals can be lower than the "Linked
+     * tasks" column count for a document attached only to deactivated
+     * tasks (that column is a raw, scope-oblivious count and is explicitly
+     * unchanged by this task).
+     *
+     * Three queries total regardless of how many tasks are linked: the
+     * pivot-ordered id list, one batched Task::viewableIdsFor() call (one
+     * query per organization among the linked tasks — always one in
+     * practice, since attach()/store() only ever let a document link to a
+     * task in its own company), and one title lookup for the at-most-10
+     * capped result. No per-task queries.
+     */
+    public function linkedTasks(Document $document): JsonResponse
+    {
+        abort_unless(Gate::allows('view', $document), 404);
+
+        $viewer = auth()->user();
+
+        // Task's own SoftDeletingScope (applied automatically through this
+        // Eloquent relation, unlike a raw task_documents join) is what
+        // excludes a deactivated task here — "deleted tasks never appear".
+        // Order is preserved from this query through every step below, so
+        // "most recently linked" survives the visibility filter and the
+        // cap without needing to re-sort afterward.
+        $linkedTaskIds = $document->tasks()->orderByPivot('created_at', 'desc')->pluck('tasks.id')->all();
+
+        $viewableTaskIds = Task::viewableIdsFor($viewer, $linkedTaskIds);
+        $orderedViewableIds = collect($linkedTaskIds)->filter(fn (int $id) => $viewableTaskIds->contains($id))->values();
+
+        $cappedIds = $orderedViewableIds->take(10);
+        $titlesById = Task::whereIn('id', $cappedIds->all())->get(['id', 'title'])->keyBy('id');
+
+        $tasks = $cappedIds->map(fn (int $id) => [
+            'id' => $id,
+            'title' => $titlesById[$id]->title,
+            'url' => route('tasks.edit', $id),
+        ])->values();
+
+        return response()->json([
+            'tasks' => $tasks,
+            'viewable_total' => $orderedViewableIds->count(),
+            'hidden_count' => count($linkedTaskIds) - $orderedViewableIds->count(),
+        ]);
+    }
+
+    /**
      * Rename, move, and/or change access level — one endpoint, since the
      * three share the same authorization (DocumentPolicy::update()) and a
      * request can change any combination of them at once. Each field that

@@ -63,6 +63,10 @@ class Document extends Model
 
     public function tasks(): BelongsToMany
     {
-        return $this->belongsToMany(Task::class, 'task_documents');
+        // withTimestamps(): task #73's linked-tasks popover orders by most
+        // recently linked (task_documents.created_at) — every existing
+        // attach()/sync()/syncWithoutDetaching() call site keeps working
+        // unchanged, since Eloquent populates the pivot timestamps itself.
+        return $this->belongsToMany(Task::class, 'task_documents')->withTimestamps();
     }
 }

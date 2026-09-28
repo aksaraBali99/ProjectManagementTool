@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1790583131.6935117,
-    "ast_hash": "3a7ade6388814f280c69b365168b3cac",
+    "mtime": 1790604537.117772,
+    "ast_hash": "9b2bbb97ccc49309ab6ed5ca9228f3f8",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -245,8 +245,8 @@
     "semantic_hash": ""
   },
   "app/Models/Document.php": {
-    "mtime": 1790580102.2598987,
-    "ast_hash": "07be457515cc83a0a8dd40f5fddfea7e",
+    "mtime": 1790604523.9819353,
+    "ast_hash": "7b9a39bbcb79c3524d87ac9cbab45b84",
     "semantic_hash": ""
   },
   "app/Models/NotificationSetting.php": {
@@ -280,8 +280,8 @@
     "semantic_hash": ""
   },
   "app/Models/Task.php": {
-    "mtime": 1790580194.9060714,
-    "ast_hash": "aebd0f8040db696ac320411499e827eb",
+    "mtime": 1790604528.1040723,
+    "ast_hash": "74b1f0652827322f2e248171e25e5c1f",
     "semantic_hash": ""
   },
   "app/Policies/CommentPolicy.php": {
@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1790601329.667145,
-    "ast_hash": "ab20d87cab9c429be6f08a04b2dc2ede",
+    "mtime": 1790604559.0629547,
+    "ast_hash": "f5e91eb1b0284362cd4cdc306cc50f4f",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "resources/views/documents/index.blade.php": {
-    "mtime": 1790603485.8846447,
-    "ast_hash": "359cfcf1cafa931050731094b067bbd9",
+    "mtime": 1790604818.2270727,
+    "ast_hash": "2c2e8e16edbe66606d8310d5993b0527",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentCreateTest.php": {
@@ -1997,6 +1997,16 @@
   "tests/Feature/Documents/DocumentsNewMenuTest.php": {
     "mtime": 1790602181.1868482,
     "ast_hash": "9732fe0d3bf28822f605e958f3117ed6",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_09_29_000001_add_timestamps_to_task_documents_table.php": {
+    "mtime": 1790604518.9567,
+    "ast_hash": "ea73f5c1bdbee88dbf9f443cce1fedae",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Documents/DocumentLinkedTasksPopoverTest.php": {
+    "mtime": 1790604890.088708,
+    "ast_hash": "ea26c59ddabc7b7f366eedf08594ab69",
     "semantic_hash": ""
   }
 }

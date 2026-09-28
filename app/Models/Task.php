@@ -59,7 +59,8 @@ class Task extends Model
 
     public function documents(): BelongsToMany
     {
-        return $this->belongsToMany(Document::class, 'task_documents');
+        // withTimestamps(): see Document::tasks()'s own docblock.
+        return $this->belongsToMany(Document::class, 'task_documents')->withTimestamps();
     }
 
     /**

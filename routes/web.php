@@ -161,6 +161,11 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     // with /documents/{organization?} below regardless of registration
     // order (that one only ever matches zero or one segment).
     Route::get('/documents/{document}/dependencies', [DocumentController::class, 'dependencies'])->name('documents.dependencies');
+    // task #73: the "Linked tasks" popover's lazy-loaded content — a
+    // separate, narrower-purpose endpoint from dependencies() above
+    // (different soft-delete handling, capped/ordered result, and 404s on
+    // view() failure rather than update()'s 403), not a reuse of it.
+    Route::get('/documents/{document}/linked-tasks', [DocumentController::class, 'linkedTasks'])->name('documents.linked-tasks');
     Route::put('/documents/{document}', [DocumentController::class, 'update'])->name('documents.update');
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
     // task #73 phase 2: the "Document removed" chip state — a standalone

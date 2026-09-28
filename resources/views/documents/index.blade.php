@@ -184,9 +184,23 @@
                                     <span class="text-gray-400">From a task</span>
                                 @endif
                             </td>
+                            @php $linkedTaskCount = $linkedTaskCounts[$document->id] ?? 0; @endphp
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Linked tasks</span>
-                                <span>{{ $linkedTaskCounts[$document->id] ?? 0 }}</span>
+                                {{-- task #73: count 0 stays plain, non-interactive text — no
+                                     popover, nothing to show. Above 0, it's a button whose
+                                     popover content is fetched lazily on first open
+                                     (documents.linked-tasks), never rendered into this page's
+                                     own HTML. --}}
+                                @if ($linkedTaskCount > 0)
+                                    <button type="button" class="linked-tasks-trigger text-brand-600 underline decoration-dotted underline-offset-2 hover:text-brand-700"
+                                        data-document-id="{{ $document->id }}"
+                                        data-linked-tasks-url="{{ route('documents.linked-tasks', $document) }}"
+                                        aria-haspopup="dialog" aria-expanded="false"
+                                        aria-label="{{ $linkedTaskCount }} linked {{ Str::plural('task', $linkedTaskCount) }}, show list">{{ $linkedTaskCount }}</button>
+                                @else
+                                    <span>{{ $linkedTaskCount }}</span>
+                                @endif
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                                 @if ($canManageThisDocument)
@@ -696,6 +710,291 @@
                         });
                 });
             }
+        });
+
+        // task #73: the "Linked tasks" popover. One shared element,
+        // reparented next to whichever trigger is currently active,
+        // rather than one DOM node per row — there's no pagination on
+        // this page, and pre-rendering N popovers full of task titles
+        // would defeat both "don't put task titles in the page HTML" and
+        // lazy-loading. position: fixed (not absolute) is what lets a
+        // single shared node do this: a fixed element ignores the table
+        // wrapper's own overflow-hidden (which would otherwise clip a
+        // popover that needs to extend past a cell near the right edge),
+        // and inserting it as a DOM sibling right after the active
+        // trigger (insertAdjacentElement moves an existing node, it
+        // doesn't clone it) is what makes Tab flow from the trigger
+        // straight into the popover's own links, with no manual focus
+        // trap needed.
+        const linkedTasksCache = {};
+        let activeLinkedTasksTrigger = null;
+        let linkedTasksOpenTimer = null;
+        let linkedTasksCloseTimer = null;
+
+        const linkedTasksPopover = document.createElement('div');
+        linkedTasksPopover.className = 'linked-tasks-popover hidden fixed z-50 w-72 max-w-[calc(100vw-16px)] rounded-md border border-gray-200 bg-white p-2 text-[12px] shadow-lg';
+        linkedTasksPopover.setAttribute('role', 'dialog');
+        linkedTasksPopover.setAttribute('aria-label', 'Linked tasks');
+
+        function isLinkedTasksPopoverOpen() {
+            return ! linkedTasksPopover.classList.contains('hidden');
+        }
+
+        function clearLinkedTasksTimers() {
+            if (linkedTasksOpenTimer) { clearTimeout(linkedTasksOpenTimer); linkedTasksOpenTimer = null; }
+            if (linkedTasksCloseTimer) { clearTimeout(linkedTasksCloseTimer); linkedTasksCloseTimer = null; }
+        }
+
+        function positionLinkedTasksPopover(trigger) {
+            const rect = trigger.getBoundingClientRect();
+            const margin = 8;
+
+            const popoverRect = linkedTasksPopover.getBoundingClientRect();
+
+            // Shift left rather than overflow the right edge — this
+            // column sits near it, so this is the common case, not an
+            // edge case.
+            let left = rect.left;
+            if (left + popoverRect.width > window.innerWidth - margin) {
+                left = window.innerWidth - margin - popoverRect.width;
+            }
+            left = Math.max(margin, left);
+
+            // Flip above the trigger rather than overflow the bottom edge.
+            let top = rect.bottom + 4;
+            if (top + popoverRect.height > window.innerHeight - margin) {
+                top = rect.top - popoverRect.height - 4;
+            }
+            top = Math.max(margin, top);
+
+            linkedTasksPopover.style.left = left + 'px';
+            linkedTasksPopover.style.top = top + 'px';
+        }
+
+        function renderLinkedTasksLoading() {
+            linkedTasksPopover.innerHTML = '<p class="text-gray-500">Loading…</p>';
+        }
+
+        function renderLinkedTasksError() {
+            linkedTasksPopover.innerHTML = '<p class="text-gray-500">Couldn’t load tasks</p>';
+        }
+
+        function pluralizeTasks(count) {
+            return count === 1 ? 'task' : 'tasks';
+        }
+
+        function renderLinkedTasksData(data) {
+            linkedTasksPopover.innerHTML = '';
+
+            const tasks = data.tasks || [];
+
+            // All linked tasks hidden from this viewer: show only that
+            // line, nothing else (no empty list above it).
+            if (tasks.length === 0 && data.hidden_count > 0) {
+                const hiddenOnly = document.createElement('p');
+                hiddenOnly.className = 'text-gray-500';
+                hiddenOnly.textContent = 'and ' + data.hidden_count + ' more ' + pluralizeTasks(data.hidden_count) + ' you don’t have access to.';
+                linkedTasksPopover.appendChild(hiddenOnly);
+
+                return;
+            }
+
+            if (tasks.length === 0) {
+                const empty = document.createElement('p');
+                empty.className = 'text-gray-500';
+                empty.textContent = 'No tasks to show.';
+                linkedTasksPopover.appendChild(empty);
+
+                return;
+            }
+
+            const list = document.createElement('div');
+            list.className = 'space-y-1';
+            tasks.forEach(function (task) {
+                const link = document.createElement('a');
+                link.href = task.url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.title = task.title;
+                link.textContent = task.title;
+                link.className = 'block truncate text-brand-600 hover:underline';
+                list.appendChild(link);
+            });
+            linkedTasksPopover.appendChild(list);
+
+            const remainingViewable = data.viewable_total - tasks.length;
+            if (remainingViewable > 0) {
+                const more = document.createElement('p');
+                more.className = 'mt-1 text-gray-400';
+                more.textContent = 'and ' + remainingViewable + ' more ' + pluralizeTasks(remainingViewable);
+                linkedTasksPopover.appendChild(more);
+            }
+
+            if (data.hidden_count > 0) {
+                const hidden = document.createElement('p');
+                hidden.className = 'mt-1 text-gray-400';
+                hidden.textContent = 'and ' + data.hidden_count + ' more ' + pluralizeTasks(data.hidden_count) + ' you don’t have access to.';
+                linkedTasksPopover.appendChild(hidden);
+            }
+        }
+
+        function loadAndRenderLinkedTasks(trigger) {
+            const documentId = trigger.dataset.documentId;
+            const cached = linkedTasksCache[documentId];
+
+            if (cached && cached.status === 'loaded') {
+                renderLinkedTasksData(cached.data);
+                positionLinkedTasksPopover(trigger);
+
+                return;
+            }
+
+            renderLinkedTasksLoading();
+            positionLinkedTasksPopover(trigger);
+
+            if (cached && cached.status === 'loading') return;
+
+            linkedTasksCache[documentId] = { status: 'loading' };
+
+            fetch(trigger.dataset.linkedTasksUrl, { headers: { Accept: 'application/json' } })
+                .then(function (response) {
+                    if (! response.ok) throw new Error('Failed to load linked tasks.');
+
+                    return response.json();
+                })
+                .then(function (data) {
+                    linkedTasksCache[documentId] = { status: 'loaded', data: data };
+
+                    if (activeLinkedTasksTrigger === trigger) {
+                        renderLinkedTasksData(data);
+                        positionLinkedTasksPopover(trigger);
+                    }
+                })
+                .catch(function () {
+                    delete linkedTasksCache[documentId]; // not cached — retried on the next open
+
+                    if (activeLinkedTasksTrigger === trigger) {
+                        renderLinkedTasksError();
+                        positionLinkedTasksPopover(trigger);
+                    }
+                });
+        }
+
+        function openLinkedTasksPopover(trigger) {
+            clearLinkedTasksTimers();
+            activeLinkedTasksTrigger = trigger;
+            trigger.setAttribute('aria-expanded', 'true');
+            trigger.insertAdjacentElement('afterend', linkedTasksPopover);
+            linkedTasksPopover.classList.remove('hidden');
+            loadAndRenderLinkedTasks(trigger);
+        }
+
+        function closeLinkedTasksPopover(returnFocus) {
+            clearLinkedTasksTimers();
+
+            if (activeLinkedTasksTrigger) {
+                activeLinkedTasksTrigger.setAttribute('aria-expanded', 'false');
+                if (returnFocus) activeLinkedTasksTrigger.focus();
+            }
+
+            linkedTasksPopover.classList.add('hidden');
+            activeLinkedTasksTrigger = null;
+        }
+
+        function scheduleLinkedTasksClose() {
+            clearLinkedTasksTimers();
+            linkedTasksCloseTimer = setTimeout(function () { closeLinkedTasksPopover(false); }, 200);
+        }
+
+        document.querySelectorAll('.linked-tasks-trigger').forEach(function (trigger) {
+            // A mouse click focuses the button before the click event
+            // fires — without this flag, the focus handler below would
+            // open it and the click handler would immediately toggle it
+            // shut again. Keyboard focus (Tab, no preceding mousedown on
+            // this element) isn't affected.
+            let openedByPointer = false;
+
+            trigger.addEventListener('mousedown', function () {
+                openedByPointer = true;
+            });
+
+            trigger.addEventListener('mouseenter', function () {
+                clearLinkedTasksTimers();
+                linkedTasksOpenTimer = setTimeout(function () { openLinkedTasksPopover(trigger); }, 150);
+            });
+
+            trigger.addEventListener('mouseleave', function () {
+                if (linkedTasksOpenTimer) { clearTimeout(linkedTasksOpenTimer); linkedTasksOpenTimer = null; }
+                scheduleLinkedTasksClose();
+            });
+
+            trigger.addEventListener('focus', function () {
+                if (openedByPointer) return;
+                clearLinkedTasksTimers();
+                openLinkedTasksPopover(trigger);
+            });
+
+            // Also the tap handler: a tap fires a click same as a mouse
+            // click, so this one handler covers both "click" and "on
+            // touch devices a tap toggles it".
+            trigger.addEventListener('click', function (event) {
+                event.preventDefault();
+                openedByPointer = false;
+                clearLinkedTasksTimers();
+
+                if (activeLinkedTasksTrigger === trigger && isLinkedTasksPopoverOpen()) {
+                    closeLinkedTasksPopover(false);
+                } else {
+                    openLinkedTasksPopover(trigger);
+                }
+            });
+
+            trigger.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && activeLinkedTasksTrigger === trigger) {
+                    closeLinkedTasksPopover(true);
+                }
+            });
+        });
+
+        linkedTasksPopover.addEventListener('mouseenter', function () {
+            clearLinkedTasksTimers();
+        });
+        linkedTasksPopover.addEventListener('mouseleave', function () {
+            scheduleLinkedTasksClose();
+        });
+        linkedTasksPopover.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeLinkedTasksPopover(true);
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (! isLinkedTasksPopoverOpen()) return;
+            if (activeLinkedTasksTrigger && activeLinkedTasksTrigger.contains(event.target)) return;
+            if (linkedTasksPopover.contains(event.target)) return;
+
+            closeLinkedTasksPopover(false);
+        });
+
+        // Tabbing forward out of the popover's last link (or back out of
+        // the trigger without entering it) leaves focus on neither the
+        // trigger nor the popover — close rather than leave a stale
+        // popover open away from wherever focus actually is. The timeout
+        // lets document.activeElement settle on whatever received focus
+        // before checking it.
+        document.addEventListener('focusout', function () {
+            if (! activeLinkedTasksTrigger) return;
+
+            setTimeout(function () {
+                if (! isLinkedTasksPopoverOpen()) return;
+
+                const active = document.activeElement;
+                const stillInside = active === activeLinkedTasksTrigger || linkedTasksPopover.contains(active);
+
+                if (! stillInside) {
+                    closeLinkedTasksPopover(false);
+                }
+            }, 0);
         });
     })();
 </script>
