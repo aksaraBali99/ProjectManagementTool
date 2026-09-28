@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "",
+    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -1995,8 +1995,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentsNewMenuTest.php": {
-    "mtime": 1790602181.1868482,
-    "ast_hash": "9732fe0d3bf28822f605e958f3117ed6",
+    "mtime": 1790606505.430113,
+    "ast_hash": "0a8805571b008c63cadaaee989cd3c97",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_29_000001_add_timestamps_to_task_documents_table.php": {
@@ -2005,8 +2005,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentLinkedTasksPopoverTest.php": {
-    "mtime": 1790604890.088708,
-    "ast_hash": "ea26c59ddabc7b7f366eedf08594ab69",
+    "mtime": 1790606505.2456439,
+    "ast_hash": "537d87ec646a93dc0947650ffaa778bd",
     "semantic_hash": ""
   }
 }
