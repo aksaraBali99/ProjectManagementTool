@@ -182,7 +182,7 @@
     "src": "node_modules/intl-tel-input/dist/img/flags@2x.webp"
   },
   "resources/css/app.css": {
-    "file": "assets/app-DBAdNyIp.css",
+    "file": "assets/app-BK_XcK-I.css",
     "name": "app",
     "names": [
       "app.css"
@@ -235,13 +235,14 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-BkvBVd8J.js",
+    "file": "assets/app-lWSPqf-7.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "dynamicImports": [
       "node_modules/chart.js/dist/chart.js",
       "resources/js/rich-text-editor.js",
+      "resources/js/file-chip-status.js",
       "resources/js/code-highlight.js",
       "resources/js/video-thumbnail.js",
       "resources/js/file-chip-thumbnail.js",
@@ -260,6 +261,12 @@
     "file": "assets/code-highlight-C7ppvf0-.js",
     "name": "code-highlight",
     "src": "resources/js/code-highlight.js",
+    "isDynamicEntry": true
+  },
+  "resources/js/file-chip-status.js": {
+    "file": "assets/file-chip-status-W6W-yJUa.js",
+    "name": "file-chip-status",
+    "src": "resources/js/file-chip-status.js",
     "isDynamicEntry": true
   },
   "resources/js/file-chip-thumbnail.js": {

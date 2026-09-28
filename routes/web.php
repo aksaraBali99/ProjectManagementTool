@@ -11,6 +11,7 @@ use App\Http\Controllers\CommentReactionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentManagementController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentFolderController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\KanbanController;
 use App\Http\Controllers\LinkPreviewController;
@@ -156,6 +157,22 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
 
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('/documents/create/{organization?}', [DocumentController::class, 'create'])->name('documents.create');
+    // task #73 phase 2 — a fixed trailing segment, so this never competes
+    // with /documents/{organization?} below regardless of registration
+    // order (that one only ever matches zero or one segment).
+    Route::get('/documents/{document}/dependencies', [DocumentController::class, 'dependencies'])->name('documents.dependencies');
+    // task #73: the "Linked tasks" popover's lazy-loaded content — a
+    // separate, narrower-purpose endpoint from dependencies() above
+    // (different soft-delete handling, capped/ordered result, and 404s on
+    // view() failure rather than update()'s 403), not a reuse of it.
+    Route::get('/documents/{document}/linked-tasks', [DocumentController::class, 'linkedTasks'])->name('documents.linked-tasks');
+    Route::put('/documents/{document}', [DocumentController::class, 'update'])->name('documents.update');
+    Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
+    // task #73 phase 2: the "Document removed" chip state — a standalone
+    // top-level path (not /documents/chip-status), same reasoning as
+    // /file-downloads below: no {document} to bind against, just a batch
+    // of raw hrefs in the request body.
+    Route::post('/file-chip-status', [DocumentController::class, 'chipStatus'])->name('file-chip-status.check');
     // A standalone top-level path, not /documents/download — the latter
     // would hit the same "swallowed by the optional-segment route below"
     // problem /documents/create already has to dodge with ordering, and
@@ -170,6 +187,11 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/documents/{organization?}', [DocumentController::class, 'index'])->name('documents.index');
     Route::post('/tasks/{task}/documents', [TaskDocumentController::class, 'attach'])->name('task-documents.attach');
     Route::delete('/tasks/{task}/documents/{document}', [TaskDocumentController::class, 'detach'])->name('task-documents.detach');
+
+    // task #73 phase 2
+    Route::post('/document-folders', [DocumentFolderController::class, 'store'])->name('document-folders.store');
+    Route::put('/document-folders/{folder}', [DocumentFolderController::class, 'update'])->name('document-folders.update');
+    Route::delete('/document-folders/{folder}', [DocumentFolderController::class, 'destroy'])->name('document-folders.destroy');
 
     // Must stay registered after /tasks/create/{project?} above — both are
     // single-optional-segment GET routes, and Laravel matches in

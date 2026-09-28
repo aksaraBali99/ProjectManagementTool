@@ -5,24 +5,47 @@ namespace App\Http\Controllers;
 use App\Enums\DocumentAccessLevel;
 use App\Exceptions\FileStorageException;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
+use App\Models\AuditLog;
 use App\Models\Document;
+use App\Models\DocumentFolder;
 use App\Models\Organization;
 use App\Models\Task;
+use App\Policies\DocumentPolicy;
+use App\Services\DocumentDependencyService;
 use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class DocumentController extends Controller
 {
     use ResolvesCurrentOrganization;
 
-    public function index(?Organization $organization = null): View
+    /**
+     * task #73 phase 2: folders. $folder comes from a ?folder=ID query
+     * value, not a route segment — company tabs keep working exactly as
+     * before (route('documents.index', $tab), no folder param), which is
+     * what makes "switching company tab goes to that company's root"
+     * fall out for free rather than needing special-casing.
+     *
+     * No per-row queries anywhere below: edit/delete rights are two plain
+     * booleans computed ONCE for the whole company ($hasManageDocuments
+     * for documents, $canManageAnyFolder for folders, both already
+     * excluding whichever roles could never pass regardless of row), a
+     * single grouped query for linked-task counts, and one batched
+     * Task::viewableIdsFor() call (not one Gate::allows() per document)
+     * for the origin column.
+     */
+    public function index(Request $request, ?Organization $organization = null): View
     {
         $user = auth()->user();
 
@@ -45,29 +68,114 @@ class DocumentController extends Controller
             return view('documents.index', [
                 'organizations' => $organizations,
                 'organization' => null,
+                'folder' => null,
+                'breadcrumb' => collect(),
+                'folders' => collect(),
                 'documents' => collect(),
+                'allFolders' => collect(),
                 'canManage' => false,
+                'canManageFolders' => false,
+                'hasManageDocuments' => false,
+                'canManageAnyFolder' => false,
+                'isPrivilegedManager' => false,
+                'linkedTaskCounts' => collect(),
+                'originTasks' => collect(),
             ]);
         }
 
         $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
-        $documents = Document::where('organization_id', $organization->id)
+        // An unknown or cross-company folder id 404s — DocumentFolder's
+        // own BelongsToOrganization global scope already excludes any
+        // folder outside $user->visibleOrganizationIds(), and this
+        // ->where('organization_id', ...) on top of that further confirms
+        // it's specifically the CURRENT tab's company, not merely some
+        // other visible one.
+        $folder = null;
+        if ($folderId = $request->integer('folder')) {
+            $folder = DocumentFolder::where('organization_id', $organization->id)->find($folderId);
+            abort_if($folder === null, 404);
+        }
+
+        $breadcrumb = collect();
+        for ($cursor = $folder; $cursor !== null; $cursor = $cursor->parent) {
+            $breadcrumb->prepend($cursor);
+        }
+
+        $folders = DocumentFolder::where('organization_id', $organization->id)
+            ->where('parent_id', $folder?->id)
+            ->with('creator')
+            ->orderBy('name')
+            ->get();
+
+        $allDocuments = Document::where('organization_id', $organization->id)
+            ->where('folder_id', $folder?->id)
             ->with('uploader')
-            ->get()
-            ->filter(fn (Document $document) => Gate::allows('view', $document))
-            ->sortBy('name')
-            ->values();
+            ->get();
+
+        // DocumentPolicy::viewableIds(), not a Gate::allows('view', ...)
+        // call per document — the batched form of the exact same rule
+        // (see its own docblock and DocumentViewableIdsParityTest).
+        $viewableDocumentIds = app(DocumentPolicy::class)->viewableIds($user, $organization->id, $allDocuments);
+        $documents = $allDocuments->whereIn('id', $viewableDocumentIds->all())->sortBy('name')->values();
+
+        // One grouped query for every document on this page, not one
+        // count() per row.
+        $linkedTaskCounts = DB::table('task_documents')
+            ->whereIn('document_id', $documents->pluck('id'))
+            ->selectRaw('document_id, count(*) as aggregate')
+            ->groupBy('document_id')
+            ->pluck('aggregate', 'document_id');
+
+        // Origin column: "if origin_task_id is set, link to the task, but
+        // only when the viewer can view it" — one batched visibility
+        // check for every origin task on this page, then one query for
+        // their titles, rather than a Gate::allows('view', $task) call
+        // per document.
+        $originTaskIds = $documents->pluck('origin_task_id')->filter()->unique()->values()->all();
+        $viewableOriginTaskIds = Task::viewableIdsFor($user, $originTaskIds);
+        $originTasks = Task::whereIn('id', $viewableOriginTaskIds->all())->get(['id', 'title'])->keyBy('id');
+
+        // Edit/delete rights, computed ONCE for the whole company: the
+        // per-row comparison in the view is then just
+        // "$isPrivilegedManager || $document->uploaded_by === $user->id"
+        // (documents) or "... || $folder->created_by === $user->id"
+        // (folders) — a plain boolean comparison, no further queries.
+        // Client is excluded for documents (DocumentPolicy::canManage()'s
+        // own unconditional block) but NOT for folders (DocumentFolderPolicy
+        // has no such restriction) — two separate booleans on purpose,
+        // not one shared flag, so this mirrors each policy exactly.
+        $hasManageDocuments = ! $user->isClientInOrg($organization->id)
+            && $user->hasPermission('manage_documents', $organization->id);
+        $canManageAnyFolder = $user->hasPermission('manage_documents', $organization->id);
+        $isPrivilegedManager = $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organization->id);
+
+        // Every folder in the company (not just the current level) — the
+        // Edit panel's "move to" dropdown can target any folder in the
+        // company, not just a sibling of the document's current one.
+        $allFolders = DocumentFolder::where('organization_id', $organization->id)
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return view('documents.index', [
             'organizations' => $organizations,
             'organization' => $organization,
+            'folder' => $folder,
+            'breadcrumb' => $breadcrumb,
+            'folders' => $folders,
             'documents' => $documents,
+            'allFolders' => $allFolders,
             'canManage' => Gate::allows('create', [Document::class, $organization->id]),
+            'canManageFolders' => Gate::allows('create', [DocumentFolder::class, $organization->id]),
+            'hasManageDocuments' => $hasManageDocuments,
+            'canManageAnyFolder' => $canManageAnyFolder,
+            'isPrivilegedManager' => $isPrivilegedManager,
+            'linkedTaskCounts' => $linkedTaskCounts,
+            'originTasks' => $originTasks,
         ]);
     }
 
-    public function create(?Organization $organization = null): View
+    public function create(Request $request, ?Organization $organization = null): View
     {
         $manageableOrgIds = auth()->user()->documentManageableOrganizationIds();
         abort_if(empty($manageableOrgIds), 403);
@@ -82,8 +190,29 @@ class DocumentController extends Controller
 
         Gate::authorize('create', [Document::class, $organization->id]);
 
+        // task #73 phase 2: "Uploads and add-link on the Documents page
+        // go into the current folder" — carried forward from the index
+        // page's own ?folder=ID via the "+ Add new document" link, and
+        // validated against this company the same way index() validates
+        // it (an unknown or cross-company folder id 404s here too).
+        $folder = null;
+        if ($folderId = $request->integer('folder')) {
+            $folder = DocumentFolder::where('organization_id', $organization->id)->find($folderId);
+            abort_if($folder === null, 404);
+        }
+
         return view('documents.create', [
             'organization' => $organization,
+            'folder' => $folder,
+            // task #73: the "+ New" menu's Upload file / Add link items
+            // preselect this page's mode via ?mode=upload|link — a soft
+            // UX preselection, not form data, so an unrecognized/missing
+            // value just falls back to 'link' rather than erroring. The
+            // view itself still lets old('_mode', ...) override this on a
+            // validation-error redisplay, so resubmitting after a mistake
+            // keeps whichever mode was actually being used, not resets to
+            // whatever the link that opened the page originally asked for.
+            'initialMode' => $request->query('mode') === 'upload' ? 'upload' : 'link',
             // task #73 phase 1: a Client-role uploader (manage_documents
             // stays tickable for Client) never sees the access-level
             // dropdown at all — the form always saves Public for them,
@@ -119,6 +248,7 @@ class DocumentController extends Controller
             'file' => ['nullable', 'file', 'required_without:link', 'prohibits:link'],
             'access_level' => ['required', Rule::enum(DocumentAccessLevel::class)],
             'task_id' => ['nullable', 'integer', 'exists:tasks,id'],
+            'folder_id' => ['nullable', 'integer'],
         ], [], [
             'organization_id' => 'company',
         ]);
@@ -146,6 +276,21 @@ class DocumentController extends Controller
             }
         }
 
+        // task #73 phase 2: "Uploads and add-link on the Documents page
+        // go into the current folder, with folder_id validated against
+        // the company. Uploads from tasks, the editor, and other paths go
+        // to the root." — folder_id is only ever honored here when there
+        // is NO task in scope; a task-scoped request's folder_id (if any
+        // was somehow submitted) is silently ignored, not merely
+        // unvalidated, so a task-page request can never accidentally file
+        // into a Documents-page folder.
+        $folderId = null;
+        if ($task === null && ! empty($data['folder_id'])) {
+            $folder = DocumentFolder::where('organization_id', $data['organization_id'])->find($data['folder_id']);
+            abort_if($folder === null, 404);
+            $folderId = $folder->id;
+        }
+
         $uploader = auth()->user();
         $uploadService = app(DocumentUploadService::class);
         // A Client-role uploader (manage_documents stays tickable for
@@ -168,7 +313,7 @@ class DocumentController extends Controller
                 // organizations/{id}/....
                 $document = $task !== null
                     ? $uploadService->uploadForTask($request->file('file'), $task, $accessLevel, $uploader, $data['name'])
-                    : $uploadService->uploadForOrganization($request->file('file'), $data['organization_id'], $accessLevel, $uploader, $data['name']);
+                    : $uploadService->uploadForOrganization($request->file('file'), $data['organization_id'], $accessLevel, $uploader, $data['name'], $folderId);
             } else {
                 $document = Document::create([
                     'organization_id' => $data['organization_id'],
@@ -176,6 +321,14 @@ class DocumentController extends Controller
                     'name' => $data['name'],
                     'link' => $data['link'],
                     'access_level' => $accessLevel,
+                    'folder_id' => $folderId,
+                    // task #73 phase 2 origin-coverage fix: this link
+                    // branch previously never set origin_task_id even
+                    // when task_id was given (the inline add-link form on
+                    // the Task edit page) — the Documents page's origin
+                    // column relies on it being accurate for every
+                    // creation path that actually starts from a task.
+                    'origin_task_id' => $task?->id,
                 ]);
 
                 if ($task !== null) {
@@ -195,10 +348,290 @@ class DocumentController extends Controller
         }
 
         if ($request->boolean('from_documents_page')) {
-            return redirect()->route('documents.index', $document->organization_id)->with('status', 'Document added.');
+            // Lands back in the same folder the document was just added
+            // to, not the company root — $folderId is null for a
+            // root-level add, which array_filter() then drops entirely.
+            return redirect()->route('documents.index', array_filter(['organization' => $document->organization_id, 'folder' => $folderId]))
+                ->with('status', 'Document added.');
         }
 
         return back()->with('status', 'Document added.');
+    }
+
+    /**
+     * task #73 phase 2: the ONE preview endpoint both the Edit dialog
+     * (blocked-to-private / confirm-to-public) and the Delete dialog call
+     * before showing anything — same authorization as actually editing or
+     * deleting (DocumentPolicy::canManage(), shared by update()/delete()
+     * below), since this reveals linked task titles that gate applies to
+     * either way.
+     */
+    public function dependencies(Document $document): JsonResponse
+    {
+        Gate::authorize('update', $document);
+
+        return response()->json(app(DocumentDependencyService::class)->summarize($document, auth()->user()));
+    }
+
+    /**
+     * task #73: the "Linked tasks" popover's lazy-loaded content. Gated on
+     * view() (not update()'s manage_documents, like dependencies() above) —
+     * this only reveals task titles/links, the same information the
+     * Documents-page row itself already implies you can see, to anyone who
+     * can already see the document; it isn't an edit/delete surface. A
+     * viewer who can't view the document gets a plain 404, revealing
+     * nothing about whether it exists.
+     *
+     * Deliberately NOT DocumentDependencyService::summarize(): that method
+     * uses withTrashed() because deletion-blocking cares about a link to a
+     * task even after the task is deactivated. This popover is a plain
+     * "what is this attached to" display for the viewer to click into, so
+     * a soft-deleted task is excluded entirely here — it never appears,
+     * viewable or hidden, and doesn't count toward either total. That's
+     * also why the popover's own totals can be lower than the "Linked
+     * tasks" column count for a document attached only to deactivated
+     * tasks (that column is a raw, scope-oblivious count and is explicitly
+     * unchanged by this task).
+     *
+     * Three queries total regardless of how many tasks are linked: the
+     * pivot-ordered id list, one batched Task::viewableIdsFor() call (one
+     * query per organization among the linked tasks — always one in
+     * practice, since attach()/store() only ever let a document link to a
+     * task in its own company), and one title lookup for the at-most-10
+     * capped result. No per-task queries.
+     */
+    public function linkedTasks(Document $document): JsonResponse
+    {
+        abort_unless(Gate::allows('view', $document), 404);
+
+        $viewer = auth()->user();
+
+        // Task's own SoftDeletingScope (applied automatically through this
+        // Eloquent relation, unlike a raw task_documents join) is what
+        // excludes a deactivated task here — "deleted tasks never appear".
+        // Order is preserved from this query through every step below, so
+        // "most recently linked" survives the visibility filter and the
+        // cap without needing to re-sort afterward.
+        $linkedTaskIds = $document->tasks()->orderByPivot('created_at', 'desc')->pluck('tasks.id')->all();
+
+        $viewableTaskIds = Task::viewableIdsFor($viewer, $linkedTaskIds);
+        $orderedViewableIds = collect($linkedTaskIds)->filter(fn (int $id) => $viewableTaskIds->contains($id))->values();
+
+        $cappedIds = $orderedViewableIds->take(10);
+        $titlesById = Task::whereIn('id', $cappedIds->all())->get(['id', 'title'])->keyBy('id');
+
+        $tasks = $cappedIds->map(fn (int $id) => [
+            'id' => $id,
+            'title' => $titlesById[$id]->title,
+            'url' => route('tasks.edit', $id),
+        ])->values();
+
+        return response()->json([
+            'tasks' => $tasks,
+            'viewable_total' => $orderedViewableIds->count(),
+            'hidden_count' => count($linkedTaskIds) - $orderedViewableIds->count(),
+        ]);
+    }
+
+    /**
+     * Rename, move, and/or change access level — one endpoint, since the
+     * three share the same authorization (DocumentPolicy::update()) and a
+     * request can change any combination of them at once. Each field that
+     * actually changes gets its own audit entry (document.renamed/
+     * document.moved/document.access_level_changed), not one combined
+     * "document.updated" — matching the task's own audit-action list.
+     *
+     * The access-level blocking/confirmation rules are re-derived from the
+     * database here via DocumentDependencyService, never trusted from
+     * whatever an earlier dependencies() preview call said — and, like
+     * destroy(), that re-check and the actual field mutations happen
+     * together inside one transaction with the row locked, so a task
+     * attaching to this document between the check and the save can't
+     * slip a Private/linked document past the block (the same race
+     * destroy()'s own lockForUpdate() closes for deletion).
+     */
+    public function update(Request $request, Document $document): JsonResponse
+    {
+        Gate::authorize('update', $document);
+
+        $data = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'folder_id' => ['sometimes', 'nullable', 'integer'],
+            'access_level' => ['sometimes', Rule::enum(DocumentAccessLevel::class)],
+            'confirm_public_visibility' => ['sometimes', 'boolean'],
+        ]);
+
+        // Move: "the target must be a folder in the same company, or the
+        // root. No rights over the folder are needed" — so this is a
+        // plain existence/company check, not a Gate call. Resolved before
+        // the transaction below since it's about the FOLDER, not the
+        // document's own row state.
+        $targetFolderId = $document->folder_id;
+        if (array_key_exists('folder_id', $data)) {
+            if ($data['folder_id'] !== null) {
+                $targetFolder = DocumentFolder::where('organization_id', $document->organization_id)->find($data['folder_id']);
+                abort_if($targetFolder === null, 404);
+                $targetFolderId = $targetFolder->id;
+            } else {
+                $targetFolderId = null;
+            }
+        }
+
+        $dependencyService = app(DocumentDependencyService::class);
+        $viewer = auth()->user();
+
+        $result = DB::transaction(function () use ($document, $data, $targetFolderId, $dependencyService, $viewer, $request) {
+            $locked = Document::whereKey($document->id)->lockForUpdate()->firstOrFail();
+
+            if (array_key_exists('access_level', $data)) {
+                $requestedAccessLevel = DocumentAccessLevel::from($data['access_level']);
+
+                if ($requestedAccessLevel !== $locked->access_level) {
+                    $summary = $dependencyService->summarize($locked, $viewer);
+
+                    // "To private while attached directly to any task:
+                    // blocked." Same response shape/wording as delete.
+                    if ($requestedAccessLevel === DocumentAccessLevel::Private && $summary['linked_task_count'] > 0) {
+                        return ['blocked' => true, 'response' => $dependencyService->blockedResponse($summary)];
+                    }
+
+                    // "To public from any other level while linked: requires
+                    // explicit confirmation... Not blocked." — enforced as a
+                    // required confirmation flag on the request, not merely
+                    // a UI dialog: a request without it, when confirmation
+                    // is actually needed, is rejected exactly like the
+                    // private-block case, just with a different, non-
+                    // blocking reason.
+                    if ($requestedAccessLevel === DocumentAccessLevel::Public
+                        && $summary['client_project_count'] > 0
+                        && ! $request->boolean('confirm_public_visibility')) {
+                        return ['blocked' => true, 'response' => [
+                            'message' => "Visible to the clients of {$summary['client_project_count']} linked projects.",
+                            'requires_confirmation' => true,
+                            'client_project_count' => $summary['client_project_count'],
+                        ]];
+                    }
+                }
+            }
+
+            $auditEntries = [];
+
+            if (array_key_exists('name', $data) && $data['name'] !== $locked->name) {
+                $auditEntries[] = ['action' => 'document.renamed', 'changes' => ['name' => ['old' => $locked->name, 'new' => $data['name']]]];
+                $locked->name = $data['name'];
+            }
+
+            if ($targetFolderId !== $locked->folder_id) {
+                $auditEntries[] = ['action' => 'document.moved', 'changes' => ['folder_id' => ['old' => $locked->folder_id, 'new' => $targetFolderId]]];
+                $locked->folder_id = $targetFolderId;
+            }
+
+            if (array_key_exists('access_level', $data)) {
+                $requestedAccessLevel = DocumentAccessLevel::from($data['access_level']);
+                if ($requestedAccessLevel !== $locked->access_level) {
+                    $auditEntries[] = ['action' => 'document.access_level_changed', 'changes' => ['access_level' => ['old' => $locked->access_level->value, 'new' => $requestedAccessLevel->value]]];
+                    $locked->access_level = $requestedAccessLevel;
+                }
+            }
+
+            $locked->save();
+
+            foreach ($auditEntries as $entry) {
+                AuditLog::create([
+                    'organization_id' => $locked->organization_id,
+                    'user_id' => auth()->id(),
+                    'action' => $entry['action'],
+                    'entity_type' => 'document',
+                    'entity_id' => $locked->id,
+                    'changes' => $entry['changes'],
+                ]);
+            }
+
+            return ['blocked' => false, 'document' => $locked];
+        });
+
+        if ($result['blocked']) {
+            return response()->json($result['response'], 422);
+        }
+
+        return response()->json(['document' => $result['document']->fresh('uploader')]);
+    }
+
+    /**
+     * Hard delete, permanent, blocked while attached directly to any
+     * task. The re-check inside the transaction (with the row locked) is
+     * what actually decides whether this succeeds — the dependencies()
+     * preview a caller fetched earlier is never trusted, since another
+     * request could have attached this document to a task in between.
+     *
+     * The stored file (if any) is removed only AFTER the transaction
+     * commits, and only if storage_key is set — never derived from
+     * `link`, which an external-link document has instead and which this
+     * app never wrote to disk. A storage failure is logged, not fatal:
+     * the document record is already gone by that point regardless.
+     */
+    public function destroy(Document $document): JsonResponse
+    {
+        Gate::authorize('delete', $document);
+
+        $result = DB::transaction(function () use ($document) {
+            $locked = Document::whereKey($document->id)->lockForUpdate()->firstOrFail();
+
+            // withTrashed(): a task_documents row for a since-deactivated
+            // task still counts as "attached to any task" — without this,
+            // Task's own SoftDeletingScope would silently let a document
+            // linked only to a deactivated task through, contradicting the
+            // linked_task_ids: [] comment below (the row genuinely existed;
+            // cascadeOnDelete on task_documents.document_id removes it a
+            // moment later regardless, so this is about the block and the
+            // audit trail being accurate, not data loss).
+            if ($locked->tasks()->withTrashed()->count() > 0) {
+                return ['blocked' => true, 'document' => $locked];
+            }
+
+            AuditLog::create([
+                'organization_id' => $locked->organization_id,
+                'user_id' => auth()->id(),
+                'action' => 'document.deleted',
+                'entity_type' => 'document',
+                'entity_id' => $locked->id,
+                'changes' => [
+                    'name' => $locked->name,
+                    'uploaded_by' => $locked->uploaded_by,
+                    'storage_key' => $locked->storage_key,
+                    'original_filename' => $locked->original_filename,
+                    // Always empty this phase — delete is blocked outright
+                    // while any task_documents row exists, so there is
+                    // never a linked task left by the time this runs.
+                    // Phase 4 extends the rule this field exists for.
+                    'linked_task_ids' => [],
+                ],
+            ]);
+
+            $storageKey = $locked->storage_key;
+            $locked->delete();
+
+            return ['blocked' => false, 'storage_key' => $storageKey];
+        });
+
+        if ($result['blocked']) {
+            $summary = app(DocumentDependencyService::class)->summarize($result['document'], auth()->user());
+
+            return response()->json(app(DocumentDependencyService::class)->blockedResponse($summary), 422);
+        }
+
+        if ($result['storage_key'] !== null) {
+            try {
+                app(FileStorageService::class)->delete($result['storage_key']);
+            } catch (Throwable $e) {
+                Log::warning('Failed to delete stored file for a deleted document.', [
+                    'storage_key' => $result['storage_key'],
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return response()->json(['deleted' => true]);
     }
 
     /**
@@ -220,28 +653,23 @@ class DocumentController extends Controller
      * arbitrary attacker-supplied URL: nothing resolves unless some
      * existing Document row's `link` already equals it verbatim.
      */
-    public function download(Request $request): StreamedResponse|RedirectResponse
+    public function download(Request $request): StreamedResponse|RedirectResponse|Response
     {
         $data = $request->validate(['url' => ['required', 'string', 'max:2048']]);
 
-        $document = Document::where('link', $data['url'])->first();
+        $document = $this->resolveDocumentByUrl($data['url']);
 
-        // task #73 phase 1: a document uploaded through either new Phase 1
-        // upload endpoint has link=null (see DocumentUploadService's own
-        // docblock — an uploaded file's URL is always the computed one,
-        // Document::url(), never a stored `link`), so the exact-`link`
-        // lookup above can never find it. Reverse-resolve the storage_key
-        // it was computed from instead, via the same disk/base-URL logic
-        // Document::url() itself uses.
+        // task #73 phase 2: the custom 404 view, rendered directly with an
+        // explicit message — not abort(404, '...'): that throws the same
+        // NotFoundHttpException class Laravel's own router uses for a
+        // genuinely unmatched URL, so sniffing $exception->getMessage() in
+        // the view would just as easily surface the router's own internal
+        // "The route x could not be found." text. Rendering here instead
+        // means only THIS call ever sets $message, and a real unmatched
+        // route still falls through to the view's generic copy.
         if ($document === null) {
-            $path = app(FileStorageService::class)->pathFromUrl($data['url']);
-
-            if ($path !== null) {
-                $document = Document::where('storage_key', $path)->first();
-            }
+            return response()->view('errors.404', ['message' => 'This document has been removed.'], 404);
         }
-
-        abort_unless($document !== null, 404);
 
         // The stricter DocumentPolicy::view isn't the only door in here on
         // purpose — RichTextDocumentController's own docblock already
@@ -262,5 +690,66 @@ class DocumentController extends Controller
         // and a Phase 1 upload (whose `link` column is null).
         return app(FileStorageService::class)->download($document->url, $document->name)
             ?? redirect()->away($document->url);
+    }
+
+    /**
+     * The exact two-step lookup download() itself uses (by `link`, then
+     * by the storage_key path a computed URL resolves back to) — pulled
+     * out so chipStatus() below resolves a raw href to a Document exactly
+     * the same way, and the two can never quietly drift apart.
+     */
+    private function resolveDocumentByUrl(string $url): ?Document
+    {
+        $document = Document::where('link', $url)->first();
+
+        if ($document === null) {
+            $path = app(FileStorageService::class)->pathFromUrl($url);
+
+            if ($path !== null) {
+                $document = Document::where('storage_key', $path)->first();
+            }
+        }
+
+        return $document;
+    }
+
+    /**
+     * task #73 phase 2: the "Document removed" chip state. One batched
+     * request (capped) tells the caller which of a list of file-chip
+     * hrefs no longer resolve to a real Document — never one request per
+     * chip, and this never reveals anything about a document's contents,
+     * only whether the href still resolves at all, so no per-document
+     * Gate check is needed here (unlike download() itself, which actually
+     * serves the file). file-chip-status.js is the one place both the
+     * live editor and read-only rich text collect their chip hrefs and
+     * call this.
+     */
+    public function chipStatus(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'hrefs' => ['required', 'array', 'max:50'],
+            'hrefs.*' => ['string', 'max:2048'],
+        ]);
+
+        $hrefs = collect($data['hrefs'])->unique()->values();
+
+        // Genuinely two queries total, regardless of how many hrefs are in
+        // the (capped) batch — not resolveDocumentByUrl() called once per
+        // href, which would just move the N+1 into this one endpoint.
+        $resolvedByLink = Document::whereIn('link', $hrefs)->pluck('link');
+        $remainingHrefs = $hrefs->diff($resolvedByLink);
+
+        $storage = app(FileStorageService::class);
+        $pathsByHref = $remainingHrefs->mapWithKeys(fn (string $href) => [$href => $storage->pathFromUrl($href)])->filter();
+
+        $resolvedStorageKeys = $pathsByHref->isEmpty()
+            ? collect()
+            : Document::whereIn('storage_key', $pathsByHref->values())->pluck('storage_key');
+
+        $resolvedByStorageKey = $pathsByHref->filter(fn (?string $path) => $resolvedStorageKeys->contains($path))->keys();
+
+        $missing = $hrefs->diff($resolvedByLink->merge($resolvedByStorageKey))->values();
+
+        return response()->json(['missing' => $missing]);
     }
 }

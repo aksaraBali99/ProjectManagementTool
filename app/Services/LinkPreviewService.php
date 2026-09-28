@@ -98,6 +98,12 @@ class LinkPreviewService
             'name' => $title !== null && $title !== '' ? $title : $url,
             'link' => $url,
             'access_level' => DocumentAccessLevel::Internal,
+            // task #73 phase 2 origin-coverage fix: a Smart Link auto-
+            // document previously left this null even though it always
+            // starts from a task — the Documents page's origin column
+            // relies on it being accurate for every creation path that
+            // actually starts from one.
+            'origin_task_id' => $task->id,
         ]);
 
         $task->documents()->attach($document->id);

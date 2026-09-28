@@ -486,9 +486,13 @@ class TaskManagementController extends Controller
             // (DocumentPolicy::create, gated by manage_documents) is a
             // different capability from editing this task, even though the
             // two happen to overlap for most roles today. Attaching an
-            // EXISTING document, and detaching one, are task-editing
-            // actions and stay under canEdit.
+            // EXISTING document stays under canEdit (the picker itself is
+            // out of scope for task #73 phase 2's Unlink-gate change).
             'canManageDocuments' => Gate::allows('create', [Document::class, $task->organization_id]),
+            // task #73 phase 2: TaskPolicy::unlinkDocuments() — manage_
+            // documents + task view, not full task-edit rights — the
+            // Detach button's own gate, separate from $canEdit.
+            'canUnlinkDocuments' => Gate::allows('unlinkDocuments', $task),
             'attachedDocuments' => $attachedDocuments,
             'availableDocuments' => $availableDocuments,
         ], $this->cascadingOptions($projects)));

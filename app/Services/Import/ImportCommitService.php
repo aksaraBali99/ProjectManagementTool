@@ -483,6 +483,8 @@ class ImportCommitService
                 'name' => $data['name'],
                 'link' => $data['link'],
                 'access_level' => DocumentAccessLevel::Internal,
+                // task #73 phase 2 origin-coverage fix.
+                'origin_task_id' => $task->id,
             ]);
             $task->documents()->syncWithoutDetaching([$document->id]);
 

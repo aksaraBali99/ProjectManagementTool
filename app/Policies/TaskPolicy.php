@@ -45,6 +45,22 @@ class TaskPolicy
         return false;
     }
 
+    /**
+     * task #73 phase 2: unlinking (detaching) an already-attached document
+     * — deliberately NOT the same gate as update() (full task-edit
+     * rights). manage_documents + being able to see the task at all is
+     * the whole rule, so a manage_documents holder with no task-edit
+     * permission at all (or a Client attaching/removing documents on
+     * their own project's task, once Phase 3/4 need that) can still do
+     * this. TaskDocumentController::detach() and the Task edit page's own
+     * Unlink/Detach button both call this exact method, so they can never
+     * disagree.
+     */
+    public function unlinkDocuments(User $user, Task $task): bool
+    {
+        return $user->hasPermission('manage_documents', $task->organization_id) && $this->view($user, $task);
+    }
+
     public function view(User $user, Task $task): bool
     {
         if (! $user->hasPermission('view_tasks', $task->organization_id)) {

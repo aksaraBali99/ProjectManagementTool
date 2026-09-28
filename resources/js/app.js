@@ -188,7 +188,22 @@ function mountRichText(root) {
     if (! richTextMounts.has(root)) {
         richTextMounts.set(root, whenNearViewport(root)
             .then(function () { return import('./rich-text-editor.js'); })
-            .then(function (module) { return module.createRichTextEditor(root); }));
+            .then(function (module) { return module.createRichTextEditor(root); })
+            .then(function (controller) {
+                // task #73 phase 2: the live editor's own file-chips (an
+                // existing Description/comment being edited, not a chip
+                // just inserted this session) need the same "Document
+                // removed" check as read-only rich text — checked here,
+                // after mounting, rather than pre-filtering like
+                // highlightRichText() does below, since there's no way to
+                // know in advance whether an about-to-mount editor's
+                // content has any chips at all.
+                if (root.querySelector('file-chip[href]:not([data-chip-checked])')) {
+                    import('./file-chip-status.js').then(function (module) { module.checkFileChipStatuses(root); });
+                }
+
+                return controller;
+            }));
     }
 
     return richTextMounts.get(root);
@@ -227,7 +242,14 @@ function highlightRichText(scope) {
     }
 
     if (target.querySelector('[data-rich-text-content] file-chip:not([data-chip-enhanced])')) {
-        passes.push(import('./file-chip-thumbnail.js').then(function (module) { module.enhanceFileChips(target); }));
+        passes.push(import('./file-chip-thumbnail.js').then(function (module) {
+            module.enhanceFileChips(target);
+            // task #73 phase 2: the "Document removed" muted state — a
+            // separate module/request from the icon-enhancement above
+            // (that's purely cosmetic and needs no server round trip;
+            // this one batches every chip's href in ONE request).
+            return import('./file-chip-status.js');
+        }).then(function (module) { module.checkFileChipStatuses(target); }));
     }
 
     if (target.querySelector('[data-rich-text-content] link-preview:not([data-preview-enhanced])')) {

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 #[Fillable([
     'organization_id', 'uploaded_by', 'name', 'link', 'access_level',
     'storage_key', 'sha256_hash', 'size_bytes', 'mime_type', 'original_filename', 'origin_task_id',
+    'folder_id',
 ])]
 class Document extends Model
 {
@@ -55,8 +56,17 @@ class Document extends Model
         return $this->belongsTo(Task::class, 'origin_task_id');
     }
 
+    public function folder(): BelongsTo
+    {
+        return $this->belongsTo(DocumentFolder::class, 'folder_id');
+    }
+
     public function tasks(): BelongsToMany
     {
-        return $this->belongsToMany(Task::class, 'task_documents');
+        // withTimestamps(): task #73's linked-tasks popover orders by most
+        // recently linked (task_documents.created_at) — every existing
+        // attach()/sync()/syncWithoutDetaching() call site keeps working
+        // unchanged, since Eloquent populates the pivot timestamps itself.
+        return $this->belongsToMany(Task::class, 'task_documents')->withTimestamps();
     }
 }
