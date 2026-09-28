@@ -2033,5 +2033,10 @@
     "mtime": 1790613316.896602,
     "ast_hash": "63a0d29cf14a39f0afafcc341c415534",
     "semantic_hash": ""
+  },
+  "tests/Feature/Tasks/TaskDocumentLinkerAuditTest.php": {
+    "mtime": 1790615414.9639096,
+    "ast_hash": "a5ffba6d5ea3ca0bf347bf052086f449",
+    "semantic_hash": ""
   }
 }
