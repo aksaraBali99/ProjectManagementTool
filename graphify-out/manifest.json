@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1790587726.105468,
-    "ast_hash": "4f8ad270583f7a43c7a45458f6bae7ce",
+    "mtime": 1790597979.5877895,
+    "ast_hash": "336c614bb848c1ba2ab11761127bb786",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -720,8 +720,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskDocumentController.php": {
-    "mtime": 1790582308.2017493,
-    "ast_hash": "02233e8a1b9381b9cc910c76e6df2af3",
+    "mtime": 1790598057.0074995,
+    "ast_hash": "c109157dad15c1f0b81836e39f8eeea2",
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
@@ -745,8 +745,8 @@
     "semantic_hash": ""
   },
   "app/Policies/DocumentPolicy.php": {
-    "mtime": 1790581519.9591713,
-    "ast_hash": "2980271ab3852883123535d00489440c",
+    "mtime": 1790597806.9832344,
+    "ast_hash": "faa5db7c4625c8edbd9c3d0c2114e992",
     "semantic_hash": ""
   },
   "app/Policies/SubtaskPolicy.php": {
@@ -1950,8 +1950,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentViewableIdsParityTest.php": {
-    "mtime": 1790581734.9073143,
-    "ast_hash": "15ea2a45328c3d671db430b009f392dc",
+    "mtime": 1790597820.5293221,
+    "ast_hash": "fa255647652a062295cd02ea9f456227",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentsPageFoldersNavigationTest.php": {
@@ -1965,18 +1965,18 @@
     "semantic_hash": ""
   },
   "app/Services/DocumentDependencyService.php": {
-    "mtime": 1790581951.6131487,
-    "ast_hash": "0c04ec4059724d5bafea859a26c3753f",
+    "mtime": 1790597889.553854,
+    "ast_hash": "6f8c4890363e408522243b106d1b7f12",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentDeleteTest.php": {
-    "mtime": 1790582761.625,
-    "ast_hash": "dae7ad6bda0cc2f1b06ea92162e031c1",
+    "mtime": 1790598127.4902875,
+    "ast_hash": "cb49d3a9d23367ed1055f4caac961bae",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentEditTest.php": {
-    "mtime": 1790582762.1309888,
-    "ast_hash": "131fb19d3c182ea22670f3ffcc449b47",
+    "mtime": 1790598011.644308,
+    "ast_hash": "c12b07bd17ac43435c653a4b4dc04015",
     "semantic_hash": ""
   },
   "resources/js/file-chip-status.js": {

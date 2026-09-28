@@ -35,7 +35,15 @@ class DocumentDependencyService
      */
     public function summarize(Document $document, User $viewer): array
     {
-        $linkedTaskIds = $document->tasks()->pluck('tasks.id')->all();
+        // withTrashed(): "blocked while attached directly to any task" is
+        // literal — a task_documents row pointing at a since-deactivated
+        // (soft-deleted) task still counts. Without this, $document->tasks()
+        // silently excludes it via Task's own SoftDeletingScope, so a
+        // document linked only to a deactivated task would report zero
+        // linked tasks here while the Documents page's own "Linked tasks"
+        // column (a raw, scope-oblivious task_documents count) still shows
+        // it as 1 — the exact disagreement this was flagged for.
+        $linkedTaskIds = $document->tasks()->withTrashed()->pluck('tasks.id')->all();
 
         // Task::viewableIdsFor() — not one Gate::allows('view', $task)
         // call per linked task — see its own docblock/parity test.

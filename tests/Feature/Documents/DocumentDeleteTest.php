@@ -13,6 +13,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\FileStorageService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -102,6 +103,28 @@ test('deleting becomes possible after unlinking the only attached task', functio
 
     $this->actingAs($this->management)->deleteJson("/documents/{$document->id}")->assertOk();
     $this->assertDatabaseMissing('documents', ['id' => $document->id]);
+});
+
+test('a document linked only to a deactivated (soft-deleted) task is still blocked, and the count matches the page\'s own "Linked tasks" column', function () {
+    $task = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $this->project->id, 'department_id' => $this->dept->id, 'title' => 'T', 'priority' => 'medium', 'status' => 'pending']);
+    $document = makeLinkOnlyDocumentForDeleteTest($this->orgA, $this->management);
+    $document->tasks()->attach($task->id);
+    $task->delete();
+
+    // The Documents page's own "Linked tasks" column (a raw, scope-
+    // oblivious task_documents count) already showed this document as
+    // linked — the dependency preview and the delete block must agree,
+    // not silently drop the deactivated task via Task's SoftDeletingScope.
+    $indexResponse = $this->actingAs($this->management)->get('/documents/'.$this->orgA->id);
+    $indexResponse->assertOk();
+    expect((int) $indexResponse->viewData('linkedTaskCounts')[$document->id])->toBe(1);
+
+    $preview = $this->actingAs($this->management)->getJson("/documents/{$document->id}/dependencies");
+    $preview->assertOk();
+    expect($preview->json('linked_task_count'))->toBe(1);
+
+    $this->actingAs($this->management)->deleteJson("/documents/{$document->id}")->assertStatus(422);
+    $this->assertDatabaseHas('documents', ['id' => $document->id]);
 });
 
 test('attaching a task to the document between the preview and the delete request is caught by the in-transaction re-check', function () {
@@ -260,6 +283,43 @@ test('unlink is denied without manage_documents, or without view on the task', f
     grantManageDocumentsForDeleteTest(Role::where('slug', 'staff')->firstOrFail());
     $this->actingAs($staffWithoutTaskView)->deleteJson("/tasks/{$task->id}/documents/{$document->id}")->assertForbidden();
     expect($task->fresh()->documents()->count())->toBe(1);
+});
+
+test('unlink is denied when the viewer has manage_documents and task view but cannot view the document itself', function () {
+    $task = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $this->project->id, 'department_id' => $this->dept->id, 'title' => 'T', 'priority' => 'medium', 'status' => 'pending']);
+    // Private, uploaded by someone else — the viewer below (manage_documents
+    // + department access to the task) still can't VIEW this specific
+    // document, per DocumentPolicy::view()'s own access_level rule.
+    $privateDocument = makeLinkOnlyDocumentForDeleteTest($this->orgA, $this->owner);
+    $privateDocument->update(['access_level' => 'private']);
+    $privateDocument->tasks()->attach($task->id);
+
+    $staff = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $staff->id, 'role_id' => Role::where('slug', 'staff')->firstOrFail()->id]);
+    AccessPermission::create(['user_id' => $staff->id, 'organization_id' => $this->orgA->id, 'department_id' => $this->dept->id, 'allowed' => true]);
+    grantManageDocumentsForDeleteTest(Role::where('slug', 'staff')->firstOrFail());
+
+    expect($staff->can('unlinkDocuments', $task))->toBeTrue();
+    expect($staff->can('view', $privateDocument))->toBeFalse();
+
+    $this->actingAs($staff)->deleteJson("/tasks/{$task->id}/documents/{$privateDocument->id}")->assertForbidden();
+    expect($task->fresh()->documents()->count())->toBe(1);
+});
+
+test('unlink rejects a document that does not belong to the task\'s own company', function () {
+    $orgB = Organization::create(['name' => 'Org B', 'slug' => 'org-b', 'accent_color' => '#123456']);
+    $task = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $this->project->id, 'department_id' => $this->dept->id, 'title' => 'T', 'priority' => 'medium', 'status' => 'pending']);
+
+    // Management is a member of both companies, so route-model-binding
+    // resolves a document from Org B fine — but it doesn't belong to
+    // this task's own company (Org A), a state attach() itself would
+    // never create, exercised here directly to prove detach() also
+    // guards against it.
+    OrgMember::create(['organization_id' => $orgB->id, 'user_id' => $this->management->id, 'role_id' => Role::where('slug', 'management')->firstOrFail()->id]);
+    $documentInOrgB = makeLinkOnlyDocumentForDeleteTest($orgB, $this->management);
+    DB::table('task_documents')->insert(['task_id' => $task->id, 'document_id' => $documentInOrgB->id]);
+
+    $this->actingAs($this->management)->deleteJson("/tasks/{$task->id}/documents/{$documentInOrgB->id}")->assertStatus(422);
 });
 
 test('the Unlink button on the Task edit page matches the endpoint: visible only with manage_documents', function () {

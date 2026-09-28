@@ -110,6 +110,25 @@ test('a client sees a public document only when linked to a task on their own pr
     expect(app(DocumentPolicy::class)->viewableIds($client, $this->org->id, $documents)->all())->toBe([$documents[2]->id]);
 });
 
+test('a client sees nothing once the only linking task is deactivated (soft-deleted), matching view()', function () {
+    $client = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->org->id, 'user_id' => $client->id, 'role_id' => Role::where('slug', 'client')->firstOrFail()->id]);
+    $this->project->clients()->attach($client->id);
+
+    $task = Task::create([
+        'organization_id' => $this->org->id, 'project_id' => $this->project->id,
+        'department_id' => Department::create(['organization_id' => $this->org->id, 'name' => 'Marketing', 'color' => '#000'])->id,
+        'title' => 'T', 'priority' => 'medium', 'status' => 'pending',
+    ]);
+
+    $documents = makeDocumentSetForParity($this->org, $this->uploader);
+    $documents->each(fn (Document $d) => $task->documents()->attach($d->id));
+    $task->delete();
+
+    assertDocumentViewParity($client, $documents, $this->org->id);
+    expect(app(DocumentPolicy::class)->viewableIds($client, $this->org->id, $documents))->toBeEmpty();
+});
+
 test('a client with no linking task at all sees nothing', function () {
     $client = User::factory()->create();
     OrgMember::create(['organization_id' => $this->org->id, 'user_id' => $client->id, 'role_id' => Role::where('slug', 'client')->firstOrFail()->id]);

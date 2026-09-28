@@ -69,11 +69,20 @@ class DocumentPolicy
             })->pluck('id');
         }
 
+        // whereNull('tasks.deleted_at'): a raw query builder join has no
+        // idea Task uses SoftDeletes — Eloquent's global scope is what
+        // makes view()'s own $document->tasks()->whereHas(...) above
+        // silently exclude a soft-deleted (deactivated) task automatically.
+        // Without this, a document linked only to a deactivated task would
+        // count as client-visible here while view() denies it per-document
+        // — exactly the disagreement the parity test exists to catch, just
+        // for a state (a deactivated task) it didn't exercise.
         $clientVisibleDocumentIds = DB::table('task_documents')
             ->join('tasks', 'tasks.id', '=', 'task_documents.task_id')
             ->join('project_clients', 'project_clients.project_id', '=', 'tasks.project_id')
             ->where('project_clients.user_id', $user->id)
             ->where('tasks.organization_id', $organizationId)
+            ->whereNull('tasks.deleted_at')
             ->pluck('task_documents.document_id')
             ->unique();
 

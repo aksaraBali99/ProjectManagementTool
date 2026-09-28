@@ -372,9 +372,14 @@ class DocumentController extends Controller
      * document.moved/document.access_level_changed), not one combined
      * "document.updated" — matching the task's own audit-action list.
      *
-     * The access-level blocking/confirmation rules are re-derived from
-     * the database here via DocumentDependencyService, never trusted from
-     * whatever an earlier dependencies() preview call said.
+     * The access-level blocking/confirmation rules are re-derived from the
+     * database here via DocumentDependencyService, never trusted from
+     * whatever an earlier dependencies() preview call said — and, like
+     * destroy(), that re-check and the actual field mutations happen
+     * together inside one transaction with the row locked, so a task
+     * attaching to this document between the check and the save can't
+     * slip a Private/linked document past the block (the same race
+     * destroy()'s own lockForUpdate() closes for deletion).
      */
     public function update(Request $request, Document $document): JsonResponse
     {
@@ -389,7 +394,9 @@ class DocumentController extends Controller
 
         // Move: "the target must be a folder in the same company, or the
         // root. No rights over the folder are needed" — so this is a
-        // plain existence/company check, not a Gate call.
+        // plain existence/company check, not a Gate call. Resolved before
+        // the transaction below since it's about the FOLDER, not the
+        // document's own row state.
         $targetFolderId = $document->folder_id;
         if (array_key_exists('folder_id', $data)) {
             if ($data['folder_id'] !== null) {
@@ -402,71 +409,83 @@ class DocumentController extends Controller
         }
 
         $dependencyService = app(DocumentDependencyService::class);
+        $viewer = auth()->user();
 
-        if (array_key_exists('access_level', $data)) {
-            $requestedAccessLevel = DocumentAccessLevel::from($data['access_level']);
+        $result = DB::transaction(function () use ($document, $data, $targetFolderId, $dependencyService, $viewer, $request) {
+            $locked = Document::whereKey($document->id)->lockForUpdate()->firstOrFail();
 
-            if ($requestedAccessLevel !== $document->access_level) {
-                $summary = $dependencyService->summarize($document, auth()->user());
+            if (array_key_exists('access_level', $data)) {
+                $requestedAccessLevel = DocumentAccessLevel::from($data['access_level']);
 
-                // "To private while attached directly to any task:
-                // blocked." Same response shape/wording as delete.
-                if ($requestedAccessLevel === DocumentAccessLevel::Private && $summary['linked_task_count'] > 0) {
-                    return response()->json($dependencyService->blockedResponse($summary), 422);
-                }
+                if ($requestedAccessLevel !== $locked->access_level) {
+                    $summary = $dependencyService->summarize($locked, $viewer);
 
-                // "To public from any other level while linked: requires
-                // explicit confirmation... Not blocked." — enforced as a
-                // required confirmation flag on the request, not merely a
-                // UI dialog: a request without it, when confirmation is
-                // actually needed, is rejected exactly like the private-
-                // block case, just with a different, non-blocking reason.
-                if ($requestedAccessLevel === DocumentAccessLevel::Public
-                    && $summary['client_project_count'] > 0
-                    && ! $request->boolean('confirm_public_visibility')) {
-                    return response()->json([
-                        'message' => "Visible to the clients of {$summary['client_project_count']} linked projects.",
-                        'requires_confirmation' => true,
-                        'client_project_count' => $summary['client_project_count'],
-                    ], 422);
+                    // "To private while attached directly to any task:
+                    // blocked." Same response shape/wording as delete.
+                    if ($requestedAccessLevel === DocumentAccessLevel::Private && $summary['linked_task_count'] > 0) {
+                        return ['blocked' => true, 'response' => $dependencyService->blockedResponse($summary)];
+                    }
+
+                    // "To public from any other level while linked: requires
+                    // explicit confirmation... Not blocked." — enforced as a
+                    // required confirmation flag on the request, not merely
+                    // a UI dialog: a request without it, when confirmation
+                    // is actually needed, is rejected exactly like the
+                    // private-block case, just with a different, non-
+                    // blocking reason.
+                    if ($requestedAccessLevel === DocumentAccessLevel::Public
+                        && $summary['client_project_count'] > 0
+                        && ! $request->boolean('confirm_public_visibility')) {
+                        return ['blocked' => true, 'response' => [
+                            'message' => "Visible to the clients of {$summary['client_project_count']} linked projects.",
+                            'requires_confirmation' => true,
+                            'client_project_count' => $summary['client_project_count'],
+                        ]];
+                    }
                 }
             }
-        }
 
-        $auditEntries = [];
+            $auditEntries = [];
 
-        if (array_key_exists('name', $data) && $data['name'] !== $document->name) {
-            $auditEntries[] = ['action' => 'document.renamed', 'changes' => ['name' => ['old' => $document->name, 'new' => $data['name']]]];
-            $document->name = $data['name'];
-        }
-
-        if ($targetFolderId !== $document->folder_id) {
-            $auditEntries[] = ['action' => 'document.moved', 'changes' => ['folder_id' => ['old' => $document->folder_id, 'new' => $targetFolderId]]];
-            $document->folder_id = $targetFolderId;
-        }
-
-        if (array_key_exists('access_level', $data)) {
-            $requestedAccessLevel = DocumentAccessLevel::from($data['access_level']);
-            if ($requestedAccessLevel !== $document->access_level) {
-                $auditEntries[] = ['action' => 'document.access_level_changed', 'changes' => ['access_level' => ['old' => $document->access_level->value, 'new' => $requestedAccessLevel->value]]];
-                $document->access_level = $requestedAccessLevel;
+            if (array_key_exists('name', $data) && $data['name'] !== $locked->name) {
+                $auditEntries[] = ['action' => 'document.renamed', 'changes' => ['name' => ['old' => $locked->name, 'new' => $data['name']]]];
+                $locked->name = $data['name'];
             }
+
+            if ($targetFolderId !== $locked->folder_id) {
+                $auditEntries[] = ['action' => 'document.moved', 'changes' => ['folder_id' => ['old' => $locked->folder_id, 'new' => $targetFolderId]]];
+                $locked->folder_id = $targetFolderId;
+            }
+
+            if (array_key_exists('access_level', $data)) {
+                $requestedAccessLevel = DocumentAccessLevel::from($data['access_level']);
+                if ($requestedAccessLevel !== $locked->access_level) {
+                    $auditEntries[] = ['action' => 'document.access_level_changed', 'changes' => ['access_level' => ['old' => $locked->access_level->value, 'new' => $requestedAccessLevel->value]]];
+                    $locked->access_level = $requestedAccessLevel;
+                }
+            }
+
+            $locked->save();
+
+            foreach ($auditEntries as $entry) {
+                AuditLog::create([
+                    'organization_id' => $locked->organization_id,
+                    'user_id' => auth()->id(),
+                    'action' => $entry['action'],
+                    'entity_type' => 'document',
+                    'entity_id' => $locked->id,
+                    'changes' => $entry['changes'],
+                ]);
+            }
+
+            return ['blocked' => false, 'document' => $locked];
+        });
+
+        if ($result['blocked']) {
+            return response()->json($result['response'], 422);
         }
 
-        $document->save();
-
-        foreach ($auditEntries as $entry) {
-            AuditLog::create([
-                'organization_id' => $document->organization_id,
-                'user_id' => auth()->id(),
-                'action' => $entry['action'],
-                'entity_type' => 'document',
-                'entity_id' => $document->id,
-                'changes' => $entry['changes'],
-            ]);
-        }
-
-        return response()->json(['document' => $document->fresh('uploader')]);
+        return response()->json(['document' => $result['document']->fresh('uploader')]);
     }
 
     /**
@@ -489,7 +508,15 @@ class DocumentController extends Controller
         $result = DB::transaction(function () use ($document) {
             $locked = Document::whereKey($document->id)->lockForUpdate()->firstOrFail();
 
-            if ($locked->tasks()->count() > 0) {
+            // withTrashed(): a task_documents row for a since-deactivated
+            // task still counts as "attached to any task" — without this,
+            // Task's own SoftDeletingScope would silently let a document
+            // linked only to a deactivated task through, contradicting the
+            // linked_task_ids: [] comment below (the row genuinely existed;
+            // cascadeOnDelete on task_documents.document_id removes it a
+            // moment later regardless, so this is about the block and the
+            // audit trail being accurate, not data loss).
+            if ($locked->tasks()->withTrashed()->count() > 0) {
                 return ['blocked' => true, 'document' => $locked];
             }
 

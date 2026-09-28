@@ -181,6 +181,26 @@ test('changing access level to private is allowed once nothing is linked', funct
     $this->assertDatabaseHas('audit_log', ['action' => 'document.access_level_changed', 'entity_id' => $document->id]);
 });
 
+test('a task attaching to the document between an earlier preview and the actual private-change request is caught, not missed', function () {
+    $document = makeDocumentForEditTest($this->orgA, $this->management, 'internal');
+
+    // An earlier dependencies() preview said unblocked (nothing linked yet)...
+    $preview = $this->actingAs($this->management)->getJson("/documents/{$document->id}/dependencies");
+    $preview->assertOk();
+    expect($preview->json('linked_task_count'))->toBe(0);
+
+    // ...but something attaches it to a task before the actual PUT arrives.
+    $task = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $this->project->id, 'department_id' => $this->dept->id, 'title' => 'T', 'priority' => 'medium', 'status' => 'pending']);
+    $document->tasks()->attach($task->id);
+
+    // update()'s own re-check — inside a transaction with the row locked,
+    // the same pattern destroy() uses — must see this live state, not
+    // whatever the earlier preview call reported.
+    $response = $this->actingAs($this->management)->putJson("/documents/{$document->id}", ['access_level' => 'private']);
+    $response->assertStatus(422);
+    expect($document->fresh()->access_level->value)->toBe('internal');
+});
+
 test('changing access level to public requires confirmation when linked to a project with a client, and is rejected without it', function () {
     $client = makeClientForEditTest($this->orgA);
     $this->project->clients()->attach($client->id);
