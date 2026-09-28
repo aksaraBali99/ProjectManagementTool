@@ -7,14 +7,19 @@
     <div class="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
         <h1 class="text-[14px] font-medium text-[#1F2937]">Solava</h1>
         {{--
-            task #73 phase 2: a specific message (e.g. DocumentController::
-            download()'s "This document has been removed.") takes priority
-            over the generic copy below — an aborted request with its own
-            intentional message, not a raw exception detail, so it's safe
-            to show regardless of APP_DEBUG.
+            task #73 phase 2: a specific $message (e.g.
+            DocumentController::download()'s "This document has been
+            removed.") takes priority over the generic copy below. This is
+            a plain view variable DocumentController::download() passes
+            explicitly when rendering this view directly — deliberately
+            NOT $exception->getMessage(): a genuinely unmatched route's
+            NotFoundHttpException carries Laravel's own internal message
+            ("The route x could not be found."), which would otherwise
+            leak through here too since it's the exact same exception
+            class abort(404, '...') itself throws.
         --}}
-        @if (isset($exception) && $exception->getMessage() !== '')
-            <p class="mt-4 text-[13px] font-medium text-[#1F2937]">{{ $exception->getMessage() }}</p>
+        @if (isset($message))
+            <p class="mt-4 text-[13px] font-medium text-[#1F2937]">{{ $message }}</p>
         @else
             <p class="mt-4 text-[13px] font-medium text-[#1F2937]">We couldn't find the page you're looking for.</p>
             <p class="mt-1 text-[12px] text-gray-500">It may have been moved, or the link may be out of date.</p>

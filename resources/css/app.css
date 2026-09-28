@@ -861,6 +861,23 @@
     white-space: nowrap;
 }
 
+/* task #73 phase 2: "Document removed" — file-chip-status.js applies
+   this once a batched lookup confirms the chip's href no longer resolves
+   to a Document. Muted, not hidden (the reference itself, and that it
+   once pointed somewhere, is still meaningful context to leave visible)
+   — cursor reverts to default since the href is also removed at the same
+   time, which is what actually makes it non-clickable (app.js's click
+   delegation no-ops on a file-chip with no href). */
+.file-chip--removed {
+    border-style: dashed;
+    color: var(--color-gray-400);
+    cursor: default;
+}
+
+.file-chip--removed .file-chip-icon {
+    color: var(--color-gray-300);
+}
+
 /* Link-preview (task #4, Smart Links) needs no CSS rules of its own — an
    earlier version rendered it as a much larger block-level card with an
    image thumbnail; the corrected, spec-accurate version is styled as a

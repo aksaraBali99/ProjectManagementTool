@@ -163,6 +163,11 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/documents/{document}/dependencies', [DocumentController::class, 'dependencies'])->name('documents.dependencies');
     Route::put('/documents/{document}', [DocumentController::class, 'update'])->name('documents.update');
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
+    // task #73 phase 2: the "Document removed" chip state — a standalone
+    // top-level path (not /documents/chip-status), same reasoning as
+    // /file-downloads below: no {document} to bind against, just a batch
+    // of raw hrefs in the request body.
+    Route::post('/file-chip-status', [DocumentController::class, 'chipStatus'])->name('file-chip-status.check');
     // A standalone top-level path, not /documents/download — the latter
     // would hit the same "swallowed by the optional-segment route below"
     // problem /documents/create already has to dodge with ordering, and

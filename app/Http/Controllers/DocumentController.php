@@ -17,6 +17,7 @@ use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -547,33 +548,23 @@ class DocumentController extends Controller
      * arbitrary attacker-supplied URL: nothing resolves unless some
      * existing Document row's `link` already equals it verbatim.
      */
-    public function download(Request $request): StreamedResponse|RedirectResponse
+    public function download(Request $request): StreamedResponse|RedirectResponse|Response
     {
         $data = $request->validate(['url' => ['required', 'string', 'max:2048']]);
 
-        $document = Document::where('link', $data['url'])->first();
+        $document = $this->resolveDocumentByUrl($data['url']);
 
-        // task #73 phase 1: a document uploaded through either new Phase 1
-        // upload endpoint has link=null (see DocumentUploadService's own
-        // docblock — an uploaded file's URL is always the computed one,
-        // Document::url(), never a stored `link`), so the exact-`link`
-        // lookup above can never find it. Reverse-resolve the storage_key
-        // it was computed from instead, via the same disk/base-URL logic
-        // Document::url() itself uses.
+        // task #73 phase 2: the custom 404 view, rendered directly with an
+        // explicit message — not abort(404, '...'): that throws the same
+        // NotFoundHttpException class Laravel's own router uses for a
+        // genuinely unmatched URL, so sniffing $exception->getMessage() in
+        // the view would just as easily surface the router's own internal
+        // "The route x could not be found." text. Rendering here instead
+        // means only THIS call ever sets $message, and a real unmatched
+        // route still falls through to the view's generic copy.
         if ($document === null) {
-            $path = app(FileStorageService::class)->pathFromUrl($data['url']);
-
-            if ($path !== null) {
-                $document = Document::where('storage_key', $path)->first();
-            }
+            return response()->view('errors.404', ['message' => 'This document has been removed.'], 404);
         }
-
-        // task #73 phase 2: a specific message, not a bare 404 — the
-        // existing custom 404 view shows it when present (see
-        // resources/views/errors/404.blade.php), so a stale file-chip
-        // link (opened in a new tab, per app.js's click delegation) says
-        // something accurate instead of a generic "page not found".
-        abort_unless($document !== null, 404, 'This document has been removed.');
 
         // The stricter DocumentPolicy::view isn't the only door in here on
         // purpose — RichTextDocumentController's own docblock already
@@ -594,5 +585,66 @@ class DocumentController extends Controller
         // and a Phase 1 upload (whose `link` column is null).
         return app(FileStorageService::class)->download($document->url, $document->name)
             ?? redirect()->away($document->url);
+    }
+
+    /**
+     * The exact two-step lookup download() itself uses (by `link`, then
+     * by the storage_key path a computed URL resolves back to) — pulled
+     * out so chipStatus() below resolves a raw href to a Document exactly
+     * the same way, and the two can never quietly drift apart.
+     */
+    private function resolveDocumentByUrl(string $url): ?Document
+    {
+        $document = Document::where('link', $url)->first();
+
+        if ($document === null) {
+            $path = app(FileStorageService::class)->pathFromUrl($url);
+
+            if ($path !== null) {
+                $document = Document::where('storage_key', $path)->first();
+            }
+        }
+
+        return $document;
+    }
+
+    /**
+     * task #73 phase 2: the "Document removed" chip state. One batched
+     * request (capped) tells the caller which of a list of file-chip
+     * hrefs no longer resolve to a real Document — never one request per
+     * chip, and this never reveals anything about a document's contents,
+     * only whether the href still resolves at all, so no per-document
+     * Gate check is needed here (unlike download() itself, which actually
+     * serves the file). file-chip-status.js is the one place both the
+     * live editor and read-only rich text collect their chip hrefs and
+     * call this.
+     */
+    public function chipStatus(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'hrefs' => ['required', 'array', 'max:50'],
+            'hrefs.*' => ['string', 'max:2048'],
+        ]);
+
+        $hrefs = collect($data['hrefs'])->unique()->values();
+
+        // Genuinely two queries total, regardless of how many hrefs are in
+        // the (capped) batch — not resolveDocumentByUrl() called once per
+        // href, which would just move the N+1 into this one endpoint.
+        $resolvedByLink = Document::whereIn('link', $hrefs)->pluck('link');
+        $remainingHrefs = $hrefs->diff($resolvedByLink);
+
+        $storage = app(FileStorageService::class);
+        $pathsByHref = $remainingHrefs->mapWithKeys(fn (string $href) => [$href => $storage->pathFromUrl($href)])->filter();
+
+        $resolvedStorageKeys = $pathsByHref->isEmpty()
+            ? collect()
+            : Document::whereIn('storage_key', $pathsByHref->values())->pluck('storage_key');
+
+        $resolvedByStorageKey = $pathsByHref->filter(fn (?string $path) => $resolvedStorageKeys->contains($path))->keys();
+
+        $missing = $hrefs->diff($resolvedByLink->merge($resolvedByStorageKey))->values();
+
+        return response()->json(['missing' => $missing]);
     }
 }

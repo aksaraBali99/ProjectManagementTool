@@ -120,8 +120,8 @@
     "semantic_hash": ""
   },
   "resources/js/app.js": {
-    "mtime": 1790351177.3505738,
-    "ast_hash": "53b5e133d646e17a8376a54ffcb59654",
+    "mtime": 1790583365.5956945,
+    "ast_hash": "ffb6ad345615386cfba2ef6c07047288",
     "semantic_hash": ""
   },
   "routes/console.php": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1790582052.5326185,
-    "ast_hash": "85d9d048ab235323321dcddbc9bdb133",
+    "mtime": 1790583131.6935117,
+    "ast_hash": "3a7ade6388814f280c69b365168b3cac",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "app/Models/AuditLog.php": {
-    "mtime": 1790581921.5108526,
-    "ast_hash": "544e50e4ae4247fc4e285f5518d7b5bd",
+    "mtime": 1790583588.837763,
+    "ast_hash": "555e7430b95995eed330a57c8ec5cf3f",
     "semantic_hash": ""
   },
   "app/Models/Comment.php": {
@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1790582037.5239234,
-    "ast_hash": "c0cfac583a5fc0e79bbf736731801b17",
+    "mtime": 1790585911.3768113,
+    "ast_hash": "393b7f5dcffecaecc74cd25b9372c165",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -1045,8 +1045,8 @@
     "semantic_hash": ""
   },
   "resources/views/errors/404.blade.php": {
-    "mtime": 1790580931.6262016,
-    "ast_hash": "d0351ca86c162ee04dec813b3b75be48",
+    "mtime": 1790585879.3509078,
+    "ast_hash": "6bce6882f7faca08f519ae804c6c3639",
     "semantic_hash": ""
   },
   "resources/views/errors/500.blade.php": {
@@ -1977,6 +1977,21 @@
   "tests/Feature/Documents/DocumentEditTest.php": {
     "mtime": 1790582762.1309888,
     "ast_hash": "131fb19d3c182ea22670f3ffcc449b47",
+    "semantic_hash": ""
+  },
+  "resources/js/file-chip-status.js": {
+    "mtime": 1790583338.4182203,
+    "ast_hash": "63997afae1f35687a2dc14d4b7208c8f",
+    "semantic_hash": ""
+  },
+  "tests/Feature/AuditTrail/DocumentAuditActionsTest.php": {
+    "mtime": 1790583619.3484468,
+    "ast_hash": "78b05d66508400bb34538b4728df6855",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Documents/DocumentChipStatusTest.php": {
+    "mtime": 1790583310.6544044,
+    "ast_hash": "f62784b278358593a76dc1f59588673c",
     "semantic_hash": ""
   }
 }

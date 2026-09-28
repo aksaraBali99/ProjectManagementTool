@@ -165,9 +165,15 @@ class AuditLog extends Model
             // task #73 phase 2: document.moved/document.access_level_changed.
             'folder_id' => DocumentFolder::find($value)?->name ?? "Folder #{$value}",
             'access_level' => DocumentAccessLevel::tryFrom($value)?->label() ?? (string) $value,
+            // task #73 phase 2: document.deleted's own flat snapshot — an
+            // array value would otherwise hit the generic (string) $value
+            // cast below and fatal ("Array to string conversion").
+            // Always empty this phase (delete is blocked outright while
+            // any task is linked), but Phase 4 may populate it.
+            'linked_task_ids' => empty($value) ? 'None' : implode(', ', array_map(fn ($id) => "#{$id}", (array) $value)),
             // Stored as editor HTML now — show the words, not the tags.
             'description', 'body' => RichText::plainText((string) $value) ?: '—',
-            default => is_bool($value) ? ($value ? 'Yes' : 'No') : (string) $value,
+            default => is_bool($value) ? ($value ? 'Yes' : 'No') : (is_array($value) ? implode(', ', $value) : (string) $value),
         };
     }
 }
