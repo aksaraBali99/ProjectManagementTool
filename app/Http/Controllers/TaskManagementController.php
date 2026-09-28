@@ -464,13 +464,6 @@ class TaskManagementController extends Controller
             ->filter(fn (Document $document) => Gate::allows('view', $document))
             ->values();
 
-        $availableDocuments = Document::where('organization_id', $task->organization_id)
-            ->whereNotIn('id', $allAttachedDocuments->pluck('id'))
-            ->get()
-            ->filter(fn (Document $document) => Gate::allows('view', $document))
-            ->sortBy('name')
-            ->values();
-
         $returnTo = $this->resolveReturnTo(route('tasks.index', $task->organization_id));
 
         $task->load('subtasks', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
@@ -486,16 +479,25 @@ class TaskManagementController extends Controller
             // Deliberately separate from canEdit: creating a new document
             // (DocumentPolicy::create, gated by manage_documents) is a
             // different capability from editing this task, even though the
-            // two happen to overlap for most roles today. Attaching an
-            // EXISTING document stays under canEdit (the picker itself is
-            // out of scope for task #73 phase 2's Unlink-gate change).
+            // two happen to overlap for most roles today.
             'canManageDocuments' => Gate::allows('create', [Document::class, $task->organization_id]),
             // task #73 phase 2: TaskPolicy::unlinkDocuments() — manage_
             // documents + task view, not full task-edit rights — the
             // Detach button's own gate, separate from $canEdit.
             'canUnlinkDocuments' => Gate::allows('unlinkDocuments', $task),
+            // task #73 phase 3: the "Attach existing" picker's own gate —
+            // TaskPolicy::attachDocuments() (manage_documents + task view +
+            // not a Client-role user), replacing the old select+button
+            // widget's $canEdit gate entirely. The picker's own list is no
+            // longer preloaded here at all (no $availableDocuments) — it's
+            // fetched lazily, searched and paginated, from
+            // TaskDocumentController::index().
+            'canAttachDocuments' => Gate::allows('attachDocuments', $task),
+            // Public documents note ("visible to this project's client
+            // once linked") only makes sense when the project actually has
+            // one — computed once here, not per picker result row.
+            'projectHasClient' => $project->primaryClient() !== null,
             'attachedDocuments' => $attachedDocuments,
-            'availableDocuments' => $availableDocuments,
         ], $this->cascadingOptions($projects)));
     }
 

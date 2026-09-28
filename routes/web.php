@@ -185,6 +185,11 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     // swallowed as an attempt to bind an Organization with route key
     // "create" (same ordering Tasks/Projects/Departments rely on).
     Route::get('/documents/{organization?}', [DocumentController::class, 'index'])->name('documents.index');
+    // task #73 phase 3: the "Attach existing" picker's paginated/searched
+    // list — a fixed trailing segment, so this never competes with
+    // task-documents.attach below (same reasoning as documents.dependencies
+    // above).
+    Route::get('/tasks/{task}/documents/attachable', [TaskDocumentController::class, 'index'])->name('task-documents.attachable');
     Route::post('/tasks/{task}/documents', [TaskDocumentController::class, 'attach'])->name('task-documents.attach');
     Route::delete('/tasks/{task}/documents/{document}', [TaskDocumentController::class, 'detach'])->name('task-documents.detach');
 

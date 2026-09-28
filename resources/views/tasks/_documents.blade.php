@@ -3,7 +3,8 @@
      (document.currentScript, not a global id) — matches _subtasks.blade.php
      and _comments.blade.php, since this is only ever rendered once per
      Edit Task page but follows the same pattern for consistency. --}}
-<div class="document-container" data-task-id="{{ $task->id }}" data-organization-id="{{ $task->organization_id }}">
+<div class="document-container" data-task-id="{{ $task->id }}" data-organization-id="{{ $task->organization_id }}"
+     data-project-has-client="{{ $projectHasClient ? '1' : '0' }}" data-can-unlink-documents="{{ $canUnlinkDocuments ? '1' : '0' }}">
     <div class="document-list space-y-2">
         @foreach ($attachedDocuments as $document)
             <div class="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2" data-document-id="{{ $document->id }}">
@@ -13,9 +14,8 @@
                 </div>
                 {{-- task #73 phase 2: TaskPolicy::unlinkDocuments() —
                      manage_documents + task view, NOT $canEdit (task-edit
-                     rights) — deliberately its own gate, separate from
-                     the attach-existing-document picker below, which is
-                     out of scope this phase and keeps using $canEdit. --}}
+                     rights) — deliberately its own gate, separate from the
+                     attach-existing-document picker. --}}
                 @if ($canUnlinkDocuments)
                     <button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>
                 @endif
@@ -26,21 +26,40 @@
         @endif
     </div>
 
-    @if ($canEdit)
-        <div class="mt-2 flex items-center gap-2">
-            <select class="attach-document-select flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                <option value="">Select a document…</option>
-                @foreach ($availableDocuments as $document)
-                    <option value="{{ $document->id }}">{{ $document->name }} ({{ $document->access_level->label() }})</option>
-                @endforeach
-            </select>
-            <button type="button" class="attach-document-btn rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">Attach</button>
+    <div class="mt-2 flex items-center gap-3">
+        {{-- task #73 phase 3: TaskPolicy::attachDocuments() — manage_
+             documents + task view + not a Client-role user. Replaces the
+             old <select>+"Attach" widget (gated by $canEdit, the wrong
+             capability) entirely; that endpoint (POST /tasks/{task}/
+             documents) is unchanged, just no longer reachable from
+             anything but this dialog. --}}
+        @if ($canAttachDocuments)
+            <button type="button" class="attach-existing-toggle text-[11px] font-medium text-brand-600 hover:underline"
+                aria-haspopup="dialog" aria-expanded="false" aria-controls="attach-existing-dialog-{{ $task->id }}">
+                Attach existing
+            </button>
+        @endif
+
+        {{-- Creating a new document is a different capability from editing
+             this task (DocumentPolicy::create / manage_documents) — gated
+             separately from $canEdit, not folded into it. --}}
+        @if ($canManageDocuments)
+            <button type="button" class="toggle-new-document text-[11px] font-medium text-brand-600 hover:underline">+ Add new document</button>
+        @endif
+    </div>
+
+    @if ($canAttachDocuments)
+        <div id="attach-existing-dialog-{{ $task->id }}" class="attach-existing-dialog mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="Attach an existing document">
+            <input type="text" class="attach-existing-search w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Search documents…">
+            <ul class="attach-existing-results space-y-1" aria-label="Documents you can attach"></ul>
+            <p class="attach-existing-status text-[11px] text-gray-500"></p>
+            <button type="button" class="attach-existing-load-more hidden text-[11px] font-medium text-brand-600 hover:underline">Load more</button>
+            <div class="flex items-center gap-3 pt-1">
+                <button type="button" class="attach-existing-close text-[12px] text-gray-600 hover:underline">Close</button>
+            </div>
         </div>
     @endif
 
-    {{-- Creating a new document is a different capability from editing
-         this task (DocumentPolicy::create / manage_documents) — gated
-         separately from $canEdit above, not folded into it. --}}
     @if ($canManageDocuments)
         @php
             // task #73 phase 1: a Client-role uploader (in this task's
@@ -50,7 +69,6 @@
             // markup were somehow bypassed.
             $isClientUploader = auth()->user()->isClientInOrg($task->organization_id);
         @endphp
-        <button type="button" class="toggle-new-document mt-2 text-[11px] font-medium text-brand-600 hover:underline">+ Add new document</button>
         <div class="new-document-form mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3">
             <div class="inline-flex rounded-md border border-gray-300 p-0.5" role="tablist">
                 <button type="button" data-new-document-mode="link" class="new-document-mode-tab rounded px-3 py-1 text-[11px] font-medium">Add link</button>
@@ -94,6 +112,8 @@
         const container = document.currentScript.previousElementSibling;
         const taskId = container.dataset.taskId;
         const organizationId = container.dataset.organizationId;
+        const projectHasClient = container.dataset.projectHasClient === '1';
+        const canUnlinkDocuments = container.dataset.canUnlinkDocuments === '1';
         const listEl = container.querySelector('.document-list');
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
@@ -189,33 +209,180 @@
             row.dataset.documentId = doc.id;
             const accessLabel = doc.access_level.charAt(0).toUpperCase() + doc.access_level.slice(1);
             const downloadUrl = '/file-downloads?url=' + encodeURIComponent(doc.url);
+            // task #73 phase 3 fix: the Detach button used to render here
+            // unconditionally, regardless of canUnlinkDocuments — unlike
+            // the initial page-load rows above, which correctly gate it.
+            // A viewer without unlinkDocuments rights who created-and-
+            // attached (or, previously, picked from the old select) would
+            // see a Detach button the endpoint would then 403 on click.
+            const detachButtonHtml = canUnlinkDocuments
+                ? '<button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>'
+                : '';
             row.innerHTML = '<div><a href="' + escapeHtml(downloadUrl) + '" target="_blank" rel="noopener" class="text-[12px] font-medium text-brand-600 hover:underline">' + escapeHtml(doc.name) + '</a>'
                 + '<span class="ml-2 rounded-sm bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">' + escapeHtml(accessLabel) + '</span></div>'
-                + '<button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>';
+                + detachButtonHtml;
             listEl.appendChild(row);
             wireDetach(row);
         }
 
-        const attachSelect = container.querySelector('.attach-document-select');
-        const attachBtn = container.querySelector('.attach-document-btn');
-        if (attachBtn) {
-            attachBtn.addEventListener('click', function () {
-                const documentId = attachSelect.value;
-                if (! documentId) return;
+        // task #73 phase 3: the attach-existing-document picker dialog —
+        // a hidden panel toggled by JS, the same pattern as the Documents
+        // page's own Edit/Delete panels (no modal component exists in
+        // this app).
+        const attachToggle = container.querySelector('.attach-existing-toggle');
+        const attachDialog = container.querySelector('.attach-existing-dialog');
+        if (attachToggle && attachDialog) {
+            const searchInput = attachDialog.querySelector('.attach-existing-search');
+            const resultsEl = attachDialog.querySelector('.attach-existing-results');
+            const statusEl = attachDialog.querySelector('.attach-existing-status');
+            const loadMoreBtn = attachDialog.querySelector('.attach-existing-load-more');
+            const closeBtn = attachDialog.querySelector('.attach-existing-close');
 
-                requestOrThrow('/tasks/' + taskId + '/documents', 'POST', { document_id: Number(documentId) }, 'Failed to attach document.')
+            let currentPage = 1;
+            let hasMore = false;
+            let searchDebounceTimer = null;
+            let requestToken = 0; // guards against an in-flight page-1 search response landing after a newer one
+
+            function pluralize(count, noun) {
+                return count + ' ' + noun + (count === 1 ? '' : 's');
+            }
+
+            function formatBytes(bytes) {
+                if (bytes === null || bytes === undefined) return null;
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+
+            function renderResultItem(doc) {
+                const li = document.createElement('li');
+
+                if (doc.already_attached) {
+                    li.className = 'rounded-md border border-gray-200 px-3 py-2 text-[12px] text-gray-400';
+                    li.innerHTML = '<span class="block truncate font-medium">' + escapeHtml(doc.name) + '</span>'
+                        + '<span class="text-[11px]">Already attached</span>';
+                    resultsEl.appendChild(li);
+                    return;
+                }
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full rounded-md border border-gray-200 px-3 py-2 text-left text-[12px] hover:border-brand-600 hover:bg-brand-50';
+
+                const metaParts = [doc.uploader_name, new Date(doc.uploaded_at).toLocaleDateString()];
+                if (doc.folder_path) metaParts.push(doc.folder_path);
+                const sizeLabel = formatBytes(doc.size_bytes);
+                if (sizeLabel) metaParts.push(sizeLabel);
+
+                let html = '<span class="block truncate font-medium text-[#1F2937]">' + escapeHtml(doc.name) + '</span>'
+                    + '<span class="block text-[11px] text-gray-500">' + escapeHtml(metaParts.join(' · ')) + '</span>';
+
+                if (doc.access_level === 'public' && projectHasClient) {
+                    html += '<span class="block text-[11px] text-amber-700">Visible to this project’s client once linked</span>';
+                }
+
+                btn.innerHTML = html;
+                btn.addEventListener('click', function () {
+                    attachDocument(doc.id, btn);
+                });
+
+                li.appendChild(btn);
+                resultsEl.appendChild(li);
+            }
+
+            function attachDocument(documentId, triggerEl) {
+                if (triggerEl) triggerEl.disabled = true;
+                statusEl.textContent = '';
+
+                requestOrThrow('/tasks/' + taskId + '/documents', 'POST', { document_id: documentId }, 'Failed to attach document.')
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) {
+                        appendDocumentRow(data.document);
+                        closeDialog(true);
+                    })
+                    .catch(function (error) {
+                        statusEl.textContent = error.message;
+                        if (triggerEl) triggerEl.disabled = false;
+                    });
+            }
+
+            function fetchResults(page, append) {
+                const token = ++requestToken;
+                const search = searchInput.value.trim();
+                statusEl.textContent = 'Loading…';
+                loadMoreBtn.classList.add('hidden');
+
+                const url = '/tasks/' + taskId + '/documents/attachable?page=' + page
+                    + (search ? '&search=' + encodeURIComponent(search) : '');
+
+                fetch(url, { headers: { Accept: 'application/json' } })
                     .then(function (response) {
+                        if (! response.ok) throw new Error('Failed to load documents.');
                         return response.json();
                     })
                     .then(function (data) {
-                        appendDocumentRow(data.document);
-                        const chosenOption = attachSelect.querySelector('option[value="' + documentId + '"]');
-                        if (chosenOption) chosenOption.remove();
-                        attachSelect.value = '';
+                        if (token !== requestToken) return; // a newer request already landed
+
+                        if (! append) resultsEl.innerHTML = '';
+                        (data.data || []).forEach(renderResultItem);
+
+                        currentPage = data.current_page;
+                        hasMore = data.current_page < data.last_page;
+                        loadMoreBtn.classList.toggle('hidden', ! hasMore);
+
+                        if ((data.data || []).length === 0 && ! append) {
+                            statusEl.textContent = 'No documents found.';
+                        } else {
+                            statusEl.textContent = '';
+                        }
                     })
                     .catch(function (error) {
-                        alert(error.message);
+                        if (token !== requestToken) return;
+                        statusEl.textContent = error.message;
                     });
+            }
+
+            function openDialog() {
+                attachToggle.setAttribute('aria-expanded', 'true');
+                attachDialog.classList.remove('hidden');
+                searchInput.value = '';
+                searchInput.focus();
+                fetchResults(1, false);
+            }
+
+            function closeDialog(returnFocus) {
+                attachToggle.setAttribute('aria-expanded', 'false');
+                attachDialog.classList.add('hidden');
+                if (returnFocus) attachToggle.focus();
+            }
+
+            attachToggle.addEventListener('click', function () {
+                if (attachDialog.classList.contains('hidden')) {
+                    openDialog();
+                } else {
+                    closeDialog(false);
+                }
+            });
+
+            closeBtn.addEventListener('click', function () {
+                closeDialog(true);
+            });
+
+            attachDialog.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    closeDialog(true);
+                }
+            });
+
+            searchInput.addEventListener('input', function () {
+                if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(function () {
+                    fetchResults(1, false);
+                }, 300);
+            });
+
+            loadMoreBtn.addEventListener('click', function () {
+                fetchResults(currentPage + 1, true);
             });
         }
 

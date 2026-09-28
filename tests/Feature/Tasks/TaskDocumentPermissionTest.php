@@ -62,15 +62,11 @@ test('a staff assignee can edit the task via the assignee bypass but does not se
     $response->assertDontSee('+ Add new document');
 });
 
-test('the same staff assignee still sees the attach-existing-document controls, since that stays under canEdit', function () {
+test('task #73 phase 3: the same staff assignee does not see the "Attach existing" button either, since that moved off canEdit onto manage_documents', function () {
     $response = $this->actingAs($this->staffAssignee)->get("/tasks/{$this->task->id}/edit");
 
     $response->assertOk();
-    // The attach-existing-document <select>'s placeholder option — unlike
-    // the .attach-document-btn CSS class, which the partial's own <script>
-    // block also references unconditionally, this text only renders
-    // inside the @if ($canEdit) attach section itself.
-    $response->assertSee('Select a document…');
+    $response->assertDontSee('Attach existing');
 });
 
 test('granting manage_documents to Staff makes the Add Document button appear for the same assignee', function () {
