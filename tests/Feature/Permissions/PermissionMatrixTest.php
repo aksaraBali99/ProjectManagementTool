@@ -129,6 +129,49 @@ test('unchecking a permission for a role in the matrix removes that capability i
     $this->actingAs($this->management)->get("/tasks/create/{$project->id}")->assertForbidden();
 });
 
+test('view_documents is locked off for Client in the matrix UI, even though Client is otherwise editable', function () {
+    $response = $this->actingAs($this->owner)->get('/roles/permissions');
+
+    $response->assertOk();
+
+    $clientRole = Role::where('slug', 'client')->firstOrFail();
+    $viewDocumentsId = Permission::where('slug', 'view_documents')->firstOrFail()->id;
+
+    // The disabled checkbox for Client + view_documents carries no name
+    // attribute at all (see the editable-checkbox branch it's NOT taking),
+    // so this asserts the forced-off markup specifically, not just "some
+    // disabled checkbox exists somewhere in the row".
+    $pattern = '/<input type="checkbox" disabled\s+title="Always off for Client"[^>]*>/';
+    expect(preg_match($pattern, $response->getContent()))->toBe(1);
+
+    // And it does NOT also render as a normal, submittable checkbox for
+    // that cell.
+    $submittablePattern = '/<input type="checkbox"\s+name="role_permissions\['.$clientRole->id.'\]\[\]"\s+value="'.$viewDocumentsId.'"/';
+    expect(preg_match($submittablePattern, $response->getContent()))->toBe(0);
+});
+
+test('view_documents cannot be enabled for Client through a direct, tampered form submission', function () {
+    $clientRole = Role::where('slug', 'client')->firstOrFail();
+    $viewDocumentsId = Permission::where('slug', 'view_documents')->firstOrFail()->id;
+    $manageDocumentsId = Permission::where('slug', 'manage_documents')->firstOrFail()->id;
+
+    $currentIds = $clientRole->permissions()->pluck('permissions.id')->all();
+
+    $this->actingAs($this->owner)->put('/roles/permissions', [
+        'role_permissions' => [
+            $clientRole->id => array_values(array_unique([...$currentIds, $viewDocumentsId, $manageDocumentsId])),
+        ],
+    ])->assertRedirect();
+
+    $freshSlugs = $clientRole->fresh()->permissions()->pluck('slug')->all();
+    expect($freshSlugs)->not->toContain('view_documents');
+    // manage_documents stays tickable for Client (task #73 phase 1) — only
+    // view_documents is forced off, so this proves the strip is scoped to
+    // that one permission, not "everything submitted for Client is
+    // ignored".
+    expect($freshSlugs)->toContain('manage_documents');
+});
+
 test('super_admin and owner columns cannot be modified through the matrix, even via a direct form submission attempt', function () {
     $superAdminRole = Role::where('slug', 'super_admin')->firstOrFail();
     $ownerRole = Role::where('slug', 'owner')->firstOrFail();

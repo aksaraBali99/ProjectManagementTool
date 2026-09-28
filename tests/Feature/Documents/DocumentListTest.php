@@ -95,7 +95,15 @@ test('a user with no document access to any company sees the empty-state Documen
     $response->assertSee("You don't have access to any companies yet.", false);
 });
 
-test('a client with an attached project gets a Documents tab, listing only that project\'s public documents', function () {
+test('a client with an attached project gets a 403 on the standalone Documents page, since view_documents is permanently locked off for Client', function () {
+    $client = makeClientForDocumentList($this->orgA, $this->projectA);
+
+    $response = $this->actingAs($client)->get('/documents');
+
+    $response->assertForbidden();
+});
+
+test('a client still sees a public document directly linked to a task on their own project, even without access to the Documents page itself', function () {
     $client = makeClientForDocumentList($this->orgA, $this->projectA);
 
     $task = Task::create([
@@ -114,13 +122,10 @@ test('a client with an attached project gets a Documents tab, listing only that 
     $internalLinked = makeDocumentForList($this->orgA, $this->management, 'internal', 'Internal linked');
     $task->documents()->attach($internalLinked->id);
 
-    $response = $this->actingAs($client)->get('/documents');
+    $response = $this->actingAs($client)->get("/tasks/{$task->id}/edit");
 
     $response->assertOk();
-    $response->assertSee('Org A');
-
-    $listedIds = $response->viewData('documents')->pluck('id')->all();
-    expect($listedIds)->toBe([$publicLinked->id]);
+    $response->assertSee('Public linked');
     $response->assertDontSee('Public unlinked');
     $response->assertDontSee('Internal linked');
 });

@@ -47,8 +47,13 @@
                                 <td class="sticky left-0 z-10 bg-white px-3 py-2.5 text-[12px] text-[#1F2937]">{{ $permission->name }}</td>
                                 @foreach ($roles as $role)
                                     @php $isEditable = in_array($role->slug, $editableRoleSlugs, true); @endphp
+                                    @php $isForcedOff = in_array($permission->id, $forcedOffPermissionIds[$role->id] ?? [], true); @endphp
                                     <td class="px-3 py-2.5 text-center">
-                                        @if ($isEditable)
+                                        @if ($isForcedOff)
+                                            <input type="checkbox" disabled
+                                                title="Always off for {{ $role->name }}"
+                                                class="rounded border-gray-200 text-gray-400">
+                                        @elseif ($isEditable)
                                             <input type="checkbox"
                                                 name="role_permissions[{{ $role->id }}][]"
                                                 value="{{ $permission->id }}"

@@ -416,13 +416,18 @@ class User extends Authenticatable
 
     /**
      * The organization IDs that get a company tab on the Documents page.
-     * Unlike boardOrganizationIds(), a client's path here is NOT gated by
-     * view_documents — a client never holds that permission by design
-     * (DocumentPolicy::view() handles their visibility entirely through
-     * access_level + task_documents project-linkage), so they still get a
-     * tab for a company where they have an attached project, same as
-     * Dashboard/Kanban's client tab, even though the permission check that
-     * gates management/staff doesn't apply to them at all.
+     * task #73 phase 1: purely hasPermission('view_documents', ...) now,
+     * for every role including management — no separate role check, and
+     * no client carve-out. A client never holds this permission by design
+     * (it's permanently locked off for the Client role, see
+     * PermissionSeeder and the Role Permissions screen's forced-state
+     * map), so this method now always excludes every client's orgs; their
+     * actual document visibility (access_level + task_documents
+     * project-linkage, independent of view_documents) is still fully
+     * handled by DocumentPolicy::view() wherever a document is reached
+     * some other way (a task's Documents tab) — this method only controls
+     * whether the standalone Documents page itself shows a tab, and
+     * canAccessDocumentsPage() below is the actual page-level gate.
      *
      * @return array<int, int>
      */
@@ -433,11 +438,37 @@ class User extends Authenticatable
         }
 
         return Collection::make($this->visibleOrganizationIds())
-            ->filter(fn ($organizationId) => $this->isManagementInOrg($organizationId)
-                || $this->hasPermission('view_documents', $organizationId)
-                || $this->projectsAsClient()->where('organization_id', $organizationId)->exists())
+            ->filter(fn ($organizationId) => $this->hasPermission('view_documents', $organizationId))
             ->values()
             ->all();
+    }
+
+    /**
+     * Gate for the Documents page itself (task #73 phase 1) — checked in
+     * DocumentController::index(). True unconditionally for super_admin/
+     * owner (they hold every permission), and for anyone who belongs to
+     * NO organization at all (the existing "you don't have access to any
+     * companies yet" empty state is the right outcome for that case, not
+     * a 403 — there's nothing to have been denied access to). Otherwise
+     * true only if the user holds view_documents in at least one of the
+     * organizations they belong to. This is what actually blocks a
+     * Client, who belongs to one or more organizations but never holds
+     * view_documents in any of them.
+     */
+    public function canAccessDocumentsPage(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isOwner()) {
+            return true;
+        }
+
+        $visibleOrganizationIds = $this->visibleOrganizationIds();
+
+        if (empty($visibleOrganizationIds)) {
+            return true;
+        }
+
+        return Collection::make($visibleOrganizationIds)
+            ->contains(fn ($organizationId) => $this->hasPermission('view_documents', $organizationId));
     }
 
     /**

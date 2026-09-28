@@ -63,6 +63,23 @@ class FileStorageService
     }
 
     /**
+     * task #73 phase 1: for an upload that has no task to key off at all —
+     * the standalone Documents page's own "Upload file" option, filed
+     * under organizations/{organizationId}/{category-prefix}/... instead
+     * of tasks/{taskId}/{category-prefix}/... (see keyFor()'s own
+     * docblock for why that root segment is now a parameter rather than
+     * hardcoded). A document uploaded from a TASK's own inline form still
+     * goes through upload() above, unchanged — this is only for the
+     * Documents-page path, which has a company but no task in scope.
+     *
+     * @throws FileStorageException file fails validation or the disk write itself fails
+     */
+    public function uploadForOrganization(UploadedFile $file, FileCategory $category, int $organizationId, ?string $desiredFilename = null): StoredFile
+    {
+        return $this->store($file, $category, (string) $organizationId, $desiredFilename, 'organizations');
+    }
+
+    /**
      * The Add Task page's rich-text editor can't key uploads off a real task
      * id — the task doesn't exist yet while it's still being drafted. Those
      * uploads land under tasks/pending/{pendingId}/{category-prefix}/... — a
@@ -166,11 +183,11 @@ class FileStorageService
         return new StoredFile(path: $toPath, url: $this->url($toPath));
     }
 
-    private function store(UploadedFile $file, FileCategory $category, string $keySegment, ?string $desiredFilename = null): StoredFile
+    private function store(UploadedFile $file, FileCategory $category, string $keySegment, ?string $desiredFilename = null, string $rootPrefix = 'tasks'): StoredFile
     {
         $this->validate($file, $category);
 
-        $path = $this->keyFor($keySegment, $category, strtolower($file->getClientOriginalExtension()), $desiredFilename);
+        $path = $this->keyFor($keySegment, $category, strtolower($file->getClientOriginalExtension()), $desiredFilename, $rootPrefix);
 
         if ($desiredFilename !== null && Storage::disk($this->disk)->exists($path)) {
             throw FileStorageException::nameCollision($path);
@@ -209,10 +226,33 @@ class FileStorageService
 
     /**
      * A previously-issued url() value is what every caller actually has on
-     * hand (a file-chip's saved href, a Document's own `link` column) —
-     * not the disk key — so this takes that URL and works backwards to the
-     * key, rather than asking callers to also track/pass the raw path.
+     * hand (a file-chip's saved href, a Document's own computed `url`) —
+     * not the disk key — so this works backwards from that URL to the key,
+     * rather than asking callers to also track/pass the raw path. Returns
+     * null (not an exception) for a $url that isn't one of this disk's
+     * own — an external Smart Link/Document link, e.g. a Google Docs URL —
+     * since there's no path to resolve for that; the caller falls back to
+     * treating it as external.
      *
+     * task #73 phase 1: pulled out of download() (its only caller before
+     * this phase) so DocumentController::download() can also use it —
+     * resolving a Document by its computed storage-backed URL when the
+     * exact-`link`-column lookup misses (an uploaded file has no `link`
+     * value at all to match against).
+     */
+    public function pathFromUrl(string $url): ?string
+    {
+        $disk = Storage::disk($this->disk);
+        $base = rtrim($disk->url(''), '/');
+
+        if (! str_starts_with($url, $base.'/')) {
+            return null;
+        }
+
+        return substr($url, strlen($base) + 1);
+    }
+
+    /**
      * 'inline' disposition (Storage::response(), not ::download()) rather
      * than always forcing a save-as: a browser that can render the type
      * itself (a PDF, an image someone linked as a "document") still shows
@@ -222,23 +262,15 @@ class FileStorageService
      * the real original name, not the tasks/{id}/documents/{uuid}.ext key,
      * which is what a plain link to the raw storage URL was always
      * saving the download as.
-     *
-     * Returns null (not an exception) for a $url that isn't one of this
-     * disk's own — an external Smart Link/Document link, e.g. a Google
-     * Docs URL — since there's nothing here to stream; the caller falls
-     * back to a plain redirect for that case instead.
      */
     public function download(string $url, string $filename): ?StreamedResponse
     {
-        $disk = Storage::disk($this->disk);
-        $base = rtrim($disk->url(''), '/');
-
-        if (! str_starts_with($url, $base.'/')) {
+        $path = $this->pathFromUrl($url);
+        if ($path === null) {
             return null;
         }
 
-        $path = substr($url, strlen($base) + 1);
-
+        $disk = Storage::disk($this->disk);
         if (! $disk->exists($path)) {
             return null;
         }
@@ -259,12 +291,16 @@ class FileStorageService
     }
 
     /**
-     * $keySegment is either a real task id (upload()) or "pending/{uuid}"
-     * (uploadPending()) — either way, tasks/{segment}/{category-prefix}/...
+     * $keySegment is a real task id (upload()), "pending/{uuid}"
+     * (uploadPending()), or a real organization id
+     * (uploadForOrganization(), task #73 phase 1) — $rootPrefix ("tasks"
+     * for the first two, "organizations" for the third) is what tells
+     * those apart; either way {rootPrefix}/{segment}/{category-prefix}/...
      * is the one layout every consumer (real uploads, pending uploads,
-     * reconciliation's move target) agrees on.
+     * reconciliation's move target, and now Documents-page uploads)
+     * agrees on.
      */
-    private function keyFor(string $keySegment, FileCategory $category, string $extension, ?string $desiredFilename = null): string
+    private function keyFor(string $keySegment, FileCategory $category, string $extension, ?string $desiredFilename = null, string $rootPrefix = 'tasks'): string
     {
         // Re-stripped here too, not just trusted from the caller (task #4,
         // clipboard paste) — this is the one place a basename actually
@@ -280,7 +316,7 @@ class FileStorageService
             $basename = (string) Str::uuid();
         }
 
-        return sprintf('tasks/%s/%s/%s.%s', $keySegment, $category->prefix(), $basename, $extension);
+        return sprintf('%s/%s/%s/%s.%s', $rootPrefix, $keySegment, $category->prefix(), $basename, $extension);
     }
 
     /**

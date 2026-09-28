@@ -6,9 +6,9 @@ use App\Enums\DocumentAccessLevel;
 use App\Enums\FileCategory;
 use App\Exceptions\FileStorageException;
 use App\Models\Comment;
-use App\Models\Document;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -74,25 +74,28 @@ class RichTextDocumentController extends Controller
         }
 
         try {
-            $stored = app(FileStorageService::class)->upload($request->file('file'), FileCategory::Document, $task->id);
+            // task #73 phase 1: same shared service the new Documents-page
+            // and Task-edit-page upload endpoints use, so an editor-attached
+            // document gets identical metadata (storage_key, hash, size,
+            // mime, original filename, origin_task_id) and the same
+            // document.uploaded audit entry as any other upload — the one
+            // difference is $populateLegacyLink: true, since a file-chip in
+            // saved rich text has no document_id to resolve by, only the
+            // href this call returns, so `link` must keep carrying the
+            // computed URL for DocumentController::download()'s exact-match
+            // lookup to keep finding it.
+            $document = app(DocumentUploadService::class)->uploadForTask(
+                $request->file('file'),
+                $task,
+                DocumentAccessLevel::Internal,
+                auth()->user(),
+                populateLegacyLink: true,
+            );
         } catch (FileStorageException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        $document = Document::create([
-            'organization_id' => $task->organization_id,
-            'uploaded_by' => auth()->id(),
-            'name' => $request->file('file')->getClientOriginalName(),
-            'link' => $stored->url,
-            'access_level' => DocumentAccessLevel::Internal,
-        ]);
-
-        // Same underlying record as the Documents page/tab, not a
-        // parallel thing that merely looks similar — this attachment is
-        // what makes it show up there too.
-        $task->documents()->attach($document->id);
-
-        return response()->json(['url' => $stored->url, 'name' => $document->name], 201);
+        return response()->json(['url' => $document->url, 'name' => $document->name], 201);
     }
 
     /**
