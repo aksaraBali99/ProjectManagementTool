@@ -97,6 +97,89 @@ class Task extends Model
     }
 
     /**
+     * task #73 phase 2: batched TaskPolicy::view(), for a viewer checking
+     * many tasks at once (the Documents page's origin column, the edit/
+     * delete dialogs' linked-task lists) without one Gate::allows() query
+     * set per task. Mirrors TaskPolicy::view() branch-for-branch — see
+     * TaskViewableIdsParityTest, which asserts the two never disagree
+     * across a matrix of roles/states — so a caller can use whichever is
+     * more convenient without risking a different answer.
+     *
+     * Deliberately NOT built on scopeVisibleTo(): that scope disagrees
+     * with TaskPolicy::view() in two ways (no hasPermission('view_tasks')
+     * gate, and allowedDepartmentIds() doesn't filter out a deactivated
+     * department) — a decision to leave alone this phase, not something
+     * this helper should inherit.
+     *
+     * One query per branch per organization represented in $taskIds, not
+     * one per task — grouping by organization_id first is what makes that
+     * possible, since hasPermission()/isManagementInOrg()/isClientInOrg()
+     * are all themselves org-scoped checks.
+     *
+     * @param  array<int, int>  $taskIds
+     * @return Collection<int, int> the subset of $taskIds this user can view
+     */
+    public static function viewableIdsFor(User $user, array $taskIds): Collection
+    {
+        $taskIds = array_values(array_unique($taskIds));
+
+        if (empty($taskIds)) {
+            return collect();
+        }
+
+        $tasks = static::query()->whereIn('id', $taskIds)
+            ->get(['id', 'organization_id', 'department_id', 'assignee_id', 'project_id']);
+
+        $viewableIds = collect();
+
+        foreach ($tasks->groupBy('organization_id') as $organizationId => $orgTasks) {
+            $organizationId = (int) $organizationId;
+
+            if (! $user->hasPermission('view_tasks', $organizationId)) {
+                continue;
+            }
+
+            if ($user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId)) {
+                $viewableIds->push(...$orgTasks->pluck('id'));
+
+                continue;
+            }
+
+            // Active-department access — one query for every department
+            // this batch of tasks touches in this org, mirroring
+            // User::hasDepartmentAccess()'s own is_active filter exactly.
+            $allowedDepartmentIds = $user->accessPermissions()
+                ->where('organization_id', $organizationId)
+                ->where('allowed', true)
+                ->whereHas('department', fn ($query) => $query->where('is_active', true))
+                ->pluck('department_id');
+
+            // Client-of-project — one query, only if this user actually
+            // holds the Client role in this org at all.
+            $clientProjectIds = $user->isClientInOrg($organizationId)
+                ? $user->projectsAsClient()->where('organization_id', $organizationId)->pluck('projects.id')
+                : collect();
+
+            // Subtask-assignee — one grouped query for every task in this
+            // org, not one per task.
+            $subtaskAssigneeTaskIds = Subtask::whereIn('task_id', $orgTasks->pluck('id'))
+                ->where('assignee_id', $user->id)
+                ->pluck('task_id');
+
+            foreach ($orgTasks as $task) {
+                if ($allowedDepartmentIds->contains($task->department_id)
+                    || $task->assignee_id === $user->id
+                    || $subtaskAssigneeTaskIds->contains($task->id)
+                    || $clientProjectIds->contains($task->project_id)) {
+                    $viewableIds->push($task->id);
+                }
+            }
+        }
+
+        return $viewableIds->values();
+    }
+
+    /**
      * Every user who would actually pass TaskPolicy::view() for THIS task
      * — the reverse direction of that check (given a task, who can see
      * it, rather than given a user, can they see this task). Not scoped

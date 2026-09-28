@@ -6,13 +6,16 @@ use App\Enums\DocumentAccessLevel;
 use App\Exceptions\FileStorageException;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\Document;
+use App\Models\DocumentFolder;
 use App\Models\Organization;
 use App\Models\Task;
+use App\Policies\DocumentPolicy;
 use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -22,7 +25,22 @@ class DocumentController extends Controller
 {
     use ResolvesCurrentOrganization;
 
-    public function index(?Organization $organization = null): View
+    /**
+     * task #73 phase 2: folders. $folder comes from a ?folder=ID query
+     * value, not a route segment — company tabs keep working exactly as
+     * before (route('documents.index', $tab), no folder param), which is
+     * what makes "switching company tab goes to that company's root"
+     * fall out for free rather than needing special-casing.
+     *
+     * No per-row queries anywhere below: edit/delete rights are two plain
+     * booleans computed ONCE for the whole company ($hasManageDocuments
+     * for documents, $canManageAnyFolder for folders, both already
+     * excluding whichever roles could never pass regardless of row), a
+     * single grouped query for linked-task counts, and one batched
+     * Task::viewableIdsFor() call (not one Gate::allows() per document)
+     * for the origin column.
+     */
+    public function index(Request $request, ?Organization $organization = null): View
     {
         $user = auth()->user();
 
@@ -45,29 +63,105 @@ class DocumentController extends Controller
             return view('documents.index', [
                 'organizations' => $organizations,
                 'organization' => null,
+                'folder' => null,
+                'breadcrumb' => collect(),
+                'folders' => collect(),
                 'documents' => collect(),
                 'canManage' => false,
+                'canManageFolders' => false,
+                'hasManageDocuments' => false,
+                'canManageAnyFolder' => false,
+                'isPrivilegedManager' => false,
+                'linkedTaskCounts' => collect(),
+                'originTasks' => collect(),
             ]);
         }
 
         $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
-        $documents = Document::where('organization_id', $organization->id)
+        // An unknown or cross-company folder id 404s — DocumentFolder's
+        // own BelongsToOrganization global scope already excludes any
+        // folder outside $user->visibleOrganizationIds(), and this
+        // ->where('organization_id', ...) on top of that further confirms
+        // it's specifically the CURRENT tab's company, not merely some
+        // other visible one.
+        $folder = null;
+        if ($folderId = $request->integer('folder')) {
+            $folder = DocumentFolder::where('organization_id', $organization->id)->find($folderId);
+            abort_if($folder === null, 404);
+        }
+
+        $breadcrumb = collect();
+        for ($cursor = $folder; $cursor !== null; $cursor = $cursor->parent) {
+            $breadcrumb->prepend($cursor);
+        }
+
+        $folders = DocumentFolder::where('organization_id', $organization->id)
+            ->where('parent_id', $folder?->id)
+            ->with('creator')
+            ->orderBy('name')
+            ->get();
+
+        $allDocuments = Document::where('organization_id', $organization->id)
+            ->where('folder_id', $folder?->id)
             ->with('uploader')
-            ->get()
-            ->filter(fn (Document $document) => Gate::allows('view', $document))
-            ->sortBy('name')
-            ->values();
+            ->get();
+
+        // DocumentPolicy::viewableIds(), not a Gate::allows('view', ...)
+        // call per document — the batched form of the exact same rule
+        // (see its own docblock and DocumentViewableIdsParityTest).
+        $viewableDocumentIds = app(DocumentPolicy::class)->viewableIds($user, $organization->id, $allDocuments);
+        $documents = $allDocuments->whereIn('id', $viewableDocumentIds->all())->sortBy('name')->values();
+
+        // One grouped query for every document on this page, not one
+        // count() per row.
+        $linkedTaskCounts = DB::table('task_documents')
+            ->whereIn('document_id', $documents->pluck('id'))
+            ->selectRaw('document_id, count(*) as aggregate')
+            ->groupBy('document_id')
+            ->pluck('aggregate', 'document_id');
+
+        // Origin column: "if origin_task_id is set, link to the task, but
+        // only when the viewer can view it" — one batched visibility
+        // check for every origin task on this page, then one query for
+        // their titles, rather than a Gate::allows('view', $task) call
+        // per document.
+        $originTaskIds = $documents->pluck('origin_task_id')->filter()->unique()->values()->all();
+        $viewableOriginTaskIds = Task::viewableIdsFor($user, $originTaskIds);
+        $originTasks = Task::whereIn('id', $viewableOriginTaskIds->all())->get(['id', 'title'])->keyBy('id');
+
+        // Edit/delete rights, computed ONCE for the whole company: the
+        // per-row comparison in the view is then just
+        // "$isPrivilegedManager || $document->uploaded_by === $user->id"
+        // (documents) or "... || $folder->created_by === $user->id"
+        // (folders) — a plain boolean comparison, no further queries.
+        // Client is excluded for documents (DocumentPolicy::canManage()'s
+        // own unconditional block) but NOT for folders (DocumentFolderPolicy
+        // has no such restriction) — two separate booleans on purpose,
+        // not one shared flag, so this mirrors each policy exactly.
+        $hasManageDocuments = ! $user->isClientInOrg($organization->id)
+            && $user->hasPermission('manage_documents', $organization->id);
+        $canManageAnyFolder = $user->hasPermission('manage_documents', $organization->id);
+        $isPrivilegedManager = $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organization->id);
 
         return view('documents.index', [
             'organizations' => $organizations,
             'organization' => $organization,
+            'folder' => $folder,
+            'breadcrumb' => $breadcrumb,
+            'folders' => $folders,
             'documents' => $documents,
             'canManage' => Gate::allows('create', [Document::class, $organization->id]),
+            'canManageFolders' => Gate::allows('create', [DocumentFolder::class, $organization->id]),
+            'hasManageDocuments' => $hasManageDocuments,
+            'canManageAnyFolder' => $canManageAnyFolder,
+            'isPrivilegedManager' => $isPrivilegedManager,
+            'linkedTaskCounts' => $linkedTaskCounts,
+            'originTasks' => $originTasks,
         ]);
     }
 
-    public function create(?Organization $organization = null): View
+    public function create(Request $request, ?Organization $organization = null): View
     {
         $manageableOrgIds = auth()->user()->documentManageableOrganizationIds();
         abort_if(empty($manageableOrgIds), 403);
@@ -82,8 +176,20 @@ class DocumentController extends Controller
 
         Gate::authorize('create', [Document::class, $organization->id]);
 
+        // task #73 phase 2: "Uploads and add-link on the Documents page
+        // go into the current folder" — carried forward from the index
+        // page's own ?folder=ID via the "+ Add new document" link, and
+        // validated against this company the same way index() validates
+        // it (an unknown or cross-company folder id 404s here too).
+        $folder = null;
+        if ($folderId = $request->integer('folder')) {
+            $folder = DocumentFolder::where('organization_id', $organization->id)->find($folderId);
+            abort_if($folder === null, 404);
+        }
+
         return view('documents.create', [
             'organization' => $organization,
+            'folder' => $folder,
             // task #73 phase 1: a Client-role uploader (manage_documents
             // stays tickable for Client) never sees the access-level
             // dropdown at all — the form always saves Public for them,
@@ -119,6 +225,7 @@ class DocumentController extends Controller
             'file' => ['nullable', 'file', 'required_without:link', 'prohibits:link'],
             'access_level' => ['required', Rule::enum(DocumentAccessLevel::class)],
             'task_id' => ['nullable', 'integer', 'exists:tasks,id'],
+            'folder_id' => ['nullable', 'integer'],
         ], [], [
             'organization_id' => 'company',
         ]);
@@ -146,6 +253,21 @@ class DocumentController extends Controller
             }
         }
 
+        // task #73 phase 2: "Uploads and add-link on the Documents page
+        // go into the current folder, with folder_id validated against
+        // the company. Uploads from tasks, the editor, and other paths go
+        // to the root." — folder_id is only ever honored here when there
+        // is NO task in scope; a task-scoped request's folder_id (if any
+        // was somehow submitted) is silently ignored, not merely
+        // unvalidated, so a task-page request can never accidentally file
+        // into a Documents-page folder.
+        $folderId = null;
+        if ($task === null && ! empty($data['folder_id'])) {
+            $folder = DocumentFolder::where('organization_id', $data['organization_id'])->find($data['folder_id']);
+            abort_if($folder === null, 404);
+            $folderId = $folder->id;
+        }
+
         $uploader = auth()->user();
         $uploadService = app(DocumentUploadService::class);
         // A Client-role uploader (manage_documents stays tickable for
@@ -168,7 +290,7 @@ class DocumentController extends Controller
                 // organizations/{id}/....
                 $document = $task !== null
                     ? $uploadService->uploadForTask($request->file('file'), $task, $accessLevel, $uploader, $data['name'])
-                    : $uploadService->uploadForOrganization($request->file('file'), $data['organization_id'], $accessLevel, $uploader, $data['name']);
+                    : $uploadService->uploadForOrganization($request->file('file'), $data['organization_id'], $accessLevel, $uploader, $data['name'], $folderId);
             } else {
                 $document = Document::create([
                     'organization_id' => $data['organization_id'],
@@ -176,6 +298,14 @@ class DocumentController extends Controller
                     'name' => $data['name'],
                     'link' => $data['link'],
                     'access_level' => $accessLevel,
+                    'folder_id' => $folderId,
+                    // task #73 phase 2 origin-coverage fix: this link
+                    // branch previously never set origin_task_id even
+                    // when task_id was given (the inline add-link form on
+                    // the Task edit page) — the Documents page's origin
+                    // column relies on it being accurate for every
+                    // creation path that actually starts from a task.
+                    'origin_task_id' => $task?->id,
                 ]);
 
                 if ($task !== null) {
@@ -195,7 +325,11 @@ class DocumentController extends Controller
         }
 
         if ($request->boolean('from_documents_page')) {
-            return redirect()->route('documents.index', $document->organization_id)->with('status', 'Document added.');
+            // Lands back in the same folder the document was just added
+            // to, not the company root — $folderId is null for a
+            // root-level add, which array_filter() then drops entirely.
+            return redirect()->route('documents.index', array_filter(['organization' => $document->organization_id, 'folder' => $folderId]))
+                ->with('status', 'Document added.');
         }
 
         return back()->with('status', 'Document added.');
@@ -241,7 +375,12 @@ class DocumentController extends Controller
             }
         }
 
-        abort_unless($document !== null, 404);
+        // task #73 phase 2: a specific message, not a bare 404 — the
+        // existing custom 404 view shows it when present (see
+        // resources/views/errors/404.blade.php), so a stale file-chip
+        // link (opened in a new tab, per app.js's click delegation) says
+        // something accurate instead of a generic "page not found".
+        abort_unless($document !== null, 404, 'This document has been removed.');
 
         // The stricter DocumentPolicy::view isn't the only door in here on
         // purpose — RichTextDocumentController's own docblock already

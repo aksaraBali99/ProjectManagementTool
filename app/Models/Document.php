@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 #[Fillable([
     'organization_id', 'uploaded_by', 'name', 'link', 'access_level',
     'storage_key', 'sha256_hash', 'size_bytes', 'mime_type', 'original_filename', 'origin_task_id',
+    'folder_id',
 ])]
 class Document extends Model
 {
@@ -53,6 +54,11 @@ class Document extends Model
     public function originTask(): BelongsTo
     {
         return $this->belongsTo(Task::class, 'origin_task_id');
+    }
+
+    public function folder(): BelongsTo
+    {
+        return $this->belongsTo(DocumentFolder::class, 'folder_id');
     }
 
     public function tasks(): BelongsToMany

@@ -4,10 +4,12 @@
 
 @section('content')
 <div class="mx-auto max-w-xl">
-    <a href="{{ route('documents.index', $organization) }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← Documents</a>
+    <a href="{{ route('documents.index', array_filter(['organization' => $organization->id, 'folder' => $folder?->id])) }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← Documents</a>
 
     <h1 class="mt-2 text-[14px] font-medium text-[#1F2937]">Add document</h1>
-    <p class="mt-1 text-[11px] text-gray-500">Adding to <span class="font-medium text-[#1F2937]">{{ $organization->name }}</span>.</p>
+    <p class="mt-1 text-[11px] text-gray-500">
+        Adding to <span class="font-medium text-[#1F2937]">{{ $organization->name }}</span>@if ($folder) / <span class="font-medium text-[#1F2937]">{{ $folder->name }}</span>@endif.
+    </p>
 
     @php
         // Sticky across a validation-error redisplay: whichever mode was
@@ -21,6 +23,13 @@
         <input type="hidden" name="organization_id" value="{{ $organization->id }}">
         <input type="hidden" name="from_documents_page" value="1">
         <input type="hidden" name="_mode" id="document-mode-input" value="{{ $initialMode }}">
+        {{-- task #73 phase 2: "Uploads and add-link on the Documents page
+             go into the current folder" — carried through as a hidden
+             field, validated server-side against this company regardless
+             (DocumentController::store()). --}}
+        @if ($folder)
+            <input type="hidden" name="folder_id" value="{{ $folder->id }}">
+        @endif
 
         <div>
             <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Source</span>

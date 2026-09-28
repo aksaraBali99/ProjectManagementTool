@@ -43,6 +43,12 @@ class DocumentUploadService
      * links and the editor's own chip-resolution needs (see
      * uploadForTask()'s own $populateLegacyLink).
      *
+     * task #73 phase 2: $folderId is the current folder on the Documents
+     * page (null = company root) — the caller (DocumentController::store())
+     * has already validated it belongs to $organizationId before this is
+     * ever reached, since that check needs a database lookup this service
+     * has no reason to duplicate.
+     *
      * @throws FileStorageException file fails validation or the disk write itself fails
      */
     public function uploadForOrganization(
@@ -51,10 +57,11 @@ class DocumentUploadService
         DocumentAccessLevel $accessLevel,
         User $uploader,
         ?string $name = null,
+        ?int $folderId = null,
     ): Document {
         $stored = $this->storage->uploadForOrganization($file, FileCategory::Document, $organizationId);
 
-        return $this->createRecord($file, $stored, $organizationId, $accessLevel, $uploader, $name, null, populateLegacyLink: false);
+        return $this->createRecord($file, $stored, $organizationId, $accessLevel, $uploader, $name, null, populateLegacyLink: false, folderId: $folderId);
     }
 
     /**
@@ -82,7 +89,9 @@ class DocumentUploadService
     ): Document {
         $stored = $this->storage->upload($file, FileCategory::Document, $task->id);
 
-        $document = $this->createRecord($file, $stored, $task->organization_id, $accessLevel, $uploader, $name, $task->id, $populateLegacyLink);
+        // folderId always null — "Uploads from tasks, the editor, and
+        // other paths go to the root" (task #73 phase 2).
+        $document = $this->createRecord($file, $stored, $task->organization_id, $accessLevel, $uploader, $name, $task->id, $populateLegacyLink, folderId: null);
 
         $task->documents()->syncWithoutDetaching([$document->id]);
 
@@ -109,6 +118,7 @@ class DocumentUploadService
         ?string $name,
         ?int $originTaskId,
         bool $populateLegacyLink,
+        ?int $folderId = null,
     ): Document {
         try {
             $document = Document::create([
@@ -122,6 +132,7 @@ class DocumentUploadService
                 'mime_type' => $file->getMimeType(),
                 'original_filename' => $file->getClientOriginalName(),
                 'origin_task_id' => $originTaskId,
+                'folder_id' => $folderId,
                 // NOT re-resolved through resolveAccessLevel() here — the
                 // editor's attach-document button (uploadForTask() via
                 // RichTextDocumentController) has never offered a

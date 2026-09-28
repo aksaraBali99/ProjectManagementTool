@@ -102,6 +102,18 @@ test('a url with no matching Document record 404s rather than proxying an arbitr
         ->assertNotFound();
 });
 
+test('a url whose Document was deleted (task #73 phase 2) 404s with a friendly "removed" message, not a generic not-found page', function () {
+    $document = uploadDocumentForDownload($this->management, $this->task, 'Now gone.pdf');
+    $url = $document->link;
+    $document->delete();
+
+    $response = $this->actingAs($this->management)->get('/file-downloads?url='.urlencode($url));
+
+    $response->assertNotFound();
+    $response->assertSee('This document has been removed.');
+    $response->assertDontSee("We couldn't find the page you're looking for.", false);
+});
+
 test('a client can download a document they themselves attached via a comment on their own project, even though it defaults to internal access and they hold no view_documents permission', function () {
     $client = makeClientWithProjectAccessForDownload($this->org, $this->project);
 

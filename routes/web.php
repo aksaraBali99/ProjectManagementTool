@@ -11,6 +11,7 @@ use App\Http\Controllers\CommentReactionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentManagementController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentFolderController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\KanbanController;
 use App\Http\Controllers\LinkPreviewController;
@@ -170,6 +171,11 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/documents/{organization?}', [DocumentController::class, 'index'])->name('documents.index');
     Route::post('/tasks/{task}/documents', [TaskDocumentController::class, 'attach'])->name('task-documents.attach');
     Route::delete('/tasks/{task}/documents/{document}', [TaskDocumentController::class, 'detach'])->name('task-documents.detach');
+
+    // task #73 phase 2
+    Route::post('/document-folders', [DocumentFolderController::class, 'store'])->name('document-folders.store');
+    Route::put('/document-folders/{folder}', [DocumentFolderController::class, 'update'])->name('document-folders.update');
+    Route::delete('/document-folders/{folder}', [DocumentFolderController::class, 'destroy'])->name('document-folders.destroy');
 
     // Must stay registered after /tasks/create/{project?} above — both are
     // single-optional-segment GET routes, and Laravel matches in
