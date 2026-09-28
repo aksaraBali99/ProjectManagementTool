@@ -31,9 +31,7 @@ use Throwable;
  */
 class DocumentUploadService
 {
-    public function __construct(private readonly FileStorageService $storage)
-    {
-    }
+    public function __construct(private readonly FileStorageService $storage) {}
 
     /**
      * Documents page's own "Upload file" option — no task in scope at

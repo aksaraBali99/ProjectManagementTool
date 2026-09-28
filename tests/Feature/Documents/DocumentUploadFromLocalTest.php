@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\DocumentAccessLevel;
+use App\Models\AccessPermission;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
@@ -9,6 +11,7 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\DocumentUploadService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
@@ -240,7 +243,7 @@ test('manage_documents ON/OFF for Staff also gates the task edit page\'s own inl
     // hasDepartmentAccess() — separate from manage_documents — is what
     // this test isn't about, so it's granted up front here, unaffected by
     // the manage_documents toggle exercised below.
-    \App\Models\AccessPermission::create([
+    AccessPermission::create([
         'user_id' => $staff->id,
         'organization_id' => $this->orgA->id,
         'department_id' => $this->deptA->id,
@@ -374,10 +377,10 @@ test('a failure creating the document record after a successful upload removes t
     try {
         $thrown = null;
         try {
-            app(App\Services\DocumentUploadService::class)->uploadForOrganization(
+            app(DocumentUploadService::class)->uploadForOrganization(
                 fakeUploadDoc(),
                 $this->orgA->id,
-                App\Enums\DocumentAccessLevel::Internal,
+                DocumentAccessLevel::Internal,
                 $this->management,
                 'Will fail',
             );
