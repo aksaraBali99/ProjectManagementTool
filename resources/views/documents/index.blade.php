@@ -193,7 +193,7 @@
                                             <p class="blocked-message font-medium text-red-800"></p>
                                             <ul class="blocked-task-list mt-1.5 space-y-1"></ul>
                                             <p class="blocked-hidden-count mt-1 text-gray-500"></p>
-                                            <button type="button" class="cancel-delete-document-btn mt-2 text-[12px] text-gray-600 hover:underline">Cancel</button>
+                                            <div class="blocked-actions mt-2 flex items-center gap-3"></div>
                                         </div>
                                         <div class="delete-document-confirm hidden rounded-md border border-gray-200 p-3 text-[12px]">
                                             <p class="delete-confirm-message text-[#1F2937]"></p>
@@ -330,30 +330,44 @@
         // used identically by the Edit panel's blocked-to-private state
         // and the Delete panel's blocked state, since the server sends
         // both in the exact same shape.
-        function renderBlocked(blockedEl, data, documentId, onUnlinked) {
+        //
+        // onCancel is optional: when given (the Delete panel), each
+        // task's Unlink button and a single Cancel button are rendered
+        // together into a shared .blocked-actions row, in that order —
+        // Unlink(s) first (left), Cancel last (right) — regardless of how
+        // many tasks are linked, and the list itself becomes plain,
+        // read-only titles. Without it (the Edit panel, which has no
+        // .blocked-actions element and its own Save/Cancel row above),
+        // each task keeps its own inline Unlink button instead.
+        function renderBlocked(blockedEl, data, documentId, onUnlinked, onCancel) {
             blockedEl.querySelector('.blocked-message').textContent = data.message;
 
             const list = blockedEl.querySelector('.blocked-task-list');
             list.innerHTML = '';
             (data.linked_tasks || []).forEach(function (task) {
                 const item = document.createElement('li');
-                item.className = 'flex items-center justify-between gap-2';
+                item.className = onCancel ? '' : 'flex items-center justify-between gap-2';
                 const link = document.createElement('a');
                 link.href = '/tasks/' + task.id + '/edit';
                 link.target = '_blank';
                 link.rel = 'noopener';
                 link.className = 'text-brand-600 hover:underline';
                 link.textContent = task.title;
-                const unlinkBtn = document.createElement('button');
-                unlinkBtn.type = 'button';
-                unlinkBtn.className = 'text-gray-500 hover:underline';
-                unlinkBtn.textContent = 'Unlink';
-                unlinkBtn.addEventListener('click', function () {
-                    requestOrThrowSimple('/tasks/' + task.id + '/documents/' + documentId, 'DELETE', undefined, 'Failed to unlink.')
-                        .then(onUnlinked)
-                        .catch(function (error) { alert(error.message); });
-                });
-                item.append(link, unlinkBtn);
+                item.appendChild(link);
+
+                if (! onCancel) {
+                    const unlinkBtn = document.createElement('button');
+                    unlinkBtn.type = 'button';
+                    unlinkBtn.className = 'text-gray-500 hover:underline';
+                    unlinkBtn.textContent = 'Unlink';
+                    unlinkBtn.addEventListener('click', function () {
+                        requestOrThrowSimple('/tasks/' + task.id + '/documents/' + documentId, 'DELETE', undefined, 'Failed to unlink.')
+                            .then(onUnlinked)
+                            .catch(function (error) { alert(error.message); });
+                    });
+                    item.appendChild(unlinkBtn);
+                }
+
                 list.appendChild(item);
             });
 
@@ -363,6 +377,31 @@
                 hiddenCountEl.style.display = '';
             } else {
                 hiddenCountEl.style.display = 'none';
+            }
+
+            const actionsEl = blockedEl.querySelector('.blocked-actions');
+            if (onCancel && actionsEl) {
+                actionsEl.innerHTML = '';
+
+                (data.linked_tasks || []).forEach(function (task) {
+                    const unlinkBtn = document.createElement('button');
+                    unlinkBtn.type = 'button';
+                    unlinkBtn.className = 'rounded-md border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50';
+                    unlinkBtn.textContent = (data.linked_tasks.length > 1) ? 'Unlink "' + task.title + '"' : 'Unlink';
+                    unlinkBtn.addEventListener('click', function () {
+                        requestOrThrowSimple('/tasks/' + task.id + '/documents/' + documentId, 'DELETE', undefined, 'Failed to unlink.')
+                            .then(onUnlinked)
+                            .catch(function (error) { alert(error.message); });
+                    });
+                    actionsEl.appendChild(unlinkBtn);
+                });
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.className = 'cancel-delete-document-btn text-[12px] text-gray-600 hover:underline';
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.addEventListener('click', onCancel);
+                actionsEl.appendChild(cancelBtn);
             }
 
             blockedEl.classList.remove('hidden');
@@ -480,7 +519,7 @@
                                 message: 'This document is still attached to ' + data.linked_task_count + ' tasks. Remove it from them first.',
                                 linked_tasks: data.viewable_tasks,
                                 hidden_linked_task_count: data.hidden_linked_task_count,
-                            }, documentId, checkDeleteDependencies);
+                            }, documentId, checkDeleteDependencies, closeAllPanels);
                         } else {
                             confirmEl.querySelector('.delete-confirm-message').textContent =
                                 'Permanently delete "' + documentName + '"? This can\'t be undone.';
@@ -493,10 +532,11 @@
                     });
             }
 
-            // Two Cancel buttons share this class — one in the blocked
-            // (linked-tasks) state, one in the plain delete-confirmation
-            // state — both just close the panel without unlinking or
-            // deleting anything.
+            // The plain delete-confirmation state's own static Cancel
+            // button — the blocked (linked-tasks) state's Cancel is
+            // rendered dynamically by renderBlocked() (via its onCancel
+            // param) and wired there instead, since it doesn't exist in
+            // the initial page markup at all.
             deletePanel.querySelectorAll('.cancel-delete-document-btn').forEach(function (btn) {
                 btn.addEventListener('click', closeAllPanels);
             });
