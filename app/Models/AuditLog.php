@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DocumentAccessLevel;
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
 use App\Support\RichText;
@@ -147,7 +148,13 @@ class AuditLog extends Model
     private function formatFieldValue(string $field, mixed $value): string
     {
         if ($value === null) {
-            return $field === 'assignee_id' ? 'Unassigned' : '—';
+            return match ($field) {
+                'assignee_id' => 'Unassigned',
+                // task #73 phase 2: document.moved's own from/to shape —
+                // null folder_id means the company root, not "nothing".
+                'folder_id' => 'Company root',
+                default => '—',
+            };
         }
 
         return match ($field) {
@@ -155,6 +162,9 @@ class AuditLog extends Model
             'priority' => Priority::tryFrom($value)?->label() ?? (string) $value,
             'assignee_id' => User::find($value)?->name ?? "User #{$value}",
             'is_done' => $value ? 'Done' : 'Not done',
+            // task #73 phase 2: document.moved/document.access_level_changed.
+            'folder_id' => DocumentFolder::find($value)?->name ?? "Folder #{$value}",
+            'access_level' => DocumentAccessLevel::tryFrom($value)?->label() ?? (string) $value,
             // Stored as editor HTML now — show the words, not the tags.
             'description', 'body' => RichText::plainText((string) $value) ?: '—',
             default => is_bool($value) ? ($value ? 'Yes' : 'No') : (string) $value,

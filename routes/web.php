@@ -157,6 +157,12 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
 
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('/documents/create/{organization?}', [DocumentController::class, 'create'])->name('documents.create');
+    // task #73 phase 2 — a fixed trailing segment, so this never competes
+    // with /documents/{organization?} below regardless of registration
+    // order (that one only ever matches zero or one segment).
+    Route::get('/documents/{document}/dependencies', [DocumentController::class, 'dependencies'])->name('documents.dependencies');
+    Route::put('/documents/{document}', [DocumentController::class, 'update'])->name('documents.update');
+    Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
     // A standalone top-level path, not /documents/download — the latter
     // would hit the same "swallowed by the optional-segment route below"
     // problem /documents/create already has to dodge with ordering, and

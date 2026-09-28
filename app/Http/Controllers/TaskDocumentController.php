@@ -30,9 +30,16 @@ class TaskDocumentController extends Controller
         return response()->json(['document' => $document]);
     }
 
+    /**
+     * task #73 phase 2: gated by TaskPolicy::unlinkDocuments() — manage_
+     * documents plus being able to view the task — not task-edit rights.
+     * This is what the Documents page's own delete/edit dialogs reuse for
+     * their Unlink buttons too (no separate route; see those controllers'
+     * own docblocks), not just the Task edit page's inline Detach button.
+     */
     public function detach(Task $task, Document $document): JsonResponse
     {
-        Gate::authorize('update', $task);
+        Gate::authorize('unlinkDocuments', $task);
 
         $task->documents()->detach($document->id);
 

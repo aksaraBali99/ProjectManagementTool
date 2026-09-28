@@ -11,7 +11,12 @@
                     <a href="{{ route('file-downloads.show', ['url' => $document->url]) }}" target="_blank" rel="noopener" class="text-[12px] font-medium text-brand-600 hover:underline">{{ $document->name }}</a>
                     <span class="ml-2 rounded-sm bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">{{ $document->access_level->label() }}</span>
                 </div>
-                @if ($canEdit)
+                {{-- task #73 phase 2: TaskPolicy::unlinkDocuments() —
+                     manage_documents + task view, NOT $canEdit (task-edit
+                     rights) — deliberately its own gate, separate from
+                     the attach-existing-document picker below, which is
+                     out of scope this phase and keeps using $canEdit. --}}
+                @if ($canUnlinkDocuments)
                     <button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>
                 @endif
             </div>

@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Enums\DocumentAccessLevel;
 use App\Exceptions\FileStorageException;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
+use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\DocumentFolder;
 use App\Models\Organization;
 use App\Models\Task;
 use App\Policies\DocumentPolicy;
+use App\Services\DocumentDependencyService;
 use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use Illuminate\Http\JsonResponse;
@@ -17,9 +19,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class DocumentController extends Controller
 {
@@ -333,6 +337,195 @@ class DocumentController extends Controller
         }
 
         return back()->with('status', 'Document added.');
+    }
+
+    /**
+     * task #73 phase 2: the ONE preview endpoint both the Edit dialog
+     * (blocked-to-private / confirm-to-public) and the Delete dialog call
+     * before showing anything — same authorization as actually editing or
+     * deleting (DocumentPolicy::canManage(), shared by update()/delete()
+     * below), since this reveals linked task titles that gate applies to
+     * either way.
+     */
+    public function dependencies(Document $document): JsonResponse
+    {
+        Gate::authorize('update', $document);
+
+        return response()->json(app(DocumentDependencyService::class)->summarize($document, auth()->user()));
+    }
+
+    /**
+     * Rename, move, and/or change access level — one endpoint, since the
+     * three share the same authorization (DocumentPolicy::update()) and a
+     * request can change any combination of them at once. Each field that
+     * actually changes gets its own audit entry (document.renamed/
+     * document.moved/document.access_level_changed), not one combined
+     * "document.updated" — matching the task's own audit-action list.
+     *
+     * The access-level blocking/confirmation rules are re-derived from
+     * the database here via DocumentDependencyService, never trusted from
+     * whatever an earlier dependencies() preview call said.
+     */
+    public function update(Request $request, Document $document): JsonResponse
+    {
+        Gate::authorize('update', $document);
+
+        $data = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'folder_id' => ['sometimes', 'nullable', 'integer'],
+            'access_level' => ['sometimes', Rule::enum(DocumentAccessLevel::class)],
+            'confirm_public_visibility' => ['sometimes', 'boolean'],
+        ]);
+
+        // Move: "the target must be a folder in the same company, or the
+        // root. No rights over the folder are needed" — so this is a
+        // plain existence/company check, not a Gate call.
+        $targetFolderId = $document->folder_id;
+        if (array_key_exists('folder_id', $data)) {
+            if ($data['folder_id'] !== null) {
+                $targetFolder = DocumentFolder::where('organization_id', $document->organization_id)->find($data['folder_id']);
+                abort_if($targetFolder === null, 404);
+                $targetFolderId = $targetFolder->id;
+            } else {
+                $targetFolderId = null;
+            }
+        }
+
+        $dependencyService = app(DocumentDependencyService::class);
+
+        if (array_key_exists('access_level', $data)) {
+            $requestedAccessLevel = DocumentAccessLevel::from($data['access_level']);
+
+            if ($requestedAccessLevel !== $document->access_level) {
+                $summary = $dependencyService->summarize($document, auth()->user());
+
+                // "To private while attached directly to any task:
+                // blocked." Same response shape/wording as delete.
+                if ($requestedAccessLevel === DocumentAccessLevel::Private && $summary['linked_task_count'] > 0) {
+                    return response()->json($dependencyService->blockedResponse($summary), 422);
+                }
+
+                // "To public from any other level while linked: requires
+                // explicit confirmation... Not blocked." — enforced as a
+                // required confirmation flag on the request, not merely a
+                // UI dialog: a request without it, when confirmation is
+                // actually needed, is rejected exactly like the private-
+                // block case, just with a different, non-blocking reason.
+                if ($requestedAccessLevel === DocumentAccessLevel::Public
+                    && $summary['client_project_count'] > 0
+                    && ! $request->boolean('confirm_public_visibility')) {
+                    return response()->json([
+                        'message' => "Visible to the clients of {$summary['client_project_count']} linked projects.",
+                        'requires_confirmation' => true,
+                        'client_project_count' => $summary['client_project_count'],
+                    ], 422);
+                }
+            }
+        }
+
+        $auditEntries = [];
+
+        if (array_key_exists('name', $data) && $data['name'] !== $document->name) {
+            $auditEntries[] = ['action' => 'document.renamed', 'changes' => ['name' => ['old' => $document->name, 'new' => $data['name']]]];
+            $document->name = $data['name'];
+        }
+
+        if ($targetFolderId !== $document->folder_id) {
+            $auditEntries[] = ['action' => 'document.moved', 'changes' => ['folder_id' => ['old' => $document->folder_id, 'new' => $targetFolderId]]];
+            $document->folder_id = $targetFolderId;
+        }
+
+        if (array_key_exists('access_level', $data)) {
+            $requestedAccessLevel = DocumentAccessLevel::from($data['access_level']);
+            if ($requestedAccessLevel !== $document->access_level) {
+                $auditEntries[] = ['action' => 'document.access_level_changed', 'changes' => ['access_level' => ['old' => $document->access_level->value, 'new' => $requestedAccessLevel->value]]];
+                $document->access_level = $requestedAccessLevel;
+            }
+        }
+
+        $document->save();
+
+        foreach ($auditEntries as $entry) {
+            AuditLog::create([
+                'organization_id' => $document->organization_id,
+                'user_id' => auth()->id(),
+                'action' => $entry['action'],
+                'entity_type' => 'document',
+                'entity_id' => $document->id,
+                'changes' => $entry['changes'],
+            ]);
+        }
+
+        return response()->json(['document' => $document->fresh('uploader')]);
+    }
+
+    /**
+     * Hard delete, permanent, blocked while attached directly to any
+     * task. The re-check inside the transaction (with the row locked) is
+     * what actually decides whether this succeeds — the dependencies()
+     * preview a caller fetched earlier is never trusted, since another
+     * request could have attached this document to a task in between.
+     *
+     * The stored file (if any) is removed only AFTER the transaction
+     * commits, and only if storage_key is set — never derived from
+     * `link`, which an external-link document has instead and which this
+     * app never wrote to disk. A storage failure is logged, not fatal:
+     * the document record is already gone by that point regardless.
+     */
+    public function destroy(Document $document): JsonResponse
+    {
+        Gate::authorize('delete', $document);
+
+        $result = DB::transaction(function () use ($document) {
+            $locked = Document::whereKey($document->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->tasks()->count() > 0) {
+                return ['blocked' => true, 'document' => $locked];
+            }
+
+            AuditLog::create([
+                'organization_id' => $locked->organization_id,
+                'user_id' => auth()->id(),
+                'action' => 'document.deleted',
+                'entity_type' => 'document',
+                'entity_id' => $locked->id,
+                'changes' => [
+                    'name' => $locked->name,
+                    'uploaded_by' => $locked->uploaded_by,
+                    'storage_key' => $locked->storage_key,
+                    'original_filename' => $locked->original_filename,
+                    // Always empty this phase — delete is blocked outright
+                    // while any task_documents row exists, so there is
+                    // never a linked task left by the time this runs.
+                    // Phase 4 extends the rule this field exists for.
+                    'linked_task_ids' => [],
+                ],
+            ]);
+
+            $storageKey = $locked->storage_key;
+            $locked->delete();
+
+            return ['blocked' => false, 'storage_key' => $storageKey];
+        });
+
+        if ($result['blocked']) {
+            $summary = app(DocumentDependencyService::class)->summarize($result['document'], auth()->user());
+
+            return response()->json(app(DocumentDependencyService::class)->blockedResponse($summary), 422);
+        }
+
+        if ($result['storage_key'] !== null) {
+            try {
+                app(FileStorageService::class)->delete($result['storage_key']);
+            } catch (Throwable $e) {
+                Log::warning('Failed to delete stored file for a deleted document.', [
+                    'storage_key' => $result['storage_key'],
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return response()->json(['deleted' => true]);
     }
 
     /**
