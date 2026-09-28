@@ -5,6 +5,7 @@ use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -262,13 +263,13 @@ test('the popover script opens task links in a new tab without leaking an opener
  */
 function grantManageDocumentsForLinkedTasksTest(Role $role): void
 {
-    $manageDocumentsId = \App\Models\Permission::where('slug', 'manage_documents')->firstOrFail()->id;
+    $manageDocumentsId = Permission::where('slug', 'manage_documents')->firstOrFail()->id;
     grantPermissionForLinkedTasksTest($role, $manageDocumentsId);
 }
 
 function grantViewDocumentsForLinkedTasksTest(Role $role): void
 {
-    $viewDocumentsId = \App\Models\Permission::where('slug', 'view_documents')->firstOrFail()->id;
+    $viewDocumentsId = Permission::where('slug', 'view_documents')->firstOrFail()->id;
     grantPermissionForLinkedTasksTest($role, $viewDocumentsId);
 }
 

@@ -3,7 +3,6 @@
 use App\Models\DocumentFolder;
 use App\Models\Organization;
 use App\Models\OrgMember;
-use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 
