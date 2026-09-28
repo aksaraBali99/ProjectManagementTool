@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1790585911.3768113,
-    "ast_hash": "393b7f5dcffecaecc74cd25b9372c165",
+    "mtime": 1790587726.105468,
+    "ast_hash": "4f8ad270583f7a43c7a45458f6bae7ce",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "resources/views/documents/index.blade.php": {
-    "mtime": 1790581326.9744225,
-    "ast_hash": "8f06b560bb4a0cb98857d311684e2604",
+    "mtime": 1790587801.8234258,
+    "ast_hash": "17b3c18864374dbe1f82c22bfdba60f8",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentCreateTest.php": {

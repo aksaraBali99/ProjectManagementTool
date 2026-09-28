@@ -63,6 +63,7 @@
                     <x-th>Uploaded by / Created by</x-th>
                     <x-th>Origin</x-th>
                     <x-th>Linked tasks</x-th>
+                    <x-th>Actions</x-th>
                 </x-table-header>
                 <tbody class="document-list block divide-y divide-gray-100 bg-white md:table-row-group">
                     {{-- Folders first (alphabetical, already ordered by the
@@ -77,12 +78,6 @@
                                     <span aria-hidden="true">📁</span>
                                     <span>{{ $subfolder->name }}</span>
                                 </a>
-                                @if ($canManageThisFolder)
-                                    <span class="ml-2 inline-flex gap-2">
-                                        <button type="button" class="rename-folder-btn text-[11px] text-gray-500 hover:underline">Rename</button>
-                                        <button type="button" class="delete-folder-btn text-[11px] text-gray-500 hover:underline">Delete</button>
-                                    </span>
-                                @endif
                             </td>
                             <td class="hidden md:table-cell md:px-3 md:py-2.5"></td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
@@ -95,22 +90,33 @@
                             </td>
                             <td class="hidden md:table-cell md:px-3 md:py-2.5"></td>
                             <td class="hidden md:table-cell md:px-3 md:py-2.5"></td>
+                            <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
+                                @if ($canManageThisFolder)
+                                    <span class="inline-flex gap-2">
+                                        <button type="button" class="rename-folder-btn text-[11px] text-gray-500 hover:underline">Rename</button>
+                                        <button type="button" class="delete-folder-btn text-[11px] text-gray-500 hover:underline">Delete</button>
+                                    </span>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                     @forelse ($documents as $document)
-                        <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0" data-document-id="{{ $document->id }}">
+                        @php $canManageThisDocument = $hasManageDocuments && ($isPrivilegedManager || $document->uploaded_by === auth()->id()); @endphp
+                        <tr class="document-row block px-3 py-2.5 md:table-row md:px-0 md:py-0" data-document-id="{{ $document->id }}">
                             <td class="text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
-                                <a href="{{ route('file-downloads.show', ['url' => $document->url]) }}" target="_blank" rel="noopener noreferrer" class="hover:underline">{{ $document->name }}</a>
+                                <a href="{{ route('file-downloads.show', ['url' => $document->url]) }}" target="_blank" rel="noopener noreferrer" class="document-name-link hover:underline">{{ $document->name }}</a>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Access level</span>
-                                @if ($document->access_level === \App\Enums\DocumentAccessLevel::Private)
-                                    <span class="rounded-sm bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $document->access_level->label() }}</span>
-                                @elseif ($document->access_level === \App\Enums\DocumentAccessLevel::Internal)
-                                    <span class="rounded-sm bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">{{ $document->access_level->label() }}</span>
-                                @else
-                                    <span class="rounded-sm bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">{{ $document->access_level->label() }}</span>
-                                @endif
+                                <span class="document-access-badge">
+                                    @if ($document->access_level === \App\Enums\DocumentAccessLevel::Private)
+                                        <span class="rounded-sm bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">{{ $document->access_level->label() }}</span>
+                                    @elseif ($document->access_level === \App\Enums\DocumentAccessLevel::Internal)
+                                        <span class="rounded-sm bg-[#FDF1D9] px-2 py-0.5 text-[10px] font-medium text-[#8A5A00]">{{ $document->access_level->label() }}</span>
+                                    @else
+                                        <span class="rounded-sm bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">{{ $document->access_level->label() }}</span>
+                                    @endif
+                                </span>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Uploaded by</span>
@@ -133,10 +139,76 @@
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Linked tasks</span>
                                 <span>{{ $linkedTaskCounts[$document->id] ?? 0 }}</span>
                             </td>
+                            <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
+                                @if ($canManageThisDocument)
+                                    <span class="inline-flex gap-2">
+                                        <button type="button" class="edit-document-btn text-[11px] text-gray-500 hover:underline">Edit</button>
+                                        <button type="button" class="delete-document-btn text-[11px] text-gray-500 hover:underline">Delete</button>
+                                    </span>
+                                @endif
+                            </td>
                         </tr>
+                        @if ($canManageThisDocument)
+                            <tr class="document-panel-row hidden" data-panel-for-document="{{ $document->id }}">
+                                <td colspan="6" class="border-t border-gray-100 bg-gray-50 px-3 py-3">
+                                    {{-- Edit: rename / move / access level. --}}
+                                    <div class="edit-document-panel hidden space-y-2">
+                                        <div>
+                                            <label class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</label>
+                                            <input type="text" class="edit-document-name mt-1 w-full max-w-sm rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" value="{{ $document->name }}">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Folder</label>
+                                            <select class="edit-document-folder mt-1 w-full max-w-sm rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                                                <option value="" {{ $document->folder_id === null ? 'selected' : '' }}>{{ $organization->name }} (root)</option>
+                                                @foreach ($allFolders as $folderOption)
+                                                    <option value="{{ $folderOption->id }}" {{ $document->folder_id === $folderOption->id ? 'selected' : '' }}>{{ $folderOption->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Access level</label>
+                                            <select class="edit-document-access mt-1 w-full max-w-sm rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                                                @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
+                                                    <option value="{{ $accessCase->value }}" {{ $document->access_level === $accessCase ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="flex items-center gap-3 pt-1">
+                                            <button type="button" class="save-document-btn rounded-md bg-brand-600 px-3 py-2 text-[12px] font-medium text-white hover:bg-brand-700">Save</button>
+                                            <button type="button" class="cancel-edit-document-btn text-[12px] text-gray-600 hover:underline">Cancel</button>
+                                        </div>
+                                        <p class="edit-document-error text-[11px] text-red-600" style="display: none;"></p>
+                                        {{-- "Blocked" (to Private, while linked) — same shape/wording as delete's own block. --}}
+                                        <div class="edit-document-blocked hidden rounded-md border border-red-200 bg-red-50 p-3 text-[11px]">
+                                            <p class="blocked-message font-medium text-red-800"></p>
+                                            <ul class="blocked-task-list mt-1.5 space-y-1"></ul>
+                                            <p class="blocked-hidden-count mt-1 text-gray-500"></p>
+                                        </div>
+                                    </div>
+
+                                    {{-- Delete: preview first, then either the blocked (linked-tasks) state or a plain permanent-delete confirmation. --}}
+                                    <div class="delete-document-panel hidden space-y-2">
+                                        <div class="delete-document-blocked hidden rounded-md border border-red-200 bg-red-50 p-3 text-[11px]">
+                                            <p class="blocked-message font-medium text-red-800"></p>
+                                            <ul class="blocked-task-list mt-1.5 space-y-1"></ul>
+                                            <p class="blocked-hidden-count mt-1 text-gray-500"></p>
+                                        </div>
+                                        <div class="delete-document-confirm hidden rounded-md border border-gray-200 p-3 text-[12px]">
+                                            <p class="delete-confirm-message text-[#1F2937]"></p>
+                                            <div class="mt-2 flex items-center gap-3">
+                                                <button type="button" class="confirm-delete-document-btn rounded-md bg-red-600 px-3 py-2 text-[12px] font-medium text-white hover:bg-red-700">Delete permanently</button>
+                                                <button type="button" class="cancel-delete-document-btn text-[12px] text-gray-600 hover:underline">Cancel</button>
+                                            </div>
+                                        </div>
+                                        <p class="delete-document-error text-[11px] text-red-600" style="display: none;"></p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
                     @empty
                         @if ($folders->isEmpty())
-                            <x-empty-table-row colspan="5" py="6">No folders or documents here yet.</x-empty-table-row>
+                            <x-empty-table-row colspan="6" py="6">No folders or documents here yet.</x-empty-table-row>
                         @endif
                     @endforelse
                 </tbody>
@@ -166,12 +238,22 @@
                 },
                 body: body ? JSON.stringify(body) : undefined,
             }).then(function (response) {
-                if (response.ok) return response;
-                return response.json().catch(function () { return null; }).then(function (data) {
-                    const fieldErrors = data && data.errors ? Object.values(data.errors)[0] : null;
-                    const message = (Array.isArray(fieldErrors) && fieldErrors[0]) || (data && data.message) || fallback;
-                    throw new Error(message);
+                return response.json().catch(function () { return {}; }).then(function (data) {
+                    return { ok: response.ok, status: response.status, data: data };
                 });
+            });
+        }
+
+        // Same as requestOrThrow, but throws on a non-ok response instead
+        // of resolving with it — for the simpler fire-and-reload actions
+        // (folder create/rename/delete) that don't need to inspect a
+        // structured error body.
+        function requestOrThrowSimple(url, method, body, fallback) {
+            return requestOrThrow(url, method, body, fallback).then(function (result) {
+                if (result.ok) return result;
+                const fieldErrors = result.data && result.data.errors ? Object.values(result.data.errors)[0] : null;
+                const message = (Array.isArray(fieldErrors) && fieldErrors[0]) || (result.data && result.data.message) || fallback;
+                throw new Error(message);
             });
         }
 
@@ -190,7 +272,7 @@
                 const errorEl = document.querySelector('.new-folder-error');
                 errorEl.style.display = 'none';
 
-                requestOrThrow('/document-folders', 'POST', {
+                requestOrThrowSimple('/document-folders', 'POST', {
                     organization_id: Number(organizationId),
                     parent_id: currentFolderId ? Number(currentFolderId) : null,
                     name: nameInput.value.trim(),
@@ -216,7 +298,7 @@
                     const newName = window.prompt('Rename folder', currentName);
                     if (newName === null || newName.trim() === '' || newName.trim() === currentName) return;
 
-                    requestOrThrow('/document-folders/' + folderId, 'PUT', { name: newName.trim() }, 'Failed to rename folder.')
+                    requestOrThrowSimple('/document-folders/' + folderId, 'PUT', { name: newName.trim() }, 'Failed to rename folder.')
                         .then(function () {
                             window.location.reload();
                         })
@@ -231,12 +313,201 @@
                 deleteBtn.addEventListener('click', function () {
                     if (! confirm('Delete this folder? This only works while it is empty.')) return;
 
-                    requestOrThrow('/document-folders/' + folderId, 'DELETE', undefined, 'Failed to delete folder.')
+                    requestOrThrowSimple('/document-folders/' + folderId, 'DELETE', undefined, 'Failed to delete folder.')
                         .then(function () {
                             window.location.reload();
                         })
                         .catch(function (error) {
                             alert(error.message);
+                        });
+                });
+            }
+        });
+
+        // Renders the shared "blocked" shape (message + viewable tasks
+        // with Unlink buttons + hidden count) into a given container —
+        // used identically by the Edit panel's blocked-to-private state
+        // and the Delete panel's blocked state, since the server sends
+        // both in the exact same shape.
+        function renderBlocked(blockedEl, data, documentId, onUnlinked) {
+            blockedEl.querySelector('.blocked-message').textContent = data.message;
+
+            const list = blockedEl.querySelector('.blocked-task-list');
+            list.innerHTML = '';
+            (data.linked_tasks || []).forEach(function (task) {
+                const item = document.createElement('li');
+                item.className = 'flex items-center justify-between gap-2';
+                const link = document.createElement('a');
+                link.href = '/tasks/' + task.id + '/edit';
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.className = 'text-brand-600 hover:underline';
+                link.textContent = task.title;
+                const unlinkBtn = document.createElement('button');
+                unlinkBtn.type = 'button';
+                unlinkBtn.className = 'text-gray-500 hover:underline';
+                unlinkBtn.textContent = 'Unlink';
+                unlinkBtn.addEventListener('click', function () {
+                    requestOrThrowSimple('/tasks/' + task.id + '/documents/' + documentId, 'DELETE', undefined, 'Failed to unlink.')
+                        .then(onUnlinked)
+                        .catch(function (error) { alert(error.message); });
+                });
+                item.append(link, unlinkBtn);
+                list.appendChild(item);
+            });
+
+            const hiddenCountEl = blockedEl.querySelector('.blocked-hidden-count');
+            if (data.hidden_linked_task_count > 0) {
+                hiddenCountEl.textContent = 'and ' + data.hidden_linked_task_count + ' more tasks you don\'t have access to.';
+                hiddenCountEl.style.display = '';
+            } else {
+                hiddenCountEl.style.display = 'none';
+            }
+
+            blockedEl.classList.remove('hidden');
+        }
+
+        // Edit / Delete per document
+        container.querySelectorAll('.document-row').forEach(function (row) {
+            const documentId = row.dataset.documentId;
+            const panelRow = container.querySelector('[data-panel-for-document="' + documentId + '"]');
+            if (! panelRow) return;
+
+            const editBtn = row.querySelector('.edit-document-btn');
+            const deleteBtn = row.querySelector('.delete-document-btn');
+            const editPanel = panelRow.querySelector('.edit-document-panel');
+            const deletePanel = panelRow.querySelector('.delete-document-panel');
+
+            function closeAllPanels() {
+                panelRow.classList.add('hidden');
+                editPanel.classList.add('hidden');
+                deletePanel.classList.add('hidden');
+                editPanel.querySelector('.edit-document-blocked').classList.add('hidden');
+                editPanel.querySelector('.edit-document-error').style.display = 'none';
+                deletePanel.querySelector('.delete-document-blocked').classList.add('hidden');
+                deletePanel.querySelector('.delete-document-confirm').classList.add('hidden');
+                deletePanel.querySelector('.delete-document-error').style.display = 'none';
+            }
+
+            if (editBtn) {
+                editBtn.addEventListener('click', function () {
+                    const alreadyOpen = ! panelRow.classList.contains('hidden') && ! editPanel.classList.contains('hidden');
+                    closeAllPanels();
+                    if (! alreadyOpen) {
+                        panelRow.classList.remove('hidden');
+                        editPanel.classList.remove('hidden');
+                    }
+                });
+            }
+
+            const cancelEditBtn = editPanel.querySelector('.cancel-edit-document-btn');
+            if (cancelEditBtn) {
+                cancelEditBtn.addEventListener('click', closeAllPanels);
+            }
+
+            function submitEdit(extra) {
+                const errorEl = editPanel.querySelector('.edit-document-error');
+                const blockedEl = editPanel.querySelector('.edit-document-blocked');
+                errorEl.style.display = 'none';
+                blockedEl.classList.add('hidden');
+
+                const folderValue = editPanel.querySelector('.edit-document-folder').value;
+                const payload = Object.assign({
+                    name: editPanel.querySelector('.edit-document-name').value.trim(),
+                    folder_id: folderValue ? Number(folderValue) : null,
+                    access_level: editPanel.querySelector('.edit-document-access').value,
+                }, extra || {});
+
+                requestOrThrow('/documents/' + documentId, 'PUT', payload, 'Failed to save document.')
+                    .then(function (result) {
+                        if (result.ok) {
+                            window.location.reload();
+                            return;
+                        }
+
+                        if (result.data && result.data.requires_confirmation) {
+                            if (confirm(result.data.message + ' Continue?')) {
+                                submitEdit({ confirm_public_visibility: true });
+                            }
+                            return;
+                        }
+
+                        if (result.data && result.data.linked_tasks) {
+                            renderBlocked(blockedEl, result.data, documentId, function () {
+                                submitEdit(extra);
+                            });
+                            return;
+                        }
+
+                        errorEl.textContent = (result.data && result.data.message) || 'Failed to save document.';
+                        errorEl.style.display = '';
+                    });
+            }
+
+            const saveBtn = editPanel.querySelector('.save-document-btn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', function () { submitEdit(); });
+            }
+
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', function () {
+                    const alreadyOpen = ! panelRow.classList.contains('hidden') && ! deletePanel.classList.contains('hidden');
+                    closeAllPanels();
+                    if (alreadyOpen) return;
+
+                    panelRow.classList.remove('hidden');
+                    deletePanel.classList.remove('hidden');
+                    checkDeleteDependencies();
+                });
+            }
+
+            function checkDeleteDependencies() {
+                const blockedEl = deletePanel.querySelector('.delete-document-blocked');
+                const confirmEl = deletePanel.querySelector('.delete-document-confirm');
+                const errorEl = deletePanel.querySelector('.delete-document-error');
+                blockedEl.classList.add('hidden');
+                confirmEl.classList.add('hidden');
+                errorEl.style.display = 'none';
+
+                const documentName = row.querySelector('.document-name-link').textContent;
+
+                requestOrThrowSimple('/documents/' + documentId + '/dependencies', 'GET', undefined, 'Failed to load document status.')
+                    .then(function (result) {
+                        const data = result.data;
+                        if (data.linked_task_count > 0) {
+                            renderBlocked(blockedEl, {
+                                message: 'This document is still attached to ' + data.linked_task_count + ' tasks. Remove it from them first.',
+                                linked_tasks: data.viewable_tasks,
+                                hidden_linked_task_count: data.hidden_linked_task_count,
+                            }, documentId, checkDeleteDependencies);
+                        } else {
+                            confirmEl.querySelector('.delete-confirm-message').textContent =
+                                'Permanently delete "' + documentName + '"? This can\'t be undone.';
+                            confirmEl.classList.remove('hidden');
+                        }
+                    })
+                    .catch(function (error) {
+                        errorEl.textContent = error.message;
+                        errorEl.style.display = '';
+                    });
+            }
+
+            const cancelDeleteBtn = deletePanel.querySelector('.cancel-delete-document-btn');
+            if (cancelDeleteBtn) {
+                cancelDeleteBtn.addEventListener('click', closeAllPanels);
+            }
+
+            const confirmDeleteBtn = deletePanel.querySelector('.confirm-delete-document-btn');
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', function () {
+                    requestOrThrowSimple('/documents/' + documentId, 'DELETE', undefined, 'Failed to delete document.')
+                        .then(function () {
+                            window.location.reload();
+                        })
+                        .catch(function (error) {
+                            const errorEl = deletePanel.querySelector('.delete-document-error');
+                            errorEl.textContent = error.message;
+                            errorEl.style.display = '';
                         });
                 });
             }

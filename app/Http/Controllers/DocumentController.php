@@ -72,6 +72,7 @@ class DocumentController extends Controller
                 'breadcrumb' => collect(),
                 'folders' => collect(),
                 'documents' => collect(),
+                'allFolders' => collect(),
                 'canManage' => false,
                 'canManageFolders' => false,
                 'hasManageDocuments' => false,
@@ -149,6 +150,13 @@ class DocumentController extends Controller
         $canManageAnyFolder = $user->hasPermission('manage_documents', $organization->id);
         $isPrivilegedManager = $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organization->id);
 
+        // Every folder in the company (not just the current level) — the
+        // Edit panel's "move to" dropdown can target any folder in the
+        // company, not just a sibling of the document's current one.
+        $allFolders = DocumentFolder::where('organization_id', $organization->id)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return view('documents.index', [
             'organizations' => $organizations,
             'organization' => $organization,
@@ -156,6 +164,7 @@ class DocumentController extends Controller
             'breadcrumb' => $breadcrumb,
             'folders' => $folders,
             'documents' => $documents,
+            'allFolders' => $allFolders,
             'canManage' => Gate::allows('create', [Document::class, $organization->id]),
             'canManageFolders' => Gate::allows('create', [DocumentFolder::class, $organization->id]),
             'hasManageDocuments' => $hasManageDocuments,
