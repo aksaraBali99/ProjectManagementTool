@@ -61,6 +61,32 @@ class TaskPolicy
         return $user->hasPermission('manage_documents', $task->organization_id) && $this->view($user, $task);
     }
 
+    /**
+     * task #73 phase 3: the picker's own gate — the button, the picker
+     * list endpoint, and the attach endpoint all share this exact check,
+     * so they can never disagree. Same shape as unlinkDocuments() above
+     * (manage_documents + can view the task) plus one addition: a
+     * Client-role user is excluded unconditionally, even one an owner
+     * granted manage_documents to. This is deliberately NOT the same
+     * exclusion unlinkDocuments() has (it has none) — Client access to
+     * unlinking wasn't part of this phase's brief, only attaching.
+     *
+     * This only covers the task-side ability ("can this user manage
+     * documents on this task at all"). The document-side eligibility for
+     * an actual attach (view() on the specific document, same company,
+     * not private) is checked separately in the attach endpoint itself,
+     * against the real DocumentPolicy::view() — never against this
+     * method or the picker's own narrower query.
+     */
+    public function attachDocuments(User $user, Task $task): bool
+    {
+        if ($user->isClientInOrg($task->organization_id)) {
+            return false;
+        }
+
+        return $user->hasPermission('manage_documents', $task->organization_id) && $this->view($user, $task);
+    }
+
     public function view(User $user, Task $task): bool
     {
         if (! $user->hasPermission('view_tasks', $task->organization_id)) {

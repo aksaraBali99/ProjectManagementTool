@@ -93,7 +93,7 @@ class DocumentUploadService
         // other paths go to the root" (task #73 phase 2).
         $document = $this->createRecord($file, $stored, $task->organization_id, $accessLevel, $uploader, $name, $task->id, $populateLegacyLink, folderId: null);
 
-        $task->documents()->syncWithoutDetaching([$document->id]);
+        app(TaskDocumentLinker::class)->attach($task, $document);
 
         return $document;
     }

@@ -14,6 +14,7 @@ use App\Policies\DocumentPolicy;
 use App\Services\DocumentDependencyService;
 use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
+use App\Services\TaskDocumentLinker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -304,6 +305,21 @@ class DocumentController extends Controller
             DocumentAccessLevel::from($data['access_level']),
         );
 
+        // task #73 phase 3: "private documents are never attached to
+        // tasks" is unconditional — the same rule DocumentController::
+        // update() already enforces for an EXISTING document being
+        // switched to private while linked. Before this fix, a non-Client
+        // uploader creating a document straight from the Task edit page's
+        // inline upload/add-link form (task_id set) could pick Private
+        // and attach it in the same step, which contradicted that rule.
+        // Checked here, once, for both the upload and link branches below
+        // (both share $accessLevel) — the access-level dropdown on that
+        // form no longer offers Private at all, but this is what actually
+        // enforces it regardless of what the client sends.
+        if ($task !== null && $accessLevel === DocumentAccessLevel::Private) {
+            abort(422, 'Private documents can\'t be attached to tasks. Change its access level first.');
+        }
+
         try {
             if ($request->hasFile('file')) {
                 // origin_task_id/key layout differ by which of the two
@@ -332,7 +348,7 @@ class DocumentController extends Controller
                 ]);
 
                 if ($task !== null) {
-                    $task->documents()->syncWithoutDetaching([$document->id]);
+                    app(TaskDocumentLinker::class)->attach($task, $document);
                 }
             }
         } catch (FileStorageException $e) {

@@ -70,8 +70,16 @@
             @if ($isClientUploader)
                 <input type="hidden" class="new-document-access" value="public">
             @else
+                {{-- task #73 phase 3: no Private option here — a document
+                     created and attached to a task in the same step is
+                     never allowed to be Private (enforced server-side in
+                     DocumentController::store() regardless of what this
+                     markup offers). Private stays available on the
+                     standalone Documents page's own Add Document form,
+                     which never attaches to a task. --}}
                 <select class="new-document-access w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                     @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
+                        @continue($accessCase === \App\Enums\DocumentAccessLevel::Private)
                         <option value="{{ $accessCase->value }}" {{ $accessCase === \App\Enums\DocumentAccessLevel::Internal ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
                     @endforeach
                 </select>

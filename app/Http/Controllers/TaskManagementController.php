@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use App\Services\LinkPreviewService;
+use App\Services\TaskDocumentLinker;
 use DOMDocument;
 use DOMXPath;
 use Illuminate\Http\JsonResponse;
@@ -418,7 +419,7 @@ class TaskManagementController extends Controller
                     'access_level' => DocumentAccessLevel::Internal,
                 ]);
 
-                $task->documents()->attach($document->id);
+                app(TaskDocumentLinker::class)->attach($task, $document);
 
                 app(DocumentUploadService::class)->recordUploadAudit($document);
             }

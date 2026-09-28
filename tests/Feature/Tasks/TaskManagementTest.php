@@ -1031,7 +1031,17 @@ test('attaching a document to a task creates a task_documents row, and attaching
     $this->actingAs($this->management)->post("/tasks/{$task->id}/documents", ['document_id' => $document->id])->assertOk();
     expect($task->documents()->count())->toBe(1);
 
-    $this->actingAs($this->management)->post("/tasks/{$task->id}/documents", ['document_id' => $document->id])->assertOk();
+    // task #73 phase 3: a repeat attach is no longer a silent no-op — it's
+    // rejected with a clear 422, and still doesn't duplicate the row.
+    // postJson, not post: an actual 422 response body is only asserted
+    // below, and without an Accept: application/json header Laravel tries
+    // to render an HTML error page for it instead (there's no
+    // resources/views/errors/422.blade.php) — every other JSON-error test
+    // in this codebase already uses the JSON variant for exactly this
+    // reason.
+    $response = $this->actingAs($this->management)->postJson("/tasks/{$task->id}/documents", ['document_id' => $document->id]);
+    $response->assertStatus(422);
+    expect($response->json('message'))->toBe('Already attached.');
     expect($task->fresh()->documents()->count())->toBe(1);
 });
 
