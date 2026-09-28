@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "",
+    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "resources/views/documents/index.blade.php": {
-    "mtime": 1790602113.758333,
-    "ast_hash": "39eafb87be549a1e273f43bba85d610d",
+    "mtime": 1790603485.8846447,
+    "ast_hash": "359cfcf1cafa931050731094b067bbd9",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentCreateTest.php": {
