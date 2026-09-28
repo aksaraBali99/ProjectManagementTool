@@ -16,6 +16,7 @@ use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use App\Services\LinkPreviewService;
 use DOMDocument;
@@ -26,6 +27,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -377,25 +379,48 @@ class TaskManagementController extends Controller
      * href is already the permanent tasks/{id}/documents/... URL, not a
      * pending one (link-preview hrefs are external URLs, untouched by
      * reconciliation either way).
+     *
+     * task #73 phase 1: this path has no live UploadedFile to hash or
+     * read size/mime straight off (the bytes were already moved into
+     * place by reconcilePendingFiles(), above, before this method ever
+     * runs) — hashing would mean re-reading the whole file back off the
+     * disk a second time purely for this, which the rollout plan doesn't
+     * ask for here, so sha256_hash stays null for chip-created documents.
+     * storage_key, size and mime ARE cheap: storage_key is a pure string
+     * derivation from the href already in hand, and disk size()/mimeType()
+     * are metadata calls, not downloads.
      */
     private function attachDocumentChips(Task $task, string $description): void
     {
         if (str_contains($description, '<file-chip')) {
             preg_match_all('/<file-chip href="([^"]*)">([^<]*)<\/file-chip>/', $description, $matches, PREG_SET_ORDER);
 
+            $storage = app(FileStorageService::class);
+            $disk = Storage::disk(config('filestorage.disk'));
+
             foreach ($matches as $match) {
                 $href = html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
                 $name = html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+                $storageKey = $storage->pathFromUrl($href);
+                $exists = $storageKey !== null && $disk->exists($storageKey);
 
                 $document = Document::create([
                     'organization_id' => $task->organization_id,
                     'uploaded_by' => auth()->id(),
                     'name' => $name,
                     'link' => $href,
+                    'storage_key' => $storageKey,
+                    'size_bytes' => $exists ? $disk->size($storageKey) : null,
+                    'mime_type' => $exists ? $disk->mimeType($storageKey) : null,
+                    'original_filename' => $name,
+                    'origin_task_id' => $task->id,
                     'access_level' => DocumentAccessLevel::Internal,
                 ]);
 
                 $task->documents()->attach($document->id);
+
+                app(DocumentUploadService::class)->recordUploadAudit($document);
             }
         }
 

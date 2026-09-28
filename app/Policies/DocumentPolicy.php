@@ -38,12 +38,27 @@ class DocumentPolicy
             && $document->tasks()->whereHas('project.clients', fn ($query) => $query->where('users.id', $user->id))->exists();
     }
 
+    /**
+     * task #73 phase 1 adds isClientInOrg() to the role check below —
+     * "manage_documents stays tickable for Client" (unlike view_documents,
+     * permanently locked off for that role) only means something once a
+     * Client holding it can actually pass this gate. In practice this
+     * only ever fires from the task edit page's inline add-document form
+     * (its own $canManageDocuments is this exact check) — the standalone
+     * Documents page/library stays unreachable for Client regardless,
+     * since that's gated by view_documents, which Client can never hold.
+     * Every document a Client creates this way is forced to Public
+     * server-side (see DocumentUploadService::resolveAccessLevel())
+     * before it ever reaches here, so this policy doesn't need its own
+     * separate access-level restriction for the Client path.
+     */
     public function create(User $user, int $organizationId): bool
     {
         if (! $user->hasPermission('manage_documents', $organizationId)) {
             return false;
         }
 
-        return $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId) || $user->isStaffInOrg($organizationId);
+        return $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId)
+            || $user->isStaffInOrg($organizationId) || $user->isClientInOrg($organizationId);
     }
 }
