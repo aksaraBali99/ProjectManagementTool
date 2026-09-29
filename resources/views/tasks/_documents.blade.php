@@ -190,7 +190,7 @@
                             <span class="new-document-file-name min-w-0 flex-1 truncate text-[12px] text-gray-500">No file selected</span>
                         </div>
                         <input type="file" id="new-document-file-{{ $task->id }}" class="new-document-file sr-only">
-                        <p class="mt-1 text-[10px] text-gray-500">PDF, Word, Excel, PowerPoint, text or CSV — up to 20MB.</p>
+                        <p class="mt-1 text-[10px] text-gray-500">Document (PDF, Word, Excel, PowerPoint, text, CSV — 20MB), image (10MB), audio (50MB) or video (200MB).</p>
                     </div>
 
                     @if ($isClientUploader)
@@ -966,6 +966,19 @@
 
         const fileInput = container.querySelector('.new-document-file');
         const fileNameEl = container.querySelector('.new-document-file-name');
+        // task #73 (document form fixes): tracks what THIS handler last
+        // wrote into the name field, so a second (different) file
+        // selection can tell "the field still holds what I auto-filled
+        // it with" (safe to replace with the new file's name) apart from
+        // "the user typed/edited this themselves since, OR it came from
+        // clicking 'Upload [name] as a new file' on a search result"
+        // (never overwritten, exactly as before) — a bare "is it empty"
+        // check only ever caught the very first selection, since every
+        // later selection saw a non-empty field left over from the last
+        // one. Reset alongside the name field itself on a successful
+        // submit, so a later, genuinely-fresh empty-field case is never
+        // second-guessed by a stale tracked value from an earlier attach.
+        let lastAutoFilledName = null;
         if (fileInput) {
             fileInput.addEventListener('change', function () {
                 const file = fileInput.files[0];
@@ -975,13 +988,10 @@
                     fileNameEl.title = file ? file.name : '';
                 }
 
-                // Only auto-fills an EMPTY name field — never overwrites a
-                // value already there, whether the user typed it or it
-                // came from clicking "Upload [name] as a new file" on a
-                // search result.
                 const nameInput = container.querySelector('.new-document-name');
-                if (nameInput && ! nameInput.value && file) {
-                    nameInput.value = stripExtension(file.name);
+                if (nameInput && file && (nameInput.value === '' || nameInput.value === lastAutoFilledName)) {
+                    lastAutoFilledName = stripExtension(file.name);
+                    nameInput.value = lastAutoFilledName;
                 }
             });
         }
@@ -1035,6 +1045,7 @@
                     .then(function (data) {
                         appendDocumentRow(data.document);
                         nameInput.value = '';
+                        lastAutoFilledName = null;
                         linkInput.value = '';
                         if (fileInput) fileInput.value = '';
                         if (fileNameEl) { fileNameEl.textContent = 'No file selected'; fileNameEl.title = ''; }

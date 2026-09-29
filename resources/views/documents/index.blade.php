@@ -169,6 +169,12 @@
                         @php $canManageThisDocument = $hasManageDocuments && ($isPrivilegedManager || $document->uploaded_by === auth()->id()); @endphp
                         <tr class="document-row block px-3 py-2.5 md:table-row md:px-0 md:py-0" data-document-id="{{ $document->id }}">
                             <td class="text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">
+                                {{-- task #73: a sensible icon by file type
+                                     (image/audio/video/document/link) — no
+                                     preview/thumbnail needed, just a visual
+                                     cue now that an upload isn't limited to
+                                     the document category alone. --}}
+                                <i class="ti {{ $document->iconClass }} mr-1 text-[13px] text-gray-400" aria-hidden="true"></i>
                                 <a href="{{ route('file-downloads.show', ['url' => $document->url]) }}" target="_blank" rel="noopener noreferrer" class="document-name-link hover:underline">{{ $document->name }}</a>
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">

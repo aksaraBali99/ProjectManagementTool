@@ -32,6 +32,18 @@ class FileStorageException extends RuntimeException
         ));
     }
 
+    /**
+     * task #73: a Document upload can now be any of several categories
+     * (document/image/audio/video) — this is for a file that matches
+     * NONE of them at all, distinct from disallowedType() above (which
+     * names the one specific category a file failed against, when only
+     * one was ever a candidate).
+     */
+    public static function noMatchingCategory(string $mimeType): self
+    {
+        return new self(sprintf('"%s" is not a supported file type.', $mimeType));
+    }
+
     public static function notFound(string $path): self
     {
         return new self("No file exists at \"{$path}\".");

@@ -202,12 +202,18 @@ test('an oversized document upload is rejected using FileStorageService\'s own v
 });
 
 test('a disallowed file type is rejected the same way', function () {
+    // task #73 (document form fixes): a Document upload now accepts
+    // document/image/audio/video, not the document category alone — the
+    // rejection message for a file matching NONE of them changed to
+    // reflect that (it's no longer "not allowed for Document uploads"
+    // specifically, since there's no single category being checked
+    // against anymore).
     $response = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/document-uploads", [
         'file' => UploadedFile::fake()->create('not-a-document.exe', 100, 'application/octet-stream'),
         'context' => 'description',
     ]);
 
-    $response->assertStatus(422)->assertJsonPath('message', fn ($message) => str_contains($message, 'not an allowed file type'));
+    $response->assertStatus(422)->assertJsonPath('message', fn ($message) => str_contains($message, 'not a supported file type'));
     expect(Storage::disk('r2')->allFiles())->toBeEmpty();
     expect(Document::count())->toBe(0);
 });

@@ -31,7 +31,42 @@ use Throwable;
  */
 class DocumentUploadService
 {
+    /**
+     * task #73: a Document upload isn't restricted to the "document"
+     * category (PDF/Word/Excel/PowerPoint/text/CSV) alone — it can also
+     * be an image, audio, or video file, each validated against ITS OWN
+     * category's size/type limits (config/filestorage.php), not a single
+     * flat limit for everything. Checked in this order — document first,
+     * since that's still the common case and it's a harmless tie-break
+     * for any file (none, in practice) whose extension could plausibly
+     * appear in more than one category's allow-list.
+     *
+     * @var list<FileCategory>
+     */
+    private const UPLOAD_CATEGORIES = [FileCategory::Document, FileCategory::Image, FileCategory::Audio, FileCategory::Video];
+
     public function __construct(private readonly FileStorageService $storage) {}
+
+    /**
+     * task #73: resolves which of self::UPLOAD_CATEGORIES this file
+     * actually is, once, so both uploadForOrganization() and
+     * uploadForTask() below apply the SAME detection — a file that
+     * matches none of them (a genuinely unsupported type) fails with a
+     * clear message rather than being silently forced into the document
+     * category and rejected there instead.
+     *
+     * @throws FileStorageException the file's type matches none of the accepted categories
+     */
+    private function resolveCategory(UploadedFile $file): FileCategory
+    {
+        $category = $this->storage->detectCategory($file, self::UPLOAD_CATEGORIES);
+
+        if ($category === null) {
+            throw FileStorageException::noMatchingCategory($file->getMimeType() ?? $file->getClientOriginalExtension());
+        }
+
+        return $category;
+    }
 
     /**
      * Documents page's own "Upload file" option — no task in scope at
@@ -59,7 +94,7 @@ class DocumentUploadService
         ?string $name = null,
         ?int $folderId = null,
     ): Document {
-        $stored = $this->storage->uploadForOrganization($file, FileCategory::Document, $organizationId);
+        $stored = $this->storage->uploadForOrganization($file, $this->resolveCategory($file), $organizationId);
 
         return $this->createRecord($file, $stored, $organizationId, $accessLevel, $uploader, $name, null, populateLegacyLink: false, folderId: $folderId);
     }
@@ -87,7 +122,7 @@ class DocumentUploadService
         ?string $name = null,
         bool $populateLegacyLink = false,
     ): Document {
-        $stored = $this->storage->upload($file, FileCategory::Document, $task->id);
+        $stored = $this->storage->upload($file, $this->resolveCategory($file), $task->id);
 
         // folderId always null — "Uploads from tasks, the editor, and
         // other paths go to the root" (task #73 phase 2).
