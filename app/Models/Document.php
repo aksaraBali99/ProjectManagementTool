@@ -46,6 +46,33 @@ class Document extends Model
             : $this->link);
     }
 
+    /**
+     * task #73: a sensible Tabler icon by file type for the Documents
+     * list — no preview/thumbnail, just distinguishing an uploaded
+     * image/audio/video from a plain document or an external link at a
+     * glance, now that a Document upload isn't limited to the document
+     * category alone. Checked by mime_type PREFIX (image/*, audio/*,
+     * video/*), not the exact value, so this doesn't need updating every
+     * time config/filestorage.php's own allow-lists change. An external
+     * link (no mime_type at all, since that column is only ever set for
+     * a genuine upload) keeps the existing link icon.
+     */
+    protected function iconClass(): Attribute
+    {
+        return Attribute::get(function () {
+            if ($this->mime_type === null) {
+                return 'ti-link';
+            }
+
+            return match (true) {
+                str_starts_with($this->mime_type, 'image/') => 'ti-photo',
+                str_starts_with($this->mime_type, 'audio/') => 'ti-music',
+                str_starts_with($this->mime_type, 'video/') => 'ti-video',
+                default => 'ti-file-text',
+            };
+        });
+    }
+
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
