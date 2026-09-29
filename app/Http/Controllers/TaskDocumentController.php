@@ -54,11 +54,26 @@ class TaskDocumentController extends Controller
             // one is named explicitly — without this, the escaped
             // backslashes above would search for literal backslashes on
             // SQLite instead of escaping the wildcard.
+            //
+            // The escape character itself is a BOUND parameter (`ESCAPE
+            // ?`), not inlined into the SQL text as `ESCAPE '\'` — a
+            // single backslash inside a quoted SQL string literal means
+            // two different things on the two drivers this app runs on:
+            // SQLite doesn't treat backslash as a string-literal escape
+            // at all (so `'\'` is one backslash, as intended), but MySQL
+            // does (so `'\'` is an unterminated string, a syntax error —
+            // it needs `'\\'` in the raw SQL text for the parsed value to
+            // be one backslash). Binding it as a parameter sidesteps that
+            // entirely: PDO transmits the single-backslash value as data,
+            // with no driver-specific string-literal quoting involved.
+            // This shipped only ever tested against SQLite (this app's
+            // test suite), so the MySQL-only syntax error wasn't caught
+            // until a real search against the dev MySQL database failed.
             $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
             $likeValue = "%{$escaped}%";
             $query->where(function ($q) use ($likeValue) {
-                $q->whereRaw("name LIKE ? ESCAPE '\\'", [$likeValue])
-                    ->orWhereRaw("original_filename LIKE ? ESCAPE '\\'", [$likeValue]);
+                $q->whereRaw('name LIKE ? ESCAPE ?', [$likeValue, '\\'])
+                    ->orWhereRaw('original_filename LIKE ? ESCAPE ?', [$likeValue, '\\']);
             });
             // Relevance is "does it match at all" here, not ranked — with a
             // search term, newest-first would bury an older exact-ish

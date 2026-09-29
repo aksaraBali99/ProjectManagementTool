@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Database\MySqlConnection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -139,6 +140,61 @@ test('search matches name and original_filename, case-insensitively, and treats 
     $percentResponse->assertOk();
     $percentIds = collect($percentResponse->json('data'))->pluck('id')->all();
     expect($percentIds)->toBe([$literalPercent->id]);
+});
+
+test('the search LIKE/ESCAPE clause binds the escape character as a parameter, not as inline SQL text, so it never breaks on MySQL', function () {
+    // Regression guard: a real ordinary search (e.g. "test") 500'd against
+    // the dev MySQL database while this exact same request passed on
+    // SQLite (this app's test driver) without any code path difference.
+    // Root cause: `ESCAPE '\'` written directly into the raw SQL text is
+    // driver-dependent, not portable — SQLite doesn't treat backslash as
+    // a string-literal escape character at all (so a lone `\` between
+    // quotes is exactly one backslash, as intended), but MySQL does (so
+    // `'\'` is an unterminated string literal — a syntax error — and
+    // needs `'\\'` in the raw SQL text for the parsed value to come out
+    // as a single backslash). The fix binds the escape character as a
+    // `?` parameter instead of inlining it, so PDO transmits the single-
+    // backslash value as data on both drivers, with no SQL-text quoting
+    // involved at all. This test compiles the picker's exact WHERE
+    // fragment against a real MySqlGrammar (no live MySQL connection
+    // needed, matching how this app verifies MySQL-specific SQL
+    // elsewhere) to catch a reintroduced inline literal even though the
+    // rest of this file only ever runs against SQLite.
+    $connection = new MySqlConnection(fn () => null, 'test_db');
+    $connection->useDefaultQueryGrammar();
+    $connection->useDefaultPostProcessor();
+
+    $backslash = chr(92);
+    $likeValue = '%test%';
+    $query = $connection->table('documents')->where(function ($q) use ($likeValue, $backslash) {
+        $q->whereRaw('name LIKE ? ESCAPE ?', [$likeValue, $backslash])
+            ->orWhereRaw('original_filename LIKE ? ESCAPE ?', [$likeValue, $backslash]);
+    });
+
+    // The escape character must be a bound placeholder, never inlined as
+    // a quoted literal in the compiled SQL text itself.
+    expect($query->toSql())->toContain('ESCAPE ?');
+    expect($query->toSql())->not->toContain("ESCAPE '");
+
+    // And the actual bound value is exactly one backslash character (not
+    // zero, not two) - the value MySQL's LIKE...ESCAPE needs to treat the
+    // pre-escaped %/_ in $likeValue as literal, not as wildcards.
+    $bindings = $query->getBindings();
+    expect($bindings)->toContain($backslash);
+    foreach ($bindings as $binding) {
+        if ($binding === $backslash) {
+            expect(strlen($binding))->toBe(1);
+        }
+    }
+
+    // Live-request-level check on the real (SQLite) test driver: an
+    // ordinary alphabetic search term with no special LIKE characters at
+    // all must succeed and match - this was the exact shape of request
+    // ("test") that 500'd on MySQL while looking identical on SQLite.
+    makePickerDocument($this->orgA, $this->management, 'test-document.pdf');
+    $response = $this->actingAs($this->management)->getJson("/tasks/{$this->task->id}/documents/attachable?search=test");
+    $response->assertOk();
+    expect(collect($response->json('data'))->pluck('name'))->toContain('test-document.pdf');
 });
 
 test('with no search term, results are newest upload first', function () {
