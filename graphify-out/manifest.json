@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1790611573.7037387,
-    "ast_hash": "3ace6235c9b6c7f81f316dc02f2698e7",
+    "mtime": 1790662961.9450479,
+    "ast_hash": "0f309fb59af152e6ebfae10f1b334060",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -1920,8 +1920,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentUploadFromLocalTest.php": {
-    "mtime": 1790660220.432438,
-    "ast_hash": "ef0dca6222d5f0ee6ca70ff3ea8cbebc",
+    "mtime": 1790662137.2584064,
+    "ast_hash": "076943719734c4d931a9ae917e9e0b21",
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentFolderController.php": {

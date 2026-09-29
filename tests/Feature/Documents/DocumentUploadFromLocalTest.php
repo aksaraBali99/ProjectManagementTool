@@ -290,6 +290,45 @@ test('manage_documents ON/OFF for Staff also gates the task edit page\'s own inl
     expect($task->fresh()->documents()->pluck('name')->all())->toContain('Staff task upload (allowed)');
 });
 
+test('a task-scoped upload succeeds even when organization_id arrives as a numeric string, like a real multipart/form-data request sends it', function () {
+    // Regression test: a real browser's file upload always sends
+    // organization_id as a STRING (raw HTTP multipart fields are text —
+    // the 'integer' validation rule only checks the format, it doesn't
+    // cast the type), while $task->organization_id is a genuine PHP int.
+    // DocumentController::store()'s company-match check used to compare
+    // these with a strict !==, rejecting every real-browser task upload
+    // with "Document must belong to the task's company." — found via the
+    // merged Attach-document panel's "Upload ... as a new file" action,
+    // but pre-existing and unrelated to that panel: any real multipart
+    // upload with a task_id hit it, the panel just was the first thing to
+    // actually get manually tested through a real browser on this path.
+    // Explicitly casting organization_id to a string here reproduces that
+    // exact condition — Pest's own post() helper doesn't naturally
+    // produce it, since it preserves native PHP types when mixing a file
+    // with scalar fields instead of round-tripping through a real
+    // string-only multipart body the way a browser does.
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->post('/documents', [
+        'organization_id' => (string) $this->orgA->id,
+        'name' => 'Prefilled upload.pdf',
+        'file' => fakeUploadDoc(),
+        'access_level' => 'internal',
+        'task_id' => $task->id,
+    ]);
+
+    $response->assertRedirect();
+    $document = Document::where('name', 'Prefilled upload.pdf')->firstOrFail();
+    expect($task->fresh()->documents()->pluck('documents.id')->all())->toBe([$document->id]);
+});
+
 test('a Client with manage_documents has their upload forced to public and never sees the access-level dropdown', function () {
     // manage_documents is NOT granted to Client by default (see
     // PermissionSeeder), but "manage_documents stays tickable for

@@ -272,7 +272,19 @@ class DocumentController extends Controller
             // attach a document to a task on their own project.
             Gate::authorize('view', $task);
 
-            if ($task->organization_id !== $data['organization_id']) {
+            // (int) cast, not a bare !== : $data['organization_id'] is a
+            // STRING for a real multipart/form-data upload (raw HTTP
+            // multipart fields are always text — the 'integer' validation
+            // rule above only checks the format, it doesn't cast the
+            // type), while $task->organization_id is a genuine PHP int
+            // (Laravel's default PDO connector uses native, not emulated,
+            // prepared statements). A strict compare between "1" and 1
+            // incorrectly rejected every real-browser upload with a
+            // task_id — never caught by tests, since Laravel's own
+            // TestCase::post() preserves native types when mixing a file
+            // with scalar fields instead of round-tripping through an
+            // actual string-only multipart body the way a browser does.
+            if ((int) $task->organization_id !== (int) $data['organization_id']) {
                 abort(422, 'Document must belong to the task\'s company.');
             }
         }
