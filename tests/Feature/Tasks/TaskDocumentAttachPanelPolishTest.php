@@ -92,7 +92,7 @@ test('the upload panel is CSS-ordered ahead of the name field while the link pan
     expect($content)->toContain('<div class="new-document-panel hidden order-first" data-panel="upload">');
 });
 
-test('the create form JS auto-fills the name from the selected filename (extension stripped), but only when the name field is still empty', function () {
+test('the create form JS auto-fills the name from the selected filename (extension stripped), updating on re-selection but never clobbering a manual edit or a search-derived pre-fill', function () {
     $response = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit");
 
     $response->assertOk();
@@ -100,12 +100,16 @@ test('the create form JS auto-fills the name from the selected filename (extensi
 
     // Structural guard for the auto-fill behavior verified live in a
     // browser: the extension-stripping helper exists, and the change
-    // handler only assigns into the name field when it's currently
-    // empty — so clicking "Upload [name] as a new file" on a search
-    // result (which pre-fills the name) is never clobbered by a
-    // subsequent file selection.
+    // handler tracks what IT last wrote (lastAutoFilledName) so a second,
+    // different file selection can replace that value (task #73:
+    // document form fixes - re-selecting a file used to leave the FIRST
+    // file's name in place forever) without ever touching a name the
+    // user typed themselves, or one that came from clicking "Upload
+    // [name] as a new file" on a search result (openCreateForm() sets
+    // that directly, never through this tracker).
     expect($content)->toContain('function stripExtension(filename)');
-    expect($content)->toContain('nameInput && ! nameInput.value && file');
+    expect($content)->toContain('let lastAutoFilledName = null;');
+    expect($content)->toContain("nameInput && file && (nameInput.value === '' || nameInput.value === lastAutoFilledName)");
 });
 
 test('the create form JS disables the submit button while a create-and-attach request is in flight, guarding against a double-submit', function () {
