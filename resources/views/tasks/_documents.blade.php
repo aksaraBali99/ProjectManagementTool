@@ -30,6 +30,34 @@
         @endif
     </div>
 
+    {{-- task #73 phase 4: linked folders — visually distinct from the
+         directly-attached files above (folder icon, tinted background),
+         each with an expand control for its DIRECT children only. Already
+         filtered to an empty collection for a Client-role viewer server-
+         side (TaskManagementController::edit()) — a hard, query-level
+         exclusion, not a client-side hide, so this whole block simply
+         never renders anything for them rather than rendering-then-hiding. --}}
+    <div class="folder-list mt-2 space-y-2">
+        @foreach ($linkedFolders as $folder)
+            <div class="folder-row rounded-md border border-gray-200 bg-gray-50 px-3 py-2" data-folder-id="{{ $folder->id }}" data-linked="1">
+                <div class="flex items-center justify-between">
+                    <button type="button" class="folder-expand-toggle flex min-w-0 items-center gap-1.5 text-left text-[12px] font-medium text-[#1F2937]" aria-expanded="false">
+                        <i class="ti ti-chevron-right folder-expand-icon shrink-0 text-[12px] text-gray-400" aria-hidden="true"></i>
+                        <i class="ti ti-folder shrink-0 text-[13px] text-amber-500" aria-hidden="true"></i>
+                        <span class="truncate">{{ $folder->name }}</span>
+                    </button>
+                    {{-- Same gate as the file Detach button above —
+                         TaskPolicy::unlinkDocuments(), reused verbatim, no
+                         folder-specific policy method. --}}
+                    @if ($canUnlinkDocuments)
+                        <button type="button" class="detach-folder-btn shrink-0 text-[11px] text-gray-500 hover:underline">Detach</button>
+                    @endif
+                </div>
+                <div class="folder-expand-content mt-2 ml-5 hidden space-y-1"></div>
+            </div>
+        @endforeach
+    </div>
+
     {{-- task #73 (UI merge): ONE entry point replacing the old separate
          "Attach existing" and "+ Add new document" buttons/panels — one
          search box that filters existing documents as you type, with
@@ -54,11 +82,39 @@
             // create() itself doesn't, so this stays a real branch.
             $isClientUploader = auth()->user()->isClientInOrg($task->organization_id);
         @endphp
-        <div class="mt-2">
+        <div class="mt-2 flex items-center gap-3">
             <button type="button" class="attach-document-toggle text-[11px] font-medium text-brand-600 hover:underline"
                 aria-haspopup="dialog" aria-expanded="false" aria-controls="attach-document-panel-{{ $task->id }}">
                 Attach document
             </button>
+            {{-- task #73 phase 4: a sibling toggle/panel, same structure as
+                 "Attach document" above minus the "create instead" rows
+                 (folders aren't created from this picker) — reuses the
+                 exact same gate (TaskPolicy::attachDocuments()), so no
+                 separate @if is needed; a Client never sees either button,
+                 since attachDocuments() already excludes Client
+                 unconditionally (Phase 3's own choice, not something this
+                 phase had to add). --}}
+            <button type="button" class="attach-folder-toggle text-[11px] font-medium text-brand-600 hover:underline"
+                aria-haspopup="dialog" aria-expanded="false" aria-controls="attach-folder-panel-{{ $task->id }}">
+                Attach folder
+            </button>
+        </div>
+
+        <div id="attach-folder-panel-{{ $task->id }}" class="attach-folder-panel mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="Attach a folder">
+            <label for="attach-folder-search-{{ $task->id }}" class="sr-only">Search or attach a folder</label>
+            <input type="text" id="attach-folder-search-{{ $task->id }}" class="attach-folder-search w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Search or attach a folder…">
+
+            <div>
+                <p class="attach-folder-results-heading text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Folders</p>
+                <ul class="attach-folder-results mt-1 space-y-1" aria-label="Folders"></ul>
+                <p class="attach-folder-status mt-1 text-[11px] text-gray-500"></p>
+                <button type="button" class="attach-folder-load-more hidden text-[11px] font-medium text-brand-600 hover:underline">Load more</button>
+            </div>
+
+            <div class="flex items-center gap-3 pt-1">
+                <button type="button" class="attach-folder-close text-[12px] text-gray-600 hover:underline">Close</button>
+            </div>
         </div>
 
         <div id="attach-document-panel-{{ $task->id }}" class="attach-document-panel mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="Attach a document">
@@ -300,6 +356,150 @@
                 + detachButtonHtml;
             listEl.appendChild(row);
             wireDetach(row);
+        }
+
+        // task #73 phase 4: linked folders — a visually distinct row per
+        // folder (icon + tinted background), each independently
+        // expandable to show its DIRECT children only. buildFolderRow()
+        // is shared by the initial (server-rendered) linked-folder rows,
+        // a freshly-attached folder (appendFolderRow()), and every
+        // subfolder discovered by expanding one — a subfolder isn't
+        // itself "linked" (linked=false: no Detach button, since managing
+        // it happens on the Documents page, not here), but is expandable
+        // the exact same way, recursively, at any depth.
+        const folderListEl = container.querySelector('.folder-list');
+
+        function buildFolderRow(folder, linked) {
+            const row = document.createElement('div');
+            row.className = 'folder-row rounded-md border border-gray-200 bg-gray-50 px-3 py-2';
+            row.dataset.folderId = folder.id;
+            row.dataset.linked = linked ? '1' : '0';
+
+            const detachButtonHtml = (linked && canUnlinkDocuments)
+                ? '<button type="button" class="detach-folder-btn shrink-0 text-[11px] text-gray-500 hover:underline">Detach</button>'
+                : '';
+
+            row.innerHTML = '<div class="flex items-center justify-between">'
+                + '<button type="button" class="folder-expand-toggle flex min-w-0 items-center gap-1.5 text-left text-[12px] font-medium text-[#1F2937]" aria-expanded="false">'
+                + '<i class="ti ti-chevron-right folder-expand-icon shrink-0 text-[12px] text-gray-400" aria-hidden="true"></i>'
+                + '<i class="ti ti-folder shrink-0 text-[13px] text-amber-500" aria-hidden="true"></i>'
+                + '<span class="truncate">' + escapeHtml(folder.name) + '</span>'
+                + '</button>'
+                + detachButtonHtml
+                + '</div>'
+                + '<div class="folder-expand-content mt-2 ml-5 hidden space-y-1"></div>';
+
+            wireFolderExpand(row);
+            if (linked) wireFolderDetach(row);
+
+            return row;
+        }
+
+        function wireFolderDetach(row) {
+            const btn = row.querySelector('.detach-folder-btn');
+            if (! btn) return;
+            btn.addEventListener('click', function () {
+                // Same confirmation wording/intent as wireDetach() above —
+                // unlinking only removes the task_folder_links row, the
+                // folder and everything inside it are untouched.
+                if (! confirm('Remove this folder from the task? The folder and its contents will stay in the company\'s document library.')) return;
+
+                const folderId = row.dataset.folderId;
+                requestOrThrow('/tasks/' + taskId + '/folders/' + folderId, 'DELETE', undefined, 'Failed to detach folder.')
+                    .then(function () {
+                        row.remove();
+                    })
+                    .catch(function (error) {
+                        alert(error.message);
+                    });
+            });
+        }
+
+        // Lazy-fetch-and-cache: a folder's contents are only ever fetched
+        // once per page view, on first expand — re-collapsing and re-
+        // expanding just toggles visibility of what's already rendered,
+        // rather than re-querying the server every time. This is a
+        // deliberate trade-off (contents can go stale within the same page
+        // view if changed elsewhere) accepted for the same reason the
+        // picker's own results aren't kept continuously live.
+        function wireFolderExpand(row) {
+            const toggle = row.querySelector('.folder-expand-toggle');
+            const icon = row.querySelector('.folder-expand-icon');
+            const content = row.querySelector('.folder-expand-content');
+            let loaded = false;
+
+            function renderEmptyState() {
+                content.innerHTML = '<p class="text-[11px] text-gray-500">Nothing here.</p>';
+            }
+
+            function renderContents(data) {
+                content.innerHTML = '';
+
+                (data.folders || []).forEach(function (subfolder) {
+                    content.appendChild(buildFolderRow(subfolder, false));
+                });
+
+                (data.documents || []).forEach(function (doc) {
+                    const fileRow = document.createElement('div');
+                    fileRow.className = 'flex items-center justify-between rounded-md border border-gray-200 px-3 py-2';
+                    const accessLabel = doc.access_level.charAt(0).toUpperCase() + doc.access_level.slice(1);
+                    const downloadUrl = '/file-downloads?url=' + encodeURIComponent(doc.url);
+                    // View/open only from this task-page context — no
+                    // unlink/delete/move action here, per the task's own
+                    // spec; those live on the Documents page.
+                    fileRow.innerHTML = '<div><a href="' + escapeHtml(downloadUrl) + '" target="_blank" rel="noopener" class="text-[12px] font-medium text-brand-600 hover:underline">' + escapeHtml(doc.name) + '</a>'
+                        + '<span class="ml-2 rounded-sm bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">' + escapeHtml(accessLabel) + '</span></div>';
+                    content.appendChild(fileRow);
+                });
+
+                if (! (data.folders || []).length && ! (data.documents || []).length) {
+                    renderEmptyState();
+                }
+            }
+
+            toggle.addEventListener('click', function () {
+                const expanded = toggle.getAttribute('aria-expanded') === 'true';
+
+                if (expanded) {
+                    toggle.setAttribute('aria-expanded', 'false');
+                    icon.classList.remove('ti-chevron-down');
+                    icon.classList.add('ti-chevron-right');
+                    content.classList.add('hidden');
+                    return;
+                }
+
+                toggle.setAttribute('aria-expanded', 'true');
+                icon.classList.remove('ti-chevron-right');
+                icon.classList.add('ti-chevron-down');
+                content.classList.remove('hidden');
+
+                if (loaded) return;
+                loaded = true;
+                content.innerHTML = '<p class="text-[11px] text-gray-500">Loading…</p>';
+
+                fetch('/tasks/' + taskId + '/folders/' + row.dataset.folderId + '/expand', { headers: { Accept: 'application/json' } })
+                    .then(function (response) {
+                        if (! response.ok) throw new Error('Failed to load folder contents.');
+                        return response.json();
+                    })
+                    .then(renderContents)
+                    .catch(function (error) {
+                        content.innerHTML = '<p class="text-[11px] text-red-600"></p>';
+                        content.querySelector('p').textContent = error.message;
+                        loaded = false;
+                    });
+            });
+        }
+
+        if (folderListEl) {
+            folderListEl.querySelectorAll('.folder-row').forEach(function (row) {
+                wireFolderExpand(row);
+                if (row.dataset.linked === '1') wireFolderDetach(row);
+            });
+        }
+
+        function appendFolderRow(folder) {
+            if (folderListEl) folderListEl.appendChild(buildFolderRow(folder, true));
         }
 
         // task #73 (UI merge): the merged attach-a-document panel — a
@@ -553,6 +753,156 @@
             });
             linkActionBtn.addEventListener('click', function () {
                 openCreateForm('link');
+            });
+        }
+
+        // task #73 phase 4: the folder-attach panel — the document
+        // panel's sibling, same search/paginate/attach shape, minus the
+        // "create instead" rows (folders aren't created from here) and the
+        // already-attached client-side filtering (the picker's own query,
+        // DocumentFolder::scopeAttachableTo(), already excludes linked
+        // folders server-side, so there's no equivalent auto-chain-past-
+        // an-all-filtered-page concern the document picker has).
+        const attachFolderToggle = container.querySelector('.attach-folder-toggle');
+        const attachFolderPanel = container.querySelector('.attach-folder-panel');
+        if (attachFolderToggle && attachFolderPanel) {
+            const folderSearchInput = attachFolderPanel.querySelector('.attach-folder-search');
+            const folderResultsEl = attachFolderPanel.querySelector('.attach-folder-results');
+            const folderStatusEl = attachFolderPanel.querySelector('.attach-folder-status');
+            const folderLoadMoreBtn = attachFolderPanel.querySelector('.attach-folder-load-more');
+            const folderCloseBtn = attachFolderPanel.querySelector('.attach-folder-close');
+
+            let folderCurrentPage = 1;
+            let folderHasMore = false;
+            let folderSearchDebounceTimer = null;
+            let folderRequestToken = 0;
+
+            function renderFolderResultItem(folder) {
+                const li = document.createElement('li');
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'flex w-full items-start gap-2 rounded-md border border-gray-200 px-3 py-2 text-left text-[12px] hover:border-brand-600 hover:bg-brand-50';
+                btn.innerHTML = '<i class="ti ti-folder mt-0.5 shrink-0 text-[14px] text-amber-500" aria-hidden="true"></i>'
+                    + '<span class="min-w-0 truncate">' + escapeHtml(folder.path) + '</span>';
+                btn.addEventListener('click', function () {
+                    attachFolder(folder.id, btn);
+                });
+                li.appendChild(btn);
+                folderResultsEl.appendChild(li);
+            }
+
+            function attachFolder(folderId, triggerEl) {
+                if (triggerEl) triggerEl.disabled = true;
+                folderStatusEl.textContent = '';
+
+                requestOrThrow('/tasks/' + taskId + '/folders', 'POST', { folder_id: folderId }, 'Failed to attach folder.')
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) {
+                        appendFolderRow(data.folder);
+                        closeFolderPanel(true);
+                    })
+                    .catch(function (error) {
+                        folderStatusEl.textContent = error.message;
+                        if (triggerEl) triggerEl.disabled = false;
+                    });
+            }
+
+            function fetchFolderResults(page, append) {
+                const token = ++folderRequestToken;
+                const search = folderSearchInput.value.trim();
+                if (! append) folderStatusEl.textContent = 'Loading…';
+                folderLoadMoreBtn.classList.add('hidden');
+
+                const url = '/tasks/' + taskId + '/folders/attachable?page=' + page
+                    + (search ? '&search=' + encodeURIComponent(search) : '');
+
+                fetch(url, { headers: { Accept: 'application/json' } })
+                    .then(function (response) {
+                        if (! response.ok) throw new Error('Failed to load folders.');
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        if (token !== folderRequestToken) return;
+
+                        if (! append) folderResultsEl.innerHTML = '';
+                        (data.data || []).forEach(renderFolderResultItem);
+
+                        folderCurrentPage = data.current_page;
+                        folderHasMore = data.current_page < data.last_page;
+                        folderLoadMoreBtn.classList.toggle('hidden', ! folderHasMore);
+
+                        if (folderResultsEl.children.length === 0) {
+                            folderStatusEl.textContent = 'No folders found.';
+                        } else {
+                            folderStatusEl.textContent = '';
+                        }
+                    })
+                    .catch(function (error) {
+                        if (token !== folderRequestToken) return;
+                        folderStatusEl.textContent = error.message;
+                    });
+            }
+
+            function openFolderPanel() {
+                attachFolderToggle.setAttribute('aria-expanded', 'true');
+                attachFolderPanel.classList.remove('hidden');
+                folderSearchInput.value = '';
+                folderSearchInput.focus();
+                fetchFolderResults(1, false);
+            }
+
+            function closeFolderPanel(returnFocus) {
+                attachFolderToggle.setAttribute('aria-expanded', 'false');
+                attachFolderPanel.classList.add('hidden');
+                if (returnFocus) attachFolderToggle.focus();
+            }
+
+            attachFolderToggle.addEventListener('click', function () {
+                if (attachFolderPanel.classList.contains('hidden')) {
+                    openFolderPanel();
+                } else {
+                    closeFolderPanel(false);
+                }
+            });
+
+            folderCloseBtn.addEventListener('click', function () {
+                closeFolderPanel(true);
+            });
+
+            attachFolderPanel.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    closeFolderPanel(true);
+                }
+            });
+
+            // Same arrow-key roving addition as the document picker's
+            // results list — see its own comment for the reasoning.
+            folderResultsEl.addEventListener('keydown', function (event) {
+                if (! ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+
+                const buttons = Array.from(folderResultsEl.querySelectorAll('button'));
+                const currentIndex = buttons.indexOf(document.activeElement);
+                if (currentIndex === -1) return;
+
+                let targetIndex;
+                if (event.key === 'ArrowDown') targetIndex = Math.min(currentIndex + 1, buttons.length - 1);
+                else if (event.key === 'ArrowUp') targetIndex = Math.max(currentIndex - 1, 0);
+                else if (event.key === 'Home') targetIndex = 0;
+                else targetIndex = buttons.length - 1;
+
+                event.preventDefault();
+                buttons[targetIndex].focus();
+            });
+
+            folderSearchInput.addEventListener('input', function () {
+                if (folderSearchDebounceTimer) clearTimeout(folderSearchDebounceTimer);
+                folderSearchDebounceTimer = setTimeout(function () {
+                    fetchFolderResults(1, false);
+                }, 300);
+            });
+
+            folderLoadMoreBtn.addEventListener('click', function () {
+                fetchFolderResults(folderCurrentPage + 1, true);
             });
         }
 

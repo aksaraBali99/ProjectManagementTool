@@ -1,11 +1,14 @@
 <?php
 
+use App\Models\Department;
 use App\Models\Document;
 use App\Models\DocumentFolder;
 use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Permission;
+use App\Models\Project;
 use App\Models\Role;
+use App\Models\Task;
 use App\Models\User;
 
 beforeEach(function () {
@@ -166,6 +169,51 @@ test('a folder with a child folder cannot be deleted', function () {
 
     $this->actingAs($this->management)->deleteJson("/document-folders/{$parent->id}")->assertStatus(422);
     $this->assertDatabaseHas('document_folders', ['id' => $parent->id]);
+});
+
+test('task #73 phase 4: a folder linked to a task cannot be deleted, and the message names the reason', function () {
+    $dept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+    $task = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $project->id, 'department_id' => $dept->id, 'title' => 'T', 'priority' => 'medium', 'status' => 'pending']);
+    $folder = DocumentFolder::create(['organization_id' => $this->orgA->id, 'name' => 'Launch assets', 'created_by' => $this->management->id]);
+    $task->folders()->attach($folder->id, ['linked_by' => $this->management->id]);
+
+    $response = $this->actingAs($this->management)->deleteJson("/document-folders/{$folder->id}");
+
+    $response->assertStatus(422);
+    expect($response->json('message'))->toBe('This folder is linked to 1 task.');
+    $this->assertDatabaseHas('document_folders', ['id' => $folder->id]);
+});
+
+test('task #73 phase 4: a folder that is both non-empty AND linked shows both reasons', function () {
+    $dept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+    $taskOne = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $project->id, 'department_id' => $dept->id, 'title' => 'One', 'priority' => 'medium', 'status' => 'pending']);
+    $taskTwo = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $project->id, 'department_id' => $dept->id, 'title' => 'Two', 'priority' => 'medium', 'status' => 'pending']);
+    $folder = DocumentFolder::create(['organization_id' => $this->orgA->id, 'name' => 'Launch assets', 'created_by' => $this->management->id]);
+    Document::create(['organization_id' => $this->orgA->id, 'uploaded_by' => $this->management->id, 'name' => 'Inside.pdf', 'link' => 'https://example.com/inside.pdf', 'access_level' => 'internal', 'folder_id' => $folder->id]);
+    $taskOne->folders()->attach($folder->id, ['linked_by' => $this->management->id]);
+    $taskTwo->folders()->attach($folder->id, ['linked_by' => $this->management->id]);
+
+    $response = $this->actingAs($this->management)->deleteJson("/document-folders/{$folder->id}");
+
+    $response->assertStatus(422);
+    expect($response->json('message'))->toBe("This folder isn't empty, and is linked to 2 tasks.");
+    $this->assertDatabaseHas('document_folders', ['id' => $folder->id]);
+});
+
+test('task #73 phase 4: a folder linked only to a deactivated task still cannot be deleted', function () {
+    $dept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+    $task = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $project->id, 'department_id' => $dept->id, 'title' => 'T', 'priority' => 'medium', 'status' => 'pending']);
+    $folder = DocumentFolder::create(['organization_id' => $this->orgA->id, 'name' => 'Launch assets', 'created_by' => $this->management->id]);
+    $task->folders()->attach($folder->id, ['linked_by' => $this->management->id]);
+    $task->delete();
+
+    $response = $this->actingAs($this->management)->deleteJson("/document-folders/{$folder->id}");
+
+    $response->assertStatus(422);
+    expect($response->json('message'))->toBe('This folder is linked to 1 task.');
 });
 
 test('an empty folder deletes', function () {

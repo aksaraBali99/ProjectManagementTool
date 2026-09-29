@@ -138,7 +138,23 @@
                                 </span>
                             </td>
                             <td class="hidden md:table-cell md:px-3 md:py-2.5"></td>
-                            <td class="hidden md:table-cell md:px-3 md:py-2.5"></td>
+                            @php $linkedFolderTaskCount = $linkedFolderTaskCounts[$subfolder->id] ?? 0; @endphp
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                {{-- task #73 phase 4: "linked to N tasks",
+                                     same column as documents' own linked-
+                                     task count above, but a plain count —
+                                     that column's hover-popover is hand-
+                                     rolled, page-inline JS tightly coupled
+                                     to document rows, not a reusable
+                                     component; not worth genericizing for
+                                     this phase (see PR description). --}}
+                                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Linked tasks</span>
+                                @if ($linkedFolderTaskCount > 0)
+                                    <span aria-label="Linked to {{ $linkedFolderTaskCount }} {{ Str::plural('task', $linkedFolderTaskCount) }}">{{ $linkedFolderTaskCount }}</span>
+                                @else
+                                    <span>0</span>
+                                @endif
+                            </td>
                             <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                                 @if ($canManageThisFolder)
                                     <span class="inline-flex gap-2">
@@ -621,8 +637,17 @@
                         }
 
                         if (result.data && result.data.requires_confirmation) {
+                            // task #73 phase 4: confirm_field names which
+                            // request flag to resubmit with - two different
+                            // requires_confirmation shapes exist now (the
+                            // original Internal/Private→Public one, and the
+                            // folder-derived one), and hardcoding one field
+                            // name here would silently resubmit the WRONG
+                            // flag for the other, so the same "confirm"
+                            // click would just fail identically forever.
                             if (confirm(result.data.message + ' Continue?')) {
-                                submitEdit({ confirm_public_visibility: true });
+                                const field = result.data.confirm_field || 'confirm_public_visibility';
+                                submitEdit(Object.assign({}, extra, { [field]: true }));
                             }
                             return;
                         }
@@ -656,6 +681,14 @@
                 });
             }
 
+            // task #73 phase 4: what extra field (if any) the eventual
+            // DELETE request needs — set by checkDeleteDependencies() below
+            // based on which state it renders, read by confirmDeleteBtn's
+            // own handler. Plain object, not a DOM attribute, since it's
+            // only ever this row's own in-memory state between the preview
+            // and the confirm click.
+            let pendingDeleteExtra = {};
+
             function checkDeleteDependencies() {
                 const blockedEl = deletePanel.querySelector('.delete-document-blocked');
                 const confirmEl = deletePanel.querySelector('.delete-document-confirm');
@@ -663,6 +696,7 @@
                 blockedEl.classList.add('hidden');
                 confirmEl.classList.add('hidden');
                 errorEl.style.display = 'none';
+                pendingDeleteExtra = {};
 
                 const documentName = row.querySelector('.document-name-link').textContent;
 
@@ -675,6 +709,17 @@
                                 linked_tasks: data.viewable_tasks,
                                 hidden_linked_task_count: data.hidden_linked_task_count,
                             }, documentId, checkDeleteDependencies, closeAllPanels);
+                        } else if (data.folder_warning) {
+                            // Never a hard block - reuses the plain confirm
+                            // state's own markup (same buttons), just with
+                            // the folder-derived message and the extra
+                            // confirm field the eventual DELETE needs to
+                            // actually succeed, matching update()'s own
+                            // confirm_field-driven handling.
+                            pendingDeleteExtra = { [data.folder_warning.confirm_field]: true };
+                            confirmEl.querySelector('.delete-confirm-message').textContent =
+                                data.folder_warning.message + ' Delete "' + documentName + '" anyway? This can\'t be undone.';
+                            confirmEl.classList.remove('hidden');
                         } else {
                             confirmEl.querySelector('.delete-confirm-message').textContent =
                                 'Permanently delete "' + documentName + '"? This can\'t be undone.';
@@ -699,7 +744,11 @@
             const confirmDeleteBtn = deletePanel.querySelector('.confirm-delete-document-btn');
             if (confirmDeleteBtn) {
                 confirmDeleteBtn.addEventListener('click', function () {
-                    requestOrThrowSimple('/documents/' + documentId, 'DELETE', undefined, 'Failed to delete document.')
+                    // pendingDeleteExtra carries confirm_folder_effect when
+                    // checkDeleteDependencies() found a folder-derived
+                    // warning (never anything when the plain confirm state
+                    // was shown instead) - see that function's own comment.
+                    requestOrThrowSimple('/documents/' + documentId, 'DELETE', pendingDeleteExtra, 'Failed to delete document.')
                         .then(function () {
                             window.location.reload();
                         })

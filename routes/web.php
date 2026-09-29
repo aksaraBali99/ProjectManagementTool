@@ -29,6 +29,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SubtaskController;
 use App\Http\Controllers\TaskColorController;
 use App\Http\Controllers\TaskDocumentController;
+use App\Http\Controllers\TaskFolderController;
 use App\Http\Controllers\TaskManagementController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
@@ -192,6 +193,17 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/tasks/{task}/documents/attachable', [TaskDocumentController::class, 'index'])->name('task-documents.attachable');
     Route::post('/tasks/{task}/documents', [TaskDocumentController::class, 'attach'])->name('task-documents.attach');
     Route::delete('/tasks/{task}/documents/{document}', [TaskDocumentController::class, 'detach'])->name('task-documents.detach');
+
+    // task #73 phase 4: the folder-attach picker's sibling routes, same
+    // fixed-trailing-segment reasoning as task-documents.attachable above.
+    // The expand route is deliberately its own path (not nested under
+    // /folders/{folder}/documents or similar) since it's read by ANY task
+    // viewer who isn't a Client (see TaskFolderController::expand()'s own
+    // docblock), not just someone who can attach/detach folders.
+    Route::get('/tasks/{task}/folders/attachable', [TaskFolderController::class, 'index'])->name('task-folders.attachable');
+    Route::post('/tasks/{task}/folders', [TaskFolderController::class, 'attach'])->name('task-folders.attach');
+    Route::delete('/tasks/{task}/folders/{folder}', [TaskFolderController::class, 'detach'])->name('task-folders.detach');
+    Route::get('/tasks/{task}/folders/{folder}/expand', [TaskFolderController::class, 'expand'])->name('task-folders.expand');
 
     // task #73 phase 2
     Route::post('/document-folders', [DocumentFolderController::class, 'store'])->name('document-folders.store');
