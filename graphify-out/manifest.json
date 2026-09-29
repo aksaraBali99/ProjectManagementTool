@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1790681409.7140775,
-    "ast_hash": "561b3ce95db13d5e2843e6477fa33af5",
+    "mtime": 1790690401.963351,
+    "ast_hash": "eefdb1166b149301f8301bfcdfc247f1",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1790679781.2625883,
-    "ast_hash": "ae6fd21112b15a340947cb47a2b94d8a",
+    "mtime": 1790689688.5484333,
+    "ast_hash": "54a920add7818ed12420acadd47902c5",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -1925,8 +1925,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentFolderController.php": {
-    "mtime": 1790679572.8211687,
-    "ast_hash": "6cc989680ed1507381141100ebbc20d3",
+    "mtime": 1790689745.1920848,
+    "ast_hash": "2698af77dbc12b680195ef2cdd1bfddd",
     "semantic_hash": ""
   },
   "app/Models/DocumentFolder.php": {
@@ -1935,8 +1935,8 @@
     "semantic_hash": ""
   },
   "app/Policies/DocumentFolderPolicy.php": {
-    "mtime": 1790608278.4734674,
-    "ast_hash": "16fb7479bab832b5e136bf0564bccbfd",
+    "mtime": 1790689590.9660313,
+    "ast_hash": "1bd7a7462c55b756e5ee42f578afe155",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_29_000000_create_document_folders_table.php": {
@@ -1975,8 +1975,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentEditTest.php": {
-    "mtime": 1790608278.5761166,
-    "ast_hash": "c12b07bd17ac43435c653a4b4dc04015",
+    "mtime": 1790690653.8086119,
+    "ast_hash": "6b84539d5c8cdd6b3959859b88a644d3",
     "semantic_hash": ""
   },
   "resources/js/file-chip-status.js": {
@@ -2060,13 +2060,13 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskFolderController.php": {
-    "mtime": 1790679731.72033,
-    "ast_hash": "93a5823641f6dc1b6e2fbe43674f04a1",
+    "mtime": 1790690149.19055,
+    "ast_hash": "8fcd00b13d0710139cd746600c9512ff",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_30_000000_create_task_folder_links_table.php": {
-    "mtime": 1790679437.7397192,
-    "ast_hash": "2485c3392ea876f2f0a85dccb3491269",
+    "mtime": 1790689695.9345393,
+    "ast_hash": "03777a721700fc1b82845c0b393b94fb",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentFolderLinkWarningTest.php": {
@@ -2090,8 +2090,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskFolderDisplayTest.php": {
-    "mtime": 1790680232.8416407,
-    "ast_hash": "a2e44458d7b6cd798607dbae79919024",
+    "mtime": 1790690079.6543002,
+    "ast_hash": "fab544fbfa25c3871a2cec78926aeefc",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskFolderPickerTest.php": {
