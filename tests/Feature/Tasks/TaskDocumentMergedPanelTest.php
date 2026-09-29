@@ -52,12 +52,14 @@ test('the merged panel carries the required markup and ARIA attributes, and both
     expect($content)->toContain('aria-expanded="false"');
     expect($content)->toContain('aria-controls="attach-document-panel-'.$this->task->id.'"');
 
-    // Panel: labelled dialog, search input has an accessible name, a
-    // "Matching documents" heading, and a labelled results list.
+    // Panel: labelled dialog, search input has an accessible name, and a
+    // labelled results list. The default (empty-query) heading is
+    // "Recently added", not "Matching documents" — see
+    // TaskDocumentAttachPanelPolishTest for the heading-toggle behavior.
     expect($content)->toContain('role="dialog"');
     expect($content)->toContain('Search or attach a document');
-    expect($content)->toContain('Matching documents');
-    expect($content)->toContain('aria-label="Matching documents"');
+    expect($content)->toContain('Recently added');
+    expect($content)->toContain('aria-label="Recently added"');
 
     // The two create-instead action rows, always present (default/empty
     // state — no search performed yet), not conditional on any query.

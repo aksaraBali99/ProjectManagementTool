@@ -65,8 +65,14 @@
                 <input type="text" id="attach-document-search-{{ $task->id }}" class="attach-document-search w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Search or attach a document…">
 
                 <div>
-                    <p class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Matching documents</p>
-                    <ul class="attach-document-results mt-1 space-y-1" aria-label="Matching documents"></ul>
+                    {{-- "Recently added" while the search box is empty, not
+                         "Matching documents" — an empty query still shows
+                         the same newest-first list (Phase 3's default
+                         ordering), and labelling it as "matching" reads
+                         like "these are the only files available" rather
+                         than "these are just the most recent ones". --}}
+                    <p class="attach-document-results-heading text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Recently added</p>
+                    <ul class="attach-document-results mt-1 space-y-1" aria-label="Recently added"></ul>
                     <p class="attach-document-status mt-1 text-[11px] text-gray-500"></p>
                     <button type="button" class="attach-document-load-more hidden text-[11px] font-medium text-brand-600 hover:underline">Load more</button>
                 </div>
@@ -93,33 +99,58 @@
             <div class="new-document-form hidden space-y-2 rounded-md border border-gray-200 p-3">
                 <button type="button" class="new-document-back text-[11px] text-gray-500 hover:underline">&larr; Back to search</button>
 
-                <input type="text" class="new-document-name w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Document name">
+                {{-- flex + order-first (only on the upload panel below) is
+                     what puts the file picker before the name field on the
+                     Upload tab while leaving the Add link tab's order
+                     (name, then link) untouched — the upload panel is
+                     hidden, not removed, on the link tab, so its order
+                     never affects that tab's visible layout. --}}
+                <div class="flex flex-col gap-2">
+                    <input type="text" class="new-document-name w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Document name">
 
-                <div class="new-document-panel" data-panel="link">
-                    <input type="url" class="new-document-link w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="https://…">
-                </div>
-                <div class="new-document-panel hidden" data-panel="upload">
-                    <input type="file" class="new-document-file w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                    <p class="mt-1 text-[10px] text-gray-500">PDF, Word, Excel, PowerPoint, text or CSV — up to 20MB.</p>
-                </div>
+                    <div class="new-document-panel" data-panel="link">
+                        <input type="url" class="new-document-link w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="https://…">
+                    </div>
+                    <div class="new-document-panel hidden order-first" data-panel="upload">
+                        {{-- task #73 (attach panel polish): a custom-styled
+                             control, not the bare native input — the
+                             browser's own "Choose File" button used to
+                             render directly on top of the selected
+                             filename text once a file was picked. The
+                             native input itself stays real, focusable and
+                             keyboard-operable (sr-only, not display:none/
+                             visibility:hidden) — a <label for="..."> is
+                             what makes the visible button trigger it, with
+                             no separate tab stop of its own (labels aren't
+                             focusable; only the input they're bound to is),
+                             so Tab reaches exactly one control here, same
+                             as before. --}}
+                        <div class="flex items-center gap-2">
+                            <label for="new-document-file-{{ $task->id }}" class="new-document-file-trigger cursor-pointer rounded-md border border-gray-300 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">Choose file</label>
+                            <span class="new-document-file-name min-w-0 flex-1 truncate text-[12px] text-gray-500">No file selected</span>
+                        </div>
+                        <input type="file" id="new-document-file-{{ $task->id }}" class="new-document-file sr-only">
+                        <p class="mt-1 text-[10px] text-gray-500">PDF, Word, Excel, PowerPoint, text or CSV — up to 20MB.</p>
+                    </div>
 
-                @if ($isClientUploader)
-                    <input type="hidden" class="new-document-access" value="public">
-                @else
-                    {{-- task #73 phase 3: no Private option here — a document
-                         created and attached to a task in the same step is
-                         never allowed to be Private (enforced server-side in
-                         DocumentController::store() regardless of what this
-                         markup offers). Private stays available on the
-                         standalone Documents page's own Add Document form,
-                         which never attaches to a task. --}}
-                    <select class="new-document-access w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                        @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
-                            @continue($accessCase === \App\Enums\DocumentAccessLevel::Private)
-                            <option value="{{ $accessCase->value }}" {{ $accessCase === \App\Enums\DocumentAccessLevel::Internal ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
-                        @endforeach
-                    </select>
-                @endif
+                    @if ($isClientUploader)
+                        <input type="hidden" class="new-document-access" value="public">
+                    @else
+                        {{-- task #73 phase 3: no Private option here — a document
+                             created and attached to a task in the same step is
+                             never allowed to be Private (enforced server-side in
+                             DocumentController::store() regardless of what this
+                             markup offers). Private stays available on the
+                             standalone Documents page's own Add Document form,
+                             which never attaches to a task. --}}
+                        <select class="new-document-access w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                            @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
+                                @continue($accessCase === \App\Enums\DocumentAccessLevel::Private)
+                                <option value="{{ $accessCase->value }}" {{ $accessCase === \App\Enums\DocumentAccessLevel::Internal ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
+                            @endforeach
+                        </select>
+                    @endif
+                </div>
                 <button type="button" class="create-and-attach-btn rounded-md bg-brand-600 px-3 py-2 text-[12px] font-medium text-white hover:bg-brand-700">Create &amp; attach</button>
                 <p class="new-document-error text-[11px] text-red-600" style="display: none;"></p>
             </div>
@@ -266,11 +297,24 @@
             const linkActionBtn = attachPanel.querySelector('.attach-document-link-action');
             const uploadLabelEl = attachPanel.querySelector('.attach-document-upload-label');
             const linkLabelEl = attachPanel.querySelector('.attach-document-link-label');
+            const resultsHeadingEl = attachPanel.querySelector('.attach-document-results-heading');
 
             let currentPage = 1;
             let hasMore = false;
             let searchDebounceTimer = null;
             let requestToken = 0; // guards a stale response (an old search, or an auto-chained page fetch) from rendering after a newer one supersedes it
+
+            // task #73 (attach panel polish): "Recently added" while the
+            // search box is empty — the exact same newest-first list and
+            // criteria as today, just labelled honestly instead of as
+            // "matching" results (which reads as "these are the only
+            // files available"). Switches to "Matching documents" as soon
+            // as the user types anything, and back again if they clear it.
+            function updateResultsHeading(query) {
+                const heading = query ? 'Matching documents' : 'Recently added';
+                resultsHeadingEl.textContent = heading;
+                resultsEl.setAttribute('aria-label', heading);
+            }
 
             function formatBytes(bytes) {
                 if (bytes === null || bytes === undefined) return null;
@@ -406,6 +450,7 @@
                 attachPanel.classList.remove('hidden');
                 showSearchView();
                 searchInput.value = '';
+                updateResultsHeading('');
                 searchInput.focus();
                 fetchResults(1, false);
             }
@@ -438,6 +483,7 @@
                 const query = searchInput.value.trim();
                 uploadLabelEl.textContent = query ? 'Upload "' + query + '" as a new file' : 'Upload a new file';
                 linkLabelEl.textContent = query ? 'Add "' + query + '" as a link' : 'Add a link';
+                updateResultsHeading(query);
 
                 if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
                 searchDebounceTimer = setTimeout(function () {
@@ -498,12 +544,33 @@
             });
         }
 
+        // task #73 (attach panel polish): strips the extension for the
+        // name auto-fill ("Peace and Conflict Grade 1.pdf" -> "Peace and
+        // Conflict Grade 1") — matches the last ".xyz" only, so an
+        // incidental earlier dot in the filename (e.g. "report.v2.pdf")
+        // is left alone and only the real extension is removed.
+        function stripExtension(filename) {
+            return filename.replace(/\.[^.]+$/, '');
+        }
+
         const fileInput = container.querySelector('.new-document-file');
+        const fileNameEl = container.querySelector('.new-document-file-name');
         if (fileInput) {
             fileInput.addEventListener('change', function () {
+                const file = fileInput.files[0];
+
+                if (fileNameEl) {
+                    fileNameEl.textContent = file ? file.name : 'No file selected';
+                    fileNameEl.title = file ? file.name : '';
+                }
+
+                // Only auto-fills an EMPTY name field — never overwrites a
+                // value already there, whether the user typed it or it
+                // came from clicking "Upload [name] as a new file" on a
+                // search result.
                 const nameInput = container.querySelector('.new-document-name');
-                if (nameInput && ! nameInput.value && fileInput.files[0]) {
-                    nameInput.value = fileInput.files[0].name;
+                if (nameInput && ! nameInput.value && file) {
+                    nameInput.value = stripExtension(file.name);
                 }
             });
         }
@@ -550,6 +617,7 @@
                         nameInput.value = '';
                         linkInput.value = '';
                         if (fileInput) fileInput.value = '';
+                        if (fileNameEl) { fileNameEl.textContent = 'No file selected'; fileNameEl.title = ''; }
                         const attachPanel = container.querySelector('.attach-document-panel');
                         const attachToggle = container.querySelector('.attach-document-toggle');
                         newForm.classList.add('hidden');
