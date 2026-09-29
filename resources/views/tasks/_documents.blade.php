@@ -11,6 +11,10 @@
                 <div>
                     <a href="{{ route('file-downloads.show', ['url' => $document->url]) }}" target="_blank" rel="noopener" class="text-[12px] font-medium text-brand-600 hover:underline">{{ $document->name }}</a>
                     <span class="ml-2 rounded-sm bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">{{ $document->access_level->label() }}</span>
+                    {{-- Author + date, matching the Documents page's own
+                         list — 'uploader' is eager-loaded above so this
+                         never becomes an N+1 across attached rows. --}}
+                    <p class="mt-0.5 text-[11px] text-gray-500">{{ $document->uploader->name }} · {{ $document->created_at->format('M j, Y') }}</p>
                 </div>
                 {{-- task #73 phase 2: TaskPolicy::unlinkDocuments() —
                      manage_documents + task view, NOT $canEdit (task-edit
@@ -261,6 +265,15 @@
 
         listEl.querySelectorAll('[data-document-id]').forEach(wireDetach);
 
+        // Matches Carbon's ->format('M j, Y') used for this same "author +
+        // date" line on the initial page-load rows below, and on the
+        // Documents page's own list — so a freshly attached document's row
+        // shows dates in the same style as one rendered on page load, not
+        // a different locale-dependent format.
+        function formatDocumentDate(isoString) {
+            return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
         function appendDocumentRow(doc) {
             clearEmptyState();
             const row = document.createElement('div');
@@ -276,8 +289,14 @@
             const detachButtonHtml = canUnlinkDocuments
                 ? '<button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>'
                 : '';
+            // Author + date, matching the Documents page's own list — the
+            // response this renders from always carries 'uploader' loaded
+            // (TaskDocumentController::attach() / DocumentController::store()
+            // both load it before responding), so doc.uploader.name is
+            // never undefined here.
             row.innerHTML = '<div><a href="' + escapeHtml(downloadUrl) + '" target="_blank" rel="noopener" class="text-[12px] font-medium text-brand-600 hover:underline">' + escapeHtml(doc.name) + '</a>'
-                + '<span class="ml-2 rounded-sm bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">' + escapeHtml(accessLabel) + '</span></div>'
+                + '<span class="ml-2 rounded-sm bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">' + escapeHtml(accessLabel) + '</span>'
+                + '<p class="mt-0.5 text-[11px] text-gray-500">' + escapeHtml(doc.uploader.name) + ' · ' + escapeHtml(formatDocumentDate(doc.created_at)) + '</p></div>'
                 + detachButtonHtml;
             listEl.appendChild(row);
             wireDetach(row);

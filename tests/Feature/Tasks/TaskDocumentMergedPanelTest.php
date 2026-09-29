@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Department;
+use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Permission;
@@ -8,6 +9,7 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Covers the UI merge folding the old separate "Attach existing" (Phase
@@ -65,6 +67,62 @@ test('the merged panel carries the required markup and ARIA attributes, and both
     // state — no search performed yet), not conditional on any query.
     $response->assertSee('Upload a new file');
     $response->assertSee('Add a link');
+});
+
+test('each attached document row shows who added it and when, matching the Documents page\'s own list', function () {
+    $document = Document::create([
+        'organization_id' => $this->org->id,
+        'uploaded_by' => $this->management->id,
+        'name' => 'Launch brief.pdf',
+        'link' => 'https://example.com/launch-brief.pdf',
+        'access_level' => 'internal',
+    ]);
+    $document->created_at = '2026-03-14 10:00:00';
+    $document->save();
+    $this->task->documents()->attach($document->id);
+
+    $response = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit");
+
+    $response->assertOk();
+    $response->assertSee($this->management->name);
+    // Carbon's ->format('M j, Y') — matches the Documents page's own date
+    // style for the same "uploaded by / when" information.
+    $response->assertSee('Mar 14, 2026');
+});
+
+test('the attached-documents list resolves every row\'s uploader in one query, not one per document', function () {
+    // Regression guard for the uploader eager-load added alongside the
+    // author/date display: without ->with('uploader'), each row's
+    // {{ $document->uploader->name }} would be a fresh "select ... from
+    // users where id = ?" per document. This checks that specific query
+    // shape directly rather than the page's total query count, since the
+    // total already scales with document count for an unrelated,
+    // pre-existing reason (the per-document Gate::allows('view', ...)
+    // authorization filter above it isn't memoized either — out of scope
+    // here, see DocumentPolicy::viewableIds()'s own docblock).
+    $uploaders = collect(range(1, 5))->map(fn () => User::factory()->create());
+    $uploaders->each(function (User $uploader, int $i) {
+        OrgMember::create(['organization_id' => $this->org->id, 'user_id' => $uploader->id, 'role_id' => Role::where('slug', 'management')->firstOrFail()->id]);
+        $document = Document::create([
+            'organization_id' => $this->org->id,
+            'uploaded_by' => $uploader->id,
+            'name' => "Doc {$i}.pdf",
+            'link' => "https://example.com/doc-{$i}.pdf",
+            'access_level' => 'internal',
+        ]);
+        $this->task->documents()->attach($document->id);
+    });
+
+    DB::enableQueryLog();
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk();
+    // The eager load's own batch query has this exact shape (Eloquent's
+    // relation-loading whereIn) — narrower than "any query mentioning
+    // users.id", which also matches several unrelated permission/picker
+    // queries the same page issues.
+    $uploaderEagerLoadQueries = collect(DB::getQueryLog())->filter(fn ($query) => str_starts_with($query['query'], 'select * from "users" where "users"."id" in'));
+    DB::flushQueryLog();
+
+    expect($uploaderEagerLoadQueries)->toHaveCount(1);
 });
 
 test('a Client-role user (who could previously create-and-attach via "+ Add new document") sees no document button at all now', function () {

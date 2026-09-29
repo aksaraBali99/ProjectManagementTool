@@ -372,7 +372,12 @@ class DocumentController extends Controller
         }
 
         if ($request->expectsJson()) {
-            return response()->json(['document' => $document], 201);
+            // 'uploader' loaded so the merged attach panel's create-and-
+            // attach success handler (appendDocumentRow()) can show who
+            // added it, same as the picker's own attach response already
+            // does — without this, doc.uploader.name would be undefined
+            // for a document created (not picked) from a task.
+            return response()->json(['document' => $document->load('uploader')], 201);
         }
 
         if ($request->boolean('from_documents_page')) {

@@ -453,7 +453,11 @@ class TaskManagementController extends Controller
             $projects->push($project);
         }
 
-        $allAttachedDocuments = $task->documents()->orderBy('name')->get();
+        // 'uploader' eager-loaded so the attached-documents list can show
+        // who added each one and when, matching the Documents page's own
+        // list — without this, {{ $document->uploader->name }} below would
+        // be an N+1, one query per attached row.
+        $allAttachedDocuments = $task->documents()->with('uploader')->orderBy('name')->get();
 
         // A document attached to this task isn't automatically visible to
         // everyone who can see the task — e.g. a private document
