@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "",
+    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
-    "mtime": 1790660015.0174167,
-    "ast_hash": "8dd83d4921a9cfb75885b14d2205e5b1",
+    "mtime": 1790664839.7108736,
+    "ast_hash": "5ab268aadee10b731b5f3204a61495e1",
     "semantic_hash": ""
   },
   "resources/views/tasks/_subtasks.blade.php": {
@@ -2040,8 +2040,13 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentMergedPanelTest.php": {
-    "mtime": 1790660486.3768268,
-    "ast_hash": "43281e937f19e1597eab283dcf4ed287",
+    "mtime": 1790664916.9907737,
+    "ast_hash": "5e4938a370eab22a34528ff30e044f4b",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Tasks/TaskDocumentAttachPanelPolishTest.php": {
+    "mtime": 1790665416.591739,
+    "ast_hash": "7f6ceb11ce12689a0d529ec893bd3a37",
     "semantic_hash": ""
   }
 }
