@@ -151,6 +151,11 @@
                         </select>
                     @endif
                 </div>
+                {{-- Caption differs per tab — "Upload & Attach" on the
+                     Upload tab (the flow is upload-first there), "Create &
+                     attach" unchanged on the Add link tab — swapped in JS
+                     by activateNewDocumentMode(), same submit handler and
+                     endpoint either way. --}}
                 <button type="button" class="create-and-attach-btn rounded-md bg-brand-600 px-3 py-2 text-[12px] font-medium text-white hover:bg-brand-700">Create &amp; attach</button>
                 <p class="new-document-error text-[11px] text-red-600" style="display: none;"></p>
             </div>
@@ -510,12 +515,20 @@
         const newForm = container.querySelector('.new-document-form');
         let newDocumentMode = 'link';
         const modePanels = newForm ? newForm.querySelectorAll('.new-document-panel') : [];
+        const createAndAttachBtn = newForm ? newForm.querySelector('.create-and-attach-btn') : null;
 
+        // task #73 (attach panel polish): the submit button's caption
+        // differs per tab - "Upload & Attach" on the Upload tab, since
+        // that flow is upload-first, vs. the Add link tab's unchanged
+        // "Create & attach". Same submit handler and endpoint either way.
         function activateNewDocumentMode(mode) {
             newDocumentMode = mode;
             modePanels.forEach(function (panel) {
                 panel.classList.toggle('hidden', panel.dataset.panel !== mode);
             });
+            if (createAndAttachBtn) {
+                createAndAttachBtn.textContent = mode === 'upload' ? 'Upload & Attach' : 'Create & attach';
+            }
         }
 
         function openCreateForm(mode) {
