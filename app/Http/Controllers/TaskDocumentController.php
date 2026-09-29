@@ -101,7 +101,7 @@ class TaskDocumentController extends Controller
 
         $paginated = $query->paginate(25, ['*'], 'page', $data['page'] ?? 1);
 
-        $folderPaths = $this->folderPaths($task->organization_id);
+        $folderPaths = DocumentFolder::pathsFor($task->organization_id);
         $attachedIds = $task->documents()->pluck('documents.id');
 
         $paginated->getCollection()->transform(fn (Document $document) => [
@@ -120,28 +120,10 @@ class TaskDocumentController extends Controller
         return response()->json($paginated);
     }
 
-    /**
-     * One query for every folder in the company, then an in-memory walk —
-     * never one query per document row.
-     *
-     * @return array<int, string>
-     */
-    private function folderPaths(int $organizationId): array
-    {
-        $folders = DocumentFolder::where('organization_id', $organizationId)->get(['id', 'parent_id', 'name']);
-        $byId = $folders->keyBy('id');
-
-        $paths = [];
-        foreach ($folders as $folder) {
-            $segments = [];
-            for ($cursor = $folder; $cursor !== null; $cursor = $cursor->parent_id !== null ? $byId->get($cursor->parent_id) : null) {
-                array_unshift($segments, $cursor->name);
-            }
-            $paths[$folder->id] = implode(' / ', $segments);
-        }
-
-        return $paths;
-    }
+    // task #73 phase 4: the private folderPaths() helper that used to live
+    // here was extracted verbatim to DocumentFolder::pathsFor() so the
+    // folder picker (TaskFolderController) could reuse it too, instead of
+    // duplicating the same one-query-per-company-not-per-folder logic.
 
     /**
      * task #73 phase 3: the picker's attach action, and now the single

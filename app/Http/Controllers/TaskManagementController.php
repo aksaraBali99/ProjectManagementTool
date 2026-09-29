@@ -468,6 +468,17 @@ class TaskManagementController extends Controller
             ->filter(fn (Document $document) => Gate::allows('view', $document))
             ->values();
 
+        // task #73 phase 4: linked folders — a hard, query-level exclusion
+        // for a Client-role viewer, not a client-side hide (the task's own
+        // spec: "a Client viewing this task must see NOTHING from a linked
+        // folder at all — no folder row, no expand control, not even an
+        // empty one"). Computed once here, the same way $attachedDocuments
+        // above is already filtered per viewer, rather than relying on the
+        // Blade view or JS to hide it.
+        $linkedFolders = auth()->user()->isClientInOrg($task->organization_id)
+            ? collect()
+            : $task->folders()->orderBy('name')->get();
+
         $returnTo = $this->resolveReturnTo(route('tasks.index', $task->organization_id));
 
         $task->load('subtasks', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
@@ -501,6 +512,12 @@ class TaskManagementController extends Controller
             // once linked") only makes sense when the project actually has
             // one — computed once here, not per picker result row.
             'projectHasClient' => $project->primaryClient() !== null,
+            // task #73 phase 4: pre-filtered to empty for a Client above —
+            // reuses $canAttachDocuments/$canUnlinkDocuments verbatim for
+            // the "Attach folder" button and each row's Detach button (same
+            // gates as Phase 3's file attach/unlink, no folder-specific
+            // policy methods).
+            'linkedFolders' => $linkedFolders,
             'attachedDocuments' => $attachedDocuments,
         ], $this->cascadingOptions($projects)));
     }
