@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\DocumentFolder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
@@ -124,45 +125,66 @@ class DocumentFolderController extends Controller
      * not the primary enforcement). Both reasons are checked and reported
      * together when both apply, rather than only ever surfacing whichever
      * one happens to be checked first.
+     *
+     * The check-then-delete now happens inside one transaction with the
+     * folder row locked (code review follow-up) — without this, a
+     * concurrent task-folder attach landing between the linked-task check
+     * and $folder->delete() would hit the new restrictOnDelete FK on
+     * task_folder_links.folder_id directly, surfacing as a raw 500
+     * QueryException instead of the friendly 422 this method otherwise
+     * builds for exactly that case. Same lockForUpdate() pattern
+     * DocumentController::update()/destroy() already use for the
+     * equivalent document-level race.
      */
     public function destroy(DocumentFolder $folder): JsonResponse
     {
         Gate::authorize('delete', $folder);
 
-        $hasChildren = DocumentFolder::where('parent_id', $folder->id)->exists();
-        $hasDocuments = Document::where('folder_id', $folder->id)->exists();
-        // withTrashed(): a link to a since-deactivated task still counts —
-        // same reasoning as DocumentDependencyService::summarize()'s own
-        // withTrashed() for the direct-link delete block; the row (and the
-        // restrict-on-delete FK backing it) doesn't care about soft-delete.
-        $linkedTaskCount = $folder->tasks()->withTrashed()->count();
+        $result = DB::transaction(function () use ($folder) {
+            $locked = DocumentFolder::whereKey($folder->id)->lockForUpdate()->firstOrFail();
 
-        if ($hasChildren || $hasDocuments || $linkedTaskCount > 0) {
-            $reasons = [];
-            if ($hasChildren || $hasDocuments) {
-                $reasons[] = "isn't empty";
-            }
-            if ($linkedTaskCount > 0) {
-                $reasons[] = "is linked to {$linkedTaskCount} ".Str::plural('task', $linkedTaskCount);
+            $hasChildren = DocumentFolder::where('parent_id', $locked->id)->exists();
+            $hasDocuments = Document::where('folder_id', $locked->id)->exists();
+            // withTrashed(): a link to a since-deactivated task still counts
+            // — same reasoning as DocumentDependencyService::summarize()'s
+            // own withTrashed() for the direct-link delete block; the row
+            // (and the restrict-on-delete FK backing it) doesn't care about
+            // soft-delete.
+            $linkedTaskCount = $locked->tasks()->withTrashed()->count();
+
+            if ($hasChildren || $hasDocuments || $linkedTaskCount > 0) {
+                $reasons = [];
+                if ($hasChildren || $hasDocuments) {
+                    $reasons[] = "isn't empty";
+                }
+                if ($linkedTaskCount > 0) {
+                    $reasons[] = "is linked to {$linkedTaskCount} ".Str::plural('task', $linkedTaskCount);
+                }
+
+                return ['blocked' => true, 'message' => 'This folder '.implode(', and ', $reasons).'.'];
             }
 
-            return response()->json(['message' => 'This folder '.implode(', and ', $reasons).'.'], 422);
+            $name = $locked->name;
+            $organizationId = $locked->organization_id;
+            $folderId = $locked->id;
+
+            $locked->delete();
+
+            AuditLog::create([
+                'organization_id' => $organizationId,
+                'user_id' => auth()->id(),
+                'action' => 'folder.deleted',
+                'entity_type' => 'document_folder',
+                'entity_id' => $folderId,
+                'changes' => ['name' => $name],
+            ]);
+
+            return ['blocked' => false];
+        });
+
+        if ($result['blocked']) {
+            return response()->json(['message' => $result['message']], 422);
         }
-
-        $name = $folder->name;
-        $organizationId = $folder->organization_id;
-        $folderId = $folder->id;
-
-        $folder->delete();
-
-        AuditLog::create([
-            'organization_id' => $organizationId,
-            'user_id' => auth()->id(),
-            'action' => 'folder.deleted',
-            'entity_type' => 'document_folder',
-            'entity_id' => $folderId,
-            'changes' => ['name' => $name],
-        ]);
 
         return response()->json(['deleted' => true]);
     }

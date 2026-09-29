@@ -32,7 +32,11 @@ return new class extends Migration
             $table->foreignId('linked_by')->constrained('users');
             $table->timestamps();
 
-            $table->unique(['task_id', 'folder_id']);
+            // primary(), not a separate unique() — matches task_documents'
+            // own composite-key convention (code review follow-up: this
+            // originally used unique(), leaving the table with no real
+            // primary key at all, unlike every other pivot in this app).
+            $table->primary(['task_id', 'folder_id']);
         });
     }
 

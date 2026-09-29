@@ -537,27 +537,32 @@ class DocumentController extends Controller
         ]);
 
         // Move: "the target must be a folder in the same company, or the
-        // root. No rights over the folder are needed" — so this is a
-        // plain existence/company check, not a Gate call. Resolved before
-        // the transaction below since it's about the FOLDER, not the
-        // document's own row state.
-        $targetFolderId = $document->folder_id;
-        if (array_key_exists('folder_id', $data)) {
-            if ($data['folder_id'] !== null) {
-                $targetFolder = DocumentFolder::where('organization_id', $document->organization_id)->find($data['folder_id']);
-                abort_if($targetFolder === null, 404);
-                $targetFolderId = $targetFolder->id;
-            } else {
-                $targetFolderId = null;
-            }
+        // root. No rights over the folder are needed" — so the TARGET
+        // folder's existence is resolved up front (organization_id is
+        // immutable, so this particular lookup doesn't need to wait for
+        // the lock below). What it actually means to move relative to the
+        // document's CURRENT folder is resolved separately, inside the
+        // transaction, from the locked row (see $targetFolderId below) —
+        // code review follow-up: this used to default to $document->
+        // folder_id, read before any lock, so a concurrent move landing
+        // between this request's route-model-binding and the lock would
+        // get silently reverted back to that stale value the moment this
+        // request saved (this field wasn't even being changed, from the
+        // caller's point of view).
+        $requestedFolderId = array_key_exists('folder_id', $data) ? $data['folder_id'] : false;
+        $targetFolder = null;
+        if ($requestedFolderId !== false && $requestedFolderId !== null) {
+            $targetFolder = DocumentFolder::where('organization_id', $document->organization_id)->find($requestedFolderId);
+            abort_if($targetFolder === null, 404);
         }
 
         $dependencyService = app(DocumentDependencyService::class);
         $viewer = auth()->user();
 
-        $result = DB::transaction(function () use ($document, $data, $targetFolderId, $dependencyService, $viewer, $request) {
+        $result = DB::transaction(function () use ($document, $data, $requestedFolderId, $targetFolder, $dependencyService, $viewer, $request) {
             $locked = Document::whereKey($document->id)->lockForUpdate()->firstOrFail();
             $oldFolderId = $locked->folder_id;
+            $targetFolderId = $requestedFolderId === false ? $oldFolderId : ($requestedFolderId === null ? null : $targetFolder->id);
 
             $accessLevelChanging = false;
             $requestedAccessLevel = null;
@@ -633,12 +638,14 @@ class DocumentController extends Controller
                 $locked->folder_id = $targetFolderId;
             }
 
-            if (array_key_exists('access_level', $data)) {
-                $requestedAccessLevel = DocumentAccessLevel::from($data['access_level']);
-                if ($requestedAccessLevel !== $locked->access_level) {
-                    $auditEntries[] = ['action' => 'document.access_level_changed', 'changes' => ['access_level' => ['old' => $locked->access_level->value, 'new' => $requestedAccessLevel->value]]];
-                    $locked->access_level = $requestedAccessLevel;
-                }
+            // $accessLevelChanging/$requestedAccessLevel reused from above
+            // (code review follow-up: this used to recompute both from
+            // $data['access_level'] a second time, identically — a future
+            // edit to one copy's condition could silently diverge from
+            // the other).
+            if ($accessLevelChanging) {
+                $auditEntries[] = ['action' => 'document.access_level_changed', 'changes' => ['access_level' => ['old' => $locked->access_level->value, 'new' => $requestedAccessLevel->value]]];
+                $locked->access_level = $requestedAccessLevel;
             }
 
             $locked->save();

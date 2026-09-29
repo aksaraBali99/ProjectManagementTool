@@ -16,6 +16,7 @@ use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Policies\DocumentFolderPolicy;
 use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use App\Services\LinkPreviewService;
@@ -475,7 +476,18 @@ class TaskManagementController extends Controller
         // empty one"). Computed once here, the same way $attachedDocuments
         // above is already filtered per viewer, rather than relying on the
         // Blade view or JS to hide it.
-        $linkedFolders = auth()->user()->isClientInOrg($task->organization_id)
+        //
+        // DocumentFolderPolicy::canBrowse() (code review follow-up): a
+        // Client exclusion alone isn't the real precondition — a Staff
+        // member can view this task (view_tasks + department access)
+        // without holding view_documents at all (a separately-toggled
+        // permission staff don't get by default), which is the actual
+        // gate the Documents page enforces before anyone sees a folder
+        // name. Without this, such a staff member would see this task's
+        // linked folder row despite being denied the Documents page
+        // entirely.
+        $linkedFolders = (auth()->user()->isClientInOrg($task->organization_id)
+            || ! app(DocumentFolderPolicy::class)->canBrowse(auth()->user(), $task->organization_id))
             ? collect()
             : $task->folders()->orderBy('name')->get();
 

@@ -135,6 +135,35 @@ test('a subfolder can itself be expanded, without needing to be independently li
     expect(collect($response->json('documents'))->pluck('name'))->toContain('Deep file.pdf');
 });
 
+test('code review follow-up: a staff member with view_tasks but no view_documents sees no linked folder row, and the expand endpoint 404s them directly', function () {
+    // beforeEach grants view_documents to the whole Staff role (needed by
+    // the OTHER tests in this file, which compare two viewers' document-
+    // level visibility) - revoke it here specifically, since this test is
+    // about its ABSENCE. This is exactly the gap DocumentFolderPolicy::
+    // canBrowse() closes: view_tasks + department access alone used to be
+    // enough to see a task's linked folder and browse ANY folder in the
+    // company via expand(), even without holding the one permission
+    // (view_documents) that gates the Documents page and folder
+    // visibility everywhere else in the app.
+    $staffRole = Role::where('slug', 'staff')->firstOrFail();
+    $viewDocumentsId = Permission::where('slug', 'view_documents')->firstOrFail()->id;
+    $staffRole->permissions()->detach($viewDocumentsId);
+
+    $task = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $this->project->id, 'department_id' => $this->deptMarketing->id, 'title' => 'T', 'priority' => 'medium', 'status' => 'pending']);
+    $folder = makeDisplayTestFolder($this->orgA, $this->management, 'Should stay hidden');
+    $task->folders()->attach($folder->id, ['linked_by' => $this->management->id]);
+
+    $staff = makeDeptStaffForDisplayTest($this->orgA, $this->deptMarketing);
+    expect($staff->can('view', $task))->toBeTrue(); // can view the task itself
+    expect($staff->hasPermission('view_documents', $this->orgA->id))->toBeFalse(); // but not this
+
+    $editPage = $this->actingAs($staff)->get("/tasks/{$task->id}/edit")->assertOk()->getContent();
+    expect($editPage)->not->toContain('data-folder-id="'.$folder->id.'"');
+
+    $response = $this->actingAs($staff)->getJson("/tasks/{$task->id}/folders/{$folder->id}/expand");
+    $response->assertNotFound();
+});
+
 test('a Client-role user sees no folder row at all for a task with a linked folder', function () {
     $client = User::factory()->create();
     $clientRole = Role::where('slug', 'client')->firstOrFail();

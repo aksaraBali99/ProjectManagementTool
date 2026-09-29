@@ -6,6 +6,7 @@ use App\Exceptions\FolderAlreadyLinkedException;
 use App\Models\Document;
 use App\Models\DocumentFolder;
 use App\Models\Task;
+use App\Policies\DocumentFolderPolicy;
 use App\Policies\DocumentPolicy;
 use App\Services\TaskDocumentLinker;
 use Illuminate\Http\JsonResponse;
@@ -145,16 +146,25 @@ class TaskFolderController extends Controller
      * task_folder_links at all — only that $folder belongs to the task's
      * own company, same defense as attach()'s explicit check above).
      *
-     * Gated on being able to view the task AND NOT a Client-role user —
-     * deliberately NOT manage_documents (viewing what's already linked is
-     * available to any non-Client task viewer, same as directly-attached
+     * Gated on being able to view the task, NOT a Client-role user, AND
+     * DocumentFolderPolicy::canBrowse() — deliberately NOT manage_documents
+     * (viewing what's already linked is available to any non-Client task
+     * viewer who can browse folders at all, same as directly-attached
      * files already are; manage_documents only gates the attach/detach
-     * BUTTONS). This is the hard, query-level Client exclusion the task's
-     * own spec calls for: a Client gets 404 here regardless of whether the
-     * UI would ever show them the row (it doesn't), not a client-side hide.
+     * BUTTONS). canBrowse() is the fix for a real gap this endpoint
+     * originally had: a Client exclusion alone isn't the actual Documents-
+     * page precondition — a Staff member can hold view_tasks (and so pass
+     * Gate::allows('view', $task)) without holding view_documents at all
+     * (a separately-toggled permission staff don't get by default),
+     * meaning they'd otherwise browse ANY folder in the company via this
+     * endpoint despite being denied the Documents page entirely. This is
+     * still a hard, query-level exclusion for whoever fails it (a Client,
+     * or a non-view_documents staff member gets 404 regardless of whether
+     * the UI would ever show them the row), not a client-side hide.
      *
-     * Subfolders returned unfiltered (folders have no visibility of their
-     * own); documents filtered through DocumentPolicy::viewableIds() in
+     * Subfolders returned unfiltered (folders have no PER-FOLDER
+     * visibility of their own, once canBrowse() above has already gated
+     * entry); documents filtered through DocumentPolicy::viewableIds() in
      * ONE batched pass, not a Gate::allows('view', ...) call per file —
      * genuinely computed for the CURRENT viewer, not cached from whoever
      * linked the folder.
@@ -165,7 +175,8 @@ class TaskFolderController extends Controller
 
         if ($folder->organization_id !== $task->organization_id
             || ! Gate::allows('view', $task)
-            || $viewer->isClientInOrg($task->organization_id)) {
+            || $viewer->isClientInOrg($task->organization_id)
+            || ! app(DocumentFolderPolicy::class)->canBrowse($viewer, $task->organization_id)) {
             abort(404);
         }
 

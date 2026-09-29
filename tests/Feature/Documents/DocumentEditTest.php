@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
     $this->owner = createOwner();
@@ -247,4 +248,39 @@ test('renaming, moving, or changing access level between two non-blocking levels
     // alone, while linked, are entirely unrestricted.
     $this->actingAs($this->management)->putJson("/documents/{$document->id}", ['name' => 'Renamed while linked'])->assertOk();
     expect($document->fresh()->name)->toBe('Renamed while linked');
+});
+
+test('code review follow-up: a concurrent move landing before the lock is not silently reverted by an unrelated update', function () {
+    // Regression guard: $targetFolderId used to default to $document->
+    // folder_id - read via route-model-binding, BEFORE update()'s own
+    // lockForUpdate() - whenever the request didn't ask to change
+    // folder_id at all. A concurrent move landing in that window (between
+    // binding and the lock) would then get silently reverted the moment
+    // this unrelated request saved, since $locked->folder_id (now the
+    // concurrently-moved-to folder) would no longer match that stale
+    // default and the mutation code would "correct" it back. Simulated
+    // via Eloquent's own `retrieved` event, timed to land between the
+    // route-bound read (retrieval #1) and update()'s own locked re-read
+    // (retrieval #2) - the same technique used for the equivalent
+    // attach()-side race test in TaskDocumentAttachTest.
+    $folderA = DocumentFolder::create(['organization_id' => $this->orgA->id, 'name' => 'A', 'created_by' => $this->management->id]);
+    $folderB = DocumentFolder::create(['organization_id' => $this->orgA->id, 'name' => 'B', 'created_by' => $this->management->id]);
+    $document = makeDocumentForEditTest($this->orgA, $this->management, 'internal', $folderA->id);
+
+    $retrievals = 0;
+    Document::retrieved(function (Document $retrieved) use (&$retrievals, $document, $folderB) {
+        if ($retrieved->id !== $document->id) {
+            return;
+        }
+        $retrievals++;
+        if ($retrievals === 1) {
+            DB::table('documents')->where('id', $document->id)->update(['folder_id' => $folderB->id]);
+        }
+    });
+
+    // A plain rename - this request never asks to change folder_id at all.
+    $response = $this->actingAs($this->management)->putJson("/documents/{$document->id}", ['name' => 'Renamed.pdf']);
+
+    $response->assertOk();
+    expect(Document::find($document->id)->folder_id)->toBe($folderB->id);
 });
