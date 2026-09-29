@@ -80,6 +80,7 @@ class DocumentController extends Controller
                 'canManageAnyFolder' => false,
                 'isPrivilegedManager' => false,
                 'linkedTaskCounts' => collect(),
+                'linkedFolderTaskCounts' => collect(),
                 'originTasks' => collect(),
             ]);
         }
@@ -128,6 +129,18 @@ class DocumentController extends Controller
             ->groupBy('document_id')
             ->pluck('aggregate', 'document_id');
 
+        // task #73 phase 4: the folder equivalent — "linked to N tasks" on
+        // a folder row, same one-grouped-query-not-one-per-row shape as
+        // the document count above. Plain count, not the documents-page
+        // count's hover-popover treatment — that popover is hand-rolled,
+        // page-inline JS tightly coupled to document rows, not a reusable
+        // component; not worth genericizing for this phase.
+        $linkedFolderTaskCounts = DB::table('task_folder_links')
+            ->whereIn('folder_id', $folders->pluck('id'))
+            ->selectRaw('folder_id, count(*) as aggregate')
+            ->groupBy('folder_id')
+            ->pluck('aggregate', 'folder_id');
+
         // Origin column: "if origin_task_id is set, link to the task, but
         // only when the viewer can view it" — one batched visibility
         // check for every origin task on this page, then one query for
@@ -172,6 +185,7 @@ class DocumentController extends Controller
             'canManageAnyFolder' => $canManageAnyFolder,
             'isPrivilegedManager' => $isPrivilegedManager,
             'linkedTaskCounts' => $linkedTaskCounts,
+            'linkedFolderTaskCounts' => $linkedFolderTaskCounts,
             'originTasks' => $originTasks,
         ]);
     }
@@ -398,12 +412,28 @@ class DocumentController extends Controller
      * deleting (DocumentPolicy::canManage(), shared by update()/delete()
      * below), since this reveals linked task titles that gate applies to
      * either way.
+     *
+     * task #73 phase 4: also previews the folder-derived warning (using
+     * the document's CURRENT folder for both "old" and "new" — this
+     * preview has no move/access-level change in mind yet, it's "if you
+     * delete this file as-is, right now, does its folder membership
+     * affect anything?"), so the Delete dialog can show the right state
+     * up front instead of only discovering it when destroy() itself
+     * re-checks. null when there's nothing to warn about.
      */
     public function dependencies(Document $document): JsonResponse
     {
         Gate::authorize('update', $document);
 
-        return response()->json(app(DocumentDependencyService::class)->summarize($document, auth()->user()));
+        $dependencyService = app(DocumentDependencyService::class);
+        $viewer = auth()->user();
+
+        $summary = $dependencyService->summarize($document, $viewer);
+        $folderSummary = $dependencyService->folderDerivedSummary($viewer, $document->folder_id, $document->folder_id);
+
+        return response()->json(array_merge($summary, [
+            'folder_warning' => $folderSummary !== null ? $dependencyService->folderWarningResponse($folderSummary) : null,
+        ]));
     }
 
     /**
@@ -482,6 +512,17 @@ class DocumentController extends Controller
      * attaching to this document between the check and the save can't
      * slip a Private/linked document past the block (the same race
      * destroy()'s own lockForUpdate() closes for deletion).
+     *
+     * task #73 phase 4: a SECOND, independent set of checks alongside the
+     * direct-link ones above — whether this document's FOLDER membership
+     * (not the document's own task_documents rows) is linked to any task.
+     * Unlike the direct-link case, this is never a hard block: blocking
+     * would force unlinking an entire folder just to remove, move, or
+     * privatize one file inside it. Covers three distinct triggers with
+     * one shared check (folderDerivedSummary() unions the old and new
+     * folder's task links): moving OUT of a linked folder, moving INTO
+     * one, and switching to Private while sitting in one (adapted from
+     * the direct-link case's wording to say "through its folder").
      */
     public function update(Request $request, Document $document): JsonResponse
     {
@@ -492,6 +533,7 @@ class DocumentController extends Controller
             'folder_id' => ['sometimes', 'nullable', 'integer'],
             'access_level' => ['sometimes', Rule::enum(DocumentAccessLevel::class)],
             'confirm_public_visibility' => ['sometimes', 'boolean'],
+            'confirm_folder_effect' => ['sometimes', 'boolean'],
         ]);
 
         // Move: "the target must be a folder in the same company, or the
@@ -515,11 +557,16 @@ class DocumentController extends Controller
 
         $result = DB::transaction(function () use ($document, $data, $targetFolderId, $dependencyService, $viewer, $request) {
             $locked = Document::whereKey($document->id)->lockForUpdate()->firstOrFail();
+            $oldFolderId = $locked->folder_id;
+
+            $accessLevelChanging = false;
+            $requestedAccessLevel = null;
 
             if (array_key_exists('access_level', $data)) {
                 $requestedAccessLevel = DocumentAccessLevel::from($data['access_level']);
+                $accessLevelChanging = $requestedAccessLevel !== $locked->access_level;
 
-                if ($requestedAccessLevel !== $locked->access_level) {
+                if ($accessLevelChanging) {
                     $summary = $dependencyService->summarize($locked, $viewer);
 
                     // "To private while attached directly to any task:
@@ -542,8 +589,35 @@ class DocumentController extends Controller
                             'message' => "Visible to the clients of {$summary['client_project_count']} linked projects.",
                             'requires_confirmation' => true,
                             'client_project_count' => $summary['client_project_count'],
+                            // task #73 phase 4: explicit now that a second
+                            // requires_confirmation response shape exists
+                            // with a different field (folderWarningResponse()'s
+                            // confirm_folder_effect) — the shared JS handling
+                            // reads this instead of hardcoding one name.
+                            'confirm_field' => 'confirm_public_visibility',
                         ]];
                     }
+                }
+            }
+
+            // task #73 phase 4: folder-derived warning — triggered by
+            // EITHER a move (old folder != target folder, in either
+            // direction) OR switching to Private while the folder isn't
+            // changing (old === target). Both conditions feed the same
+            // folderDerivedSummary(old, new) call: when the folder isn't
+            // moving, old and new are the same value, so the union
+            // collapses to just that one folder's tasks. Skipped
+            // entirely — not even queried — when neither trigger applies
+            // (a plain rename, or an access-level change that isn't a
+            // move to Private), and skipped once explicitly confirmed.
+            $folderMoving = $targetFolderId !== $oldFolderId;
+            $goingPrivate = $accessLevelChanging && $requestedAccessLevel === DocumentAccessLevel::Private;
+
+            if (($folderMoving || $goingPrivate) && ! $request->boolean('confirm_folder_effect')) {
+                $folderSummary = $dependencyService->folderDerivedSummary($viewer, $oldFolderId, $targetFolderId);
+
+                if ($folderSummary !== null) {
+                    return ['blocked' => true, 'response' => $dependencyService->folderWarningResponse($folderSummary)];
                 }
             }
 
@@ -597,17 +671,28 @@ class DocumentController extends Controller
      * preview a caller fetched earlier is never trusted, since another
      * request could have attached this document to a task in between.
      *
+     * task #73 phase 4: a SECOND, independent check after the direct-link
+     * block above — if this document currently sits in a folder linked to
+     * any task, deleting it is allowed but requires explicit confirmation
+     * (confirm_folder_effect), same warn-not-block reasoning as update()'s
+     * own folder-derived check. Only reached when the direct-link block
+     * above didn't already stop the request, so the two can never
+     * disagree about which is more restrictive.
+     *
      * The stored file (if any) is removed only AFTER the transaction
      * commits, and only if storage_key is set — never derived from
      * `link`, which an external-link document has instead and which this
      * app never wrote to disk. A storage failure is logged, not fatal:
      * the document record is already gone by that point regardless.
      */
-    public function destroy(Document $document): JsonResponse
+    public function destroy(Request $request, Document $document): JsonResponse
     {
         Gate::authorize('delete', $document);
 
-        $result = DB::transaction(function () use ($document) {
+        $dependencyService = app(DocumentDependencyService::class);
+        $viewer = auth()->user();
+
+        $result = DB::transaction(function () use ($document, $request, $dependencyService, $viewer) {
             $locked = Document::whereKey($document->id)->lockForUpdate()->firstOrFail();
 
             // withTrashed(): a task_documents row for a since-deactivated
@@ -619,7 +704,15 @@ class DocumentController extends Controller
             // moment later regardless, so this is about the block and the
             // audit trail being accurate, not data loss).
             if ($locked->tasks()->withTrashed()->count() > 0) {
-                return ['blocked' => true, 'document' => $locked];
+                return ['blocked' => true, 'reason' => 'direct', 'document' => $locked];
+            }
+
+            if (! $request->boolean('confirm_folder_effect')) {
+                $folderSummary = $dependencyService->folderDerivedSummary($viewer, $locked->folder_id, $locked->folder_id);
+
+                if ($folderSummary !== null) {
+                    return ['blocked' => true, 'reason' => 'folder', 'summary' => $folderSummary];
+                }
             }
 
             AuditLog::create([
@@ -648,9 +741,13 @@ class DocumentController extends Controller
         });
 
         if ($result['blocked']) {
-            $summary = app(DocumentDependencyService::class)->summarize($result['document'], auth()->user());
+            if ($result['reason'] === 'folder') {
+                return response()->json($dependencyService->folderWarningResponse($result['summary']), 422);
+            }
 
-            return response()->json(app(DocumentDependencyService::class)->blockedResponse($summary), 422);
+            $summary = $dependencyService->summarize($result['document'], $viewer);
+
+            return response()->json($dependencyService->blockedResponse($summary), 422);
         }
 
         if ($result['storage_key'] !== null) {

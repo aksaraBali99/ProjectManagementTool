@@ -116,6 +116,14 @@ class DocumentFolderController extends Controller
      * error names no counts or contents, so a deleter never learns
      * anything about what they can't already see just by trying to
      * delete the folder holding it.
+     *
+     * task #73 phase 4 extends this with a second, independent reason: a
+     * folder linked to any task (task_folder_links) can't be deleted
+     * either, same restrict-on-delete-at-the-app-layer pattern as "not
+     * empty" above (the migration's own FK is a defense-in-depth backstop,
+     * not the primary enforcement). Both reasons are checked and reported
+     * together when both apply, rather than only ever surfacing whichever
+     * one happens to be checked first.
      */
     public function destroy(DocumentFolder $folder): JsonResponse
     {
@@ -123,9 +131,22 @@ class DocumentFolderController extends Controller
 
         $hasChildren = DocumentFolder::where('parent_id', $folder->id)->exists();
         $hasDocuments = Document::where('folder_id', $folder->id)->exists();
+        // withTrashed(): a link to a since-deactivated task still counts —
+        // same reasoning as DocumentDependencyService::summarize()'s own
+        // withTrashed() for the direct-link delete block; the row (and the
+        // restrict-on-delete FK backing it) doesn't care about soft-delete.
+        $linkedTaskCount = $folder->tasks()->withTrashed()->count();
 
-        if ($hasChildren || $hasDocuments) {
-            return response()->json(['message' => "This folder isn't empty."], 422);
+        if ($hasChildren || $hasDocuments || $linkedTaskCount > 0) {
+            $reasons = [];
+            if ($hasChildren || $hasDocuments) {
+                $reasons[] = "isn't empty";
+            }
+            if ($linkedTaskCount > 0) {
+                $reasons[] = "is linked to {$linkedTaskCount} ".Str::plural('task', $linkedTaskCount);
+            }
+
+            return response()->json(['message' => 'This folder '.implode(', and ', $reasons).'.'], 422);
         }
 
         $name = $folder->name;
