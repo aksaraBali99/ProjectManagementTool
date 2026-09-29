@@ -705,8 +705,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1790662961.9450479,
-    "ast_hash": "0f309fb59af152e6ebfae10f1b334060",
+    "mtime": 1790677244.4878833,
+    "ast_hash": "af06dc570b3c65fb8a51e04ff324a578",
     "semantic_hash": ""
   },
   "app/Http/Controllers/PermissionManagementController.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1790613489.7150161,
-    "ast_hash": "34f00dcdada2f129cb109c8a80266de5",
+    "mtime": 1790677562.8900788,
+    "ast_hash": "501efc197a7bc575d0efa2f6d6fa188b",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
-    "mtime": 1790676446.4504397,
-    "ast_hash": "18533b57d9b5d36381eda26e3c113d4a",
+    "mtime": 1790677232.5481617,
+    "ast_hash": "5fff6943754cb5bc22264371786e32ca",
     "semantic_hash": ""
   },
   "resources/views/tasks/_subtasks.blade.php": {
@@ -2040,8 +2040,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentMergedPanelTest.php": {
-    "mtime": 1790664916.9907737,
-    "ast_hash": "5e4938a370eab22a34528ff30e044f4b",
+    "mtime": 1790677519.5111465,
+    "ast_hash": "5f63bb58e5966e15936fb93642c80941",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentAttachPanelPolishTest.php": {
