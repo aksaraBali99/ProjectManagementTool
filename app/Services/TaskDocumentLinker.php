@@ -44,11 +44,21 @@ class TaskDocumentLinker
         try {
             $task->documents()->attach($document->id);
         } catch (QueryException $e) {
-            // SQLSTATE 23000 (integrity constraint violation) — the only
-            // constraint an insert here can violate is the task_documents
-            // (task_id, document_id) primary key itself, so this is
-            // unambiguously a duplicate, on both MySQL and SQLite.
-            if ((string) $e->getCode() === '23000') {
+            // SQLSTATE 23000 (integrity constraint violation) covers BOTH
+            // constraints an insert here can violate: the task_documents
+            // (task_id, document_id) primary key (a genuine duplicate) AND
+            // its task_id/document_id foreign keys (cascadeOnDelete'd to
+            // tasks/documents) — a concurrent delete of the task or the
+            // document between the exists() check above and this insert
+            // raises the identical SQLSTATE for a real integrity failure,
+            // not a duplicate. isDuplicateKeyViolation() narrows to only
+            // the primary-key case; anything else re-throws, so a masked
+            // data-integrity failure is never mislabeled as "Already
+            // attached." — a driver-code check (MySQL's 1062 vs SQLite's
+            // own extended codes) would need per-driver branching, so this
+            // checks the message text instead, which both drivers'
+            // duplicate-key errors reliably contain.
+            if ($this->isDuplicateKeyViolation($e)) {
                 throw DocumentAlreadyAttachedException::make();
             }
 
@@ -63,6 +73,26 @@ class TaskDocumentLinker
             'entity_id' => $task->id,
             'changes' => ['document_id' => $document->id, 'document_name' => $document->name],
         ]);
+    }
+
+    /**
+     * True only for the task_documents (task_id, document_id) primary-key
+     * violation, never for its task_id/document_id foreign-key violations
+     * — both share SQLSTATE 23000, so the SQLSTATE alone can't tell them
+     * apart. MySQL's duplicate-key error always contains "Duplicate
+     * entry"; SQLite's always contains "UNIQUE constraint failed" (a
+     * primary key is enforced as a unique index there). A foreign-key
+     * violation on either driver contains neither phrase.
+     */
+    private function isDuplicateKeyViolation(QueryException $e): bool
+    {
+        if ((string) $e->getCode() !== '23000') {
+            return false;
+        }
+
+        $message = $e->getMessage();
+
+        return str_contains($message, 'Duplicate entry') || str_contains($message, 'UNIQUE constraint failed');
     }
 
     /**

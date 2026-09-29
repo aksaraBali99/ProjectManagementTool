@@ -369,6 +369,35 @@
                 resultsEl.appendChild(li);
             }
 
+            // task #73 (code review follow-up): the old native <select>
+            // this list replaced gave free arrow-key navigation and
+            // type-ahead; individual <button> rows don't, by default,
+            // regressing a keyboard-only user from one arrow-key press to
+            // Tabbing through every result (up to 25 per page) one at a
+            // time to reach one that isn't the first. This restores
+            // arrow-key movement as an addition, not a replacement — Tab
+            // still visits every button individually exactly as before,
+            // for anyone who prefers or needs that; Up/Down/Home/End are
+            // just a faster way to get to a specific row without giving
+            // up native button semantics (no roving tabindex, no listbox/
+            // option ARIA reinterpretation of what are still just buttons).
+            resultsEl.addEventListener('keydown', function (event) {
+                if (! ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+
+                const buttons = Array.from(resultsEl.querySelectorAll('button'));
+                const currentIndex = buttons.indexOf(document.activeElement);
+                if (currentIndex === -1) return;
+
+                let targetIndex;
+                if (event.key === 'ArrowDown') targetIndex = Math.min(currentIndex + 1, buttons.length - 1);
+                else if (event.key === 'ArrowUp') targetIndex = Math.max(currentIndex - 1, 0);
+                else if (event.key === 'Home') targetIndex = 0;
+                else targetIndex = buttons.length - 1;
+
+                event.preventDefault();
+                buttons[targetIndex].focus();
+            });
+
             function attachDocument(documentId, triggerEl) {
                 if (triggerEl) triggerEl.disabled = true;
                 statusEl.textContent = '';

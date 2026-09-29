@@ -37,8 +37,14 @@ class TaskDocumentController extends Controller
             'page' => ['sometimes', 'integer', 'min:1'],
         ]);
 
+        // 'folder' is deliberately NOT eager-loaded here — folder_path
+        // below comes exclusively from $folderPaths, one query for every
+        // folder in the company built once after pagination, not from
+        // each row's own ->folder relation. Eager-loading it too would
+        // just be a second, fully-discarded query on every page load and
+        // every debounced search keystroke.
         $query = app(DocumentPolicy::class)->attachableInCompany(auth()->user(), $task->organization_id)
-            ->with('uploader', 'folder');
+            ->with('uploader');
 
         $search = trim((string) ($data['search'] ?? ''));
         if ($search !== '') {
@@ -191,12 +197,22 @@ class TaskDocumentController extends Controller
         try {
             DB::transaction(function () use ($task, $document, $linker) {
                 // Locked and re-checked here, not trusted from the reads
-                // above: a concurrent delete or switch-to-private (Phase
-                // 2's own update()/destroy() lock this same row) can't
-                // race an attach past this point.
+                // above: a concurrent delete, switch-to-private (Phase 2's
+                // own update()/destroy() lock this same row), org change,
+                // or a revoked view()-granting permission/department
+                // access between the initial checks above and this lock
+                // can't race an attach past this point — every condition
+                // checked before entry is re-verified against the row
+                // actually being written, not just access_level.
                 $locked = Document::whereKey($document->id)->lockForUpdate()->first();
 
-                if ($locked === null || $locked->access_level === DocumentAccessLevel::Private) {
+                if ($locked === null
+                    || $locked->organization_id !== $task->organization_id
+                    || ! Gate::allows('view', $locked)) {
+                    abort(404);
+                }
+
+                if ($locked->access_level === DocumentAccessLevel::Private) {
                     abort(422, 'Private documents can\'t be attached to tasks. Change its access level first.');
                 }
 
@@ -223,6 +239,14 @@ class TaskDocumentController extends Controller
      * attachment to a document they have no visibility into at all, in an
      * org other than the task's own.
      *
+     * 404, not 403/422, for a document the viewer can't see or one in
+     * another company — deliberately the same collapse attach() uses, for
+     * the same reason ("a private document attached to a task stays
+     * hidden from a task viewer who cannot otherwise see it" applies
+     * however that viewer reached this endpoint, not just via GET). These
+     * two endpoints used to disagree here (403/422 vs 404), which a
+     * caller that inferred one's contract from the other could get wrong.
+     *
      * task #73 phase 3: routed through TaskDocumentLinker so this writes
      * the same task.document_unlinked audit entry as every other unlink
      * path, instead of a raw ->detach() call with no trace of it.
@@ -230,10 +254,9 @@ class TaskDocumentController extends Controller
     public function detach(Task $task, Document $document): JsonResponse
     {
         Gate::authorize('unlinkDocuments', $task);
-        Gate::authorize('view', $document);
 
-        if ($document->organization_id !== $task->organization_id) {
-            abort(422, 'Document must belong to the task\'s company.');
+        if ($document->organization_id !== $task->organization_id || ! Gate::allows('view', $document)) {
+            abort(404);
         }
 
         app(TaskDocumentLinker::class)->detach($task, $document);

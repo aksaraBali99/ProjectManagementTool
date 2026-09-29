@@ -125,3 +125,21 @@ test('the create form JS disables the submit button while a create-and-attach re
     expect($content)->toContain('createBtn.disabled = true;');
     expect($content)->toContain('createBtn.disabled = false;');
 });
+
+test('the results list JS handles arrow-key/Home/End navigation between result buttons', function () {
+    $response = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit");
+
+    $response->assertOk();
+    $content = $response->getContent();
+
+    // Structural guard for the keyboard-nav fix verified live in a
+    // browser: the picker's results used to be a native <select> (free
+    // arrow-key navigation, type-ahead, Home/End); replacing it with
+    // individual <button> rows regressed a keyboard-only user to Tabbing
+    // through every result one at a time. This restores Up/Down/Home/End
+    // as an addition on top of unchanged native Tab behavior - no roving
+    // tabindex, no listbox/option ARIA reinterpretation of what are still
+    // plain buttons.
+    expect($content)->toContain("resultsEl.addEventListener('keydown'");
+    expect($content)->toContain("['ArrowDown', 'ArrowUp', 'Home', 'End']");
+});

@@ -12,6 +12,7 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\AuditEventDatabaseNotification;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Covers task #73 phase 3's attach endpoint (POST /tasks/{task}/documents)
@@ -149,6 +150,46 @@ test('a document switched to private after listing but before attaching is rejec
 
     $response->assertStatus(422);
     expect($response->json('message'))->toBe('Private documents can\'t be attached to tasks. Change its access level first.');
+    expect($this->task->documents()->count())->toBe(0);
+});
+
+test('a document moved to another company after the initial checks but before the lock is rejected, not attached', function () {
+    // Regression guard: the transaction's locked re-check used to
+    // re-verify only access_level, trusting the earlier organization-
+    // match check as still true by the time the lock is taken - even
+    // though that's exactly the kind of thing a concurrent action (an
+    // org reassignment) could invalidate in between. The actor here must
+    // be an owner/super_admin: for anyone else, Document's own
+    // BelongsToOrganization global scope already 404s a cross-company
+    // document on the locked re-query regardless of this explicit check
+    // (see attach()'s own docblock) - only owner/super_admin bypass that
+    // scope, which is exactly why the explicit check exists for them.
+    // Simulated the same way the existing "switched to private" race
+    // test does (a direct DB mutation standing in for a concurrent
+    // request), but timed to land between the two Document reads
+    // specifically, via Eloquent's own `retrieved` event - the second
+    // retrieval is the locked one inside the transaction.
+    $document = makeAttachTestDocument($this->orgA, $this->management);
+
+    $retrievals = 0;
+    Document::retrieved(function (Document $retrieved) use (&$retrievals, $document) {
+        if ($retrieved->id !== $document->id) {
+            return;
+        }
+        $retrievals++;
+        // Fires after the FIRST retrieval (the pre-transaction check) so
+        // the mutation lands in time for the SECOND retrieval (the locked
+        // re-check inside the transaction) to see it - the `retrieved`
+        // event fires post-hydration, using data already read by that
+        // query, so mutating on retrieval N only affects retrieval N+1.
+        if ($retrievals === 1) {
+            DB::table('documents')->where('id', $document->id)->update(['organization_id' => $this->orgB->id]);
+        }
+    });
+
+    $response = $this->actingAs($this->owner)->postJson("/tasks/{$this->task->id}/documents", ['document_id' => $document->id]);
+
+    $response->assertNotFound();
     expect($this->task->documents()->count())->toBe(0);
 });
 

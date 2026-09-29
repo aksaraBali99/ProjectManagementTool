@@ -302,7 +302,12 @@ test('unlink is denied when the viewer has manage_documents and task view but ca
     expect($staff->can('unlinkDocuments', $task))->toBeTrue();
     expect($staff->can('view', $privateDocument))->toBeFalse();
 
-    $this->actingAs($staff)->deleteJson("/tasks/{$task->id}/documents/{$privateDocument->id}")->assertForbidden();
+    // task #73 (code review follow-up): 404, not 403 — aligned with
+    // attach()'s own "never reveal a document's existence to someone who
+    // can't view it" collapse. These two endpoints used to disagree here
+    // (403/422 on detach vs 404 on attach) for the identical "can't view
+    // this document" condition.
+    $this->actingAs($staff)->deleteJson("/tasks/{$task->id}/documents/{$privateDocument->id}")->assertNotFound();
     expect($task->fresh()->documents()->count())->toBe(1);
 });
 
@@ -319,7 +324,10 @@ test('unlink rejects a document that does not belong to the task\'s own company'
     $documentInOrgB = makeLinkOnlyDocumentForDeleteTest($orgB, $this->management);
     DB::table('task_documents')->insert(['task_id' => $task->id, 'document_id' => $documentInOrgB->id]);
 
-    $this->actingAs($this->management)->deleteJson("/tasks/{$task->id}/documents/{$documentInOrgB->id}")->assertStatus(422);
+    // task #73 (code review follow-up): 404, not 422 — aligned with
+    // attach()'s own collapse of "wrong company" into "not found",
+    // instead of the two endpoints disagreeing on this identical check.
+    $this->actingAs($this->management)->deleteJson("/tasks/{$task->id}/documents/{$documentInOrgB->id}")->assertNotFound();
 });
 
 test('the Unlink button on the Task edit page matches the endpoint: visible only with manage_documents', function () {
