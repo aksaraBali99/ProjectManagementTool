@@ -14,6 +14,7 @@ use App\Policies\DocumentPolicy;
 use App\Services\DocumentDependencyService;
 use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
+use App\Services\TaskDocumentLinker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -271,7 +272,19 @@ class DocumentController extends Controller
             // attach a document to a task on their own project.
             Gate::authorize('view', $task);
 
-            if ($task->organization_id !== $data['organization_id']) {
+            // (int) cast, not a bare !== : $data['organization_id'] is a
+            // STRING for a real multipart/form-data upload (raw HTTP
+            // multipart fields are always text — the 'integer' validation
+            // rule above only checks the format, it doesn't cast the
+            // type), while $task->organization_id is a genuine PHP int
+            // (Laravel's default PDO connector uses native, not emulated,
+            // prepared statements). A strict compare between "1" and 1
+            // incorrectly rejected every real-browser upload with a
+            // task_id — never caught by tests, since Laravel's own
+            // TestCase::post() preserves native types when mixing a file
+            // with scalar fields instead of round-tripping through an
+            // actual string-only multipart body the way a browser does.
+            if ((int) $task->organization_id !== (int) $data['organization_id']) {
                 abort(422, 'Document must belong to the task\'s company.');
             }
         }
@@ -304,6 +317,21 @@ class DocumentController extends Controller
             DocumentAccessLevel::from($data['access_level']),
         );
 
+        // task #73 phase 3: "private documents are never attached to
+        // tasks" is unconditional — the same rule DocumentController::
+        // update() already enforces for an EXISTING document being
+        // switched to private while linked. Before this fix, a non-Client
+        // uploader creating a document straight from the Task edit page's
+        // inline upload/add-link form (task_id set) could pick Private
+        // and attach it in the same step, which contradicted that rule.
+        // Checked here, once, for both the upload and link branches below
+        // (both share $accessLevel) — the access-level dropdown on that
+        // form no longer offers Private at all, but this is what actually
+        // enforces it regardless of what the client sends.
+        if ($task !== null && $accessLevel === DocumentAccessLevel::Private) {
+            abort(422, 'Private documents can\'t be attached to tasks. Change its access level first.');
+        }
+
         try {
             if ($request->hasFile('file')) {
                 // origin_task_id/key layout differ by which of the two
@@ -332,7 +360,7 @@ class DocumentController extends Controller
                 ]);
 
                 if ($task !== null) {
-                    $task->documents()->syncWithoutDetaching([$document->id]);
+                    app(TaskDocumentLinker::class)->attach($task, $document);
                 }
             }
         } catch (FileStorageException $e) {
@@ -344,7 +372,12 @@ class DocumentController extends Controller
         }
 
         if ($request->expectsJson()) {
-            return response()->json(['document' => $document], 201);
+            // 'uploader' loaded so the merged attach panel's create-and-
+            // attach success handler (appendDocumentRow()) can show who
+            // added it, same as the picker's own attach response already
+            // does — without this, doc.uploader.name would be undefined
+            // for a document created (not picked) from a task.
+            return response()->json(['document' => $document->load('uploader')], 201);
         }
 
         if ($request->boolean('from_documents_page')) {

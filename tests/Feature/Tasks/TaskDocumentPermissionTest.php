@@ -10,16 +10,15 @@ use App\Models\Task;
 use App\Models\User;
 
 /**
- * Covers a fix on the Edit Task page: the inline "+ Add new document"
- * mini-form (tasks/_documents.blade.php) used to be gated by $canEdit
- * (TaskPolicy::update) — the wrong capability. Creating a document is
- * DocumentPolicy::create()/manage_documents, a genuinely different
- * capability that only happened to overlap with task-editing for most
- * roles so far. The clearest case where they diverge: a Staff assignee
- * can edit their own task via TaskPolicy::update()'s unconditional
- * assignee bypass, with no create_edit_tasks permission at all, and
- * Staff doesn't hold manage_documents by default either — so this user
- * passes $canEdit but must NOT see the create-document button.
+ * Covers a fix on the Edit Task page: the "Attach document" panel (the
+ * merged "Attach existing" + "+ Add new document" entry point,
+ * tasks/_documents.blade.php) is gated by TaskPolicy::attachDocuments()
+ * (manage_documents + task view + not Client) — never $canEdit
+ * (TaskPolicy::update). The clearest case where they diverge: a Staff
+ * assignee can edit their own task via TaskPolicy::update()'s
+ * unconditional assignee bypass, with no create_edit_tasks permission at
+ * all, and Staff doesn't hold manage_documents by default either — so
+ * this user passes $canEdit but must NOT see the document button.
  */
 beforeEach(function () {
     $this->owner = createOwner();
@@ -50,7 +49,7 @@ beforeEach(function () {
     ]);
 });
 
-test('a staff assignee can edit the task via the assignee bypass but does not see the Add Document button', function () {
+test('a staff assignee can edit the task via the assignee bypass but does not see the Attach document button', function () {
     $response = $this->actingAs($this->staffAssignee)->get("/tasks/{$this->task->id}/edit");
 
     $response->assertOk();
@@ -59,26 +58,15 @@ test('a staff assignee can edit the task via the assignee bypass but does not se
     // render normally, this isn't a page that quietly locked everything.
     $response->assertSee('value="Ship it"', false);
 
-    $response->assertDontSee('+ Add new document');
+    $response->assertDontSee('Attach document');
 });
 
-test('the same staff assignee still sees the attach-existing-document controls, since that stays under canEdit', function () {
-    $response = $this->actingAs($this->staffAssignee)->get("/tasks/{$this->task->id}/edit");
-
-    $response->assertOk();
-    // The attach-existing-document <select>'s placeholder option — unlike
-    // the .attach-document-btn CSS class, which the partial's own <script>
-    // block also references unconditionally, this text only renders
-    // inside the @if ($canEdit) attach section itself.
-    $response->assertSee('Select a document…');
-});
-
-test('granting manage_documents to Staff makes the Add Document button appear for the same assignee', function () {
+test('granting manage_documents to Staff makes the Attach document button appear for the same assignee', function () {
     $staffRole = Role::where('slug', 'staff')->firstOrFail();
     $manageDocumentsId = Permission::where('slug', 'manage_documents')->firstOrFail()->id;
     $staffRole->permissions()->syncWithoutDetaching([$manageDocumentsId]);
 
     $response = $this->actingAs($this->staffAssignee)->get("/tasks/{$this->task->id}/edit");
 
-    $response->assertOk()->assertSee('+ Add new document');
+    $response->assertOk()->assertSee('Attach document');
 });

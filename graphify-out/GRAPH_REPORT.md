@@ -1,16 +1,16 @@
-# Graph Report - ProjectManagementTool  (2026-09-28)
+# Graph Report - ProjectManagementTool  (2026-09-29)
 
 ## Corpus Check
-- 400 files · ~198,330 words
+- 409 files · ~209,817 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1692 nodes · 4480 edges · 207 communities (161 shown, 46 thin omitted)
-- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 282 edges (avg confidence: 0.79)
+- 1733 nodes · 4622 edges · 200 communities (159 shown, 41 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 290 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `26f17797`
+- Built from commit: `bd2767c1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,18 +18,18 @@
 - Task
 - ImportValidator
 - .boardOrganizationIds
-- OrgMember
-- Illuminate\Database\Eloquent\Relations\BelongsTo
+- App\Models\Task
+- Illuminate\Database\Eloquent\Model
 - AuditEventMailNotification.php
 - composer.json
 - require-dev
 - scripts
 - dependencies
 - Mermaid AI Skills
-- Priority.php
+- DocumentController.php
 - LARAVEL_README.md
 - AppServiceProvider.php
-- RichText
+- App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment
 - users/create.blade.php
 - users/edit.blade.php
 - tasks/edit.blade.php
@@ -49,130 +49,120 @@
 - roles/edit.blade.php
 - permissions.blade.php
 - tasks/create.blade.php
-- Document
+- Organization
 - User
 - TaskManagementController
-- App\Models\Concerns\BelongsToOrganization
-- App\Models\Role
-- Illuminate\Database\Eloquent\Relations\HasMany
+- UpdateUserRequest
+- BootstrapEnvironment
+- Project
 - setup
 - documents/create.blade.php
 - app.js
-- BootstrapEnvironment
+- Illuminate\Database\Eloquent\Relations\HasMany
 - _form.blade.php
-- Role
-- Illuminate\View\View
+- OrgMember
+- Illuminate\Http\JsonResponse
 - CodeLanguageClassSanitizer
-- CalendarController.php
+- Illuminate\Support\Collection
 - ImportBatch
-- LinkPreviewService.php
-- Comment
-- Organization
-- FileCategory.php
-- TaskManagementController.php
-- Illuminate\Http\Request
-- NotificationSettingPolicy
+- LinkPreview
+- RichText
+- App\Models\Document
+- Document
+- FileStorageException
+- App\Models\Project
+- Illuminate\Database\Eloquent\Relations\BelongsToMany
 - config
 - Closure
 - task-colors/edit.blade.php
 - Illuminate\Http\RedirectResponse
-- FileStorageException
+- Priority.php
 - createRichTextEditor
 - require
 - App\Models\User
 - Illuminate\Http\UploadedFile
-- AuditLog
+- TagsImportBatch.php
 - psr-4
-- NotificationEventType.php
+- AuditLog
 - Subtask
 - Illuminate\Validation\Validator
 - Illuminate\Foundation\Http\FormRequest
-- UserManagementController
-- DocumentLinkedTasksPopoverTest.php
-- App\Models\Department
+- CommentController
+- StoreDepartmentRequest
+- Illuminate\View\View
 - HasAdminConfigurableColors.php
-- DepartmentManagementController.php
-- App\Models\Task
-- SubtaskPolicy
+- config
+- UpdateProjectRequest
+- LoginRequest
 - buildEmojiPicker
-- StoreProjectRequest
+- FileCategory.php
 - 2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php
-- Illuminate\Support\Collection
+- CommentPolicy
 - Illuminate\Database\Seeder
-- Illuminate\Database\Eloquent\Builder
+- Comment
 - keywords
-- .storePending
-- App\Http\Controllers\Concerns\ResolvesCurrentOrganization
+- NotificationSetting
+- FileStorageService
 - lightbox.js
-- Permission
-- TaskPolicy
+- Role
+- CalendarController.php
 - resizable-video.js
 - 2026_09_28_000000_add_upload_columns_to_documents_table.php
-- Controller
-- CompanyRoleRules
+- StoreProjectRequest
+- static
 - link-preview-extension.js
-- CommentController
-- DocumentFolder
-- LoginRequest
 - link-preview-thumbnail.js
-- CommentPolicy
-- DocumentPolicy.php
-- DocumentFolderPolicy
-- OrganizationPolicy
-- UserPolicy
-- TaskViewableIdsParityTest.php
-- TaskColorController.php
-- RolePolicy
-- CommentMentionHighlightTest.php
+- UpdateRoleRequest
+- LinkPreviewService.php
+- UpdateTaskPriorityColorsRequest
+- Illuminate\Http\Request
+- DocumentAccessLevel.php
+- UploadedFile
 
 ## God Nodes (most connected - your core abstractions)
-1. `User` - 258 edges
-2. `Organization` - 141 edges
-3. `OrgMember` - 123 edges
-4. `Task` - 112 edges
+1. `User` - 265 edges
+2. `Organization` - 140 edges
+3. `OrgMember` - 125 edges
+4. `Task` - 100 edges
 5. `Role` - 84 edges
-6. `Project` - 77 edges
-7. `Department` - 62 edges
-8. `Document` - 51 edges
+6. `Project` - 71 edges
+7. `Department` - 64 edges
+8. `AuditLog` - 43 edges
 9. `ImportValidator` - 42 edges
-10. `AuditLog` - 40 edges
+10. `Document` - 40 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `grantManageDocumentsForLinkedTasksTest()` --calls--> `Permission`  [INFERRED]
-  tests/Feature/Documents/DocumentLinkedTasksPopoverTest.php → app/Models/Permission.php
-- `grantViewDocumentsForLinkedTasksTest()` --calls--> `Permission`  [INFERRED]
-  tests/Feature/Documents/DocumentLinkedTasksPopoverTest.php → app/Models/Permission.php
-- `makeStaffForNewMenuTest()` --calls--> `OrgMember`  [INFERRED]
-  tests/Feature/Documents/DocumentsNewMenuTest.php → app/Models/OrgMember.php
-- `grantDepartmentAccessForParity()` --calls--> `AccessPermission`  [INFERRED]
-  tests/Feature/Tasks/TaskViewableIdsParityTest.php → app/Models/AccessPermission.php
-- `up()` --calls--> `Role`  [INFERRED]
-  database/migrations/2026_09_28_000001_remove_client_view_documents_permission.php → app/Models/Role.php
+- `makeClientForDeleteTest()` --calls--> `OrgMember`  [INFERRED]
+  tests/Feature/Documents/DocumentDeleteTest.php → app/Models/OrgMember.php
+- `makeClientForUploadTest()` --calls--> `OrgMember`  [INFERRED]
+  tests/Feature/Documents/DocumentUploadFromLocalTest.php → app/Models/OrgMember.php
+- `makeStaffForUploadTest()` --calls--> `OrgMember`  [INFERRED]
+  tests/Feature/Documents/DocumentUploadFromLocalTest.php → app/Models/OrgMember.php
+- `makeAttachableDocumentSet()` --calls--> `Document`  [INFERRED]
+  tests/Feature/Documents/DocumentAttachableInCompanyParityTest.php → app/Models/Document.php
+- `makeDocumentSetForParity()` --calls--> `Document`  [INFERRED]
+  tests/Feature/Documents/DocumentViewableIdsParityTest.php → app/Models/Document.php
 
 ## Import Cycles
 - None detected.
 
-## Communities (207 total, 46 thin omitted)
+## Communities (200 total, 41 thin omitted)
 
 ### Community 0 - "Task"
-Cohesion: 0.13
-Nodes (10): User, Task, TaskObserver, Illuminate\Database\Eloquent\SoftDeletes, emojiTaskPayload(), altTextTaskUpdate(), imageResizeTaskPayload(), makeTaskWithDescription() (+2 more)
+Cohesion: 0.09
+Nodes (13): RichTextDocumentController, Task, MentionedInCommentNotification, TaskObserver, TaskPolicy, Illuminate\Database\Eloquent\SoftDeletes, emojiTaskPayload(), altTextTaskUpdate() (+5 more)
 
 ### Community 1 - "ImportValidator"
 Cohesion: 0.11
 Nodes (5): DuplicateDetector, EmployeeIdGenerator, ImportIdCodec, ImportValidationContext, ImportValidator
 
-### Community 3 - "OrgMember"
-Cohesion: 0.12
-Nodes (10): OrgMember, Illuminate\Support\Facades\Notification, makeStaffForDocumentCreate(), makeClientForDeleteTest(), makeClientForEditTest(), makeStaffForEditTest(), makeStaffForUploadTest(), findKanbanCard() (+2 more)
-
-### Community 4 - "Illuminate\Database\Eloquent\Relations\BelongsTo"
-Cohesion: 0.09
-Nodes (4): CommentReaction, organization(), ImportRow, Illuminate\Database\Eloquent\Relations\BelongsTo
+### Community 4 - "Illuminate\Database\Eloquent\Model"
+Cohesion: 0.08
+Nodes (6): CommentReaction, organization(), ImportRow, PastedMedia, Illuminate\Database\Eloquent\Model, Illuminate\Database\Eloquent\Relations\BelongsTo
 
 ### Community 5 - "AuditEventMailNotification.php"
-Cohesion: 0.14
-Nodes (7): AuditEventDatabaseNotification, AuditEventMailNotification, MentionedInCommentNotification, Illuminate\Bus\Queueable, Illuminate\Contracts\Queue\ShouldQueue, Illuminate\Notifications\Messages\MailMessage, Illuminate\Notifications\Notification
+Cohesion: 0.20
+Nodes (6): AuditEventDatabaseNotification, AuditEventMailNotification, Illuminate\Bus\Queueable, Illuminate\Contracts\Queue\ShouldQueue, Illuminate\Notifications\Messages\MailMessage, Illuminate\Notifications\Notification
 
 ### Community 6 - "composer.json"
 Cohesion: 0.14
@@ -194,13 +184,17 @@ Nodes (45): concurrently, @fontsource/inter, intl-tel-input, is-emoji-supported,
 Cohesion: 0.15
 Nodes (12): Diagram editing & preview, Docs, Generate diagrams (GitHub Copilot required), Install / update this pack, LM Tools — call these for every diagram interaction, Mermaid AI Skills, Mermaid Chart cloud, @mermaid-chart slash commands (+4 more)
 
+### Community 11 - "DocumentController.php"
+Cohesion: 0.23
+Nodes (4): DocumentAlreadyAttachedException, self, RuntimeException, Symfony\Component\HttpFoundation\StreamedResponse
+
 ### Community 12 - "LARAVEL_README.md"
 Cohesion: 0.25
 Nodes (7): About Laravel, Agentic Development, Code of Conduct, Contributing, Learning Laravel, License, Security Vulnerabilities
 
-### Community 14 - "RichText"
-Cohesion: 0.10
-Nodes (5): isAssignableStaffForProject(), StoreTaskRequest, UpdateTaskRequest, RichText, Symfony\Component\HtmlSanitizer\HtmlSanitizer
+### Community 14 - "App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment"
+Cohesion: 0.16
+Nodes (5): App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment, App\Http\Requests\Tasks\StoreTaskRequest, StoreTaskRequest, App\Http\Requests\Tasks\UpdateTaskRequest, UpdateTaskRequest
 
 ### Community 15 - "users/create.blade.php"
 Cohesion: 0.50
@@ -219,20 +213,28 @@ Cohesion: 0.12
 Nodes (19): Audio, FileChip, ResizableImage, basenameNoExtension(), buildClipboardMediaPaste(), buildDragDropUpload(), buildImageUpload(), buildLinkBar() (+11 more)
 
 ### Community 50 - "ImportTemplateBuilder"
-Cohesion: 0.09
-Nodes (21): ImportController, ImportSheetSchema, ImportSpreadsheetParser, ImportTemplateBuilder, Worksheet, DateTimeInterface, DOMDocument, Illuminate\Foundation\Testing\TestCase (+13 more)
-
-### Community 86 - "Document"
 Cohesion: 0.11
-Nodes (10): DocumentController, Organization, Document, DocumentDependencyService, Attribute, Controller, Illuminate\Database\Eloquent\Casts\Attribute, Illuminate\Http\Response (+2 more)
+Nodes (19): ImportSheetSchema, ImportSpreadsheetParser, ImportTemplateBuilder, Worksheet, DateTimeInterface, DOMDocument, Illuminate\Foundation\Testing\TestCase, PhpOffice\PhpSpreadsheet\Spreadsheet (+11 more)
+
+### Community 86 - "Organization"
+Cohesion: 0.10
+Nodes (14): Organization, makeStaffForDocumentCreate(), makeClientForDocumentList(), makeDocumentForList(), makeStaffForDocumentList(), makeStaffForNewMenuTest(), makeClientForDocuments(), makeDocument() (+6 more)
 
 ### Community 87 - "User"
-Cohesion: 0.09
-Nodes (9): User, AuditLogPolicy, DepartmentPolicy, ProjectPolicy, Illuminate\Database\Eloquent\Factories\HasFactory, Illuminate\Foundation\Auth\User, Illuminate\Notifications\Notifiable, assignExistingTask() (+1 more)
+Cohesion: 0.07
+Nodes (12): User, AuditLogPolicy, DepartmentPolicy, OrganizationPolicy, ProjectPolicy, RolePolicy, UserPolicy, Illuminate\Database\Eloquent\Factories\HasFactory (+4 more)
 
-### Community 90 - "App\Models\Concerns\BelongsToOrganization"
-Cohesion: 0.18
-Nodes (3): App\Models\Concerns\BelongsToOrganization, PastedMedia, makeStaffForFolderTest()
+### Community 88 - "TaskManagementController"
+Cohesion: 0.27
+Nodes (4): Organization, TaskManagementController, Project, Task
+
+### Community 91 - "BootstrapEnvironment"
+Cohesion: 0.09
+Nodes (4): AbandonStaleImportBatches, BootstrapEnvironment, CleanupStalePendingMedia, Illuminate\Console\Command
+
+### Community 92 - "Project"
+Cohesion: 0.08
+Nodes (29): isAssignableStaffForProject(), AccessPermission, Department, Project, makeTaskForAnalytics(), makeStaffOnCalendar(), makeEligibleStaffMember(), makeIneligibleProjectMember() (+21 more)
 
 ### Community 93 - "setup"
 Cohesion: 0.25
@@ -242,65 +244,53 @@ Nodes (8): post-root-package-install, setup, composer install, npm install --ign
 Cohesion: 0.12
 Nodes (14): buildEmojiPicker(), CHART_PALETTE, highlightRichText(), initRichText(), mountRichText(), richTextMounts, whenNearViewport(), highlightCodeBlocks() (+6 more)
 
-### Community 105 - "BootstrapEnvironment"
+### Community 107 - "OrgMember"
+Cohesion: 0.17
+Nodes (5): OrgMember, App\Models\Role, CompanyRoleSyncer, findCommentCardBody(), DOMElement
+
+### Community 108 - "Illuminate\Http\JsonResponse"
 Cohesion: 0.09
-Nodes (4): AbandonStaleImportBatches, BootstrapEnvironment, CleanupStalePendingMedia, Illuminate\Console\Command
-
-### Community 107 - "Role"
-Cohesion: 0.16
-Nodes (16): AccessPermission, Department, Role, makeStaffOnCalendar(), makeEligibleStaffMember(), makeIneligibleProjectMember(), makeProjectMember(), makeReactionEligibleStaff() (+8 more)
-
-### Community 108 - "Illuminate\View\View"
-Cohesion: 0.16
-Nodes (6): AuthenticatedSessionController, NotificationController, OrganizationManagementController, RoleManagementController, SettingsController, Illuminate\View\View
+Nodes (13): DocumentController, Organization, DocumentFolderController, RichTextAudioController, SubtaskController, Document, TaskDocumentController, DocumentFolder (+5 more)
 
 ### Community 109 - "CodeLanguageClassSanitizer"
 Cohesion: 0.24
 Nodes (4): CodeLanguageClassSanitizer, MediaDimensionAttributeSanitizer, Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig, Symfony\Component\HtmlSanitizer\Visitor\AttributeSanitizer\AttributeSanitizerInterface
 
-### Community 110 - "CalendarController.php"
-Cohesion: 0.54
-Nodes (3): CalendarController, Carbon, Illuminate\Support\Carbon
+### Community 110 - "Illuminate\Support\Collection"
+Cohesion: 0.17
+Nodes (9): staffOptionsByProject(), resolveCurrentOrganization(), ProjectManagementController, Illuminate\Support\Collection, flattenCalendarCells(), assertAttachableParity(), makeAttachableDocumentSet(), assertDocumentViewParity() (+1 more)
 
 ### Community 111 - "ImportBatch"
-Cohesion: 0.15
-Nodes (8): ImportBatch, CompanyRoleSyncer, ImportCommitResolution, ImportCommitService, Closure, ImportCommitSummary, ImportFieldResolver, Carbon\Carbon
+Cohesion: 0.17
+Nodes (7): ImportBatch, ImportCommitResolution, ImportCommitService, Closure, ImportCommitSummary, ImportFieldResolver, Carbon\Carbon
 
-### Community 112 - "LinkPreviewService.php"
+### Community 112 - "LinkPreview"
 Cohesion: 0.10
 Nodes (6): LinkPreview, LinkPreviewResult, LinkPreviewService, OpenGraphMetadataParser, UrlSsrfGuard, DOMXPath
 
-### Community 114 - "Organization"
-Cohesion: 0.08
-Nodes (24): Organization, Project, makeTaskForAnalytics(), makeReactionClient(), makeTaskOnDashboard(), makeLinkOnlyDocumentForDeleteTest(), makeClientWithProjectAccessForDownload(), makeDocumentForEditTest() (+16 more)
+### Community 114 - "App\Models\Document"
+Cohesion: 0.11
+Nodes (14): App\Models\Document, TaskDocumentLinker, Illuminate\Database\QueryException, Role, makeLinkerTestDocument(), Document, grantAttachPermission(), makeAttachTestDocument() (+6 more)
 
-### Community 115 - "FileCategory.php"
-Cohesion: 0.15
-Nodes (7): config(), prefix(), PastedMediaNamer, RuntimeException, fileFor(), FileCategory, UploadedFile
+### Community 115 - "Document"
+Cohesion: 0.13
+Nodes (6): Document, DocumentPolicy, DocumentDependencyService, Illuminate\Database\Eloquent\Builder, makeClientWithProjectAccessForDownload(), uploadDocumentForDownload()
 
-### Community 116 - "TaskManagementController.php"
-Cohesion: 0.22
-Nodes (3): DocumentUploadService, up(), DocumentAccessLevel
-
-### Community 118 - "Illuminate\Http\Request"
-Cohesion: 0.16
-Nodes (8): AuditTrailController, CommentReactionController, LinkPreviewController, RichTextDocumentController, SubtaskController, TaskDocumentController, Illuminate\Http\JsonResponse, Illuminate\Http\Request
+### Community 116 - "FileStorageException"
+Cohesion: 0.29
+Nodes (3): FileStorageException, self, Throwable
 
 ### Community 120 - "config"
 Cohesion: 0.22
 Nodes (9): pestphp/pest-plugin, php-http/discovery, config, allow-plugins, optimize-autoloader, platform, preferred-install, sort-packages (+1 more)
 
 ### Community 122 - "Closure"
-Cohesion: 0.14
-Nodes (9): EnsureBelongsToOrganization, EnsurePasswordHasBeenChanged, EnsureUserIsActive, ValidClientUser, ValidPhoneNumber, ValidProjectStaffUser, Closure, Illuminate\Contracts\Validation\ValidationRule (+1 more)
+Cohesion: 0.27
+Nodes (5): EnsureBelongsToOrganization, EnsurePasswordHasBeenChanged, EnsureUserIsActive, Closure, Symfony\Component\HttpFoundation\Response
 
 ### Community 133 - "Illuminate\Http\RedirectResponse"
-Cohesion: 0.15
-Nodes (4): NotificationSettingsController, NotificationSetting, Illuminate\Http\RedirectResponse, givePersonalTaskAssignedRule()
-
-### Community 134 - "FileStorageException"
-Cohesion: 0.26
-Nodes (3): FileStorageException, self, Throwable
+Cohesion: 0.12
+Nodes (5): GoogleAuthController, NotificationSettingsController, TaskColorController, UserManagementController, Illuminate\Http\RedirectResponse
 
 ### Community 139 - "createRichTextEditor"
 Cohesion: 0.38
@@ -311,52 +301,52 @@ Cohesion: 0.22
 Nodes (9): require, giggsey/libphonenumber-for-php, laravel/framework, laravel/socialite, laravel/tinker, league/flysystem-aws-s3-v3, php, phpoffice/phpspreadsheet (+1 more)
 
 ### Community 141 - "App\Models\User"
-Cohesion: 0.09
-Nodes (6): App\Models\Organization, App\Models\User, Document, makeDocumentForLinkedTasksTest(), makeStaffForNewMenuTest(), User
+Cohesion: 0.07
+Nodes (15): App\Models\Organization, App\Models\User, grantManageDocumentsForDeleteTest(), makeClientForDeleteTest(), makeLinkOnlyDocumentForDeleteTest(), Document, Role, User (+7 more)
 
 ### Community 143 - "Illuminate\Http\UploadedFile"
-Cohesion: 0.12
-Nodes (16): FileStorageService, StoredFile, Illuminate\Http\UploadedFile, fakeUploadDoc(), UploadedFile, fakeAudio(), UploadedFile, fakePastedImage() (+8 more)
+Cohesion: 0.14
+Nodes (15): Illuminate\Http\UploadedFile, fileFor(), FileCategory, UploadedFile, fakeAudio(), UploadedFile, fakePastedImage(), fakePastedVideo() (+7 more)
 
-### Community 145 - "AuditLog"
-Cohesion: 0.18
-Nodes (3): AuditLog, AuditEventNotifier, NotificationEventType
+### Community 145 - "TagsImportBatch.php"
+Cohesion: 0.60
+Nodes (3): currentImportBatchId(), shouldSuppressNotification(), taggedChanges()
 
 ### Community 146 - "psr-4"
 Cohesion: 0.40
 Nodes (5): autoload, psr-4, App\\, Database\\Factories\\, Database\\Seeders\\
 
+### Community 147 - "AuditLog"
+Cohesion: 0.14
+Nodes (5): AuditLog, AuditEventNotifier, NotificationEventType, NotificationSettingsResolver, NotificationEventType
+
 ### Community 149 - "Subtask"
-Cohesion: 0.22
-Nodes (5): Subtask, currentImportBatchId(), shouldSuppressNotification(), taggedChanges(), SubtaskObserver
+Cohesion: 0.20
+Nodes (3): Subtask, SubtaskObserver, SubtaskPolicy
 
 ### Community 151 - "Illuminate\Validation\Validator"
-Cohesion: 0.15
-Nodes (5): validateCompanyRoles(), validateSuperAdminGrant(), StoreUserRequest, UpdateUserRequest, Illuminate\Validation\Validator
+Cohesion: 0.12
+Nodes (6): UpdateTaskStatusColorsRequest, validateCompanyRoles(), validateSuperAdminGrant(), StoreUserRequest, CompanyRoleRules, Illuminate\Validation\Validator
 
 ### Community 156 - "Illuminate\Foundation\Http\FormRequest"
-Cohesion: 0.08
-Nodes (8): UpdateDepartmentRequest, UploadImportRequest, StoreOrganizationRequest, UpdateOrganizationRequest, UpdateRoleRequest, UpdateTaskStatusColorsRequest, UpdateUserPasswordRequest, Illuminate\Foundation\Http\FormRequest
+Cohesion: 0.12
+Nodes (6): UpdateDepartmentRequest, UploadImportRequest, StoreOrganizationRequest, UpdateOrganizationRequest, UpdateUserPasswordRequest, Illuminate\Foundation\Http\FormRequest
 
-### Community 158 - "DocumentLinkedTasksPopoverTest.php"
-Cohesion: 0.32
-Nodes (7): Role, Task, grantManageDocumentsForLinkedTasksTest(), grantPermissionForLinkedTasksTest(), grantViewDocumentsForLinkedTasksTest(), makeTaskForLinkedTasksTest(), User
-
-### Community 159 - "App\Models\Department"
-Cohesion: 0.17
-Nodes (4): App\Models\Department, App\Models\Document, App\Models\Project, Illuminate\Database\Eloquent\Relations\BelongsToMany
+### Community 159 - "Illuminate\View\View"
+Cohesion: 0.09
+Nodes (14): AccessControlController, AnalyticsController, AuthenticatedSessionController, App\Http\Controllers\Concerns\BuildsAssigneeOptions, App\Http\Controllers\Concerns\ResolvesCurrentOrganization, Controller, DepartmentManagementController, ImportController (+6 more)
 
 ### Community 160 - "HasAdminConfigurableColors.php"
 Cohesion: 0.39
 Nodes (6): allColors(), badgeBackground(), badgeText(), colorRow(), forgetColorCache(), self
 
-### Community 164 - "DepartmentManagementController.php"
-Cohesion: 0.13
-Nodes (3): DepartmentManagementController, StoreDepartmentRequest, Illuminate\Contracts\Validation\Validator
+### Community 164 - "config"
+Cohesion: 0.25
+Nodes (4): config(), prefix(), Attribute, Illuminate\Database\Eloquent\Casts\Attribute
 
-### Community 165 - "App\Models\Task"
-Cohesion: 0.12
-Nodes (3): App\Models\Task, TaskStatusColor, Illuminate\Database\Eloquent\Model
+### Community 165 - "UpdateProjectRequest"
+Cohesion: 0.16
+Nodes (5): UpdateProjectRequest, ValidClientUser, ValidPhoneNumber, ValidProjectStaffUser, Illuminate\Contracts\Validation\ValidationRule
 
 ### Community 168 - "buildEmojiPicker"
 Cohesion: 0.53
@@ -366,65 +356,65 @@ Nodes (6): availableEmojis(), buildEmojiPicker(), flagsRenderable(), readRecentE
 Cohesion: 0.83
 Nodes (3): down(), isSqlite(), up()
 
-### Community 172 - "Illuminate\Support\Collection"
-Cohesion: 0.29
-Nodes (4): ProjectManagementController, Illuminate\Support\Collection, flattenCalendarCells(), assertDocumentViewParity()
-
 ### Community 174 - "Illuminate\Database\Seeder"
-Cohesion: 0.16
+Cohesion: 0.18
 Nodes (7): DatabaseSeeder, DepartmentSeeder, OrganizationSeeder, PermissionSeeder, RoleSeeder, UserSeeder, Illuminate\Database\Seeder
 
 ### Community 178 - "keywords"
 Cohesion: 0.67
 Nodes (3): keywords, framework, laravel
 
-### Community 181 - "App\Http\Controllers\Concerns\ResolvesCurrentOrganization"
-Cohesion: 0.17
-Nodes (7): AccessControlController, staffOptionsByProject(), App\Http\Controllers\Concerns\ResolvesCurrentOrganization, resolveCurrentOrganization(), DashboardController, Collection, KanbanController
+### Community 180 - "NotificationSetting"
+Cohesion: 0.25
+Nodes (3): NotificationSetting, NotificationSettingPolicy, givePersonalTaskAssignedRule()
 
 ### Community 182 - "lightbox.js"
 Cohesion: 0.67
 Nodes (3): initLightboxDelegation(), closeLightbox(), openLightbox()
 
-### Community 184 - "Permission"
-Cohesion: 0.17
-Nodes (7): PermissionManagementController, Permission, up(), grantManageDocumentsForDeleteTest(), grantManageDocumentsForEditTest(), createOwnerForGrant(), grantManageDocuments()
+### Community 184 - "Role"
+Cohesion: 0.10
+Nodes (19): PermissionManagementController, Permission, Role, up(), grantManageDocumentsForEditTest(), makeClientForEditTest(), makeDocumentForEditTest(), makeStaffForEditTest() (+11 more)
+
+### Community 185 - "CalendarController.php"
+Cohesion: 0.54
+Nodes (3): CalendarController, Carbon, Illuminate\Support\Carbon
 
 ### Community 187 - "2026_09_28_000000_add_upload_columns_to_documents_table.php"
 Cohesion: 0.83
 Nodes (3): down(), isSqlite(), up()
 
-### Community 188 - "Controller"
-Cohesion: 0.20
-Nodes (5): AnalyticsController, GoogleAuthController, Controller, RichTextImageController, RichTextVideoController
+### Community 189 - "static"
+Cohesion: 0.24
+Nodes (5): bootBelongsToOrganization(), bootHidesInactiveFromNonAdmins(), UserFactory, Illuminate\Database\Eloquent\Factories\Factory, static
 
-### Community 189 - "CompanyRoleRules"
-Cohesion: 0.16
-Nodes (6): bootBelongsToOrganization(), bootHidesInactiveFromNonAdmins(), CompanyRoleRules, UserFactory, Illuminate\Database\Eloquent\Factories\Factory, static
+### Community 198 - "Illuminate\Http\Request"
+Cohesion: 0.14
+Nodes (7): AuditTrailController, CommentReactionController, DashboardController, Collection, RichTextImageController, RichTextVideoController, Illuminate\Http\Request
 
-### Community 203 - "TaskViewableIdsParityTest.php"
-Cohesion: 0.33
-Nodes (5): assertViewParity(), grantDepartmentAccessForParity(), makeClientForParity(), makeManagementForParity(), makeStaffForParity()
+### Community 199 - "DocumentAccessLevel.php"
+Cohesion: 0.24
+Nodes (3): DocumentUploadService, up(), DocumentAccessLevel
 
 ## Knowledge Gaps
 - **133 isolated node(s):** `Diagram editing & preview`, `Docs`, `Generate diagrams (GitHub Copilot required)`, `Install / update this pack`, `LM Tools — call these for every diagram interaction` (+128 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **46 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **41 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `ImportValidator`, `.boardOrganizationIds`, `OrgMember`, `Illuminate\Http\RedirectResponse`, `App\Models\User`, `RichText`, `AuditLog`, `NotificationEventType.php`, `Illuminate\Validation\Validator`, `UserManagementController`, `App\Models\Department`, `App\Models\Task`, `SubtaskPolicy`, `Illuminate\Support\Collection`, `Illuminate\Database\Eloquent\Builder`, `ImportTemplateBuilder`, `App\Http\Controllers\Concerns\ResolvesCurrentOrganization`, `Permission`, `TaskPolicy`, `Controller`, `CommentController`, `LoginRequest`, `CommentPolicy`, `DocumentPolicy.php`, `DocumentFolderPolicy`, `OrganizationPolicy`, `UserPolicy`, `TaskViewableIdsParityTest.php`, `RolePolicy`, `Document`, `App\Models\Concerns\BelongsToOrganization`, `App\Models\Role`, `Illuminate\Database\Eloquent\Relations\HasMany`, `BootstrapEnvironment`, `Role`, `ImportBatch`, `LinkPreviewService.php`, `Organization`, `TaskManagementController.php`, `Illuminate\Http\Request`, `NotificationSettingPolicy`, `Closure`?**
-  _High betweenness centrality (0.120) - this node is a cross-community bridge._
-- **Why does `Task` connect `Task` to `ImportValidator`, `OrgMember`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `Illuminate\Http\RedirectResponse`, `AuditEventMailNotification.php`, `RichText`, `App\Models\Task`, `SubtaskPolicy`, `.storePending`, `App\Http\Controllers\Concerns\ResolvesCurrentOrganization`, `TaskPolicy`, `Controller`, `CommentController`, `TaskViewableIdsParityTest.php`, `Document`, `TaskManagementController`, `App\Models\Concerns\BelongsToOrganization`, `App\Models\Role`, `Illuminate\Database\Eloquent\Relations\HasMany`, `CalendarController.php`, `ImportBatch`, `LinkPreviewService.php`, `Organization`, `FileCategory.php`, `TaskManagementController.php`, `Illuminate\Http\Request`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
-- **Why does `Organization` connect `Organization` to `ImportValidator`, `.boardOrganizationIds`, `OrgMember`, `Illuminate\Http\RedirectResponse`, `App\Models\User`, `Illuminate\Foundation\Http\FormRequest`, `UserManagementController`, `App\Models\Department`, `DepartmentManagementController.php`, `App\Models\Task`, `Illuminate\Support\Collection`, `Illuminate\Database\Seeder`, `ImportTemplateBuilder`, `App\Http\Controllers\Concerns\ResolvesCurrentOrganization`, `Controller`, `CompanyRoleRules`, `OrganizationPolicy`, `TaskViewableIdsParityTest.php`, `App\Models\Concerns\BelongsToOrganization`, `App\Models\Role`, `Illuminate\Database\Eloquent\Relations\HasMany`, `Role`, `Illuminate\View\View`, `CalendarController.php`, `ImportBatch`, `TaskManagementController.php`, `Illuminate\Http\Request`?**
+- **Why does `User` connect `User` to `Task`, `ImportValidator`, `.boardOrganizationIds`, `App\Models\Task`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `App\Models\User`, `AuditLog`, `Subtask`, `CommentController`, `Illuminate\View\View`, `UpdateProjectRequest`, `LoginRequest`, `CommentPolicy`, `ImportTemplateBuilder`, `NotificationSetting`, `Role`, `static`, `LinkPreviewService.php`, `Illuminate\Http\Request`, `DocumentAccessLevel.php`, `Organization`, `TaskManagementController`, `BootstrapEnvironment`, `Project`, `Illuminate\Database\Eloquent\Relations\HasMany`, `OrgMember`, `Illuminate\Http\JsonResponse`, `Illuminate\Support\Collection`, `ImportBatch`, `LinkPreview`, `Document`, `App\Models\Project`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`?**
+  _High betweenness centrality (0.144) - this node is a cross-community bridge._
+- **Why does `Organization` connect `Organization` to `ImportValidator`, `.boardOrganizationIds`, `App\Models\Task`, `Illuminate\Database\Eloquent\Model`, `Illuminate\Http\RedirectResponse`, `App\Models\User`, `Illuminate\Validation\Validator`, `StoreDepartmentRequest`, `Illuminate\View\View`, `Illuminate\Database\Seeder`, `ImportTemplateBuilder`, `Role`, `CalendarController.php`, `Illuminate\Http\Request`, `User`, `Project`, `Illuminate\Database\Eloquent\Relations\HasMany`, `OrgMember`, `Illuminate\Support\Collection`, `ImportBatch`, `Document`, `App\Models\Project`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`?**
+  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+- **Why does `Task` connect `Task` to `ImportValidator`, `App\Models\Task`, `Illuminate\Database\Eloquent\Model`, `DocumentController.php`, `App\Models\User`, `TagsImportBatch.php`, `Subtask`, `CommentController`, `Illuminate\View\View`, `FileCategory.php`, `Role`, `CalendarController.php`, `static`, `LinkPreviewService.php`, `Illuminate\Http\Request`, `DocumentAccessLevel.php`, `Organization`, `Project`, `Illuminate\Database\Eloquent\Relations\HasMany`, `OrgMember`, `Illuminate\Http\JsonResponse`, `ImportBatch`, `LinkPreview`, `RichText`, `Document`, `App\Models\Project`, `Illuminate\Database\Eloquent\Relations\BelongsToMany`?**
   _High betweenness centrality (0.052) - this node is a cross-community bridge._
 - **Are the 21 inferred relationships involving `User` (e.g. with `.index()` and `.__invoke()`) actually correct?**
   _`User` has 21 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 21 inferred relationships involving `Organization` (e.g. with `.__invoke()` and `.index()`) actually correct?**
   _`Organization` has 21 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 3 inferred relationships involving `OrgMember` (e.g. with `makeClientForDeleteTest()` and `makeClientForUploadTest()`) actually correct?**
+  _`OrgMember` has 3 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 10 inferred relationships involving `Task` (e.g. with `.__invoke()` and `.__invoke()`) actually correct?**
   _`Task` has 10 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `Diagram editing & preview`, `Docs`, `Generate diagrams (GitHub Copilot required)` to the rest of the system?**
-  _133 weakly-connected nodes found - possible documentation gaps or missing edges._

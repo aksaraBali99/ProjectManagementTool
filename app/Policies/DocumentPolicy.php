@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Enums\DocumentAccessLevel;
 use App\Models\Document;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -88,6 +89,54 @@ class DocumentPolicy
 
         return $documents->filter(fn (Document $document) => $document->access_level === DocumentAccessLevel::Public
             && $clientVisibleDocumentIds->contains($document->id))->pluck('id');
+    }
+
+    /**
+     * task #73 phase 3: the task-document picker's OWN query, used ONLY by
+     * DocumentController's picker list endpoint. This is NOT a general
+     * Document visibility scope, and nothing else should reuse it —
+     * deliberately assumes a non-Client caller (TaskPolicy::attachDocuments()
+     * already excludes Client before this ever runs) and only ever
+     * considers Internal/Public documents (Private is excluded
+     * unconditionally, by the picker's own spec, regardless of who's
+     * asking). It omits view()'s private-to-uploader branch and its
+     * client-project-link branch entirely, ON PURPOSE, because neither
+     * branch can ever apply to an input this method will actually be
+     * given. See DocumentAttachableInCompanyParityTest for the matrix
+     * proving it agrees with view() everywhere it's actually exercised
+     * (every role except Client, both Internal and Public, same company
+     * and another).
+     *
+     * $organizationId is the TASK's company, passed explicitly and never
+     * inferred from the request — Document's own BelongsToOrganization
+     * scope is bypassed for super_admin/owner, so relying on it here
+     * would leak every other company's documents into their results.
+     *
+     * The attach endpoint itself never authorizes against this — it uses
+     * the real view() (via Gate) on the one specific document being
+     * attached, so a drift between this query and view() could never let
+     * an actual attach through, only ever hide a document the picker
+     * should have listed.
+     *
+     * @return Builder<Document> unpaginated — the caller adds search/order/pagination
+     */
+    public function attachableInCompany(User $user, int $organizationId): Builder
+    {
+        $query = Document::where('organization_id', $organizationId)
+            ->whereIn('access_level', [DocumentAccessLevel::Internal, DocumentAccessLevel::Public]);
+
+        if ($user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId)
+            || $user->hasPermission('view_documents', $organizationId)) {
+            return $query;
+        }
+
+        // Neither management-tier nor a view_documents holder (e.g. a
+        // manage_documents-only staff member) — view()'s only remaining
+        // path for Internal/Public documents is the client-project-link
+        // branch, which never applies here (Clients are excluded before
+        // this method is ever called), so the correct answer is "sees
+        // none of them", not an empty per-row check.
+        return $query->whereRaw('1 = 0');
     }
 
     /**

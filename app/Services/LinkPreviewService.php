@@ -106,7 +106,7 @@ class LinkPreviewService
             'origin_task_id' => $task->id,
         ]);
 
-        $task->documents()->attach($document->id);
+        app(TaskDocumentLinker::class)->attach($task, $document);
 
         return $document;
     }

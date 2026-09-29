@@ -1,0 +1,120 @@
+<?php
+
+namespace App\Services;
+
+use App\Exceptions\DocumentAlreadyAttachedException;
+use App\Models\AuditLog;
+use App\Models\Document;
+use App\Models\Task;
+use Illuminate\Database\QueryException;
+
+/**
+ * task #73 phase 3: the one place every user-driven task_documents
+ * attach/detach goes through, so every one of them gets the same
+ * non-silent duplicate handling and the same task.document_attached /
+ * task.document_unlinked audit trail, instead of each call site
+ * reimplementing (or forgetting) either.
+ *
+ * Deliberately thin — no business-rule validation (private documents,
+ * company match, view() authorization, "is this user even allowed to do
+ * this at all") lives here. Those are the picker attach endpoint's own
+ * concern, checked before this is ever called, since several OTHER
+ * callers (chip reconciliation, the inline upload/add-link widget,
+ * smart-link auto-attach) legitimately attach a document they just
+ * created themselves and must never be second-guessed by rules written
+ * for a completely different, user-picks-an-existing-document flow.
+ *
+ * The Import feature is deliberately NOT routed through this — its own
+ * batch entries already audit every row it creates or links.
+ */
+class TaskDocumentLinker
+{
+    /**
+     * @throws DocumentAlreadyAttachedException already linked — checked
+     *                                          explicitly first (the common case), with a duplicate-key database
+     *                                          error as a backstop for a genuine race rather than the only way
+     *                                          this is ever detected.
+     */
+    public function attach(Task $task, Document $document): void
+    {
+        if ($task->documents()->where('document_id', $document->id)->exists()) {
+            throw DocumentAlreadyAttachedException::make();
+        }
+
+        try {
+            $task->documents()->attach($document->id);
+        } catch (QueryException $e) {
+            // SQLSTATE 23000 (integrity constraint violation) covers BOTH
+            // constraints an insert here can violate: the task_documents
+            // (task_id, document_id) primary key (a genuine duplicate) AND
+            // its task_id/document_id foreign keys (cascadeOnDelete'd to
+            // tasks/documents) — a concurrent delete of the task or the
+            // document between the exists() check above and this insert
+            // raises the identical SQLSTATE for a real integrity failure,
+            // not a duplicate. isDuplicateKeyViolation() narrows to only
+            // the primary-key case; anything else re-throws, so a masked
+            // data-integrity failure is never mislabeled as "Already
+            // attached." — a driver-code check (MySQL's 1062 vs SQLite's
+            // own extended codes) would need per-driver branching, so this
+            // checks the message text instead, which both drivers'
+            // duplicate-key errors reliably contain.
+            if ($this->isDuplicateKeyViolation($e)) {
+                throw DocumentAlreadyAttachedException::make();
+            }
+
+            throw $e;
+        }
+
+        AuditLog::create([
+            'organization_id' => $task->organization_id,
+            'user_id' => auth()->id(),
+            'action' => 'task.document_attached',
+            'entity_type' => 'task',
+            'entity_id' => $task->id,
+            'changes' => ['document_id' => $document->id, 'document_name' => $document->name],
+        ]);
+    }
+
+    /**
+     * True only for the task_documents (task_id, document_id) primary-key
+     * violation, never for its task_id/document_id foreign-key violations
+     * — both share SQLSTATE 23000, so the SQLSTATE alone can't tell them
+     * apart. MySQL's duplicate-key error always contains "Duplicate
+     * entry"; SQLite's always contains "UNIQUE constraint failed" (a
+     * primary key is enforced as a unique index there). A foreign-key
+     * violation on either driver contains neither phrase.
+     */
+    private function isDuplicateKeyViolation(QueryException $e): bool
+    {
+        if ((string) $e->getCode() !== '23000') {
+            return false;
+        }
+
+        $message = $e->getMessage();
+
+        return str_contains($message, 'Duplicate entry') || str_contains($message, 'UNIQUE constraint failed');
+    }
+
+    /**
+     * Removes only the link — the document itself is untouched. No audit
+     * entry when nothing was actually attached (an already-absent link
+     * detached again is a no-op, not an event).
+     */
+    public function detach(Task $task, Document $document): void
+    {
+        $deleted = $task->documents()->detach($document->id);
+
+        if ($deleted === 0) {
+            return;
+        }
+
+        AuditLog::create([
+            'organization_id' => $task->organization_id,
+            'user_id' => auth()->id(),
+            'action' => 'task.document_unlinked',
+            'entity_type' => 'task',
+            'entity_id' => $task->id,
+            'changes' => ['document_id' => $document->id, 'document_name' => $document->name],
+        ]);
+    }
+}

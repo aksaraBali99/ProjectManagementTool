@@ -250,12 +250,12 @@ test('manage_documents ON/OFF for Staff also gates the task edit page\'s own inl
         'allowed' => true,
     ]);
 
-    // OFF by default: no "+ Add new document" section at all, and the
+    // OFF by default: no "Attach document" section at all, and the
     // endpoint itself 403s regardless of what the task page would have
     // shown.
     $this->actingAs($staff)->get("/tasks/{$task->id}/edit")
         ->assertOk()
-        ->assertDontSee('+ Add new document');
+        ->assertDontSee('Attach document');
     $this->actingAs($staff)->postJson('/documents', [
         'organization_id' => $this->orgA->id,
         'name' => 'Staff task upload (blocked)',
@@ -265,8 +265,8 @@ test('manage_documents ON/OFF for Staff also gates the task edit page\'s own inl
     ])->assertForbidden();
     $this->assertDatabaseMissing('documents', ['name' => 'Staff task upload (blocked)']);
 
-    // ON: the section (and its Upload file tab) appears, and the upload
-    // actually attaches.
+    // ON: the section (and its "Upload a new file" action) appears, and
+    // the upload actually attaches.
     $staffRole = Role::where('slug', 'staff')->firstOrFail();
     $manageDocumentsId = Permission::where('slug', 'manage_documents')->firstOrFail()->id;
     $currentIds = $staffRole->permissions()->pluck('permissions.id')->all();
@@ -276,8 +276,8 @@ test('manage_documents ON/OFF for Staff also gates the task edit page\'s own inl
 
     $this->actingAs($staff)->get("/tasks/{$task->id}/edit")
         ->assertOk()
-        ->assertSee('+ Add new document')
-        ->assertSee('Upload file');
+        ->assertSee('Attach document')
+        ->assertSee('Upload a new file');
 
     $response = $this->actingAs($staff)->postJson('/documents', [
         'organization_id' => $this->orgA->id,
@@ -290,7 +290,46 @@ test('manage_documents ON/OFF for Staff also gates the task edit page\'s own inl
     expect($task->fresh()->documents()->pluck('name')->all())->toContain('Staff task upload (allowed)');
 });
 
-test('a Client with manage_documents has their upload forced to public and never sees the access-level dropdown', function () {
+test('a task-scoped upload succeeds even when organization_id arrives as a numeric string, like a real multipart/form-data request sends it', function () {
+    // Regression test: a real browser's file upload always sends
+    // organization_id as a STRING (raw HTTP multipart fields are text —
+    // the 'integer' validation rule only checks the format, it doesn't
+    // cast the type), while $task->organization_id is a genuine PHP int.
+    // DocumentController::store()'s company-match check used to compare
+    // these with a strict !==, rejecting every real-browser task upload
+    // with "Document must belong to the task's company." — found via the
+    // merged Attach-document panel's "Upload ... as a new file" action,
+    // but pre-existing and unrelated to that panel: any real multipart
+    // upload with a task_id hit it, the panel just was the first thing to
+    // actually get manually tested through a real browser on this path.
+    // Explicitly casting organization_id to a string here reproduces that
+    // exact condition — Pest's own post() helper doesn't naturally
+    // produce it, since it preserves native PHP types when mixing a file
+    // with scalar fields instead of round-tripping through a real
+    // string-only multipart body the way a browser does.
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->post('/documents', [
+        'organization_id' => (string) $this->orgA->id,
+        'name' => 'Prefilled upload.pdf',
+        'file' => fakeUploadDoc(),
+        'access_level' => 'internal',
+        'task_id' => $task->id,
+    ]);
+
+    $response->assertRedirect();
+    $document = Document::where('name', 'Prefilled upload.pdf')->firstOrFail();
+    expect($task->fresh()->documents()->pluck('documents.id')->all())->toBe([$document->id]);
+});
+
+test('a Client with manage_documents has their upload forced to public, even if the request is tampered with', function () {
     // manage_documents is NOT granted to Client by default (see
     // PermissionSeeder), but "manage_documents stays tickable for
     // Client" (task #73 phase 1) — it's the one Documents permission
@@ -314,12 +353,25 @@ test('a Client with manage_documents has their upload forced to public and never
     ]);
     $client = makeClientForUploadTest($this->orgA, $this->projectA);
 
-    // The task edit page itself never renders the access-level dropdown
-    // for a Client uploader — it's replaced with a hidden "public" input.
-    $editPage = $this->actingAs($client)->get("/tasks/{$task->id}/edit")->assertOk()->getContent();
-    expect($editPage)->toContain('new-document-access');
-    expect(preg_match('/<select class="new-document-access[^>]*>/', $editPage))->toBe(0);
-
+    // task #73 (UI merge): this used to also assert the task edit page's
+    // create-form rendered a hidden "public" input instead of a select
+    // for a Client uploader. That's no longer testable there: the merged
+    // attach panel is gated by TaskPolicy::attachDocuments(), which
+    // excludes Client unconditionally, so a Client-role uploader doesn't
+    // see any attach form on the task edit page at all any more (see
+    // TaskDocumentMergedPanelTest for that gate's own coverage). The
+    // standalone Add Document page isn't a substitute either — despite
+    // DocumentPolicy::create() allowing a Client with manage_documents,
+    // DocumentController::create()'s own organization-list guard
+    // (documentManageableOrganizationIds()) only admits management/staff,
+    // 403ing a Client before that policy is even reached — a pre-existing
+    // inconsistency, unrelated to this PR, not something to paper over
+    // here. So this test now only covers what's still real and still
+    // matters regardless of UI reachability: the server-side invariant
+    // that a Client's upload is forced to Public no matter what the
+    // request claims — defense in depth against a tampered/direct
+    // request, not something that depends on any particular page
+    // existing.
     $response = $this->actingAs($client)->postJson('/documents', [
         'organization_id' => $this->orgA->id,
         'name' => 'Client upload',
