@@ -64,6 +64,20 @@ class Task extends Model
     }
 
     /**
+     * task #73 phase 4: folders attached whole, alongside individual files
+     * (documents() above) — task_folder_links, not task_documents.
+     * withPivot('linked_by') exposes who linked it via $folder->pivot;
+     * TaskDocumentLinker::attachFolder() is what actually writes it, this
+     * is just the read side.
+     */
+    public function folders(): BelongsToMany
+    {
+        return $this->belongsToMany(DocumentFolder::class, 'task_folder_links', 'task_id', 'folder_id')
+            ->withPivot('linked_by')
+            ->withTimestamps();
+    }
+
+    /**
      * Which tasks in $organizationId are visible to $user. Global roles and
      * management see everything; a client sees only their attached
      * projects' tasks; everyone else (staff) is department-gated via
