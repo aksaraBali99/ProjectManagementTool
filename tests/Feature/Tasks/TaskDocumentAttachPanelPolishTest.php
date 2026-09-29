@@ -107,3 +107,21 @@ test('the create form JS auto-fills the name from the selected filename (extensi
     expect($content)->toContain('function stripExtension(filename)');
     expect($content)->toContain('nameInput && ! nameInput.value && file');
 });
+
+test('the create form JS disables the submit button while a create-and-attach request is in flight, guarding against a double-submit', function () {
+    $response = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit");
+
+    $response->assertOk();
+    $content = $response->getContent();
+
+    // Structural guard for the double-submit fix verified live in a
+    // browser: without this, a double-click or a slow network plus an
+    // impatient second click fires two POST /documents requests before
+    // the first resolves, each succeeding independently (two distinct
+    // new Document rows, both attached to the task, since there's no
+    // document_id collision for the linker to reject) - a silent
+    // duplicate with no error shown. Mirrors the picker's own
+    // attachDocument(), which already disables its trigger the same way.
+    expect($content)->toContain('createBtn.disabled = true;');
+    expect($content)->toContain('createBtn.disabled = false;');
+});

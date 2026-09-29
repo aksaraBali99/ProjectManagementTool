@@ -222,6 +222,37 @@ test('pagination returns 25 per page with more available on the next page', func
     expect($page2->json('data'))->toHaveCount(5);
 });
 
+test('the results query always orders by id as a tiebreaker, so paginated results stay stable when names collide', function () {
+    // Regression guard: `orderBy('name')` (search) / `orderByDesc('created_at')`
+    // (no search) alone have no tiebreaker, and nothing in the schema stops
+    // two documents sharing a name or a created_at timestamp. Without a
+    // secondary sort, the row order between two tied documents isn't
+    // guaranteed stable across the separate page-1/page-2 SQL queries "Load
+    // more" issues - a real document could silently never appear on any
+    // page. This can't be caught behaviorally on SQLite: a repeated,
+    // unmodified query gets the same deterministic scan order every time
+    // regardless of whether a tiebreaker column is present, so a same-name
+    // pagination test would pass whether or not the fix exists. Instead,
+    // this inspects the actual compiled SQL text for both branches.
+    makePickerDocument($this->orgA, $this->management, 'Same Name.pdf');
+
+    $queries = [];
+    DB::listen(function ($query) use (&$queries) {
+        $queries[] = $query->sql;
+    });
+
+    $this->actingAs($this->management)->getJson("/tasks/{$this->task->id}/documents/attachable?search=Same%20Name")->assertOk();
+    $searchSql = collect($queries)->first(fn ($sql) => str_contains($sql, 'LIKE') && str_contains($sql, 'order by'));
+    expect($searchSql)->not->toBeNull();
+    expect($searchSql)->toContain('order by "name" asc, "id" asc');
+
+    $queries = [];
+    $this->actingAs($this->management)->getJson("/tasks/{$this->task->id}/documents/attachable")->assertOk();
+    $defaultSql = collect($queries)->first(fn ($sql) => str_contains($sql, 'order by'));
+    expect($defaultSql)->not->toBeNull();
+    expect($defaultSql)->toContain('order by "created_at" desc, "id" desc');
+});
+
 test('already_attached is true only for documents already linked to this task', function () {
     $attached = makePickerDocument($this->orgA, $this->management, 'Attached');
     $notAttached = makePickerDocument($this->orgA, $this->management, 'Not attached');

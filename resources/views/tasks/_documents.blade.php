@@ -621,6 +621,15 @@
                     }, 'Failed to create document.');
                 }
 
+                // Guards against a double-click or an impatient second
+                // click during a slow request firing two POST /documents
+                // calls — each would succeed independently (two distinct
+                // new Document rows, both attached to the task, no
+                // collision to reject) with nothing to warn the user a
+                // duplicate was created. Mirrors the picker's own
+                // attachDocument(), which disables its trigger the same way.
+                createBtn.disabled = true;
+
                 responsePromise
                     .then(function (response) {
                         return response.json();
@@ -643,6 +652,9 @@
                     .catch(function (error) {
                         errorEl.textContent = error.message;
                         errorEl.style.display = '';
+                    })
+                    .finally(function () {
+                        createBtn.disabled = false;
                     });
             });
         }

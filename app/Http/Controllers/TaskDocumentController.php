@@ -81,9 +81,16 @@ class TaskDocumentController extends Controller
             // it'd surface one, so name order is left as the tiebreak
             // instead. Only the no-search-term case has an explicit
             // "newest first" requirement.
-            $query->orderBy('name');
+            //
+            // `id` is a required secondary sort, not decoration: `name`
+            // alone isn't unique (nothing stops two documents sharing a
+            // name), and without a tiebreaker the row order between two
+            // same-name documents isn't guaranteed stable across the
+            // separate page-1/page-2 SQL queries "Load more" issues — a
+            // real document could silently never appear on any page.
+            $query->orderBy('name')->orderBy('id');
         } else {
-            $query->orderByDesc('created_at');
+            $query->orderByDesc('created_at')->orderByDesc('id');
         }
 
         $paginated = $query->paginate(25, ['*'], 'page', $data['page'] ?? 1);

@@ -329,7 +329,7 @@ test('a task-scoped upload succeeds even when organization_id arrives as a numer
     expect($task->fresh()->documents()->pluck('documents.id')->all())->toBe([$document->id]);
 });
 
-test('a Client with manage_documents has their upload forced to public and never sees the access-level dropdown', function () {
+test('a Client with manage_documents has their upload forced to public, even if the request is tampered with', function () {
     // manage_documents is NOT granted to Client by default (see
     // PermissionSeeder), but "manage_documents stays tickable for
     // Client" (task #73 phase 1) — it's the one Documents permission
@@ -353,12 +353,25 @@ test('a Client with manage_documents has their upload forced to public and never
     ]);
     $client = makeClientForUploadTest($this->orgA, $this->projectA);
 
-    // The task edit page itself never renders the access-level dropdown
-    // for a Client uploader — it's replaced with a hidden "public" input.
-    $editPage = $this->actingAs($client)->get("/tasks/{$task->id}/edit")->assertOk()->getContent();
-    expect($editPage)->toContain('new-document-access');
-    expect(preg_match('/<select class="new-document-access[^>]*>/', $editPage))->toBe(0);
-
+    // task #73 (UI merge): this used to also assert the task edit page's
+    // create-form rendered a hidden "public" input instead of a select
+    // for a Client uploader. That's no longer testable there: the merged
+    // attach panel is gated by TaskPolicy::attachDocuments(), which
+    // excludes Client unconditionally, so a Client-role uploader doesn't
+    // see any attach form on the task edit page at all any more (see
+    // TaskDocumentMergedPanelTest for that gate's own coverage). The
+    // standalone Add Document page isn't a substitute either — despite
+    // DocumentPolicy::create() allowing a Client with manage_documents,
+    // DocumentController::create()'s own organization-list guard
+    // (documentManageableOrganizationIds()) only admits management/staff,
+    // 403ing a Client before that policy is even reached — a pre-existing
+    // inconsistency, unrelated to this PR, not something to paper over
+    // here. So this test now only covers what's still real and still
+    // matters regardless of UI reachability: the server-side invariant
+    // that a Client's upload is forced to Public no matter what the
+    // request claims — defense in depth against a tampered/direct
+    // request, not something that depends on any particular page
+    // existing.
     $response = $this->actingAs($client)->postJson('/documents', [
         'organization_id' => $this->orgA->id,
         'name' => 'Client upload',
