@@ -158,7 +158,7 @@ test('manage_documents OFF hides the button and 403s the attach endpoint for sta
     AccessPermission::create(['user_id' => $staff->id, 'organization_id' => $this->orgA->id, 'department_id' => $this->dept->id, 'allowed' => true]);
     $document = makeAttachTestDocument($this->orgA, $this->management);
 
-    $this->actingAs($staff)->get("/tasks/{$this->task->id}/edit")->assertOk()->assertDontSee('Attach existing');
+    $this->actingAs($staff)->get("/tasks/{$this->task->id}/edit")->assertOk()->assertDontSee('Attach document');
     $this->actingAs($staff)->postJson("/tasks/{$this->task->id}/documents", ['document_id' => $document->id])->assertForbidden();
 });
 
@@ -171,7 +171,7 @@ test('manage_documents ON shows the button and allows the attach endpoint for st
     AccessPermission::create(['user_id' => $staff->id, 'organization_id' => $this->orgA->id, 'department_id' => $this->dept->id, 'allowed' => true]);
     $document = makeAttachTestDocument($this->orgA, $this->management);
 
-    $this->actingAs($staff)->get("/tasks/{$this->task->id}/edit")->assertOk()->assertSee('Attach existing');
+    $this->actingAs($staff)->get("/tasks/{$this->task->id}/edit")->assertOk()->assertSee('Attach document');
     $this->actingAs($staff)->postJson("/tasks/{$this->task->id}/documents", ['document_id' => $document->id])->assertOk();
 });
 
@@ -197,7 +197,7 @@ test('a Client-role user with manage_documents is denied on the attach endpoint 
     $this->project->clients()->attach($client->id);
     $document = makeAttachTestDocument($this->orgA, $this->management);
 
-    $this->actingAs($client)->get("/tasks/{$this->task->id}/edit")->assertOk()->assertDontSee('Attach existing');
+    $this->actingAs($client)->get("/tasks/{$this->task->id}/edit")->assertOk()->assertDontSee('Attach document');
     $this->actingAs($client)->postJson("/tasks/{$this->task->id}/documents", ['document_id' => $document->id])->assertForbidden();
 });
 

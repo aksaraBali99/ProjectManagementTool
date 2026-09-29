@@ -15,7 +15,7 @@
                 {{-- task #73 phase 2: TaskPolicy::unlinkDocuments() —
                      manage_documents + task view, NOT $canEdit (task-edit
                      rights) — deliberately its own gate, separate from the
-                     attach-existing-document picker. --}}
+                     attach-document panel. --}}
                 @if ($canUnlinkDocuments)
                     <button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>
                 @endif
@@ -26,84 +26,107 @@
         @endif
     </div>
 
-    <div class="mt-2 flex items-center gap-3">
-        {{-- task #73 phase 3: TaskPolicy::attachDocuments() — manage_
-             documents + task view + not a Client-role user. Replaces the
-             old <select>+"Attach" widget (gated by $canEdit, the wrong
-             capability) entirely; that endpoint (POST /tasks/{task}/
-             documents) is unchanged, just no longer reachable from
-             anything but this dialog. --}}
-        @if ($canAttachDocuments)
-            <button type="button" class="attach-existing-toggle text-[11px] font-medium text-brand-600 hover:underline"
-                aria-haspopup="dialog" aria-expanded="false" aria-controls="attach-existing-dialog-{{ $task->id }}">
-                Attach existing
-            </button>
-        @endif
-
-        {{-- Creating a new document is a different capability from editing
-             this task (DocumentPolicy::create / manage_documents) — gated
-             separately from $canEdit, not folded into it. --}}
-        @if ($canManageDocuments)
-            <button type="button" class="toggle-new-document text-[11px] font-medium text-brand-600 hover:underline">+ Add new document</button>
-        @endif
-    </div>
-
+    {{-- task #73 (UI merge): ONE entry point replacing the old separate
+         "Attach existing" and "+ Add new document" buttons/panels — one
+         search box that filters existing documents as you type, with
+         "Upload as a new file" / "Add a link instead" always available
+         below the results. Gated solely by TaskPolicy::attachDocuments()
+         (manage_documents + task view + not a Client-role user) — the
+         exact condition the old "Attach existing" button already used.
+         This is a real, deliberate narrowing versus the old "+ Add new
+         document" button's own gate (DocumentPolicy::create(), which a
+         Client-role uploader COULD pass): a Client can no longer create-
+         and-attach their own document from this page at all, since they
+         never see this merged entry point. Flagged and confirmed with
+         the task's own author before building — not an oversight. --}}
     @if ($canAttachDocuments)
-        <div id="attach-existing-dialog-{{ $task->id }}" class="attach-existing-dialog mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="Attach an existing document">
-            <input type="text" class="attach-existing-search w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Search documents…">
-            <ul class="attach-existing-results space-y-1" aria-label="Documents you can attach"></ul>
-            <p class="attach-existing-status text-[11px] text-gray-500"></p>
-            <button type="button" class="attach-existing-load-more hidden text-[11px] font-medium text-brand-600 hover:underline">Load more</button>
-            <div class="flex items-center gap-3 pt-1">
-                <button type="button" class="attach-existing-close text-[12px] text-gray-600 hover:underline">Close</button>
-            </div>
-        </div>
-    @endif
-
-    @if ($canManageDocuments)
         @php
             // task #73 phase 1: a Client-role uploader (in this task's
             // company) never sees the access-level dropdown — always
             // saved as Public, enforced server-side regardless in
             // DocumentUploadService::resolveAccessLevel() even if this
-            // markup were somehow bypassed.
+            // markup were somehow bypassed. Kept even though the merged
+            // panel's own gate already excludes Client — DocumentPolicy::
+            // create() itself doesn't, so this stays a real branch.
             $isClientUploader = auth()->user()->isClientInOrg($task->organization_id);
         @endphp
-        <div class="new-document-form mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3">
-            <div class="inline-flex rounded-md border border-gray-300 p-0.5" role="tablist">
-                <button type="button" data-new-document-mode="link" class="new-document-mode-tab rounded px-3 py-1 text-[11px] font-medium">Add link</button>
-                <button type="button" data-new-document-mode="upload" class="new-document-mode-tab rounded px-3 py-1 text-[11px] font-medium">Upload file</button>
+        <div class="mt-2">
+            <button type="button" class="attach-document-toggle text-[11px] font-medium text-brand-600 hover:underline"
+                aria-haspopup="dialog" aria-expanded="false" aria-controls="attach-document-panel-{{ $task->id }}">
+                Attach document
+            </button>
+        </div>
+
+        <div id="attach-document-panel-{{ $task->id }}" class="attach-document-panel mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="Attach a document">
+            {{-- View 1: search + matching documents + the two "create
+                 instead" action rows. --}}
+            <div class="attach-document-search-view space-y-2">
+                <label for="attach-document-search-{{ $task->id }}" class="sr-only">Search or attach a document</label>
+                <input type="text" id="attach-document-search-{{ $task->id }}" class="attach-document-search w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Search or attach a document…">
+
+                <div>
+                    <p class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Matching documents</p>
+                    <ul class="attach-document-results mt-1 space-y-1" aria-label="Matching documents"></ul>
+                    <p class="attach-document-status mt-1 text-[11px] text-gray-500"></p>
+                    <button type="button" class="attach-document-load-more hidden text-[11px] font-medium text-brand-600 hover:underline">Load more</button>
+                </div>
+
+                <hr class="border-gray-200">
+
+                <div class="space-y-1">
+                    <button type="button" class="attach-document-upload-action block w-full rounded-md border border-gray-200 px-3 py-2 text-left text-[12px] text-gray-700 hover:border-brand-600 hover:bg-brand-50">
+                        <i class="ti ti-upload text-[13px] text-gray-500" aria-hidden="true"></i>
+                        <span class="attach-document-upload-label">Upload a new file</span>
+                    </button>
+                    <button type="button" class="attach-document-link-action block w-full rounded-md border border-gray-200 px-3 py-2 text-left text-[12px] text-gray-700 hover:border-brand-600 hover:bg-brand-50">
+                        <i class="ti ti-link text-[13px] text-gray-500" aria-hidden="true"></i>
+                        <span class="attach-document-link-label">Add a link</span>
+                    </button>
+                </div>
             </div>
 
-            <input type="text" class="new-document-name w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Document name">
+            {{-- View 2: the create-a-new-document sub-form — same fields/
+                 endpoint as before, just entered via one of the two
+                 action rows above instead of its own separate toggle.
+                 Starts hidden; a click on either action row picks the
+                 mode and reveals this instead of the search view. --}}
+            <div class="new-document-form hidden space-y-2 rounded-md border border-gray-200 p-3">
+                <button type="button" class="new-document-back text-[11px] text-gray-500 hover:underline">&larr; Back to search</button>
 
-            <div class="new-document-panel" data-panel="link">
-                <input type="url" class="new-document-link w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="https://…">
-            </div>
-            <div class="new-document-panel hidden" data-panel="upload">
-                <input type="file" class="new-document-file w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                <p class="mt-1 text-[10px] text-gray-500">PDF, Word, Excel, PowerPoint, text or CSV — up to 20MB.</p>
+                <input type="text" class="new-document-name w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Document name">
+
+                <div class="new-document-panel" data-panel="link">
+                    <input type="url" class="new-document-link w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="https://…">
+                </div>
+                <div class="new-document-panel hidden" data-panel="upload">
+                    <input type="file" class="new-document-file w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <p class="mt-1 text-[10px] text-gray-500">PDF, Word, Excel, PowerPoint, text or CSV — up to 20MB.</p>
+                </div>
+
+                @if ($isClientUploader)
+                    <input type="hidden" class="new-document-access" value="public">
+                @else
+                    {{-- task #73 phase 3: no Private option here — a document
+                         created and attached to a task in the same step is
+                         never allowed to be Private (enforced server-side in
+                         DocumentController::store() regardless of what this
+                         markup offers). Private stays available on the
+                         standalone Documents page's own Add Document form,
+                         which never attaches to a task. --}}
+                    <select class="new-document-access w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                        @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
+                            @continue($accessCase === \App\Enums\DocumentAccessLevel::Private)
+                            <option value="{{ $accessCase->value }}" {{ $accessCase === \App\Enums\DocumentAccessLevel::Internal ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
+                        @endforeach
+                    </select>
+                @endif
+                <button type="button" class="create-and-attach-btn rounded-md bg-brand-600 px-3 py-2 text-[12px] font-medium text-white hover:bg-brand-700">Create &amp; attach</button>
+                <p class="new-document-error text-[11px] text-red-600" style="display: none;"></p>
             </div>
 
-            @if ($isClientUploader)
-                <input type="hidden" class="new-document-access" value="public">
-            @else
-                {{-- task #73 phase 3: no Private option here — a document
-                     created and attached to a task in the same step is
-                     never allowed to be Private (enforced server-side in
-                     DocumentController::store() regardless of what this
-                     markup offers). Private stays available on the
-                     standalone Documents page's own Add Document form,
-                     which never attaches to a task. --}}
-                <select class="new-document-access w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                    @foreach (\App\Enums\DocumentAccessLevel::cases() as $accessCase)
-                        @continue($accessCase === \App\Enums\DocumentAccessLevel::Private)
-                        <option value="{{ $accessCase->value }}" {{ $accessCase === \App\Enums\DocumentAccessLevel::Internal ? 'selected' : '' }}>{{ $accessCase->label() }}</option>
-                    @endforeach
-                </select>
-            @endif
-            <button type="button" class="create-and-attach-btn rounded-md bg-brand-600 px-3 py-2 text-[12px] font-medium text-white hover:bg-brand-700">Create &amp; attach</button>
-            <p class="new-document-error text-[11px] text-red-600" style="display: none;"></p>
+            <div class="flex items-center gap-3 pt-1">
+                <button type="button" class="attach-document-close text-[12px] text-gray-600 hover:underline">Close</button>
+            </div>
         </div>
     @endif
 </div>
@@ -213,8 +236,7 @@
             // unconditionally, regardless of canUnlinkDocuments — unlike
             // the initial page-load rows above, which correctly gate it.
             // A viewer without unlinkDocuments rights who created-and-
-            // attached (or, previously, picked from the old select) would
-            // see a Detach button the endpoint would then 403 on click.
+            // attached would see a button the endpoint would then 403 on.
             const detachButtonHtml = canUnlinkDocuments
                 ? '<button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>'
                 : '';
@@ -225,27 +247,30 @@
             wireDetach(row);
         }
 
-        // task #73 phase 3: the attach-existing-document picker dialog —
-        // a hidden panel toggled by JS, the same pattern as the Documents
+        // task #73 (UI merge): the merged attach-a-document panel — a
+        // hidden panel toggled by JS, the same pattern as the Documents
         // page's own Edit/Delete panels (no modal component exists in
-        // this app).
-        const attachToggle = container.querySelector('.attach-existing-toggle');
-        const attachDialog = container.querySelector('.attach-existing-dialog');
-        if (attachToggle && attachDialog) {
-            const searchInput = attachDialog.querySelector('.attach-existing-search');
-            const resultsEl = attachDialog.querySelector('.attach-existing-results');
-            const statusEl = attachDialog.querySelector('.attach-existing-status');
-            const loadMoreBtn = attachDialog.querySelector('.attach-existing-load-more');
-            const closeBtn = attachDialog.querySelector('.attach-existing-close');
+        // this app). One button/panel now covers what used to be two
+        // separate entry points (an existing-document picker and a
+        // create-new-document mini-form).
+        const attachToggle = container.querySelector('.attach-document-toggle');
+        const attachPanel = container.querySelector('.attach-document-panel');
+        if (attachToggle && attachPanel) {
+            const searchView = attachPanel.querySelector('.attach-document-search-view');
+            const searchInput = attachPanel.querySelector('.attach-document-search');
+            const resultsEl = attachPanel.querySelector('.attach-document-results');
+            const statusEl = attachPanel.querySelector('.attach-document-status');
+            const loadMoreBtn = attachPanel.querySelector('.attach-document-load-more');
+            const closeBtn = attachPanel.querySelector('.attach-document-close');
+            const uploadActionBtn = attachPanel.querySelector('.attach-document-upload-action');
+            const linkActionBtn = attachPanel.querySelector('.attach-document-link-action');
+            const uploadLabelEl = attachPanel.querySelector('.attach-document-upload-label');
+            const linkLabelEl = attachPanel.querySelector('.attach-document-link-label');
 
             let currentPage = 1;
             let hasMore = false;
             let searchDebounceTimer = null;
-            let requestToken = 0; // guards against an in-flight page-1 search response landing after a newer one
-
-            function pluralize(count, noun) {
-                return count + ' ' + noun + (count === 1 ? '' : 's');
-            }
+            let requestToken = 0; // guards a stale response (an old search, or an auto-chained page fetch) from rendering after a newer one supersedes it
 
             function formatBytes(bytes) {
                 if (bytes === null || bytes === undefined) return null;
@@ -254,32 +279,37 @@
                 return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
             }
 
+            function fileIconClass(doc) {
+                return doc.mime_type ? 'ti-file-text' : 'ti-link';
+            }
+
             function renderResultItem(doc) {
+                // Already-attached documents are never shown at all here
+                // (not shown-and-disabled) — the endpoint still returns
+                // them with already_attached: true (the query itself is
+                // unchanged, see TaskDocumentController::index()), this
+                // just filters them out client-side before rendering.
+                if (doc.already_attached) return;
+
                 const li = document.createElement('li');
-
-                if (doc.already_attached) {
-                    li.className = 'rounded-md border border-gray-200 px-3 py-2 text-[12px] text-gray-400';
-                    li.innerHTML = '<span class="block truncate font-medium">' + escapeHtml(doc.name) + '</span>'
-                        + '<span class="text-[11px]">Already attached</span>';
-                    resultsEl.appendChild(li);
-                    return;
-                }
-
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'w-full rounded-md border border-gray-200 px-3 py-2 text-left text-[12px] hover:border-brand-600 hover:bg-brand-50';
+                btn.className = 'flex w-full items-start gap-2 rounded-md border border-gray-200 px-3 py-2 text-left text-[12px] hover:border-brand-600 hover:bg-brand-50';
 
                 const metaParts = [doc.uploader_name, new Date(doc.uploaded_at).toLocaleDateString()];
                 if (doc.folder_path) metaParts.push(doc.folder_path);
                 const sizeLabel = formatBytes(doc.size_bytes);
                 if (sizeLabel) metaParts.push(sizeLabel);
 
-                let html = '<span class="block truncate font-medium text-[#1F2937]">' + escapeHtml(doc.name) + '</span>'
+                let html = '<i class="ti ' + fileIconClass(doc) + ' mt-0.5 shrink-0 text-[14px] text-gray-400" aria-hidden="true"></i>'
+                    + '<span class="min-w-0"><span class="block truncate font-medium text-[#1F2937]">' + escapeHtml(doc.name) + '</span>'
                     + '<span class="block text-[11px] text-gray-500">' + escapeHtml(metaParts.join(' · ')) + '</span>';
 
                 if (doc.access_level === 'public' && projectHasClient) {
                     html += '<span class="block text-[11px] text-amber-700">Visible to this project’s client once linked</span>';
                 }
+
+                html += '</span>';
 
                 btn.innerHTML = html;
                 btn.addEventListener('click', function () {
@@ -298,7 +328,7 @@
                     .then(function (response) { return response.json(); })
                     .then(function (data) {
                         appendDocumentRow(data.document);
-                        closeDialog(true);
+                        closePanel(true);
                     })
                     .catch(function (error) {
                         statusEl.textContent = error.message;
@@ -306,10 +336,25 @@
                     });
             }
 
+            // Filtering already-attached rows out is client-side (the
+            // query itself is unchanged — see TaskDocumentController::
+            // index() — deliberately, so this is small and doesn't touch
+            // Phase 3's endpoint). The one risk that comes with that: a
+            // page whose real rows are ALL already-attached would
+            // otherwise render zero new visible rows while still leaving
+            // "Load more" sitting there — indistinguishable from a
+            // stalled or broken list. So after every fetch, if nothing
+            // new became visible and more pages exist, immediately chain
+            // into the next page instead of waiting for another click;
+            // it keeps going until a page contributes at least one
+            // visible row or there's truly nothing left. Server-side
+            // filtering (excluding already-attached in the query itself)
+            // would avoid this entirely, but wasn't worth doing for this
+            // small a tweak — see the PR description.
             function fetchResults(page, append) {
                 const token = ++requestToken;
                 const search = searchInput.value.trim();
-                statusEl.textContent = 'Loading…';
+                if (! append) statusEl.textContent = 'Loading…';
                 loadMoreBtn.classList.add('hidden');
 
                 const url = '/tasks/' + taskId + '/documents/attachable?page=' + page
@@ -324,13 +369,22 @@
                         if (token !== requestToken) return; // a newer request already landed
 
                         if (! append) resultsEl.innerHTML = '';
+
+                        const beforeCount = resultsEl.children.length;
                         (data.data || []).forEach(renderResultItem);
+                        const addedVisible = resultsEl.children.length > beforeCount;
 
                         currentPage = data.current_page;
                         hasMore = data.current_page < data.last_page;
+
+                        if (! addedVisible && hasMore) {
+                            fetchResults(currentPage + 1, true);
+                            return;
+                        }
+
                         loadMoreBtn.classList.toggle('hidden', ! hasMore);
 
-                        if ((data.data || []).length === 0 && ! append) {
+                        if (resultsEl.children.length === 0) {
                             statusEl.textContent = 'No documents found.';
                         } else {
                             statusEl.textContent = '';
@@ -342,39 +396,49 @@
                     });
             }
 
-            function openDialog() {
+            function showSearchView() {
+                searchView.classList.remove('hidden');
+                newForm.classList.add('hidden');
+            }
+
+            function openPanel() {
                 attachToggle.setAttribute('aria-expanded', 'true');
-                attachDialog.classList.remove('hidden');
+                attachPanel.classList.remove('hidden');
+                showSearchView();
                 searchInput.value = '';
                 searchInput.focus();
                 fetchResults(1, false);
             }
 
-            function closeDialog(returnFocus) {
+            function closePanel(returnFocus) {
                 attachToggle.setAttribute('aria-expanded', 'false');
-                attachDialog.classList.add('hidden');
+                attachPanel.classList.add('hidden');
                 if (returnFocus) attachToggle.focus();
             }
 
             attachToggle.addEventListener('click', function () {
-                if (attachDialog.classList.contains('hidden')) {
-                    openDialog();
+                if (attachPanel.classList.contains('hidden')) {
+                    openPanel();
                 } else {
-                    closeDialog(false);
+                    closePanel(false);
                 }
             });
 
             closeBtn.addEventListener('click', function () {
-                closeDialog(true);
+                closePanel(true);
             });
 
-            attachDialog.addEventListener('keydown', function (event) {
+            attachPanel.addEventListener('keydown', function (event) {
                 if (event.key === 'Escape') {
-                    closeDialog(true);
+                    closePanel(true);
                 }
             });
 
             searchInput.addEventListener('input', function () {
+                const query = searchInput.value.trim();
+                uploadLabelEl.textContent = query ? 'Upload "' + query + '" as a new file' : 'Upload a new file';
+                linkLabelEl.textContent = query ? 'Add "' + query + '" as a link' : 'Add a link';
+
                 if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
                 searchDebounceTimer = setTimeout(function () {
                     fetchResults(1, false);
@@ -384,23 +448,21 @@
             loadMoreBtn.addEventListener('click', function () {
                 fetchResults(currentPage + 1, true);
             });
-        }
 
-        const toggleBtn = container.querySelector('.toggle-new-document');
-        const newForm = container.querySelector('.new-document-form');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', function () {
-                newForm.classList.toggle('hidden');
+            uploadActionBtn.addEventListener('click', function () {
+                openCreateForm('upload');
+            });
+            linkActionBtn.addEventListener('click', function () {
+                openCreateForm('link');
             });
         }
 
-        // task #73 phase 1: the same Add link / Upload file toggle as the
-        // standalone Documents page's own create form, just driven by
-        // plain class toggles instead of a form-native hidden input,
-        // since this whole widget is a fetch()-based component, not a
-        // real <form> submission.
+        // task #73 (UI merge): the create-a-new-document sub-form, now
+        // entered from one of the two action rows inside the merged
+        // panel above instead of its own separate always-visible toggle
+        // button. Its own fields/endpoint are unchanged.
+        const newForm = container.querySelector('.new-document-form');
         let newDocumentMode = 'link';
-        const modeTabs = newForm ? newForm.querySelectorAll('.new-document-mode-tab') : [];
         const modePanels = newForm ? newForm.querySelectorAll('.new-document-panel') : [];
 
         function activateNewDocumentMode(mode) {
@@ -408,19 +470,33 @@
             modePanels.forEach(function (panel) {
                 panel.classList.toggle('hidden', panel.dataset.panel !== mode);
             });
-            modeTabs.forEach(function (tab) {
-                const active = tab.dataset.newDocumentMode === mode;
-                tab.classList.toggle('bg-brand-600', active);
-                tab.classList.toggle('text-white', active);
-                tab.classList.toggle('text-gray-600', !active);
+        }
+
+        function openCreateForm(mode) {
+            const searchView = container.querySelector('.attach-document-search-view');
+            const searchInput = container.querySelector('.attach-document-search');
+            activateNewDocumentMode(mode);
+
+            const nameInput = container.querySelector('.new-document-name');
+            if (nameInput && ! nameInput.value && searchInput) {
+                nameInput.value = searchInput.value.trim();
+            }
+
+            if (searchView) searchView.classList.add('hidden');
+            newForm.classList.remove('hidden');
+            if (nameInput) nameInput.focus();
+        }
+
+        const backBtn = newForm ? newForm.querySelector('.new-document-back') : null;
+        if (backBtn) {
+            backBtn.addEventListener('click', function () {
+                const searchView = container.querySelector('.attach-document-search-view');
+                newForm.classList.add('hidden');
+                if (searchView) searchView.classList.remove('hidden');
+                const searchInput = container.querySelector('.attach-document-search');
+                if (searchInput) searchInput.focus();
             });
         }
-        modeTabs.forEach(function (tab) {
-            tab.addEventListener('click', function () {
-                activateNewDocumentMode(tab.dataset.newDocumentMode);
-            });
-        });
-        activateNewDocumentMode('link');
 
         const fileInput = container.querySelector('.new-document-file');
         if (fileInput) {
@@ -474,7 +550,14 @@
                         nameInput.value = '';
                         linkInput.value = '';
                         if (fileInput) fileInput.value = '';
+                        const attachPanel = container.querySelector('.attach-document-panel');
+                        const attachToggle = container.querySelector('.attach-document-toggle');
                         newForm.classList.add('hidden');
+                        if (attachPanel) attachPanel.classList.add('hidden');
+                        if (attachToggle) {
+                            attachToggle.setAttribute('aria-expanded', 'false');
+                            attachToggle.focus();
+                        }
                     })
                     .catch(function (error) {
                         errorEl.textContent = error.message;

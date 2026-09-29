@@ -250,12 +250,12 @@ test('manage_documents ON/OFF for Staff also gates the task edit page\'s own inl
         'allowed' => true,
     ]);
 
-    // OFF by default: no "+ Add new document" section at all, and the
+    // OFF by default: no "Attach document" section at all, and the
     // endpoint itself 403s regardless of what the task page would have
     // shown.
     $this->actingAs($staff)->get("/tasks/{$task->id}/edit")
         ->assertOk()
-        ->assertDontSee('+ Add new document');
+        ->assertDontSee('Attach document');
     $this->actingAs($staff)->postJson('/documents', [
         'organization_id' => $this->orgA->id,
         'name' => 'Staff task upload (blocked)',
@@ -265,8 +265,8 @@ test('manage_documents ON/OFF for Staff also gates the task edit page\'s own inl
     ])->assertForbidden();
     $this->assertDatabaseMissing('documents', ['name' => 'Staff task upload (blocked)']);
 
-    // ON: the section (and its Upload file tab) appears, and the upload
-    // actually attaches.
+    // ON: the section (and its "Upload a new file" action) appears, and
+    // the upload actually attaches.
     $staffRole = Role::where('slug', 'staff')->firstOrFail();
     $manageDocumentsId = Permission::where('slug', 'manage_documents')->firstOrFail()->id;
     $currentIds = $staffRole->permissions()->pluck('permissions.id')->all();
@@ -276,8 +276,8 @@ test('manage_documents ON/OFF for Staff also gates the task edit page\'s own inl
 
     $this->actingAs($staff)->get("/tasks/{$task->id}/edit")
         ->assertOk()
-        ->assertSee('+ Add new document')
-        ->assertSee('Upload file');
+        ->assertSee('Attach document')
+        ->assertSee('Upload a new file');
 
     $response = $this->actingAs($staff)->postJson('/documents', [
         'organization_id' => $this->orgA->id,

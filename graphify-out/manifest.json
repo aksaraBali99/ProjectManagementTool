@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
-    "mtime": 1790614307.2070203,
-    "ast_hash": "c93de1790458b3e64b4c3c41ac448af7",
+    "mtime": 1790660015.0174167,
+    "ast_hash": "8dd83d4921a9cfb75885b14d2205e5b1",
     "semantic_hash": ""
   },
   "resources/views/tasks/_subtasks.blade.php": {
@@ -1815,8 +1815,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentPermissionTest.php": {
-    "mtime": 1790614127.6737833,
-    "ast_hash": "30bd92868844af01972be0b205c36f9a",
+    "mtime": 1790659820.3237057,
+    "ast_hash": "68aa0a68fb59f22aee9b36343aab6997",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Concerns/BuildsAssigneeOptions.php": {
@@ -1920,8 +1920,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentUploadFromLocalTest.php": {
-    "mtime": 1790578383.063074,
-    "ast_hash": "5a61fbf0442354b581b28c44ecc9bb8e",
+    "mtime": 1790660220.432438,
+    "ast_hash": "ef0dca6222d5f0ee6ca70ff3ea8cbebc",
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentFolderController.php": {
@@ -2025,8 +2025,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentAttachTest.php": {
-    "mtime": 1790614926.7241168,
-    "ast_hash": "b5d56ae3f41093c5fc12ddda070f165c",
+    "mtime": 1790659849.6689246,
+    "ast_hash": "26b50f02ce5b833bdc0d060d658eb66a",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentPickerTest.php": {
@@ -2037,6 +2037,11 @@
   "tests/Feature/Tasks/TaskDocumentLinkerAuditTest.php": {
     "mtime": 1790615414.9639096,
     "ast_hash": "a5ffba6d5ea3ca0bf347bf052086f449",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Tasks/TaskDocumentMergedPanelTest.php": {
+    "mtime": 1790660486.3768268,
+    "ast_hash": "43281e937f19e1597eab283dcf4ed287",
     "semantic_hash": ""
   }
 }
