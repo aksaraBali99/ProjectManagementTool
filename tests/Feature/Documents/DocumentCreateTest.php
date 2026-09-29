@@ -114,3 +114,48 @@ test('the "+ New" menu appears on the Documents list for management but not staf
     $this->actingAs($staff)->get('/documents/'.$this->orgA->id)
         ->assertDontSee('+ New');
 });
+
+test('task #73 (document form fixes): the upload field uses a custom-styled control, not the bare native file input', function () {
+    $response = $this->actingAs($this->management)->get('/documents/create/'.$this->orgA->id);
+
+    $response->assertOk();
+    $content = $response->getContent();
+
+    // Same accessible pattern as the Task edit page's merged attach
+    // panel: the native input stays real and keyboard-operable (sr-only,
+    // not display:none/visibility:hidden), bound to a visible <label>
+    // trigger with no separate tab stop of its own, plus a separate
+    // filename-display element defaulting to "No file selected".
+    expect($content)->toContain('class="file-input sr-only"');
+    expect($content)->toContain('for="file"');
+    expect($content)->toContain('Choose file');
+    expect($content)->toContain('file-name-display');
+    expect($content)->toContain('No file selected');
+});
+
+test('task #73 (document form fixes): the Name field auto-fill updates on re-selection, not just the first empty-field case', function () {
+    $response = $this->actingAs($this->management)->get('/documents/create/'.$this->orgA->id);
+
+    $response->assertOk();
+    $content = $response->getContent();
+
+    // Structural guard for the re-selection fix verified live in a
+    // browser: lastAutoFilledName tracks what THIS handler last wrote,
+    // so a second (different) file selection can tell "the field still
+    // holds what I auto-filled it with" (safe to replace) apart from "the
+    // user typed this themselves" (never overwritten) — the old bare
+    // "is it empty" check only ever caught the very first selection.
+    expect($content)->toContain('function stripExtension(filename)');
+    expect($content)->toContain('var lastAutoFilledName = null;');
+    expect($content)->toContain("nameField.value === '' || nameField.value === lastAutoFilledName");
+});
+
+test('task #73 (document form fixes): the upload helper text reflects the expanded document/image/audio/video categories', function () {
+    $response = $this->actingAs($this->management)->get('/documents/create/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertSee('Document (PDF, Word, Excel, PowerPoint, text, CSV', false);
+    $response->assertSee('image (10MB)', false);
+    $response->assertSee('audio (50MB)', false);
+    $response->assertSee('video (200MB)', false);
+});

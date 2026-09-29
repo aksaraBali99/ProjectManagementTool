@@ -55,10 +55,25 @@
         </div>
 
         <div data-document-mode-panel="upload" class="hidden">
-            <label for="file" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">File <span class="text-red-600">*</span></label>
-            <input id="file" name="file" type="file"
-                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-            <p class="mt-1 text-[10px] text-gray-500">PDF, Word, Excel, PowerPoint, text or CSV — up to 20MB.</p>
+            <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">File <span class="text-red-600">*</span></span>
+            {{-- task #73: a custom-styled control, not the bare native
+                 input — the browser's own "Choose File" button used to
+                 render directly on top of the selected filename text once
+                 a file was picked. Same accessible pattern already built
+                 for the Task edit page's merged attach panel (no shared
+                 component exists to reuse — this is its own bespoke
+                 implementation, following the same markup shape): the
+                 native input stays real, focusable and keyboard-operable
+                 (sr-only, not display:none/visibility:hidden) — a
+                 <label for="..."> is what makes the visible button
+                 trigger it, with no separate tab stop of its own (labels
+                 aren't focusable; only the input they're bound to is). --}}
+            <div class="mt-1 flex items-center gap-2">
+                <label for="file" class="file-trigger cursor-pointer rounded-md border border-gray-300 bg-white px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">Choose file</label>
+                <span class="file-name-display min-w-0 flex-1 truncate text-[12px] text-gray-500">No file selected</span>
+            </div>
+            <input id="file" name="file" type="file" class="file-input sr-only">
+            <p class="mt-1 text-[10px] text-gray-500">Document (PDF, Word, Excel, PowerPoint, text, CSV — 20MB), image (10MB), audio (50MB) or video (200MB).</p>
             @error('file')
                 <p class="field-error mt-1 text-[11px] text-red-600">{{ $message }}</p>
             @enderror
@@ -112,6 +127,7 @@
     var panels = form.querySelectorAll('[data-document-mode-panel]');
     var linkField = document.getElementById('link');
     var fileField = document.getElementById('file');
+    var fileNameDisplay = form.querySelector('.file-name-display');
 
     function activate(mode) {
         modeInput.value = mode;
@@ -141,13 +157,38 @@
         });
     });
 
-    // Auto-fill Name from the chosen file, same convenience the task
-    // edit page's own upload option gets — editable afterward.
+    // task #73: strips the extension ("Peace and Conflict Grade 1.pdf" ->
+    // "Peace and Conflict Grade 1") — matches the last ".xyz" only, so an
+    // incidental earlier dot in the filename (e.g. "report.v2.pdf") is
+    // left alone and only the real extension is removed. Same helper as
+    // the Task edit page's own merged attach panel.
+    function stripExtension(filename) {
+        return filename.replace(/\.[^.]+$/, '');
+    }
+
+    // task #73: auto-fill Name from the chosen file, same convenience the
+    // task edit page's own upload option gets — but updates on EVERY
+    // selection, not just the first. lastAutoFilledName tracks what WE
+    // last wrote so a second (different) file selection can tell "the
+    // field still holds what I auto-filled it with" (safe to replace)
+    // apart from "the user typed/edited this themselves since" (never
+    // overwritten) — a bare "is it empty" check (the previous bug) only
+    // ever caught the very first selection, since every later selection
+    // saw a non-empty field left over from the last one.
+    var lastAutoFilledName = null;
     if (fileField) {
         fileField.addEventListener('change', function () {
+            var file = fileField.files[0];
+
+            if (fileNameDisplay) {
+                fileNameDisplay.textContent = file ? file.name : 'No file selected';
+                fileNameDisplay.title = file ? file.name : '';
+            }
+
             var nameField = document.getElementById('name');
-            if (nameField && !nameField.value && fileField.files[0]) {
-                nameField.value = fileField.files[0].name;
+            if (nameField && file && (nameField.value === '' || nameField.value === lastAutoFilledName)) {
+                lastAutoFilledName = stripExtension(file.name);
+                nameField.value = lastAutoFilledName;
             }
         });
     }
