@@ -720,8 +720,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskDocumentController.php": {
-    "mtime": 1790675403.5386512,
-    "ast_hash": "e020eff7d06601354c6fc249118b10fd",
+    "mtime": 1790676271.8057435,
+    "ast_hash": "19911c6bc576f2d93d70f78ecce74a1a",
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
-    "mtime": 1790674956.708176,
-    "ast_hash": "2a9be1a480a4dcaf27e66458acbe51f6",
+    "mtime": 1790676446.4504397,
+    "ast_hash": "18533b57d9b5d36381eda26e3c113d4a",
     "semantic_hash": ""
   },
   "resources/views/tasks/_subtasks.blade.php": {
@@ -1970,8 +1970,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentDeleteTest.php": {
-    "mtime": 1790608278.5761166,
-    "ast_hash": "cb49d3a9d23367ed1055f4caac961bae",
+    "mtime": 1790676661.0104952,
+    "ast_hash": "c271a539d5779984aa85fc70649648af",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentEditTest.php": {
@@ -2015,8 +2015,8 @@
     "semantic_hash": ""
   },
   "app/Services/TaskDocumentLinker.php": {
-    "mtime": 1790612872.686158,
-    "ast_hash": "ef7c522344a05ef0fda368210c815ed9",
+    "mtime": 1790676411.0835583,
+    "ast_hash": "4a290cb43be8209bea36c217f7fcca12",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentAttachableInCompanyParityTest.php": {
@@ -2025,8 +2025,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentAttachTest.php": {
-    "mtime": 1790659849.6689246,
-    "ast_hash": "26b50f02ce5b833bdc0d060d658eb66a",
+    "mtime": 1790676243.5104482,
+    "ast_hash": "0eabef37692d831631ec5bd616f11699",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentPickerTest.php": {
@@ -2045,8 +2045,13 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskDocumentAttachPanelPolishTest.php": {
-    "mtime": 1790675430.1102917,
-    "ast_hash": "dd86282ee76c3e72a335a5963815cac5",
+    "mtime": 1790676480.2200859,
+    "ast_hash": "6633d72457131d0a2b07c34ecbb4b8c9",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Services/TaskDocumentLinkerTest.php": {
+    "mtime": 1790676372.7374878,
+    "ast_hash": "5b62a802c20986a064328c83259ebeeb",
     "semantic_hash": ""
   }
 }
