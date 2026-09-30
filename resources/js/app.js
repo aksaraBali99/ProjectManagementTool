@@ -276,6 +276,21 @@ window.solavaRichText = { mount: mountRichText, highlight: highlightRichText, bu
 // task #73 (document form fixes): shared by documents/create.blade.php and
 // tasks/_documents.blade.php's own inline scripts — see
 // document-name-autofill.js's own docblock.
+//
+// task #73/#70 (code-review follow-up): this assignment only runs once
+// app.js — a deferred type="module" script — actually executes, which is
+// ALWAYS after the document has finished parsing (per the HTML spec, a
+// module script behaves like `defer`). A classic (non-module) inline
+// <script> elsewhere in the page body runs immediately/synchronously as
+// soon as the parser reaches it, which is therefore ALWAYS before this
+// line — not a race, a guaranteed ordering. Any consumer of this (or of
+// window.solavaRichText, below) must account for that: check whether the
+// global is already set and, if not, wait for DOMContentLoaded (by which
+// point every deferred/module script is guaranteed to have run) before
+// using it — never reference it as an unguarded top-level statement in a
+// classic script. See tasks/_description-field.blade.php's withEditor()
+// for the established pattern, and documents/create.blade.php / tasks/
+// _documents.blade.php for this global's own two consumers.
 window.solavaDocumentNameAutofill = { stripExtension: stripExtension, wireFileNameAutofill: wireFileNameAutofill };
 
 function initRichText() {
