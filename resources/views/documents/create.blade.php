@@ -119,6 +119,17 @@
 
 <script>
 (function () {
+    // This is a plain classic script (not type="module"), which executes
+    // immediately/synchronously as soon as the parser reaches it, ALWAYS
+    // before app.js (loaded as a deferred type="module" script via the
+    // layout's own Vite directive in <head>) has run — window.
+    // solavaDocumentNameAutofill below is guaranteed undefined at that
+    // point, not just usually. Same wait-for-it pattern already used for
+    // window.solavaRichText elsewhere (see
+    // tasks/_description-field.blade.php's own withEditor()): try now,
+    // fall back to DOMContentLoaded (by which point every deferred/module
+    // script is guaranteed to have run) if it isn't ready yet.
+    function init() {
     var form = document.getElementById('create-document-form');
     if (!form) return;
 
@@ -169,6 +180,10 @@
     });
 
     activate(modeInput.value === 'upload' ? 'upload' : 'link');
+    }
+
+    if (window.solavaDocumentNameAutofill) init();
+    else document.addEventListener('DOMContentLoaded', init);
 })();
 </script>
 

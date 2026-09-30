@@ -228,7 +228,23 @@
 </div>
 <script>
     (function () {
+        // document.currentScript is only valid during THIS script's own
+        // synchronous execution — it becomes null once we're inside an
+        // async callback (like init(), below), so it must be captured
+        // here, immediately, not inside that callback.
         const container = document.currentScript.previousElementSibling;
+
+        // This is a plain classic script (not type="module"), which
+        // executes immediately/synchronously as soon as the parser reaches
+        // it, ALWAYS before app.js (loaded as a deferred type="module"
+        // script via the layout's own Vite directive in <head>) has run —
+        // window.solavaDocumentNameAutofill below is guaranteed undefined
+        // at that point, not just usually. Same wait-for-it pattern already
+        // used for window.solavaRichText elsewhere (see
+        // tasks/_description-field.blade.php's own withEditor()): try now,
+        // fall back to DOMContentLoaded (by which point every deferred/
+        // module script is guaranteed to have run) if it isn't ready yet.
+        function init() {
         const taskId = container.dataset.taskId;
         const organizationId = container.dataset.organizationId;
         const projectHasClient = container.dataset.projectHasClient === '1';
@@ -1081,5 +1097,9 @@
                     });
             });
         }
+        }
+
+        if (window.solavaDocumentNameAutofill) init();
+        else document.addEventListener('DOMContentLoaded', init);
     })();
 </script>
