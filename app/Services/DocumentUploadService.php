@@ -31,35 +31,34 @@ use Throwable;
  */
 class DocumentUploadService
 {
+    public function __construct(private readonly FileStorageService $storage) {}
+
     /**
      * task #73: a Document upload isn't restricted to the "document"
      * category (PDF/Word/Excel/PowerPoint/text/CSV) alone — it can also
      * be an image, audio, or video file, each validated against ITS OWN
      * category's size/type limits (config/filestorage.php), not a single
-     * flat limit for everything. Checked in this order — document first,
-     * since that's still the common case and it's a harmless tie-break
-     * for any file (none, in practice) whose extension could plausibly
-     * appear in more than one category's allow-list.
+     * flat limit for everything. Tried against every FileCategory that
+     * exists (task #73 code-review follow-up: not a locally-hardcoded
+     * subset — that would need remembering to update on every future
+     * FileCategory addition, a second, easy-to-miss edit site alongside
+     * config/filestorage.php itself), in enum declaration order — a
+     * harmless tie-break, since no two categories' allow-lists actually
+     * overlap in practice.
      *
-     * @var list<FileCategory>
-     */
-    private const UPLOAD_CATEGORIES = [FileCategory::Document, FileCategory::Image, FileCategory::Audio, FileCategory::Video];
-
-    public function __construct(private readonly FileStorageService $storage) {}
-
-    /**
-     * task #73: resolves which of self::UPLOAD_CATEGORIES this file
-     * actually is, once, so both uploadForOrganization() and
-     * uploadForTask() below apply the SAME detection — a file that
-     * matches none of them (a genuinely unsupported type) fails with a
-     * clear message rather than being silently forced into the document
-     * category and rejected there instead.
+     * Public — not just used internally by uploadForOrganization()/
+     * uploadForTask() below: RichTextDocumentController::storePending()
+     * also calls this directly, since that path stores straight through
+     * FileStorageService::uploadPending() (see its own docblock for why:
+     * no task exists yet to create a Document row against), bypassing
+     * this service's own upload methods entirely, but still needing the
+     * same category resolution they get.
      *
      * @throws FileStorageException the file's type matches none of the accepted categories
      */
-    private function resolveCategory(UploadedFile $file): FileCategory
+    public function resolveCategory(UploadedFile $file): FileCategory
     {
-        $category = $this->storage->detectCategory($file, self::UPLOAD_CATEGORIES);
+        $category = $this->storage->detectCategory($file, FileCategory::cases());
 
         if ($category === null) {
             throw FileStorageException::noMatchingCategory($file->getMimeType() ?? $file->getClientOriginalExtension());

@@ -312,6 +312,26 @@ test('a document uploaded while drafting a new task is stored under a pending pa
     ])->assertForbidden();
 });
 
+test('a pending document upload for the Add Task page also accepts image/audio/video, matching the real-task upload endpoint (task #73 code-review follow-up)', function () {
+    // Before this fix, storePending() hardcoded FileCategory::Document,
+    // so the Add Task page's own editor "attach document" button rejected
+    // a media file that the identical button on an already-saved task's
+    // Edit page (the real-task endpoint above, via
+    // DocumentUploadService::uploadForTask()) already accepted.
+    $pendingId = (string) Str::uuid();
+
+    $response = $this->actingAs($this->management)->postJson('/pending-task-document-uploads', [
+        'file' => UploadedFile::fake()->create('photo.jpg', 500, 'image/jpeg'),
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'pending_id' => $pendingId,
+    ]);
+
+    $response->assertCreated();
+    expect($response->json('url'))->toContain("tasks/pending/{$pendingId}/images/");
+    expect(Document::count())->toBe(0); // still no Document row -- same deferral as the document-category case above
+});
+
 test('a malformed pending id is rejected as a validation error before it ever reaches storage', function () {
     $this->actingAs($this->management)->postJson('/pending-task-document-uploads', [
         'file' => fakeDocumentFile(),
