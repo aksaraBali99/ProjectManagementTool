@@ -92,24 +92,44 @@ test('the upload panel is CSS-ordered ahead of the name field while the link pan
     expect($content)->toContain('<div class="new-document-panel hidden order-first" data-panel="upload">');
 });
 
-test('the create form JS auto-fills the name from the selected filename (extension stripped), updating on re-selection but never clobbering a manual edit or a search-derived pre-fill', function () {
+test('the create form JS wires the shared name-autofill module and resets it on Back/close/open so no attempt leaks into the next one', function () {
     $response = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit");
 
     $response->assertOk();
     $content = $response->getContent();
 
     // Structural guard for the auto-fill behavior verified live in a
-    // browser: the extension-stripping helper exists, and the change
-    // handler tracks what IT last wrote (lastAutoFilledName) so a second,
-    // different file selection can replace that value (task #73:
-    // document form fixes - re-selecting a file used to leave the FIRST
-    // file's name in place forever) without ever touching a name the
-    // user typed themselves, or one that came from clicking "Upload
-    // [name] as a new file" on a search result (openCreateForm() sets
-    // that directly, never through this tracker).
-    expect($content)->toContain('function stripExtension(filename)');
-    expect($content)->toContain('let lastAutoFilledName = null;');
-    expect($content)->toContain("nameInput && file && (nameInput.value === '' || nameInput.value === lastAutoFilledName)");
+    // browser: the actual extension-stripping + "never clobber a manual
+    // edit" tracking now lives in resources/js/document-name-autofill.js
+    // (shared with the Documents page's own upload form — see its own
+    // unit-style coverage), so this page just needs to wire it up and
+    // protect a search-derived pre-fill the same way a manual edit is.
+    expect($content)->toContain('window.solavaDocumentNameAutofill.wireFileNameAutofill(');
+    expect($content)->toContain('nameAutofill.protect();');
+
+    // task #73 (code-review follow-up): resetNewDocumentForm() clears the
+    // file/name/tracking on Back, on closing the panel, and on reopening
+    // it — previously nothing reset either, so selecting a file, clicking
+    // Back, then starting a DIFFERENT attempt left the old file AND its
+    // derived name silently in place.
+    expect($content)->toContain('function resetNewDocumentForm()');
+    expect(substr_count($content, 'resetNewDocumentForm();'))->toBeGreaterThanOrEqual(4);
+});
+
+test('the existing-document picker\'s icon helper mirrors Document::iconClass() (image/audio/video by mime prefix), not just "has a mime_type or not"', function () {
+    $response = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit");
+
+    $response->assertOk();
+    $content = $response->getContent();
+
+    // task #73 (code-review follow-up): the picker used to only tell
+    // "has a mime_type" (generic file icon) apart from "doesn't" (link
+    // icon), so an attached image/audio/video result rendered with the
+    // same generic file icon the standalone Documents page had already
+    // moved past for the same document.
+    expect($content)->toContain("doc.mime_type.indexOf('image/') === 0) return 'ti-photo'");
+    expect($content)->toContain("doc.mime_type.indexOf('audio/') === 0) return 'ti-music'");
+    expect($content)->toContain("doc.mime_type.indexOf('video/') === 0) return 'ti-video'");
 });
 
 test('the create form JS disables the submit button while a create-and-attach request is in flight, guarding against a double-submit', function () {

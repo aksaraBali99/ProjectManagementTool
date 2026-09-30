@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\DocumentAccessLevel;
-use App\Enums\FileCategory;
 use App\Exceptions\FileStorageException;
 use App\Models\Comment;
 use App\Models\Project;
@@ -127,12 +126,25 @@ class RichTextDocumentController extends Controller
 
         Gate::authorize('create', [Task::class, $project->organization_id, $data['department_id'] ?? null]);
 
+        $file = $request->file('file');
+
         try {
-            $stored = app(FileStorageService::class)->uploadPending($request->file('file'), FileCategory::Document, $data['pending_id']);
+            // task #73 (code-review follow-up): resolves the SAME expanded
+            // document/image/audio/video category set store() gets via
+            // DocumentUploadService::uploadForTask() -- this path can't go
+            // through that service at all (no Document row is created here,
+            // see this method's own docblock), but still needs identical
+            // category resolution, not the FileCategory::Document this used
+            // to hardcode. Without this, the Add Task page's editor
+            // "attach document" button rejected an image/audio/video file
+            // that the identical button on an already-saved task's Edit
+            // page (via store() above) already accepted.
+            $category = app(DocumentUploadService::class)->resolveCategory($file);
+            $stored = app(FileStorageService::class)->uploadPending($file, $category, $data['pending_id']);
         } catch (FileStorageException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json(['url' => $stored->url, 'name' => $request->file('file')->getClientOriginalName()], 201);
+        return response()->json(['url' => $stored->url, 'name' => $file->getClientOriginalName()], 201);
     }
 }

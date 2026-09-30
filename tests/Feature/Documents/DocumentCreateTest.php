@@ -133,21 +133,18 @@ test('task #73 (document form fixes): the upload field uses a custom-styled cont
     expect($content)->toContain('No file selected');
 });
 
-test('task #73 (document form fixes): the Name field auto-fill updates on re-selection, not just the first empty-field case', function () {
+test('task #73 (document form fixes): the Name field auto-fill is wired through the shared document-name-autofill module', function () {
     $response = $this->actingAs($this->management)->get('/documents/create/'.$this->orgA->id);
 
     $response->assertOk();
     $content = $response->getContent();
 
     // Structural guard for the re-selection fix verified live in a
-    // browser: lastAutoFilledName tracks what THIS handler last wrote,
-    // so a second (different) file selection can tell "the field still
-    // holds what I auto-filled it with" (safe to replace) apart from "the
-    // user typed this themselves" (never overwritten) — the old bare
-    // "is it empty" check only ever caught the very first selection.
-    expect($content)->toContain('function stripExtension(filename)');
-    expect($content)->toContain('var lastAutoFilledName = null;');
-    expect($content)->toContain("nameField.value === '' || nameField.value === lastAutoFilledName");
+    // browser: the actual extension-stripping + "never clobber a manual
+    // edit" tracking lives in resources/js/document-name-autofill.js,
+    // shared with the Task edit page's own merged attach panel — this
+    // page just needs to wire it up against its own file/name fields.
+    expect($content)->toContain('window.solavaDocumentNameAutofill.wireFileNameAutofill(');
 });
 
 test('task #73 (document form fixes): the upload helper text reflects the expanded document/image/audio/video categories', function () {

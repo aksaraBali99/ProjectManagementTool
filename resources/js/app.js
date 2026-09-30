@@ -1,6 +1,7 @@
 import intlTelInput from 'intl-tel-input/intlTelInputWithUtils';
 import 'intl-tel-input/dist/css/intlTelInput.css';
 import { highlightMentions } from './mention-highlight.js';
+import { stripExtension, wireFileNameAutofill } from './document-name-autofill.js';
 
 function initPhoneInputs() {
     document.querySelectorAll('[data-phone-input]').forEach(function (input) {
@@ -271,6 +272,11 @@ function buildEmojiPicker(options) {
 }
 
 window.solavaRichText = { mount: mountRichText, highlight: highlightRichText, buildEmojiPicker: buildEmojiPicker };
+
+// task #73 (document form fixes): shared by documents/create.blade.php and
+// tasks/_documents.blade.php's own inline scripts — see
+// document-name-autofill.js's own docblock.
+window.solavaDocumentNameAutofill = { stripExtension: stripExtension, wireFileNameAutofill: wireFileNameAutofill };
 
 function initRichText() {
     document.querySelectorAll('[data-rich-text]').forEach(mountRichText);

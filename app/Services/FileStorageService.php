@@ -322,12 +322,11 @@ class FileStorageService
     /**
      * task #73: which of $candidates this file's mime type + extension
      * actually matches, checked in the given order — the first category
-     * whose allow-list matches BOTH wins (same defense-in-depth pairing
-     * validate() itself uses). Deliberately checks type only, not size —
-     * a file within one category's size limit but matching a different,
-     * stricter category should still be validated (and possibly
-     * rejected) against the category it actually matches, not the one
-     * it happened to fit inside; validate() enforces the matched
+     * whose allow-list matches BOTH wins. Deliberately checks type only,
+     * not size — a file within one category's size limit but matching a
+     * different, stricter category should still be validated (and
+     * possibly rejected) against the category it actually matches, not
+     * the one it happened to fit inside; validate() enforces the matched
      * category's own ceiling afterward. Returns null when the file
      * matches none of $candidates at all — a genuinely unsupported type,
      * not merely oversized for the category it would otherwise fit.
@@ -336,13 +335,8 @@ class FileStorageService
      */
     public function detectCategory(UploadedFile $file, array $candidates): ?FileCategory
     {
-        $mimeType = $file->getMimeType();
-        $extension = strtolower($file->getClientOriginalExtension());
-
         foreach ($candidates as $category) {
-            $config = $category->config();
-
-            if (in_array($mimeType, $config['mime_types'], true) && in_array($extension, $config['extensions'], true)) {
+            if ($this->matchesCategoryType($file, $category)) {
                 return $category;
             }
         }
@@ -361,11 +355,25 @@ class FileStorageService
             throw FileStorageException::fileTooLarge($category, $config['max_size']);
         }
 
+        if (! $this->matchesCategoryType($file, $category)) {
+            throw FileStorageException::disallowedType($category, $file->getMimeType() ?? strtolower($file->getClientOriginalExtension()));
+        }
+    }
+
+    /**
+     * task #73 (code-review follow-up): the one place a file's mime type +
+     * extension are checked against a category's allow-list — detectCategory()
+     * and validate() used to each re-implement this identically, which
+     * risked the two silently drifting apart (e.g. detectCategory() picking
+     * a category as a match that validate() would then, independently,
+     * decide the same file doesn't actually belong to).
+     */
+    private function matchesCategoryType(UploadedFile $file, FileCategory $category): bool
+    {
+        $config = $category->config();
         $mimeType = $file->getMimeType();
         $extension = strtolower($file->getClientOriginalExtension());
 
-        if (! in_array($mimeType, $config['mime_types'], true) || ! in_array($extension, $config['extensions'], true)) {
-            throw FileStorageException::disallowedType($category, $mimeType ?? $extension);
-        }
+        return in_array($mimeType, $config['mime_types'], true) && in_array($extension, $config['extensions'], true);
     }
 }

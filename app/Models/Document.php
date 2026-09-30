@@ -53,23 +53,31 @@ class Document extends Model
      * glance, now that a Document upload isn't limited to the document
      * category alone. Checked by mime_type PREFIX (image/*, audio/*,
      * video/*), not the exact value, so this doesn't need updating every
-     * time config/filestorage.php's own allow-lists change. An external
-     * link (no mime_type at all, since that column is only ever set for
-     * a genuine upload) keeps the existing link icon.
+     * time config/filestorage.php's own allow-lists change.
+     *
+     * task #73 (code-review follow-up): a null mime_type does NOT always
+     * mean "external link" — TaskManagementController::attachDocumentChips()
+     * can create a Document with a real `storage_key` (a genuine upload,
+     * reconciled from a file-chip) but a null mime_type, if the pending
+     * file it points at had already been cleaned up by the time the task
+     * save ran (see that method's own docblock). The link icon is reserved
+     * for a document with no storage_key at all — a true external link;
+     * an upload with an unknown/missing mime_type still gets the generic
+     * file icon, not the misleading link one.
      */
     protected function iconClass(): Attribute
     {
         return Attribute::get(function () {
-            if ($this->mime_type === null) {
-                return 'ti-link';
+            if ($this->mime_type !== null) {
+                return match (true) {
+                    str_starts_with($this->mime_type, 'image/') => 'ti-photo',
+                    str_starts_with($this->mime_type, 'audio/') => 'ti-music',
+                    str_starts_with($this->mime_type, 'video/') => 'ti-video',
+                    default => 'ti-file-text',
+                };
             }
 
-            return match (true) {
-                str_starts_with($this->mime_type, 'image/') => 'ti-photo',
-                str_starts_with($this->mime_type, 'audio/') => 'ti-music',
-                str_starts_with($this->mime_type, 'video/') => 'ti-video',
-                default => 'ti-file-text',
-            };
+            return $this->storage_key !== null ? 'ti-file-text' : 'ti-link';
         });
     }
 
