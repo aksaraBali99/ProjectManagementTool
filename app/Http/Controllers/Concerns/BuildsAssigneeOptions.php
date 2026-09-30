@@ -3,68 +3,90 @@
 namespace App\Http\Controllers\Concerns;
 
 use App\Models\Project;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
- * Shared by TaskManagementController (Add/Edit Task's Assignee dropdown)
- * and KanbanController (the Kanban card's inline assignee select) so the
- * two surfaces can't drift out of sync on who's offered as an assignee.
+ * Shared by TaskManagementController (Add/Edit Task's Assignee dropdown,
+ * and the Task List drilldown's subtask-assignee select) and
+ * KanbanController (the Kanban card's inline assignee select) so none of
+ * these surfaces can drift out of sync on who's offered as an assignee.
+ *
+ * task #70 (unified eligibility): both builders below are thin wrappers
+ * around Task::eligibleAssigneesFor() — the same shared rule the mention
+ * autocomplete and ValidatesTaskAssignment::isAssignableStaffForProject()
+ * (the actual server-side acceptance check) also delegate to. Eligibility
+ * now depends on BOTH project AND department (staff need active
+ * department access to the SPECIFIC department, not just project
+ * membership), so the old single-project-id-keyed shape isn't enough —
+ * everything here is keyed by project id, then department id.
  */
 trait BuildsAssigneeOptions
 {
     /**
-     * Assignee options for a task/subtask are anyone attached to the
-     * project — via project_staff (any role: management, staff, ...) or
-     * project_clients (the project's client) — not scoped to a "Staff"
-     * role, and not every company member company-wide, UNIONed with
-     * anyone holding a global role (super_admin/owner). Global-role users
-     * are deliberately never added to project_staff/project_clients —
-     * they're global by design, not scoped to any one project — so
-     * they're merged into every project's option list here rather than
-     * needing an explicit membership row of their own (matches
-     * ValidatesTaskAssignment::isAssignableStaffForProject(), the
-     * server-side check for a submitted assignee id, so the two can't
-     * drift out of sync). Joins the pivots directly rather than relying
-     * on eager-loaded relations, so this works whether $projects is an
-     * Eloquent or a plain Support collection (e.g.
-     * Task::with('project')->get()->pluck('project')).
+     * For the Add/Edit Task page's Department+Assignee cascade: every
+     * (project, department) combination the VIEWER could actually pick —
+     * $departmentsByOrganization is the exact same array cascadingOptions()
+     * already builds for the Department <select> itself (already filtered
+     * to departments the CURRENT viewer has access to), reused here so
+     * this never computes eligible assignees for a department the viewer
+     * wouldn't even be offered in the first place.
      *
      * @param  Collection<int, Project>  $projects
-     * @return array<int, array<int, array{id: int, name: string}>> keyed by project id
+     * @param  array<int, array<int, array{id: int, name: string}>>  $departmentsByOrganization  keyed by organization id
+     * @return array<int, array<int, array<int, array{id: int, name: string}>>> keyed by project id, then department id
      */
-    private function staffOptionsByProject(Collection $projects): array
+    private function eligibleAssigneesByProjectAndDepartment(Collection $projects, array $departmentsByOrganization): array
     {
-        if ($projects->isEmpty()) {
-            return [];
+        $pairs = $projects->flatMap(fn (Project $project) => collect($departmentsByOrganization[$project->organization_id] ?? [])
+            ->map(fn (array $department) => ['project' => $project, 'departmentId' => $department['id']]));
+
+        return $this->eligibleAssigneesForPairs($pairs);
+    }
+
+    /**
+     * For Kanban and the Task List drilldown, where each task already has
+     * a fixed department — only the (project, department) pairs actually
+     * present among $tasks, not the viewer's full department dropdown
+     * (there is none on these pages).
+     *
+     * @param  Collection<int, Task>  $tasks
+     * @return array<int, array<int, array<int, array{id: int, name: string}>>> keyed by project id, then department id
+     */
+    private function eligibleAssigneesByTask(Collection $tasks): array
+    {
+        $pairs = $tasks
+            ->filter(fn (Task $task) => $task->project !== null && $task->department_id !== null)
+            ->map(fn (Task $task) => ['project' => $task->project, 'departmentId' => $task->department_id]);
+
+        return $this->eligibleAssigneesForPairs($pairs);
+    }
+
+    /**
+     * task #70 (code-review follow-up): delegates to
+     * Task::eligibleAssigneesForPairs() — the batched version of
+     * eligibleAssigneesFor() — instead of looping and calling
+     * eligibleAssigneesFor() once per pair here, which used to issue
+     * several queries per (project, department) combination (an N+1 on
+     * any page with more than a couple of projects/departments).
+     *
+     * @param  Collection<int, array{project: Project, departmentId: int}>  $pairs
+     * @return array<int, array<int, array<int, array{id: int, name: string}>>>
+     */
+    private function eligibleAssigneesForPairs(Collection $pairs): array
+    {
+        $byPair = Task::eligibleAssigneesForPairs($pairs);
+
+        $result = [];
+        foreach ($byPair as $projectId => $byDepartment) {
+            foreach ($byDepartment as $departmentId => $users) {
+                $result[$projectId][$departmentId] = $users
+                    ->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name])
+                    ->values();
+            }
         }
 
-        $projectIds = $projects->pluck('id');
-
-        $staffRows = DB::table('project_staff')
-            ->join('users', 'users.id', '=', 'project_staff.user_id')
-            ->whereIn('project_staff.project_id', $projectIds)
-            ->get(['project_staff.project_id', 'users.id', 'users.name']);
-
-        $clientRows = DB::table('project_clients')
-            ->join('users', 'users.id', '=', 'project_clients.user_id')
-            ->whereIn('project_clients.project_id', $projectIds)
-            ->get(['project_clients.project_id', 'users.id', 'users.name']);
-
-        $globalRoleUsers = User::withGlobalRole()->orderBy('name')->get(['id', 'name']);
-
-        $membersByProject = $staffRows->concat($clientRows)->groupBy('project_id');
-
-        return $projects->mapWithKeys(function (Project $project) use ($membersByProject, $globalRoleUsers) {
-            $members = ($membersByProject->get($project->id) ?? collect())
-                ->map(fn ($row) => ['id' => $row->id, 'name' => $row->name])
-                ->concat($globalRoleUsers->map(fn ($user) => ['id' => $user->id, 'name' => $user->name]))
-                ->unique('id')
-                ->sortBy('name')
-                ->values();
-
-            return [$project->id => $members];
-        })->all();
+        return $result;
     }
 }

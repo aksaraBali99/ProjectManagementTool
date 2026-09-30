@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 #[Fillable(['organization_id', 'project_id', 'department_id', 'assignee_id', 'title', 'description', 'priority', 'status', 'due_date', 'start_date'])]
 #[ObservedBy(TaskObserver::class)]
@@ -238,67 +239,244 @@ class Task extends Model
     }
 
     /**
-     * Every user who would actually pass TaskPolicy::view() for THIS task
-     * — the reverse direction of that check (given a task, who can see
-     * it, rather than given a user, can they see this task). Not scoped
-     * to mentions specifically: any UI needing "who can actually open
-     * this task" should reuse this rather than a project-attachment
-     * proxy like ValidatesTaskAssignment::isAssignableStaffForProject(),
-     * which answers a related but different question (assignable to the
-     * PROJECT) and can disagree with real task-view permission across
-     * departments — that mismatch was a genuine permission leak in the
-     * comment @mention autocomplete, which this method was built to fix.
+     * task #70 (unified eligibility): the ONE definition of "who's
+     * eligible for this task" — the Assignee dropdown (task and subtask),
+     * the @mention autocomplete's base set (see viewableUsers() below),
+     * and ValidatesTaskAssignment::isAssignableStaffForProject() (the
+     * actual server-side acceptance check) all delegate to this single
+     * method now, replacing what used to be two independently-evolving
+     * rules (BuildsAssigneeOptions::staffOptionsByProject()'s pure
+     * project-membership check, and this same method's own former
+     * department-access-alone check) that disagreed in both directions.
      *
-     * Built by gathering every user reachable through view()'s disjoint
-     * OR-branches (global role, management in this org, department
-     * access to this task's own department, the assignee, subtask
-     * assignees, the project's client) as candidates, then filtering
-     * that — deliberately small, per-task — set through the exact same
-     * hasPermission('view_tasks', ...) gate view() itself requires before
-     * any of those branches count. Reuses the real method rather than
-     * re-deriving the permission check in SQL, so this can never drift
-     * from the single-user policy it mirrors.
+     * A user is eligible if ANY of:
+     *   1. super_admin or owner (global roles) — always.
+     *   2. management in $project's organization — always, no department
+     *      restriction (an explicit exception, not an oversight — matches
+     *      how management already works everywhere else in this app).
+     *   3. this project's client.
+     *   4. staff holding BOTH project_staff membership on $project AND
+     *      active department access (mirrors hasDepartmentAccess()'s own
+     *      is_active check) to $departmentId — neither alone is enough
+     *      under this rule, unlike either of the two rules it replaces.
+     *
+     * Deliberately does NOT gate on hasPermission('view_tasks', ...) the
+     * way the old viewableUsers() did — that's specific to the reverse
+     * "can this person view the task" lookup (see viewableUsers()'s own
+     * docblock for why it re-applies that gate itself), not a concept
+     * "who can be assigned" needs.
+     *
+     * Takes the already-loaded Project (code-review follow-up), not a
+     * bare project id — every real caller already has it in hand
+     * (ValidatesTaskAssignment, viewableUsers() via $this->project), so
+     * this no longer re-fetches it with its own Project::find() query.
+     * See eligibleAssigneesForPairs() below for the batched version used
+     * to build dropdown OPTIONS across many (project, department)
+     * combinations at once, which avoids calling this once per
+     * combination for the same reason.
      *
      * @return Collection<int, User>
      */
-    public function viewableUsers(): Collection
+    public static function eligibleAssigneesFor(Project $project, int $departmentId): Collection
     {
-        $organizationId = $this->organization_id;
+        $organizationId = $project->organization_id;
 
         $candidateIds = collect();
 
-        // Global roles (super_admin/owner) — unconditional in view() once
-        // past the view_tasks gate, which they always hold.
+        // 1. Global roles.
         $candidateIds->push(...User::withGlobalRole()->pluck('id'));
 
-        // Management in this org.
+        // 2. Management in this org — no department restriction.
         $candidateIds->push(...User::whereHas(
             'orgMemberships',
             fn ($query) => $query->where('organization_id', $organizationId)
                 ->whereHas('role', fn ($roleQuery) => $roleQuery->where('slug', Role::MANAGEMENT))
         )->pluck('id'));
 
-        // Department access to THIS task's specific department — mirrors
-        // hasDepartmentAccess() exactly (including its is_active
-        // department check), not "any staff in the org".
-        $candidateIds->push(...AccessPermission::where('organization_id', $organizationId)
-            ->where('department_id', $this->department_id)
+        // 3. The project's client(s).
+        $candidateIds->push(...$project->clients()->pluck('users.id'));
+
+        // 4. Staff holding BOTH project_staff membership AND active
+        // department access — the intersection, not the union.
+        $projectStaffIds = DB::table('project_staff')->where('project_id', $project->id)->pluck('user_id');
+        $activeDepartmentAccessIds = AccessPermission::where('organization_id', $organizationId)
+            ->where('department_id', $departmentId)
             ->where('allowed', true)
             ->whereHas('department', fn ($query) => $query->where('is_active', true))
-            ->pluck('user_id'));
+            ->pluck('user_id');
+        $candidateIds->push(...$projectStaffIds->intersect($activeDepartmentAccessIds));
 
-        // The assignee.
+        $candidateIds = $candidateIds->map(fn ($id) => (int) $id)->unique()->values();
+
+        if ($candidateIds->isEmpty()) {
+            return collect();
+        }
+
+        return User::whereIn('id', $candidateIds)->orderBy('name')->get();
+    }
+
+    /**
+     * task #70 (code-review follow-up): batched eligibleAssigneesFor(),
+     * for building assignee-dropdown OPTIONS across many (project,
+     * department) combinations at once (the Add/Edit Task page's own
+     * department cascade, Kanban, the Task List drilldown) — without the
+     * N+1 that calling eligibleAssigneesFor() once per combination causes
+     * (multiple queries each, even though most of what it computes —
+     * global roles, management-per-organization — is identical across
+     * every pair that shares an organization). Batches the SAME four rule
+     * branches in one pass instead: global roles are looked up once
+     * total; management, project_staff, and department access are each
+     * looked up once per distinct organization/project/department rather
+     * than once per pair.
+     *
+     * See TaskEligibleAssigneesPairsParityTest, which asserts this never
+     * disagrees with calling eligibleAssigneesFor() once per pair — so a
+     * caller can use whichever is more convenient without risking a
+     * different answer, the same guarantee viewableIdsFor() gives against
+     * Gate::allows('view', ...).
+     *
+     * @param  Collection<int, array{project: Project, departmentId: int}>  $pairs
+     * @return array<int, array<int, Collection<int, User>>> keyed by project id, then department id
+     */
+    public static function eligibleAssigneesForPairs(Collection $pairs): array
+    {
+        $uniquePairs = $pairs->unique(fn (array $pair) => $pair['project']->id.':'.$pair['departmentId'])->values();
+
+        if ($uniquePairs->isEmpty()) {
+            return [];
+        }
+
+        $organizationIds = $uniquePairs->map(fn (array $pair) => $pair['project']->organization_id)->unique()->values();
+        $projectIds = $uniquePairs->map(fn (array $pair) => $pair['project']->id)->unique()->values();
+        $departmentIds = $uniquePairs->map(fn (array $pair) => $pair['departmentId'])->unique()->values();
+
+        // 1. Global roles — the same candidate set for every pair, so
+        // looked up exactly once regardless of how many pairs there are.
+        $globalRoleUserIds = User::withGlobalRole()->pluck('id')->map(fn ($id) => (int) $id);
+
+        // 2. Management, grouped by organization — one query for every
+        // organization these pairs touch, not one per pair.
+        $managementIdsByOrg = DB::table('org_members')
+            ->join('roles', 'roles.id', '=', 'org_members.role_id')
+            ->where('roles.slug', Role::MANAGEMENT)
+            ->whereIn('org_members.organization_id', $organizationIds)
+            ->get(['org_members.organization_id', 'org_members.user_id'])
+            ->groupBy('organization_id')
+            ->map(fn ($rows) => $rows->pluck('user_id'));
+
+        // 3. Project clients, grouped by project.
+        $clientIdsByProject = DB::table('project_clients')
+            ->whereIn('project_id', $projectIds)
+            ->get(['project_id', 'user_id'])
+            ->groupBy('project_id')
+            ->map(fn ($rows) => $rows->pluck('user_id'));
+
+        // 4a. project_staff, grouped by project.
+        $staffIdsByProject = DB::table('project_staff')
+            ->whereIn('project_id', $projectIds)
+            ->get(['project_id', 'user_id'])
+            ->groupBy('project_id')
+            ->map(fn ($rows) => $rows->pluck('user_id'));
+
+        // 4b. Active department access, grouped by organization+department
+        // (department ids alone aren't unique across organizations).
+        $activeAccessIdsByOrgDepartment = AccessPermission::whereIn('organization_id', $organizationIds)
+            ->whereIn('department_id', $departmentIds)
+            ->where('allowed', true)
+            ->whereHas('department', fn ($query) => $query->where('is_active', true))
+            ->get(['organization_id', 'department_id', 'user_id'])
+            ->groupBy(fn ($row) => $row->organization_id.':'.$row->department_id)
+            ->map(fn ($rows) => $rows->pluck('user_id'));
+
+        $candidateIdsByPair = [];
+        $allCandidateIds = collect();
+
+        foreach ($uniquePairs as $pair) {
+            $project = $pair['project'];
+            $departmentId = $pair['departmentId'];
+            $organizationId = $project->organization_id;
+
+            $staffEligibleIds = ($staffIdsByProject->get($project->id) ?? collect())
+                ->intersect($activeAccessIdsByOrgDepartment->get($organizationId.':'.$departmentId) ?? collect());
+
+            $candidateIds = $globalRoleUserIds
+                ->merge($managementIdsByOrg->get($organizationId) ?? collect())
+                ->merge($clientIdsByProject->get($project->id) ?? collect())
+                ->merge($staffEligibleIds)
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values();
+
+            $candidateIdsByPair[$project->id][$departmentId] = $candidateIds;
+            $allCandidateIds = $allCandidateIds->merge($candidateIds);
+        }
+
+        // One final query for every user across every pair, not one per
+        // pair — the same batching principle as everything above.
+        $usersById = User::whereIn('id', $allCandidateIds->unique()->values())->orderBy('name')->get()->keyBy('id');
+
+        $result = [];
+        foreach ($candidateIdsByPair as $projectId => $byDepartment) {
+            foreach ($byDepartment as $departmentId => $ids) {
+                $result[$projectId][$departmentId] = $ids
+                    ->map(fn ($id) => $usersById->get($id))
+                    ->filter()
+                    ->values();
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Every user who would actually pass TaskPolicy::view() for THIS task
+     * — the reverse direction of that check (given a task, who can see
+     * it, rather than given a user, can they see this task). Not scoped
+     * to mentions specifically: any UI needing "who can actually open
+     * this task" should reuse this.
+     *
+     * task #70 (unified eligibility): built on eligibleAssigneesFor()
+     * (the same shared rule the Assignee dropdown now uses) — but NOT a
+     * pure passthrough. TaskPolicy::view() has two branches assignment
+     * eligibility deliberately doesn't need: the task's own current
+     * assignee and its subtask assignees can always view/be mentioned
+     * about their own task regardless of department access, matching
+     * view()'s own unconditional assignee bypass. Dropping this would be
+     * a real regression — someone already assigned to a task could stop
+     * being mentionable the moment their department access changes, even
+     * though they can obviously still open the task they're assigned to
+     * (see the "handle already-assigned users who no longer qualify"
+     * requirement this whole change is built around). The final
+     * hasPermission('view_tasks', ...) filter is likewise specific to
+     * this reverse-lookup, mirroring view()'s own first gate — assignment
+     * eligibility itself has no such gate.
+     *
+     * One accepted consequence of sharing eligibleAssigneesFor() as the
+     * base: a staff member with department access to this task's
+     * department but NOT attached to its project via project_staff is no
+     * longer mention-eligible either (the old department-access-alone
+     * check here allowed it). This is narrower than before for that one
+     * case — the intended result of genuinely unifying the two rules, not
+     * an oversight; TaskPolicy::view() itself is unchanged, so that same
+     * person can still open the task, just isn't offered as a mention
+     * target for it.
+     *
+     * @return Collection<int, User>
+     */
+    public function viewableUsers(): Collection
+    {
+        $candidateIds = static::eligibleAssigneesFor($this->project, $this->department_id)
+            ->pluck('id');
+
         if ($this->assignee_id !== null) {
             $candidateIds->push($this->assignee_id);
         }
 
-        // Subtask assignees.
-        $candidateIds->push(...$this->subtasks()->whereNotNull('assignee_id')->pluck('assignee_id'));
-
-        // The project's client(s).
-        $candidateIds->push(...$this->project->clients()->pluck('users.id'));
-
-        $candidateIds = $candidateIds->map(fn ($id) => (int) $id)->unique()->values();
+        $candidateIds = $candidateIds
+            ->merge($this->subtasks()->whereNotNull('assignee_id')->pluck('assignee_id'))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
 
         if ($candidateIds->isEmpty()) {
             return collect();
@@ -308,7 +486,7 @@ class Task extends Model
         // real method rather than re-derived here — see docblock.
         return User::whereIn('id', $candidateIds)
             ->get()
-            ->filter(fn (User $user) => $user->hasPermission('view_tasks', $organizationId))
+            ->filter(fn (User $user) => $user->hasPermission('view_tasks', $this->organization_id))
             ->values();
     }
 }

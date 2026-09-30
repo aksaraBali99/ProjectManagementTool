@@ -148,7 +148,7 @@
             (function () {
                 const projectOrganizations = @json($projectOrganizations);
                 const departmentsByOrg = @json($departmentsByOrganization);
-                const staffByProject = @json($staffByProject);
+                const eligibleAssignees = @json($eligibleAssignees);
                 const oldDepartment = @json(old('department_id'));
                 const oldAssignee = @json(old('assignee_id'));
 
@@ -159,14 +159,33 @@
                 const subtaskRows = document.getElementById('subtask-rows');
                 let subtaskIndex = subtaskRows.querySelectorAll('[data-subtask-row]').length;
 
-                function populateAssigneeSelect(select, projectId, selectedId) {
+                function populateAssigneeSelect(select, projectId, departmentId, selectedId) {
                     select.innerHTML = '<option value="">Unassigned</option>';
-                    (staffByProject[projectId] || []).forEach(function (member) {
+                    ((eligibleAssignees[projectId] || {})[departmentId] || []).forEach(function (member) {
                         const option = document.createElement('option');
                         option.value = member.id;
                         option.textContent = member.name;
                         if (String(member.id) === String(selectedId)) option.selected = true;
                         select.appendChild(option);
+                    });
+                }
+
+                // task #70 (unified eligibility): who's assignable now depends
+                // on BOTH the selected project AND department (staff need
+                // active department access to the SPECIFIC department, not
+                // just project membership) — re-run whenever either changes,
+                // not just the project.
+                function refreshAssigneeOptions() {
+                    const departmentId = departmentSelect.disabled ? null : departmentSelect.value;
+                    populateAssigneeSelect(assigneeSelect, projectSelect.value, departmentId, oldAssignee);
+
+                    // Staged subtask rows' assignee options depend on the same
+                    // project+department as the parent task, so they need
+                    // refreshing too — clearing the selection, since a
+                    // previously chosen assignee may not be eligible for the
+                    // newly selected project/department.
+                    subtaskRows.querySelectorAll('.subtask-assignee-select').forEach(function (select) {
+                        populateAssigneeSelect(select, projectSelect.value, departmentId, null);
                     });
                 }
 
@@ -195,15 +214,7 @@
                     departmentSelect.disabled = hasNoDepartments;
                     submitBtn.disabled = hasNoDepartments;
 
-                    populateAssigneeSelect(assigneeSelect, projectSelect.value, oldAssignee);
-
-                    // Staged subtask rows' assignee options depend on the same
-                    // project as the parent task, so they need refreshing too —
-                    // clearing the selection, since a previously chosen assignee
-                    // may not be assigned to the newly selected project.
-                    subtaskRows.querySelectorAll('.subtask-assignee-select').forEach(function (select) {
-                        populateAssigneeSelect(select, projectSelect.value, null);
-                    });
+                    refreshAssigneeOptions();
 
                     // The Description editor's image/audio/video upload
                     // authorizes against whichever company/department is
@@ -227,6 +238,7 @@
                 }
 
                 projectSelect.addEventListener('change', refreshDependents);
+                departmentSelect.addEventListener('change', refreshAssigneeOptions);
                 refreshDependents();
 
                 const addSubtaskBtn = document.getElementById('add-subtask-btn');
@@ -251,7 +263,8 @@
 
                     // Pre-fill from the parent task's current values — a
                     // starting point only, fully editable right away.
-                    populateAssigneeSelect(row.querySelector('.subtask-assignee-select'), projectSelect.value, assigneeSelect.value);
+                    const currentDepartmentId = departmentSelect.disabled ? null : departmentSelect.value;
+                    populateAssigneeSelect(row.querySelector('.subtask-assignee-select'), projectSelect.value, currentDepartmentId, assigneeSelect.value);
                     row.querySelector('.subtask-due-date').value = dueDateInput.value;
 
                     row.querySelector('.subtask-title-input').focus();

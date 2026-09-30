@@ -25,7 +25,7 @@ class SubtaskController extends Controller
             'start_date' => ['nullable', 'date'],
         ]);
 
-        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($task->project, $data['assignee_id'])) {
+        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($task->project, $task->department_id, $data['assignee_id'])) {
             abort(422, 'Assignee must be assigned to this project.');
         }
 
@@ -56,7 +56,7 @@ class SubtaskController extends Controller
             'start_date' => ['sometimes', 'nullable', 'date'],
         ]);
 
-        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($subtask->task->project, $data['assignee_id'])) {
+        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($subtask->task->project, $subtask->task->department_id, $data['assignee_id'])) {
             abort(422, 'Assignee must be assigned to this project.');
         }
 

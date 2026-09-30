@@ -21,6 +21,14 @@
                         @foreach ($staffOptions as $staff)
                             <option value="{{ $staff['id'] }}" {{ (int) $subtask->assignee_id === $staff['id'] ? 'selected' : '' }}>{{ $staff['name'] }}</option>
                         @endforeach
+                        {{-- task #70 (unified eligibility): a subtask's CURRENT
+                             assignee must still display correctly even if they
+                             no longer qualify under the new rule (e.g. lost
+                             department access after being assigned) — the new
+                             rule governs future assignment, not existing data. --}}
+                        @if ($subtask->assignee_id && ! collect($staffOptions)->contains('id', $subtask->assignee_id))
+                            <option value="{{ $subtask->assignee_id }}" selected>{{ $subtask->assignee->name }}</option>
+                        @endif
                     </select>
                     <input type="date" value="{{ $subtask->start_date?->toDateString() }}" {{ $canEdit ? '' : 'disabled' }} title="Start date"
                         class="subtask-start-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-transparent">

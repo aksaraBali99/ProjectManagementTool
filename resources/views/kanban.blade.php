@@ -82,12 +82,20 @@
                                     <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
 
                                     <div class="flex items-center gap-1.5">
+                                        @php $kanbanAssigneeOptions = $eligibleAssignees[$task->project_id][$task->department_id] ?? []; @endphp
                                         <select class="kanban-assignee-select w-20 truncate rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
                                                 data-task-id="{{ $task->id }}" title="{{ $assigneeName }}" {{ $canReassign ? '' : 'disabled' }}>
                                             <option value="">Unassigned</option>
-                                            @foreach (($staffByProject[$task->project_id] ?? []) as $option)
+                                            @foreach ($kanbanAssigneeOptions as $option)
                                                 <option value="{{ $option['id'] }}" {{ (int) $task->assignee_id === $option['id'] ? 'selected' : '' }}>{{ $option['name'] }}</option>
                                             @endforeach
+                                            {{-- task #70 (unified eligibility): the CURRENT assignee
+                                                 must still display correctly even if they no longer
+                                                 qualify under the new rule — the new rule governs
+                                                 future assignment, not existing data. --}}
+                                            @if ($task->assignee_id && ! collect($kanbanAssigneeOptions)->contains('id', $task->assignee_id))
+                                                <option value="{{ $task->assignee_id }}" selected>{{ $assigneeName }}</option>
+                                            @endif
                                         </select>
 
                                         <select class="kanban-status-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"

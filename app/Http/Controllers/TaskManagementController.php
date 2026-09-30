@@ -65,7 +65,7 @@ class TaskManagementController extends Controller
 
         $visibleScope = fn () => Task::visibleTo($user, $organization->id);
 
-        $query = $visibleScope()->with(['project', 'department', 'assignee', 'subtasks', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user']);
+        $query = $visibleScope()->with(['project', 'department', 'assignee', 'subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user']);
 
         if ($showInactive) {
             $query->withTrashed();
@@ -116,8 +116,6 @@ class TaskManagementController extends Controller
 
         $tasks = $this->sortTasks($query->get(), $sort, $direction);
 
-        $projectsInList = $tasks->pluck('project')->filter()->unique('id')->values();
-
         // Filter option lists reflect what this user can actually see (same
         // visibility scope as the list itself, ignoring the other filters so
         // switching one filter doesn't prune the others' choices) rather
@@ -138,7 +136,7 @@ class TaskManagementController extends Controller
             'tasks' => $tasks,
             'showInactive' => $showInactive,
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
-            'staffByProject' => $this->staffOptionsByProject($projectsInList),
+            'eligibleAssignees' => $this->eligibleAssigneesByTask($tasks),
             'filters' => $filters,
             'sort' => $sort,
             'direction' => $direction,
@@ -493,7 +491,7 @@ class TaskManagementController extends Controller
 
         $returnTo = $this->resolveReturnTo(route('tasks.index', $task->organization_id));
 
-        $task->load('subtasks', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
+        $task->load('subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
 
         return view('tasks.edit', array_merge([
             'task' => $task,
@@ -531,7 +529,7 @@ class TaskManagementController extends Controller
             // policy methods).
             'linkedFolders' => $linkedFolders,
             'attachedDocuments' => $attachedDocuments,
-        ], $this->cascadingOptions($projects)));
+        ], $this->cascadingOptions($projects, $task)));
     }
 
     public function update(UpdateTaskRequest $request, Task $task): RedirectResponse
@@ -615,7 +613,7 @@ class TaskManagementController extends Controller
             'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
-        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($task->project, $data['assignee_id'])) {
+        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($task->project, $task->department_id, $data['assignee_id'])) {
             throw ValidationException::withMessages(['assignee_id' => 'Select a user assigned to this project.']);
         }
 
@@ -632,10 +630,27 @@ class TaskManagementController extends Controller
     }
 
     /**
+     * $currentTask (code-review follow-up, task #70): when editing an
+     * EXISTING task, its own current department must always be a
+     * selectable option, even if the viewer wouldn't otherwise be offered
+     * it — either because it's since been deactivated, or because this
+     * viewer's own department access to it was revoked. TaskPolicy::
+     * update() lets a task's own assignee edit it regardless of their
+     * current department access (an existing, unconditional bypass), so
+     * without this, such an assignee's Department <select> could render
+     * with ZERO options, blocking any save of the task at all - not just
+     * reassignment. Mirrors the "grandfathered assignee" fallback the
+     * Assignee <select> itself already has, one level up: the task's own
+     * department is injected into $departmentsByOrganization exactly like
+     * a grandfathered assignee is injected into the assignee list, so
+     * eligibleAssigneesByProjectAndDepartment() (below) picks it up and
+     * computes its eligible assignees too, the same as any other
+     * department in the list.
+     *
      * @param  Collection<int, Project>  $projects
-     * @return array{projectOrganizations: array<int, int>, departmentsByOrganization: array<int, array<int, array{id: int, name: string}>>, staffByProject: array<int, array<int, array{id: int, name: string}>>}
+     * @return array{projectOrganizations: array<int, int>, departmentsByOrganization: array<int, array<int, array{id: int, name: string}>>, eligibleAssignees: array<int, array<int, array<int, array{id: int, name: string}>>>}
      */
-    private function cascadingOptions(Collection $projects): array
+    private function cascadingOptions(Collection $projects, ?Task $currentTask = null): array
     {
         $user = auth()->user();
         $organizationIds = $projects->pluck('organization_id')->unique()->values();
@@ -655,10 +670,29 @@ class TaskManagementController extends Controller
             ->map(fn ($departments) => $departments->map(fn ($d) => ['id' => $d->id, 'name' => $d->name])->values())
             ->all();
 
+        if ($currentTask !== null && $currentTask->department_id !== null) {
+            $alreadyOffered = collect($departmentsByOrganization[$currentTask->organization_id] ?? [])
+                ->contains('id', $currentTask->department_id);
+
+            if (! $alreadyOffered) {
+                // withoutGlobalScope('active'), not withoutGlobalScopes():
+                // a targeted bypass of HidesInactiveFromNonAdmins only -
+                // this must still respect every OTHER scope the model has.
+                $currentDepartment = Department::withoutGlobalScope('active')->find($currentTask->department_id);
+
+                if ($currentDepartment !== null) {
+                    $departmentsByOrganization[$currentTask->organization_id][] = [
+                        'id' => $currentDepartment->id,
+                        'name' => $currentDepartment->name,
+                    ];
+                }
+            }
+        }
+
         return [
             'projectOrganizations' => $projects->pluck('organization_id', 'id')->all(),
             'departmentsByOrganization' => $departmentsByOrganization,
-            'staffByProject' => $this->staffOptionsByProject($projects),
+            'eligibleAssignees' => $this->eligibleAssigneesByProjectAndDepartment($projects, $departmentsByOrganization),
         ];
     }
 }

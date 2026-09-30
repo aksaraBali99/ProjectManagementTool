@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AccessPermission;
 use App\Models\Department;
 use App\Models\NotificationSetting;
 use App\Models\Organization;
@@ -32,6 +33,16 @@ beforeEach(function () {
         'organization_id' => $this->orgA->id,
         'user_id' => $this->recipient->id,
         'role_id' => Role::where('slug', 'staff')->first()->id,
+    ]);
+    // task #70 (unified eligibility): staff assignee eligibility now needs
+    // BOTH project_staff (attached per-test below, where relevant) AND
+    // active department access — granted here since every test in this
+    // file uses $this->recipient as an assignment target.
+    AccessPermission::create([
+        'user_id' => $this->recipient->id,
+        'organization_id' => $this->orgA->id,
+        'department_id' => $this->deptA->id,
+        'allowed' => true,
     ]);
 
     $this->task = Task::create([
@@ -291,6 +302,7 @@ test('assigning a task to another user creates a notification for that user', fu
 
 test('reassigning a task from one user to another notifies the new assignee only, not the old one', function () {
     $previousAssignee = User::factory()->create();
+    AccessPermission::create(['user_id' => $previousAssignee->id, 'organization_id' => $this->orgA->id, 'department_id' => $this->deptA->id, 'allowed' => true]);
     $this->projectA->staff()->attach([$this->recipient->id, $previousAssignee->id]);
     givePersonalTaskAssignedRule($this->recipient);
     givePersonalTaskAssignedRule($previousAssignee);
