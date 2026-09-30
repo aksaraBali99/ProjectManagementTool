@@ -258,10 +258,15 @@ class User extends Authenticatable
 
     /**
      * Department IDs this user has been explicitly granted access to within
-     * $organizationId, via access_permissions — the department-gating half
-     * of Task::scopeVisibleTo(), exposed here so other consumers (e.g. the
-     * Dashboard's stricter MyTask filter) can reuse the same derivation
-     * instead of re-querying access_permissions themselves.
+     * $organizationId, via access_permissions — used where "any department
+     * grant at all" is the question (e.g. TaskPolicy::create()'s "does this
+     * staff member have a department to create a task in") regardless of
+     * whether that department happens to be currently active. For "which
+     * departments can this user actually SEE tasks in right now" (a view,
+     * not a create, question), use allowedActiveDepartmentIds() below
+     * instead — a department an owner has since deactivated no longer
+     * counts for that purpose, even though the access_permissions grant
+     * itself is untouched.
      *
      * @return Collection<int, int>
      */
@@ -270,6 +275,26 @@ class User extends Authenticatable
         return $this->accessPermissions()
             ->where('organization_id', $organizationId)
             ->where('allowed', true)
+            ->pluck('department_id');
+    }
+
+    /**
+     * task #73 (department-null crash fix): the active-department-filtered
+     * equivalent of allowedDepartmentIds() above, mirroring
+     * hasDepartmentAccess()'s own is_active check exactly — the
+     * department-gating half of Task::scopeVisibleTo(), and what
+     * DashboardController::myTaskSection()'s own stricter MyTask filter
+     * uses too, so both agree with hasDepartmentAccess()/TaskPolicy::view()
+     * on whether a deactivated department still counts (it doesn't).
+     *
+     * @return Collection<int, int>
+     */
+    public function allowedActiveDepartmentIds(int $organizationId): Collection
+    {
+        return $this->accessPermissions()
+            ->where('organization_id', $organizationId)
+            ->where('allowed', true)
+            ->whereHas('department', fn ($query) => $query->where('is_active', true))
             ->pluck('department_id');
     }
 

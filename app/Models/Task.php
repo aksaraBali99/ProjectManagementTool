@@ -37,9 +37,24 @@ class Task extends Model
         return $this->belongsTo(Project::class);
     }
 
+    /**
+     * withoutGlobalScope('active'): a task's department relation must
+     * resolve regardless of whether that department is CURRENTLY active —
+     * Department::HidesInactiveFromNonAdmins (meant for LISTS/dropdowns a
+     * non-admin picks a department from) would otherwise make this
+     * relation silently resolve to null for a non-admin the moment the
+     * department is deactivated, even though the foreign key is still
+     * perfectly valid and the task itself can still be legitimately
+     * visible (e.g. via scopeVisibleTo()'s own assignee-anywhere bypass).
+     * Every view that renders $task->department->badgeText()/name
+     * (Dashboard, Task List, the Projects page's drilldown) would then
+     * fatal-error on a null relation instead of just showing a task whose
+     * department happens to be deactivated — a real, previously-latent
+     * crash, not merely a display nicety.
+     */
     public function department(): BelongsTo
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(Department::class)->withoutGlobalScope('active');
     }
 
     public function assignee(): BelongsTo

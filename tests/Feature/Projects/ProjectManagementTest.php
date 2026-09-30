@@ -535,6 +535,30 @@ test('task #73 (visibility consolidation): a staff user with access to a now-dea
     expect($visibleProject->tasks_count)->toBe(0);
 });
 
+test('a task assigned to a staff user in a now-deactivated department does not crash the Projects page\'s drilldown', function () {
+    // task #73 (department-null crash fix): Department::HidesInactiveFromNonAdmins
+    // used to make $task->department resolve to null for a non-admin once
+    // the department was deactivated, even though this task is still
+    // visible via the assignee-anywhere bypass — the drilldown's
+    // department badge then fatal-errored calling ->badgeText() on that
+    // null relation.
+    $dept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);
+    AccessPermission::create(['user_id' => $this->staffInA->id, 'organization_id' => $this->orgA->id, 'department_id' => $dept->id, 'allowed' => true]);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+    Task::create([
+        'organization_id' => $this->orgA->id, 'project_id' => $project->id, 'department_id' => $dept->id,
+        'assignee_id' => $this->staffInA->id,
+        'title' => 'Mine, in a department that gets deactivated', 'priority' => 'medium', 'status' => 'pending',
+    ]);
+
+    $dept->update(['is_active' => false]);
+
+    $response = $this->actingAs($this->staffInA)->get("/projects/{$this->orgA->id}");
+
+    $response->assertOk();
+    $response->assertSee('Mine, in a department that gets deactivated');
+});
+
 test('the projects table sits inside a pale wash of the active company\'s own color', function () {
     $response = $this->actingAs($this->owner)->get("/projects/{$this->orgA->id}");
     $html = $response->getContent();

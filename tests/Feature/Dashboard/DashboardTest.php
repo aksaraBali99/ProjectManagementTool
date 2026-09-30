@@ -128,6 +128,34 @@ test('task #73 (visibility consolidation): a staff user with access to a now-dea
     $response->assertDontSee('Should be hidden');
 });
 
+test('a task assigned to a staff user in a now-deactivated department does not crash the Dashboard, and MyTask correctly excludes it', function () {
+    // task #73 (department-null crash fix): Department::HidesInactiveFromNonAdmins
+    // used to make $task->department resolve to null for a non-admin once
+    // the department was deactivated, even though this task is still
+    // visible via the assignee-anywhere bypass — Dashboard's Priority
+    // Groups section then fatal-errored calling ->badgeText() on that null
+    // relation. Also the MyTask assertion this exact scenario was
+    // originally meant to cover (blocked in an earlier PR by this crash).
+    $staff = makeStaffOnDashboard($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Mine, in a department that gets deactivated',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+    $this->deptA->update(['is_active' => false]);
+
+    $response = $this->actingAs($staff)->get('/dashboard/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertSee('Mine, in a department that gets deactivated');
+    expect($response->viewData('myTasks')->pluck('id')->all())->toBe([]);
+    expect($task->fresh()->department)->not->toBeNull();
+});
+
 test('the Active list only includes High-priority tasks that are In progress or In review', function () {
     $activeInProgress = makeTaskOnDashboard($this->orgA, $this->projectA, $this->deptA, 'High + in progress', Priority::High);
     $activeInProgress->update(['status' => 'in_progress']);
