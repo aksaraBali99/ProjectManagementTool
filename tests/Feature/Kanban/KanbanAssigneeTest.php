@@ -119,6 +119,29 @@ test('reassigning to a user not attached to the project is rejected, and nothing
     expect($task->fresh()->assignee_id)->toBeNull();
 });
 
+test('task #70 (unified eligibility): reassigning to a user with project_staff but WITHOUT department access is rejected, matching the Assignee dropdown\'s behavior', function () {
+    $ineligible = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $ineligible->id, 'role_id' => Role::where('slug', 'staff')->firstOrFail()->id]);
+    $this->projectA->staff()->attach($ineligible->id);
+    // Deliberately no AccessPermission grant.
+
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Ship it',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->patchJson("/tasks/{$task->id}/assignee", [
+        'assignee_id' => $ineligible->id,
+    ]);
+
+    $response->assertStatus(422)->assertJsonValidationErrors('assignee_id');
+    expect($task->fresh()->assignee_id)->toBeNull();
+});
+
 test('a staff user who is neither the assignee nor holds create_edit_tasks cannot reassign via the Kanban endpoint', function () {
     $staff = makeStaffForKanbanAssignee($this->orgA, $this->deptA);
     $otherStaff = makeStaffForKanbanAssignee($this->orgA, $this->deptA);
@@ -237,6 +260,6 @@ test('the assignee select only offers users actually attached to that task\'s pr
     $response = $this->actingAs($this->management)->get('/kanban/'.$this->orgA->id);
     $response->assertOk();
 
-    $ids = collect($response->viewData('staffByProject')[$this->projectA->id])->pluck('id')->all();
+    $ids = collect($response->viewData('eligibleAssignees')[$this->projectA->id][$this->deptA->id])->pluck('id')->all();
     expect($ids)->toContain($eligible->id)->not->toContain($ineligible->id);
 });

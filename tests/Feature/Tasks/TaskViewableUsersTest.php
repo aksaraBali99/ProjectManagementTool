@@ -72,8 +72,19 @@ test('management in the task\'s org is included, with no department access neede
     expect($this->task->viewableUsers()->pluck('id')->all())->toContain($management->id);
 });
 
-test('a staff member WITH access to the task\'s own department is included', function () {
+test('task #70 (unified eligibility): a staff member with department access alone, but NOT attached to the project, is now excluded', function () {
+    // This is the one accepted, deliberate narrowing from unifying
+    // mention eligibility with the Assignee dropdown's own rule (see
+    // Task::viewableUsers()'s own docblock) — department access alone
+    // used to be enough here; it no longer is.
     $staff = makeStaffMember($this->org, $this->dept);
+
+    expect($this->task->viewableUsers()->pluck('id')->all())->not->toContain($staff->id);
+});
+
+test('a staff member with BOTH project_staff and department access to the task\'s own department is included', function () {
+    $staff = makeStaffMember($this->org, $this->dept);
+    $this->project->staff()->attach($staff->id);
 
     expect($this->task->viewableUsers()->pluck('id')->all())->toContain($staff->id);
 });

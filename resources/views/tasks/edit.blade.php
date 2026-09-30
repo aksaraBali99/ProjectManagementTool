@@ -138,13 +138,53 @@
             (function () {
                 const projectOrganizations = @json($projectOrganizations);
                 const departmentsByOrg = @json($departmentsByOrganization);
-                const staffByProject = @json($staffByProject);
+                const eligibleAssignees = @json($eligibleAssignees);
                 const oldDepartment = @json(old('department_id', $task->department_id));
                 const oldAssignee = @json(old('assignee_id', $task->assignee_id));
+                // task #70 (unified eligibility): the task's CURRENT assignee
+                // must still display correctly even if they no longer
+                // qualify under the new rule (e.g. they lost department
+                // access after being assigned) — the new rule governs future
+                // assignment, not existing data. Only used as a fallback
+                // when oldAssignee is genuinely this task's own saved
+                // assignee (not a different, rejected redisplay value).
+                const currentAssigneeId = @json($task->assignee_id);
+                const currentAssigneeName = @json($task->assignee?->name);
 
                 const projectSelect = document.getElementById('project_id');
                 const departmentSelect = document.getElementById('department_id');
                 const assigneeSelect = document.getElementById('assignee_id');
+
+                function populateAssigneeSelect(select, projectId, departmentId, selectedId, fallbackName) {
+                    select.innerHTML = '<option value="">Unassigned</option>';
+                    let found = false;
+                    ((eligibleAssignees[projectId] || {})[departmentId] || []).forEach(function (member) {
+                        const option = document.createElement('option');
+                        option.value = member.id;
+                        option.textContent = member.name;
+                        if (String(member.id) === String(selectedId)) {
+                            option.selected = true;
+                            found = true;
+                        }
+                        select.appendChild(option);
+                    });
+
+                    if (selectedId && ! found && fallbackName) {
+                        const option = document.createElement('option');
+                        option.value = selectedId;
+                        option.textContent = fallbackName;
+                        option.selected = true;
+                        select.appendChild(option);
+                    }
+                }
+
+                // task #70 (unified eligibility): who's assignable now
+                // depends on BOTH the selected project AND department —
+                // re-run whenever either changes, not just the project.
+                function refreshAssigneeOptions() {
+                    const fallbackName = String(oldAssignee) === String(currentAssigneeId) ? currentAssigneeName : null;
+                    populateAssigneeSelect(assigneeSelect, projectSelect.value, departmentSelect.value, oldAssignee, fallbackName);
+                }
 
                 function refreshDependents() {
                     const orgId = projectOrganizations[projectSelect.value];
@@ -158,17 +198,11 @@
                         departmentSelect.appendChild(option);
                     });
 
-                    assigneeSelect.innerHTML = '<option value="">Unassigned</option>';
-                    (staffByProject[projectSelect.value] || []).forEach(function (member) {
-                        const option = document.createElement('option');
-                        option.value = member.id;
-                        option.textContent = member.name;
-                        if (String(member.id) === String(oldAssignee)) option.selected = true;
-                        assigneeSelect.appendChild(option);
-                    });
+                    refreshAssigneeOptions();
                 }
 
                 projectSelect.addEventListener('change', refreshDependents);
+                departmentSelect.addEventListener('change', refreshAssigneeOptions);
                 refreshDependents();
             })();
         </script>
@@ -187,7 +221,7 @@
     <div class="mt-6">
         <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Subtasks</span>
         <div class="mt-2">
-            @include('tasks._subtasks', ['task' => $task, 'canEdit' => $canEdit, 'staffOptions' => $staffByProject[$task->project_id] ?? []])
+            @include('tasks._subtasks', ['task' => $task, 'canEdit' => $canEdit, 'staffOptions' => $eligibleAssignees[$task->project_id][$task->department_id] ?? []])
         </div>
     </div>
 

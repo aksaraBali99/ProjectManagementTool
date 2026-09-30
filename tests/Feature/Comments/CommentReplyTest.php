@@ -62,7 +62,7 @@ beforeEach(function () {
     ]);
 });
 
-function makeEligibleStaff(Organization $org, Department $department): User
+function makeEligibleStaff(Organization $org, Department $department, ?Project $project = null): User
 {
     $staff = User::factory()->create();
     OrgMember::create([
@@ -76,6 +76,17 @@ function makeEligibleStaff(Organization $org, Department $department): User
         'department_id' => $department->id,
         'allowed' => true,
     ]);
+
+    // task #70 (unified eligibility): mention/view eligibility for staff
+    // now needs project_staff membership too, not department access
+    // alone — attached here (when $project is given) so an "eligible"
+    // fixture stays genuinely eligible under the new rule. Optional and
+    // omittable for the one negative-case call site in this file (a
+    // staff member granted access to a DIFFERENT department than the
+    // task's own is correctly rejected on that basis regardless).
+    if ($project !== null) {
+        $project->staff()->attach($staff->id);
+    }
 
     return $staff;
 }
@@ -93,7 +104,7 @@ test('replying to a top-level comment creates a reply with parent_comment_id poi
 });
 
 test('replying to an existing reply re-parents the new comment to the ORIGINAL top-level comment, not the reply that was clicked', function () {
-    $replier = makeEligibleStaff($this->org, $this->dept);
+    $replier = makeEligibleStaff($this->org, $this->dept, $this->project);
     $firstReply = Comment::create([
         'task_id' => $this->task->id,
         'user_id' => $replier->id,
@@ -145,7 +156,7 @@ test('a parent_comment_id from a different task is rejected', function () {
 });
 
 test('management, a staff member with department access, and the project\'s client can all reply, matching CommentPolicy', function () {
-    $staff = makeEligibleStaff($this->org, $this->dept);
+    $staff = makeEligibleStaff($this->org, $this->dept, $this->project);
 
     $client = User::factory()->create();
     OrgMember::create([
@@ -178,7 +189,7 @@ test('a staff member without department access to the task cannot reply', functi
 });
 
 test('every comment card carries the data-author-id/data-author-name the client-side reply pre-fill depends on', function () {
-    $staff = makeEligibleStaff($this->org, $this->dept);
+    $staff = makeEligibleStaff($this->org, $this->dept, $this->project);
     $reply = Comment::create(['task_id' => $this->task->id, 'user_id' => $staff->id, 'parent_comment_id' => $this->topLevel->id, 'body' => 'A reply']);
 
     $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
@@ -208,7 +219,7 @@ test('every comment card carries the data-author-id/data-author-name the client-
 
 test('a mention on a reply (however it got into mentioned_user_ids — an auto-filled one the user kept, or a manually-typed one) notifies through the exact same pipeline as a top-level comment\'s', function () {
     Notification::fake();
-    $staff = makeEligibleStaff($this->org, $this->dept);
+    $staff = makeEligibleStaff($this->org, $this->dept, $this->project);
 
     // Simulates what the client sends if the auto-filled mention survives
     // to submission — this endpoint has no special "reply mention"
@@ -227,7 +238,7 @@ test('a mention on a reply (however it got into mentioned_user_ids — an auto-f
 
 test('a reply posted with no mentioned_user_ids at all does not notify the comment\'s author — simulates the user deleting the pre-filled mention before posting', function () {
     Notification::fake();
-    $staff = makeEligibleStaff($this->org, $this->dept);
+    $staff = makeEligibleStaff($this->org, $this->dept, $this->project);
 
     $this->actingAs($staff)->postJson("/tasks/{$this->task->id}/comments", [
         'body' => 'Sounds good',
@@ -261,8 +272,8 @@ test('a self-mention on your own reply is still filtered out server-side even if
 
 test('a reply with two different mentioned_user_ids notifies both people independently', function () {
     Notification::fake();
-    $mentioned = makeEligibleStaff($this->org, $this->dept);
-    $replier = makeEligibleStaff($this->org, $this->dept);
+    $mentioned = makeEligibleStaff($this->org, $this->dept, $this->project);
+    $replier = makeEligibleStaff($this->org, $this->dept, $this->project);
 
     $this->actingAs($replier)->postJson("/tasks/{$this->task->id}/comments", [
         'body' => '@'.$this->management->name.' also cc @'.$mentioned->name,
@@ -279,7 +290,7 @@ test('a reply with two different mentioned_user_ids notifies both people indepen
 });
 
 test('the comment list renders top-level comments with a single flat, chronologically-ordered list of replies underneath, no deeper nesting', function () {
-    $staff = makeEligibleStaff($this->org, $this->dept);
+    $staff = makeEligibleStaff($this->org, $this->dept, $this->project);
     $reply1 = Comment::create(['task_id' => $this->task->id, 'user_id' => $staff->id, 'parent_comment_id' => $this->topLevel->id, 'body' => 'Reply 1']);
     // A reply to reply1 (per the flat model, still parented to the same
     // top-level comment) — this must NOT render at any deeper visual
@@ -349,7 +360,7 @@ test('every comment, including a reply, shows a Reply action', function () {
 });
 
 test('a new reply arriving via the polling endpoint is positioned correctly among a thread\'s existing replies', function () {
-    $staff = makeEligibleStaff($this->org, $this->dept);
+    $staff = makeEligibleStaff($this->org, $this->dept, $this->project);
     $older = Comment::create(['task_id' => $this->task->id, 'user_id' => $staff->id, 'parent_comment_id' => $this->topLevel->id, 'body' => 'Older reply']);
 
     $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [

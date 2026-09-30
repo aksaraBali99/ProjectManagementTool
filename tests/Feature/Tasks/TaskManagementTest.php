@@ -239,7 +239,7 @@ test('a user with the owner role appears in a project\'s Task/Subtask assignee o
     $response = $this->actingAs($this->owner)->get("/tasks/create/{$this->projectA->id}");
 
     $response->assertOk();
-    $options = collect($response->viewData('staffByProject')[$this->projectA->id])->pluck('id')->all();
+    $options = collect($response->viewData('eligibleAssignees')[$this->projectA->id][$this->deptA->id])->pluck('id')->all();
     expect($options)->toContain($this->owner->id);
 });
 
@@ -287,7 +287,7 @@ test('a user holding both a project_staff row and a global role appears exactly 
     $response = $this->actingAs($this->owner)->get("/tasks/create/{$this->projectA->id}");
     $response->assertOk();
 
-    $ids = collect($response->viewData('staffByProject')[$this->projectA->id])->pluck('id')->all();
+    $ids = collect($response->viewData('eligibleAssignees')[$this->projectA->id][$this->deptA->id])->pluck('id')->all();
     expect(array_count_values($ids)[$ownerAlsoStaff->id] ?? 0)->toBe(1);
 });
 
@@ -382,6 +382,119 @@ test('assigning a subtask to a staff member not assigned to the project is rejec
     ]);
 
     $response->assertStatus(422);
+});
+
+test('task #70 (unified eligibility): a subtask (via SubtaskController::store()) rejects a staff member with project_staff but WITHOUT department access', function () {
+    $staff = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $staff->id, 'role_id' => Role::where('slug', 'staff')->firstOrFail()->id]);
+    $this->projectA->staff()->attach($staff->id);
+    // Deliberately no AccessPermission grant.
+
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->management)->post("/tasks/{$task->id}/subtasks", [
+        'title' => 'Unassignable subtask',
+        'assignee_id' => $staff->id,
+    ])->assertStatus(422);
+});
+
+test('task #70 (unified eligibility): a subtask (via SubtaskController::update()) rejects a staff member with project_staff but WITHOUT department access', function () {
+    $staff = User::factory()->create();
+    OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $staff->id, 'role_id' => Role::where('slug', 'staff')->firstOrFail()->id]);
+    $this->projectA->staff()->attach($staff->id);
+
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $subtask = $task->subtasks()->create(['title' => 'Existing subtask']);
+
+    $this->actingAs($this->management)->put("/subtasks/{$subtask->id}", [
+        'assignee_id' => $staff->id,
+    ])->assertStatus(422);
+    expect($subtask->fresh()->assignee_id)->toBeNull();
+});
+
+test('task #70 (unified eligibility): a subtask\'s eligible assignees are computed from the PARENT task\'s own department, not something independent', function () {
+    $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
+    // $staff has department access to deptA (the TASK's own department),
+    // not otherDept — eligible here specifically because the subtask
+    // inherits the parent task's department, not any department of its
+    // own (subtasks have none).
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($this->management)->post("/tasks/{$task->id}/subtasks", [
+        'title' => 'Assignable subtask',
+        'assignee_id' => $staff->id,
+    ]);
+
+    $response->assertCreated();
+    $this->assertDatabaseHas('subtasks', ['title' => 'Assignable subtask', 'assignee_id' => $staff->id]);
+
+    // Confirms this is genuinely keyed off the task's department (deptA),
+    // not otherDept or some department-agnostic check — the Edit Task
+    // page's own eligible-assignees data for this exact (project,
+    // department) pair contains $staff too.
+    $editResponse = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit");
+    $editResponse->assertOk();
+    $eligibleIds = collect($editResponse->viewData('eligibleAssignees')[$this->projectA->id][$this->deptA->id])->pluck('id')->all();
+    expect($eligibleIds)->toContain($staff->id);
+});
+
+test('task #70 (unified eligibility): editing a task whose current assignee no longer qualifies still displays them correctly, not blanked out', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Grandfather task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    // Revoke department access AFTER assignment — the staff member no
+    // longer qualifies under the new rule, but was validly assigned at
+    // the time. The new rule governs future assignment, not existing data.
+    AccessPermission::where('user_id', $staff->id)->delete();
+
+    $response = $this->actingAs($this->management)->get("/tasks/{$task->id}/edit");
+    $response->assertOk();
+    $content = $response->getContent();
+
+    // The eligible-options data itself correctly excludes them now...
+    $eligibleIds = collect($response->viewData('eligibleAssignees')[$this->projectA->id][$this->deptA->id])->pluck('id')->all();
+    expect($eligibleIds)->not->toContain($staff->id);
+
+    // ...but the page still carries what the client-side fallback needs
+    // to display them anyway: the real current assignee id/name. Pest
+    // can't execute the JS that actually reinserts the missing option
+    // (verified live in a browser — see PR description), so this is a
+    // structural guard that the data it depends on is present and correct.
+    expect($content)->toContain((string) $staff->id);
+    expect($content)->toContain(e($staff->name));
+    expect($content)->toContain('fallbackName');
 });
 
 test('a staff user cannot see a task outside their granted departments', function () {

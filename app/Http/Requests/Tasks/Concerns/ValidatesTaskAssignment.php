@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Tasks\Concerns;
 
 use App\Models\Project;
-use App\Models\User;
+use App\Models\Task;
 
 /**
  * Shared assignee check for StoreTaskRequest/UpdateTaskRequest and
@@ -12,27 +12,17 @@ use App\Models\User;
 trait ValidatesTaskAssignment
 {
     /**
-     * A task/subtask assignee must be attached to the project — via
-     * project_staff (any role) or project_clients (the project's client) —
-     * or hold a global role (super_admin/owner), matching what the
-     * Assignee dropdown itself offers
-     * (TaskManagementController::staffOptionsByProject()). Not restricted
-     * to a "Staff" role: management and the project's client are
-     * assignable too, as long as they're actually attached to the
-     * project. Global-role users are exempt from needing an attachment at
-     * all, since they're never added to project_staff/project_clients in
-     * the first place — see User::scopeWithGlobalRole().
+     * task #70 (unified eligibility): a thin wrapper around
+     * Task::eligibleAssigneesFor() — the same shared rule the Assignee
+     * dropdown's own options list (BuildsAssigneeOptions) and the mention
+     * autocomplete (Task::viewableUsers()) both delegate to, so none of
+     * the three can drift out of sync with each other. $departmentId is
+     * the department this task/subtask actually belongs (or is about to
+     * belong) to — for a subtask, that's always its PARENT task's own
+     * department_id, since subtasks have no department of their own.
      */
-    protected function isAssignableStaffForProject(Project $project, mixed $userId): bool
+    protected function isAssignableStaffForProject(Project $project, int $departmentId, mixed $userId): bool
     {
-        if ($project->staff()->where('users.id', $userId)->exists()) {
-            return true;
-        }
-
-        if ($project->clients()->where('users.id', $userId)->exists()) {
-            return true;
-        }
-
-        return User::withGlobalRole()->whereKey($userId)->exists();
+        return Task::eligibleAssigneesFor($project->organization_id, $project->id, $departmentId)->contains('id', $userId);
     }
 }

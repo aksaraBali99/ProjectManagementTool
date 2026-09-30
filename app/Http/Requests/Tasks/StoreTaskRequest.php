@@ -93,13 +93,16 @@ class StoreTaskRequest extends FormRequest
             }
 
             $assigneeId = $this->input('assignee_id');
-            if ($assigneeId && ! $this->isAssignableStaffForProject($project, $assigneeId)) {
+            if ($assigneeId && ! $this->isAssignableStaffForProject($project, (int) $departmentId, $assigneeId)) {
                 $validator->errors()->add('assignee_id', 'Select a user assigned to this project.');
             }
 
+            // Subtasks have no department of their own — they inherit the
+            // parent task's, so eligibility here uses the SAME $departmentId
+            // being submitted for the task itself.
             foreach ($this->input('subtasks', []) as $index => $subtask) {
                 $subtaskAssigneeId = $subtask['assignee_id'] ?? null;
-                if ($subtaskAssigneeId && ! $this->isAssignableStaffForProject($project, $subtaskAssigneeId)) {
+                if ($subtaskAssigneeId && ! $this->isAssignableStaffForProject($project, (int) $departmentId, $subtaskAssigneeId)) {
                     $validator->errors()->add("subtasks.{$index}.assignee_id", 'Subtask assignee must be assigned to this project.');
                 }
             }

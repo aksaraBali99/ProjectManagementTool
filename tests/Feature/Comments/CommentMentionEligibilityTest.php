@@ -93,11 +93,14 @@ function makeEligibleStaffMember(Organization $org, Project $project, Department
  * specifically to the "New comment" labeled rich-text-editor root
  * (data-rich-text + data-label, same targeting richTextEditorNode() in
  * Pest.php uses), NOT a blind whole-page substring search. The Edit Task
- * page also embeds a SEPARATE, still-project-scoped @json($staffByProject)
- * blob for the Assignee/Subtask-assignee dropdowns — a user id/name pair
- * legitimately appearing there (project attachment IS the right rule for
- * assignability) would otherwise false-positive a plain string search
- * for the same id in the totally different mentions list.
+ * page also embeds a SEPARATE @json($eligibleAssignees) blob for the
+ * Assignee/Subtask-assignee dropdowns — task #70 (unified eligibility)
+ * made the two share the same underlying rule, but they're still not
+ * byte-identical (viewableUsers() layers the task's own current assignee
+ * and subtask assignees on top, which the Assignee dropdown has no
+ * reason to), so a user id/name pair legitimately appearing in one could
+ * still false-positive a plain string search for the same id in the
+ * other.
  *
  * @return array<int, array{id: int, name: string}>
  */

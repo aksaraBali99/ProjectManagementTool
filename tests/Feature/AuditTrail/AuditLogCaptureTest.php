@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AccessPermission;
 use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\Organization;
@@ -74,6 +75,9 @@ test('reassigning a task captures both the old and new assignee correctly', func
     $newAssignee = User::factory()->create();
     OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $newAssignee->id, 'role_id' => Role::where('slug', 'staff')->first()->id]);
     $this->projectA->staff()->attach($newAssignee->id);
+    // task #70 (unified eligibility): staff assignee eligibility now needs
+    // BOTH project_staff AND active department access.
+    AccessPermission::create(['user_id' => $newAssignee->id, 'organization_id' => $this->orgA->id, 'department_id' => $this->deptA->id, 'allowed' => true]);
 
     $task = Task::create([
         'organization_id' => $this->orgA->id,

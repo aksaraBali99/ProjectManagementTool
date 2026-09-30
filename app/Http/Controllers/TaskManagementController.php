@@ -65,7 +65,7 @@ class TaskManagementController extends Controller
 
         $visibleScope = fn () => Task::visibleTo($user, $organization->id);
 
-        $query = $visibleScope()->with(['project', 'department', 'assignee', 'subtasks', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user']);
+        $query = $visibleScope()->with(['project', 'department', 'assignee', 'subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user']);
 
         if ($showInactive) {
             $query->withTrashed();
@@ -116,8 +116,6 @@ class TaskManagementController extends Controller
 
         $tasks = $this->sortTasks($query->get(), $sort, $direction);
 
-        $projectsInList = $tasks->pluck('project')->filter()->unique('id')->values();
-
         // Filter option lists reflect what this user can actually see (same
         // visibility scope as the list itself, ignoring the other filters so
         // switching one filter doesn't prune the others' choices) rather
@@ -138,7 +136,7 @@ class TaskManagementController extends Controller
             'tasks' => $tasks,
             'showInactive' => $showInactive,
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
-            'staffByProject' => $this->staffOptionsByProject($projectsInList),
+            'eligibleAssignees' => $this->eligibleAssigneesByTask($tasks),
             'filters' => $filters,
             'sort' => $sort,
             'direction' => $direction,
@@ -493,7 +491,7 @@ class TaskManagementController extends Controller
 
         $returnTo = $this->resolveReturnTo(route('tasks.index', $task->organization_id));
 
-        $task->load('subtasks', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
+        $task->load('subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
 
         return view('tasks.edit', array_merge([
             'task' => $task,
@@ -615,7 +613,7 @@ class TaskManagementController extends Controller
             'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
-        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($task->project, $data['assignee_id'])) {
+        if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($task->project, $task->department_id, $data['assignee_id'])) {
             throw ValidationException::withMessages(['assignee_id' => 'Select a user assigned to this project.']);
         }
 
@@ -633,7 +631,7 @@ class TaskManagementController extends Controller
 
     /**
      * @param  Collection<int, Project>  $projects
-     * @return array{projectOrganizations: array<int, int>, departmentsByOrganization: array<int, array<int, array{id: int, name: string}>>, staffByProject: array<int, array<int, array{id: int, name: string}>>}
+     * @return array{projectOrganizations: array<int, int>, departmentsByOrganization: array<int, array<int, array{id: int, name: string}>>, eligibleAssignees: array<int, array<int, array<int, array{id: int, name: string}>>>}
      */
     private function cascadingOptions(Collection $projects): array
     {
@@ -658,7 +656,7 @@ class TaskManagementController extends Controller
         return [
             'projectOrganizations' => $projects->pluck('organization_id', 'id')->all(),
             'departmentsByOrganization' => $departmentsByOrganization,
-            'staffByProject' => $this->staffOptionsByProject($projects),
+            'eligibleAssignees' => $this->eligibleAssigneesByProjectAndDepartment($projects, $departmentsByOrganization),
         ];
     }
 }

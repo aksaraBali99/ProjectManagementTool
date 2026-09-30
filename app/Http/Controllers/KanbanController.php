@@ -31,7 +31,7 @@ class KanbanController extends Controller
                 'columns' => collect(),
                 'emptyMessage' => $user->boardAccessDeniedReason('view_kanban')->message(),
                 'canCreate' => false,
-                'staffByProject' => [],
+                'eligibleAssignees' => [],
             ]);
         }
 
@@ -68,8 +68,6 @@ class KanbanController extends Controller
                 ]),
         ]);
 
-        $projectsInList = $tasks->pluck('project')->filter()->unique('id')->values();
-
         return view('kanban', [
             'organizations' => $organizations,
             'organization' => $organization,
@@ -80,7 +78,7 @@ class KanbanController extends Controller
             // in it are separate permissions, so this can't be assumed
             // from having reached this far.
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
-            'staffByProject' => $this->staffOptionsByProject($projectsInList),
+            'eligibleAssignees' => $this->eligibleAssigneesByTask($tasks),
         ]);
     }
 }
