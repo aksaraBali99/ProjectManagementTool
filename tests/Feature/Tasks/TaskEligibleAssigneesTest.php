@@ -46,7 +46,7 @@ test('super_admin, owner, and management-in-org are eligible unconditionally, wi
     $management = User::factory()->create();
     OrgMember::create(['organization_id' => $this->org->id, 'user_id' => $management->id, 'role_id' => Role::where('slug', 'management')->firstOrFail()->id]);
 
-    $eligibleIds = Task::eligibleAssigneesFor($this->org->id, $this->project->id, $this->dept->id)->pluck('id')->all();
+    $eligibleIds = Task::eligibleAssigneesFor($this->project, $this->dept->id)->pluck('id')->all();
 
     expect($eligibleIds)->toContain($this->owner->id)
         ->toContain($superAdmin->id)
@@ -58,7 +58,7 @@ test('a project\'s client is eligible', function () {
     OrgMember::create(['organization_id' => $this->org->id, 'user_id' => $client->id, 'role_id' => Role::where('slug', 'client')->firstOrFail()->id]);
     $this->project->clients()->attach($client->id);
 
-    $eligibleIds = Task::eligibleAssigneesFor($this->org->id, $this->project->id, $this->dept->id)->pluck('id')->all();
+    $eligibleIds = Task::eligibleAssigneesFor($this->project, $this->dept->id)->pluck('id')->all();
 
     expect($eligibleIds)->toContain($client->id);
 });
@@ -68,7 +68,7 @@ test('a user who is a client but NOT attached to this specific project is not el
     OrgMember::create(['organization_id' => $this->org->id, 'user_id' => $client->id, 'role_id' => Role::where('slug', 'client')->firstOrFail()->id]);
     // Deliberately not attached to $this->project.
 
-    $eligibleIds = Task::eligibleAssigneesFor($this->org->id, $this->project->id, $this->dept->id)->pluck('id')->all();
+    $eligibleIds = Task::eligibleAssigneesFor($this->project, $this->dept->id)->pluck('id')->all();
 
     expect($eligibleIds)->not->toContain($client->id);
 });
@@ -78,7 +78,7 @@ test('a staff member with BOTH project_staff and active department access is eli
     $this->project->staff()->attach($staff->id);
     grantDepartmentAccessForEligibility($staff, $this->org, $this->dept);
 
-    $eligibleIds = Task::eligibleAssigneesFor($this->org->id, $this->project->id, $this->dept->id)->pluck('id')->all();
+    $eligibleIds = Task::eligibleAssigneesFor($this->project, $this->dept->id)->pluck('id')->all();
 
     expect($eligibleIds)->toContain($staff->id);
 });
@@ -89,7 +89,7 @@ test('task #70 (unified eligibility): a staff member with project_staff but WITH
     $staff = makeStaffForEligibility($this->org);
     $this->project->staff()->attach($staff->id);
 
-    $eligibleIds = Task::eligibleAssigneesFor($this->org->id, $this->project->id, $this->dept->id)->pluck('id')->all();
+    $eligibleIds = Task::eligibleAssigneesFor($this->project, $this->dept->id)->pluck('id')->all();
 
     expect($eligibleIds)->not->toContain($staff->id);
 });
@@ -98,7 +98,7 @@ test('a staff member with active department access but WITHOUT project_staff is 
     $staff = makeStaffForEligibility($this->org);
     grantDepartmentAccessForEligibility($staff, $this->org, $this->dept);
 
-    $eligibleIds = Task::eligibleAssigneesFor($this->org->id, $this->project->id, $this->dept->id)->pluck('id')->all();
+    $eligibleIds = Task::eligibleAssigneesFor($this->project, $this->dept->id)->pluck('id')->all();
 
     expect($eligibleIds)->not->toContain($staff->id);
 });
@@ -109,7 +109,7 @@ test('a staff member with BOTH conditions but to a DEACTIVATED department is not
     grantDepartmentAccessForEligibility($staff, $this->org, $this->dept);
     $this->dept->update(['is_active' => false]);
 
-    $eligibleIds = Task::eligibleAssigneesFor($this->org->id, $this->project->id, $this->dept->id)->pluck('id')->all();
+    $eligibleIds = Task::eligibleAssigneesFor($this->project, $this->dept->id)->pluck('id')->all();
 
     expect($eligibleIds)->not->toContain($staff->id);
 });
@@ -140,7 +140,7 @@ test('the Assignee dropdown and mention autocomplete return IDENTICAL eligible u
     ]);
 
     // The Assignee dropdown's own source, direct.
-    $assigneeDropdownIds = Task::eligibleAssigneesFor($task->organization_id, $task->project_id, $task->department_id)
+    $assigneeDropdownIds = Task::eligibleAssigneesFor($task->project, $task->department_id)
         ->pluck('id')->sort()->values()->all();
 
     // The mention autocomplete's source — no current assignee/subtask

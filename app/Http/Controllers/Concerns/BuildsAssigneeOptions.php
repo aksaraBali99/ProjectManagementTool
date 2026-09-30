@@ -64,20 +64,27 @@ trait BuildsAssigneeOptions
     }
 
     /**
+     * task #70 (code-review follow-up): delegates to
+     * Task::eligibleAssigneesForPairs() — the batched version of
+     * eligibleAssigneesFor() — instead of looping and calling
+     * eligibleAssigneesFor() once per pair here, which used to issue
+     * several queries per (project, department) combination (an N+1 on
+     * any page with more than a couple of projects/departments).
+     *
      * @param  Collection<int, array{project: Project, departmentId: int}>  $pairs
      * @return array<int, array<int, array<int, array{id: int, name: string}>>>
      */
     private function eligibleAssigneesForPairs(Collection $pairs): array
     {
+        $byPair = Task::eligibleAssigneesForPairs($pairs);
+
         $result = [];
-
-        foreach ($pairs->unique(fn (array $pair) => $pair['project']->id.':'.$pair['departmentId']) as $pair) {
-            $project = $pair['project'];
-            $departmentId = $pair['departmentId'];
-
-            $result[$project->id][$departmentId] = Task::eligibleAssigneesFor($project->organization_id, $project->id, $departmentId)
-                ->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name])
-                ->values();
+        foreach ($byPair as $projectId => $byDepartment) {
+            foreach ($byDepartment as $departmentId => $users) {
+                $result[$projectId][$departmentId] = $users
+                    ->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name])
+                    ->values();
+            }
         }
 
         return $result;

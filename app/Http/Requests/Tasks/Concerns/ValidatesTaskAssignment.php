@@ -23,6 +23,6 @@ trait ValidatesTaskAssignment
      */
     protected function isAssignableStaffForProject(Project $project, int $departmentId, mixed $userId): bool
     {
-        return Task::eligibleAssigneesFor($project->organization_id, $project->id, $departmentId)->contains('id', $userId);
+        return Task::eligibleAssigneesFor($project, $departmentId)->contains('id', $userId);
     }
 }

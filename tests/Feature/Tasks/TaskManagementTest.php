@@ -497,6 +497,54 @@ test('task #70 (unified eligibility): editing a task whose current assignee no l
     expect($content)->toContain('fallbackName');
 });
 
+test('code review follow-up (task #70): a task\'s own assignee, with their only department access revoked, still gets a selectable Department option when editing it', function () {
+    // TaskPolicy::update() lets a task's own assignee edit it regardless
+    // of current department access - the exact scenario that used to
+    // leave the Department <select> with ZERO options, blocking the save
+    // entirely, once their only granted department was revoked.
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Grandfathered department task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    AccessPermission::where('user_id', $staff->id)->delete();
+
+    $response = $this->actingAs($staff)->get("/tasks/{$task->id}/edit");
+    $response->assertOk();
+
+    $departmentIds = collect($response->viewData('departmentsByOrganization')[$this->orgA->id] ?? [])->pluck('id')->all();
+    expect($departmentIds)->toContain($this->deptA->id);
+});
+
+test('code review follow-up (task #70): the same grandfathered-department fallback applies when the task\'s current department was deactivated, not just when access was revoked', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($staff->id);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Deactivated department task',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $this->deptA->update(['is_active' => false]);
+
+    $response = $this->actingAs($staff)->get("/tasks/{$task->id}/edit");
+    $response->assertOk();
+
+    $departmentIds = collect($response->viewData('departmentsByOrganization')[$this->orgA->id] ?? [])->pluck('id')->all();
+    expect($departmentIds)->toContain($this->deptA->id);
+});
+
 test('a staff user cannot see a task outside their granted departments', function () {
     $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
     $task = Task::create([
