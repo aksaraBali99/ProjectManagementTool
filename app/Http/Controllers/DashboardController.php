@@ -115,7 +115,15 @@ class DashboardController extends Controller
         }
 
         if ($user->isStaffInOrg($organizationId)) {
-            $allowedDepartmentIds = $user->allowedDepartmentIds($organizationId);
+            // task #73 (department-null crash fix): allowedActiveDepartmentIds(),
+            // not the bare allowedDepartmentIds() this used to call -- a
+            // deactivated department no longer counts as "a department I
+            // have access to" for MyTask, same as everywhere else
+            // (hasDepartmentAccess(), Task::scopeVisibleTo()). Without
+            // this, a task assigned directly to this staff member in a
+            // department an owner has since deactivated stayed in MyTask
+            // indefinitely.
+            $allowedDepartmentIds = $user->allowedActiveDepartmentIds($organizationId);
             $myTasks = $tasks
                 ->filter(fn (Task $task) => $allowedDepartmentIds->contains($task->department_id)
                     && ($task->assignee_id === $user->id || $task->subtasks->contains('assignee_id', $user->id)))

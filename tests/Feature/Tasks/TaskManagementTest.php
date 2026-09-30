@@ -729,6 +729,31 @@ test('the task list only shows a staff member tasks in departments they are gran
     $response->assertDontSee('Hidden task');
 });
 
+test('a task assigned to a staff user in a now-deactivated department does not crash the Task List', function () {
+    // task #73 (department-null crash fix): Department::HidesInactiveFromNonAdmins
+    // used to make $task->department resolve to null for a non-admin once
+    // the department was deactivated, even though this task is still
+    // visible via the assignee-anywhere bypass — the Task List's
+    // department badge then fatal-errored calling ->badgeText() on that
+    // null relation.
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $staff->id,
+        'title' => 'Mine, in a department that gets deactivated',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    $this->deptA->update(['is_active' => false]);
+
+    $response = $this->actingAs($staff)->get('/tasks/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertSee('Mine, in a department that gets deactivated');
+});
+
 test('management sees every task in their company regardless of department', function () {
     $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
     Task::create([
