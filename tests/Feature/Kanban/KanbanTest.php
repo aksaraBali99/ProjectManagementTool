@@ -257,6 +257,46 @@ test('Kanban only shows tasks in a staff user\'s granted departments, same as th
     $response->assertDontSee('Hidden task');
 });
 
+test('task #73 (visibility consolidation): a staff user with view_tasks revoked sees no tasks on the Kanban board, even with valid department access', function () {
+    $staff = makeStaffOnKanban($this->orgA, $this->deptA);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Should be hidden',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+
+    $staffRole = Role::where('slug', 'staff')->firstOrFail();
+    $viewTasksId = Permission::where('slug', 'view_tasks')->firstOrFail()->id;
+    $staffRole->permissions()->detach($viewTasksId);
+
+    $response = $this->actingAs($staff)->get('/kanban/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
+});
+
+test('task #73 (visibility consolidation): a staff user with access to a now-deactivated department no longer sees that task on the Kanban board', function () {
+    $staff = makeStaffOnKanban($this->orgA, $this->deptA);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Should be hidden',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+
+    $this->deptA->update(['is_active' => false]);
+
+    $response = $this->actingAs($staff)->get('/kanban/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
+});
+
 test('a client-role user gets a Kanban tab for their project\'s company, scoped to only their attached project\'s tasks', function () {
     $client = User::factory()->create();
     OrgMember::create([

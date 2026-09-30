@@ -729,6 +729,51 @@ test('the task list only shows a staff member tasks in departments they are gran
     $response->assertDontSee('Hidden task');
 });
 
+test('task #73 (visibility consolidation): a staff user with view_tasks revoked cannot reach the Task List at all', function () {
+    // Unlike Calendar/Kanban/Dashboard (which render an OK page with an
+    // empty/limited task set), the Task List page has its own additional
+    // TaskPolicy::viewAny() gate — already checking hasPermission('view_tasks')
+    // independent of this fix — so a staff member with no org where they
+    // pass it is 403'd from the whole page, not shown an empty list. Not a
+    // behavior this fix introduces; scopeVisibleTo()'s own gate would
+    // produce an empty list same as the other three pages if this
+    // page-level gate weren't already there first.
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Should be hidden',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $staffRole = Role::where('slug', 'staff')->firstOrFail();
+    $viewTasksId = Permission::where('slug', 'view_tasks')->firstOrFail()->id;
+    $staffRole->permissions()->detach($viewTasksId);
+
+    $this->actingAs($staff)->get('/tasks/'.$this->orgA->id)->assertForbidden();
+});
+
+test('task #73 (visibility consolidation): a staff user with access to a now-deactivated department no longer sees that task on the Task List', function () {
+    $staff = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Should be hidden',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $this->deptA->update(['is_active' => false]);
+
+    $response = $this->actingAs($staff)->get('/tasks/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
+});
+
 test('management sees every task in their company regardless of department', function () {
     $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
     Task::create([

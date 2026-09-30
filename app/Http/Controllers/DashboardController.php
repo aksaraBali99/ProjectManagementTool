@@ -115,6 +115,20 @@ class DashboardController extends Controller
         }
 
         if ($user->isStaffInOrg($organizationId)) {
+            // task #73 (visibility consolidation): kept, NOT removed as
+            // redundant with the scopeVisibleTo() fix — this is doing
+            // genuinely separate work. scopeVisibleTo() has an
+            // unconditional assignee-anywhere bypass (a task assigned to
+            // this staff member is visible even in a department they were
+            // never granted, not just a deactivated one); MyTask is
+            // deliberately narrower than that general visibility —
+            // "assigned to me AND within a department I actually have
+            // access to" — so this filter excludes exactly the
+            // assignee-bypass tasks outside a granted department that
+            // $tasks legitimately still includes. Confirmed by reverting
+            // this once: it broke two pre-existing tests asserting exactly
+            // that narrower MyTask behavior, for reasons unrelated to
+            // either scopeVisibleTo() gap.
             $allowedDepartmentIds = $user->allowedDepartmentIds($organizationId);
             $myTasks = $tasks
                 ->filter(fn (Task $task) => $allowedDepartmentIds->contains($task->department_id)
