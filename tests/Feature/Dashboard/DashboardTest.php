@@ -5,6 +5,7 @@ use App\Models\AccessPermission;
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -99,6 +100,32 @@ test('a task assigned to a staff user outside their granted departments still ap
     $response->assertOk();
     $priorityGroups = $response->viewData('priorityGroups');
     expect($priorityGroups[Priority::Medium->value]->pluck('id')->all())->toBe([$assignedElsewhere->id]);
+});
+
+test('task #73 (visibility consolidation): a staff user with view_tasks revoked sees no tasks on the Dashboard, even with valid department access', function () {
+    $staff = makeStaffOnDashboard($this->orgA, $this->deptA);
+    makeTaskOnDashboard($this->orgA, $this->projectA, $this->deptA, 'Should be hidden', Priority::High);
+
+    $staffRole = Role::where('slug', 'staff')->firstOrFail();
+    $viewTasksId = Permission::where('slug', 'view_tasks')->firstOrFail()->id;
+    $staffRole->permissions()->detach($viewTasksId);
+
+    $response = $this->actingAs($staff)->get('/dashboard/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
+});
+
+test('task #73 (visibility consolidation): a staff user with access to a now-deactivated department no longer sees that task on the Dashboard', function () {
+    $staff = makeStaffOnDashboard($this->orgA, $this->deptA);
+    makeTaskOnDashboard($this->orgA, $this->projectA, $this->deptA, 'Should be hidden', Priority::High);
+
+    $this->deptA->update(['is_active' => false]);
+
+    $response = $this->actingAs($staff)->get('/dashboard/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
 });
 
 test('the Active list only includes High-priority tasks that are In progress or In review', function () {

@@ -2,6 +2,7 @@
 
 use App\Enums\Priority;
 use App\Enums\ProjectStatus;
+use App\Models\AccessPermission;
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
@@ -494,6 +495,44 @@ test('a staff member granted create_edit_projects can create and edit a project 
     $this->actingAs($this->staffInA)->post('/projects', validProjectPayload([
         'organization_id' => $this->orgB->id,
     ]))->assertForbidden();
+});
+
+test('task #73 (visibility consolidation): a staff user with view_tasks revoked sees no tasks in the Projects page\'s count/drilldown, even with valid department access', function () {
+    $dept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);
+    AccessPermission::create(['user_id' => $this->staffInA->id, 'organization_id' => $this->orgA->id, 'department_id' => $dept->id, 'allowed' => true]);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+    Task::create([
+        'organization_id' => $this->orgA->id, 'project_id' => $project->id, 'department_id' => $dept->id,
+        'title' => 'Should be hidden', 'priority' => 'medium', 'status' => 'pending',
+    ]);
+
+    $this->roles['staff']->permissions()->detach(Permission::where('slug', 'view_tasks')->firstOrFail()->id);
+
+    $response = $this->actingAs($this->staffInA)->get("/projects/{$this->orgA->id}");
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
+    $visibleProject = $response->viewData('projects')->firstWhere('id', $project->id);
+    expect($visibleProject->tasks_count)->toBe(0);
+});
+
+test('task #73 (visibility consolidation): a staff user with access to a now-deactivated department no longer sees that task in the Projects page\'s count/drilldown', function () {
+    $dept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);
+    AccessPermission::create(['user_id' => $this->staffInA->id, 'organization_id' => $this->orgA->id, 'department_id' => $dept->id, 'allowed' => true]);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+    Task::create([
+        'organization_id' => $this->orgA->id, 'project_id' => $project->id, 'department_id' => $dept->id,
+        'title' => 'Should be hidden', 'priority' => 'medium', 'status' => 'pending',
+    ]);
+
+    $dept->update(['is_active' => false]);
+
+    $response = $this->actingAs($this->staffInA)->get("/projects/{$this->orgA->id}");
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
+    $visibleProject = $response->viewData('projects')->firstWhere('id', $project->id);
+    expect($visibleProject->tasks_count)->toBe(0);
 });
 
 test('the projects table sits inside a pale wash of the active company\'s own color', function () {
