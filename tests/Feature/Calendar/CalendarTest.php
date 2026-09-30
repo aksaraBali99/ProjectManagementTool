@@ -4,6 +4,7 @@ use App\Models\AccessPermission;
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -109,6 +110,48 @@ test('the calendar only shows tasks in a staff user\'s granted departments, same
     $response->assertOk();
     $response->assertSee('Visible task');
     $response->assertDontSee('Hidden task');
+});
+
+test('task #73 (visibility consolidation): a staff user with view_tasks revoked sees no tasks on the calendar, even with valid department access', function () {
+    $staff = makeStaffOnCalendar($this->orgA, $this->deptA);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Should be hidden',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => now()->addDays(3),
+    ]);
+
+    $staffRole = Role::where('slug', 'staff')->firstOrFail();
+    $viewTasksId = Permission::where('slug', 'view_tasks')->firstOrFail()->id;
+    $staffRole->permissions()->detach($viewTasksId);
+
+    $response = $this->actingAs($staff)->get('/calendar/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
+});
+
+test('task #73 (visibility consolidation): a staff user with access to a now-deactivated department no longer sees that task on the calendar', function () {
+    $staff = makeStaffOnCalendar($this->orgA, $this->deptA);
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'Should be hidden',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => now()->addDays(3),
+    ]);
+
+    $this->deptA->update(['is_active' => false]);
+
+    $response = $this->actingAs($staff)->get('/calendar/'.$this->orgA->id);
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
 });
 
 test('tasks with no due date are excluded from the calendar', function () {

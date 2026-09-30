@@ -100,12 +100,28 @@ class Task extends Model
      * of its subtasks) assigned to them is visible even outside their
      * granted departments, since being the assignee is its own access
      * path, independent of department scope. This is the single source of
-     * truth for task visibility — the Task List, Dashboard, and Kanban
-     * pages all filter through this scope rather than re-deriving it.
+     * truth for task visibility — the Task List, Dashboard, Kanban, and
+     * Calendar pages, plus the Projects page's own count/drilldown, all
+     * filter through this scope rather than re-deriving it.
+     *
+     * task #73 (visibility consolidation): now mirrors TaskPolicy::view()
+     * in the two ways it used to disagree — the view_tasks permission gate
+     * up front (a user with that permission revoked for this org sees no
+     * tasks at all, not just a department-filtered subset), and excluding
+     * a deactivated department from the department-access branch (a
+     * staff member's access_permissions row can still say "allowed" for a
+     * department an owner has since deactivated; that grant no longer
+     * counts, same as hasDepartmentAccess() already enforces for the
+     * single-task check). See TaskViewableIdsParityTest for the batched
+     * equivalent's own, already-correct version of this same logic.
      */
     public function scopeVisibleTo(Builder $query, User $user, int $organizationId): Builder
     {
         $query->where('organization_id', $organizationId);
+
+        if (! $user->hasPermission('view_tasks', $organizationId)) {
+            return $query->whereRaw('1 = 0');
+        }
 
         if ($user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($organizationId)) {
             return $query;
@@ -117,7 +133,14 @@ class Task extends Model
             return $query->whereIn('project_id', $clientProjectIds);
         }
 
-        $allowedDepartmentIds = $user->allowedDepartmentIds($organizationId);
+        // Active-department access only — mirrors hasDepartmentAccess()'s
+        // own is_active filter, unlike the bare allowedDepartmentIds()
+        // this used to call, which never excluded a deactivated department.
+        $allowedDepartmentIds = $user->accessPermissions()
+            ->where('organization_id', $organizationId)
+            ->where('allowed', true)
+            ->whereHas('department', fn ($departmentQuery) => $departmentQuery->where('is_active', true))
+            ->pluck('department_id');
 
         return $query->where(function ($q) use ($allowedDepartmentIds, $user) {
             $q->whereIn('department_id', $allowedDepartmentIds)
@@ -135,11 +158,16 @@ class Task extends Model
      * across a matrix of roles/states — so a caller can use whichever is
      * more convenient without risking a different answer.
      *
-     * Deliberately NOT built on scopeVisibleTo(): that scope disagrees
-     * with TaskPolicy::view() in two ways (no hasPermission('view_tasks')
-     * gate, and allowedDepartmentIds() doesn't filter out a deactivated
-     * department) — a decision to leave alone this phase, not something
-     * this helper should inherit.
+     * Deliberately NOT built on scopeVisibleTo(): at the time this was
+     * written, that scope disagreed with TaskPolicy::view() in two ways
+     * (no hasPermission('view_tasks') gate, and allowedDepartmentIds()
+     * didn't filter out a deactivated department) — a decision to leave
+     * alone that phase, not something this helper should inherit. Both
+     * gaps were later fixed directly in scopeVisibleTo() itself (task #73,
+     * visibility consolidation), so the two no longer disagree — this
+     * method just wasn't refactored to depend on that scope after the
+     * fact, since it already independently agreed with TaskPolicy::view()
+     * and had its own passing parity test.
      *
      * One query per branch per organization represented in $taskIds, not
      * one per task — grouping by organization_id first is what makes that

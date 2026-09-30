@@ -497,6 +497,44 @@ test('a staff member granted create_edit_projects can create and edit a project 
     ]))->assertForbidden();
 });
 
+test('task #73 (visibility consolidation): a staff user with view_tasks revoked sees no tasks in the Projects page\'s count/drilldown, even with valid department access', function () {
+    $dept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);
+    AccessPermission::create(['user_id' => $this->staffInA->id, 'organization_id' => $this->orgA->id, 'department_id' => $dept->id, 'allowed' => true]);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+    Task::create([
+        'organization_id' => $this->orgA->id, 'project_id' => $project->id, 'department_id' => $dept->id,
+        'title' => 'Should be hidden', 'priority' => 'medium', 'status' => 'pending',
+    ]);
+
+    $this->roles['staff']->permissions()->detach(Permission::where('slug', 'view_tasks')->firstOrFail()->id);
+
+    $response = $this->actingAs($this->staffInA)->get("/projects/{$this->orgA->id}");
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
+    $visibleProject = $response->viewData('projects')->firstWhere('id', $project->id);
+    expect($visibleProject->tasks_count)->toBe(0);
+});
+
+test('task #73 (visibility consolidation): a staff user with access to a now-deactivated department no longer sees that task in the Projects page\'s count/drilldown', function () {
+    $dept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);
+    AccessPermission::create(['user_id' => $this->staffInA->id, 'organization_id' => $this->orgA->id, 'department_id' => $dept->id, 'allowed' => true]);
+    $project = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project A', 'description' => 'd']);
+    Task::create([
+        'organization_id' => $this->orgA->id, 'project_id' => $project->id, 'department_id' => $dept->id,
+        'title' => 'Should be hidden', 'priority' => 'medium', 'status' => 'pending',
+    ]);
+
+    $dept->update(['is_active' => false]);
+
+    $response = $this->actingAs($this->staffInA)->get("/projects/{$this->orgA->id}");
+
+    $response->assertOk();
+    $response->assertDontSee('Should be hidden');
+    $visibleProject = $response->viewData('projects')->firstWhere('id', $project->id);
+    expect($visibleProject->tasks_count)->toBe(0);
+});
+
 test('a task assigned to a staff user in a now-deactivated department does not crash the Projects page\'s drilldown', function () {
     // task #73 (department-null crash fix): Department::HidesInactiveFromNonAdmins
     // used to make $task->department resolve to null for a non-admin once
