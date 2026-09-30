@@ -157,41 +157,16 @@
         });
     });
 
-    // task #73: strips the extension ("Peace and Conflict Grade 1.pdf" ->
-    // "Peace and Conflict Grade 1") — matches the last ".xyz" only, so an
-    // incidental earlier dot in the filename (e.g. "report.v2.pdf") is
-    // left alone and only the real extension is removed. Same helper as
-    // the Task edit page's own merged attach panel.
-    function stripExtension(filename) {
-        return filename.replace(/\.[^.]+$/, '');
-    }
-
-    // task #73: auto-fill Name from the chosen file, same convenience the
-    // task edit page's own upload option gets — but updates on EVERY
-    // selection, not just the first. lastAutoFilledName tracks what WE
-    // last wrote so a second (different) file selection can tell "the
-    // field still holds what I auto-filled it with" (safe to replace)
-    // apart from "the user typed/edited this themselves since" (never
-    // overwritten) — a bare "is it empty" check (the previous bug) only
-    // ever caught the very first selection, since every later selection
-    // saw a non-empty field left over from the last one.
-    var lastAutoFilledName = null;
-    if (fileField) {
-        fileField.addEventListener('change', function () {
-            var file = fileField.files[0];
-
-            if (fileNameDisplay) {
-                fileNameDisplay.textContent = file ? file.name : 'No file selected';
-                fileNameDisplay.title = file ? file.name : '';
-            }
-
-            var nameField = document.getElementById('name');
-            if (nameField && file && (nameField.value === '' || nameField.value === lastAutoFilledName)) {
-                lastAutoFilledName = stripExtension(file.name);
-                nameField.value = lastAutoFilledName;
-            }
-        });
-    }
+    // task #73 (document form fixes, code-review follow-up): the
+    // auto-fill-on-select-and-re-select logic (plus the dotfile-name edge
+    // case and the "don't clobber a manual edit" tracking) is shared with
+    // the Task edit page's own merged attach panel — see
+    // resources/js/document-name-autofill.js.
+    window.solavaDocumentNameAutofill.wireFileNameAutofill({
+        fileInput: fileField,
+        fileNameEl: fileNameDisplay,
+        nameInput: document.getElementById('name'),
+    });
 
     activate(modeInput.value === 'upload' ? 'upload' : 'link');
 })();

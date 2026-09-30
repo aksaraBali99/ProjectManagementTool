@@ -547,8 +547,19 @@
                 return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
             }
 
+            // task #73 (document form fixes, code-review follow-up): mirrors
+            // Document::iconClass() (image/audio/video by mime_type prefix,
+            // generic file for anything else, link icon only for a document
+            // with no mime_type at all) — this picker used to only tell
+            // "has a mime_type" apart from "doesn't", showing every
+            // image/audio/video result with the same generic file icon the
+            // standalone Documents page had already moved past.
             function fileIconClass(doc) {
-                return doc.mime_type ? 'ti-file-text' : 'ti-link';
+                if (! doc.mime_type) return 'ti-link';
+                if (doc.mime_type.indexOf('image/') === 0) return 'ti-photo';
+                if (doc.mime_type.indexOf('audio/') === 0) return 'ti-music';
+                if (doc.mime_type.indexOf('video/') === 0) return 'ti-video';
+                return 'ti-file-text';
             }
 
             function renderResultItem(doc) {
@@ -704,6 +715,10 @@
                 showSearchView();
                 searchInput.value = '';
                 updateResultsHeading('');
+                // task #73 (code-review follow-up): a fresh open never
+                // starts with a stale file/name left over from an attempt
+                // abandoned without going through Back or Close.
+                resetNewDocumentForm();
                 searchInput.focus();
                 fetchResults(1, false);
             }
@@ -711,6 +726,7 @@
             function closePanel(returnFocus) {
                 attachToggle.setAttribute('aria-expanded', 'false');
                 attachPanel.classList.add('hidden');
+                resetNewDocumentForm();
                 if (returnFocus) attachToggle.focus();
             }
 
@@ -929,14 +945,57 @@
             }
         }
 
+        const fileInput = container.querySelector('.new-document-file');
+        const fileNameEl = container.querySelector('.new-document-file-name');
+        const nameInput = container.querySelector('.new-document-name');
+
+        // task #73 (document form fixes, code-review follow-up): the
+        // auto-fill-on-select/re-select logic (extension-stripping, and
+        // never clobbering a manual edit) now lives in
+        // resources/js/document-name-autofill.js, shared with the
+        // Documents page's own upload form — see its own docblock.
+        const nameAutofill = window.solavaDocumentNameAutofill.wireFileNameAutofill({
+            fileInput: fileInput,
+            fileNameEl: fileNameEl,
+            nameInput: nameInput,
+        });
+
+        // task #73 (code-review follow-up): clears the create-a-new-
+        // document sub-form back to its untouched state — the file input,
+        // its filename display, the Name/link fields, any shown error, and
+        // the auto-fill "protected" tracking above (so a genuinely fresh
+        // attempt can auto-fill again). Called whenever an in-progress
+        // attempt is abandoned (Back to search, closing the whole panel,
+        // reopening it) or completes (a successful upload/create) — a
+        // stale file or name from one attempt can otherwise silently
+        // survive into the next: previously, selecting a file, clicking
+        // Back, then starting a DIFFERENT attempt (e.g. "Upload '<new
+        // search>' as a new file") left both the old file and its derived
+        // name in place, since nothing reset either one.
+        function resetNewDocumentForm() {
+            if (nameInput) nameInput.value = '';
+            nameAutofill.reset();
+            if (fileInput) fileInput.value = '';
+            if (fileNameEl) { fileNameEl.textContent = 'No file selected'; fileNameEl.title = ''; }
+            const linkInput = container.querySelector('.new-document-link');
+            if (linkInput) linkInput.value = '';
+            const errorEl = container.querySelector('.new-document-error');
+            if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+        }
+
         function openCreateForm(mode) {
             const searchView = container.querySelector('.attach-document-search-view');
             const searchInput = container.querySelector('.attach-document-search');
             activateNewDocumentMode(mode);
 
-            const nameInput = container.querySelector('.new-document-name');
-            if (nameInput && ! nameInput.value && searchInput) {
+            // task #73 (attach panel polish): pre-fills Name from whatever
+            // the user had typed into search (e.g. clicking "Upload
+            // 'Budget' as a new file") — protected the same way a manual
+            // edit is, so a file selected afterward in this same attempt
+            // doesn't silently overwrite it.
+            if (nameInput && ! nameInput.value && searchInput && searchInput.value.trim()) {
                 nameInput.value = searchInput.value.trim();
+                nameAutofill.protect();
             }
 
             if (searchView) searchView.classList.add('hidden');
@@ -950,56 +1009,15 @@
                 const searchView = container.querySelector('.attach-document-search-view');
                 newForm.classList.add('hidden');
                 if (searchView) searchView.classList.remove('hidden');
+                resetNewDocumentForm();
                 const searchInput = container.querySelector('.attach-document-search');
                 if (searchInput) searchInput.focus();
-            });
-        }
-
-        // task #73 (attach panel polish): strips the extension for the
-        // name auto-fill ("Peace and Conflict Grade 1.pdf" -> "Peace and
-        // Conflict Grade 1") — matches the last ".xyz" only, so an
-        // incidental earlier dot in the filename (e.g. "report.v2.pdf")
-        // is left alone and only the real extension is removed.
-        function stripExtension(filename) {
-            return filename.replace(/\.[^.]+$/, '');
-        }
-
-        const fileInput = container.querySelector('.new-document-file');
-        const fileNameEl = container.querySelector('.new-document-file-name');
-        // task #73 (document form fixes): tracks what THIS handler last
-        // wrote into the name field, so a second (different) file
-        // selection can tell "the field still holds what I auto-filled
-        // it with" (safe to replace with the new file's name) apart from
-        // "the user typed/edited this themselves since, OR it came from
-        // clicking 'Upload [name] as a new file' on a search result"
-        // (never overwritten, exactly as before) — a bare "is it empty"
-        // check only ever caught the very first selection, since every
-        // later selection saw a non-empty field left over from the last
-        // one. Reset alongside the name field itself on a successful
-        // submit, so a later, genuinely-fresh empty-field case is never
-        // second-guessed by a stale tracked value from an earlier attach.
-        let lastAutoFilledName = null;
-        if (fileInput) {
-            fileInput.addEventListener('change', function () {
-                const file = fileInput.files[0];
-
-                if (fileNameEl) {
-                    fileNameEl.textContent = file ? file.name : 'No file selected';
-                    fileNameEl.title = file ? file.name : '';
-                }
-
-                const nameInput = container.querySelector('.new-document-name');
-                if (nameInput && file && (nameInput.value === '' || nameInput.value === lastAutoFilledName)) {
-                    lastAutoFilledName = stripExtension(file.name);
-                    nameInput.value = lastAutoFilledName;
-                }
             });
         }
 
         const createBtn = container.querySelector('.create-and-attach-btn');
         if (createBtn) {
             createBtn.addEventListener('click', function () {
-                const nameInput = container.querySelector('.new-document-name');
                 const linkInput = container.querySelector('.new-document-link');
                 const accessInput = container.querySelector('.new-document-access');
                 const errorEl = container.querySelector('.new-document-error');
@@ -1044,11 +1062,7 @@
                     })
                     .then(function (data) {
                         appendDocumentRow(data.document);
-                        nameInput.value = '';
-                        lastAutoFilledName = null;
-                        linkInput.value = '';
-                        if (fileInput) fileInput.value = '';
-                        if (fileNameEl) { fileNameEl.textContent = 'No file selected'; fileNameEl.title = ''; }
+                        resetNewDocumentForm();
                         const attachPanel = container.querySelector('.attach-document-panel');
                         const attachToggle = container.querySelector('.attach-document-toggle');
                         newForm.classList.add('hidden');
