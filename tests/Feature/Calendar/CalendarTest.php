@@ -8,9 +8,27 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 beforeEach(function () {
+    // Several tests below hit the calendar with no explicit ?date= (so the
+    // controller defaults its view to "today") and then create a task due
+    // a few days out via bare now()->addDays(n). Whenever the real "today"
+    // falls in the last few days of a month, "a few days from today" lands
+    // in a DIFFERENT month than the one the default view shows, and the
+    // task silently never appears -- a bug in the TEST's own date math, not
+    // the feature, that intermittently failed CI purely depending on which
+    // calendar date it happened to run on. Pinned to a safe mid-month,
+    // mid-week date (June 15, 2026 is a Monday -- startOfMonth()->addDays(14)
+    // always lands back on day 1's own weekday, so a Monday "now" keeps
+    // every test's own +2/+3/+5-day offset solidly mid-week too, clear of
+    // both a month boundary and a Sun/Sat week-view boundary) so every
+    // test here is deterministic regardless of the real date; reset in
+    // afterEach so this frozen clock never leaks into another test file
+    // run in the same process.
+    Carbon::setTestNow(Carbon::parse('2026-06-15 12:00:00'));
+
     $this->owner = createOwner();
 
     $this->orgA = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
@@ -31,6 +49,10 @@ beforeEach(function () {
         'user_id' => $this->management->id,
         'role_id' => Role::where('slug', 'management')->first()->id,
     ]);
+});
+
+afterEach(function () {
+    Carbon::setTestNow();
 });
 
 function makeStaffOnCalendar(Organization $org, Department $department): User
