@@ -5,7 +5,7 @@ use App\Models\Organization;
 use App\Services\Import\ImportIdCodec;
 
 beforeEach(function () {
-    $this->owner = createOwner();
+    $this->owner = createImportOwner();
 });
 
 test('a Department row resolves an existing company by name and is marked insert', function () {

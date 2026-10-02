@@ -10,7 +10,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 beforeEach(function () {
-    $this->owner = createOwner();
+    $this->owner = createImportOwner();
 
     $this->staff = User::factory()->create();
 });

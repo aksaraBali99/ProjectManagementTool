@@ -65,15 +65,55 @@ function something()
  * Seeds the real Role/Permission set (RoleSeeder + PermissionSeeder) and
  * creates a User holding the "owner" role — the bootstrap most feature
  * tests need before they can act as an authenticated admin.
+ *
+ * $attributes overrides the factory's randomly-generated values, for the
+ * rare test whose own assertions depend on this user's identity rather
+ * than just its role — see createImportOwner() for the motivating case.
+ *
+ * @param  array<string, mixed>  $attributes
  */
-function createOwner(): User
+function createOwner(array $attributes = []): User
 {
     test()->seed([RoleSeeder::class, PermissionSeeder::class]);
 
-    $owner = User::factory()->create();
+    $owner = User::factory()->create($attributes);
     $owner->roles()->attach(Role::where('slug', 'owner')->first()->id);
 
     return $owner;
+}
+
+/**
+ * The owner fixture for the Import tests — identical to createOwner()
+ * except that its name and email are FIXED rather than Faker-random.
+ *
+ * Why this exists: ImportValidator flags a Users row as `warning` when
+ * DuplicateDetector::findSimilarUser() finds any existing user whose name
+ * OR email is >= 85% similar (similar_text) to the incoming row, and the
+ * candidate pool is every user already in the database — which, in these
+ * tests, includes this incidental owner. Faker's safeEmail() draws from
+ * the same @example.com/.net/.org domains the import fixtures use, so a
+ * short random local part makes the shared domain dominate the score:
+ * "tvon@example.com" vs "one@example.com" scores 90.3%, "bbode@" 87.5%.
+ * Measured across 20k random owners, that tripped the threshold 0.46% of
+ * the time — a ~1-in-220 flake that turned unrelated PRs red (it failed
+ * ImportUsersValidationTest's "blank Employee ID" case in CI while
+ * passing locally on the same commit).
+ *
+ * The fixed identity below is deliberately far from every import fixture
+ * on both axes (worst observed similarity 35.7%, against an 85%
+ * threshold) and uses a .test domain no fixture shares, so this can't
+ * silently drift back toward the boundary.
+ *
+ * Tests that genuinely exercise duplicate detection create their own
+ * deliberately-similar users (see ImportDuplicateWarningTest) and are
+ * unaffected — this only removes the RANDOM, incidental candidate.
+ */
+function createImportOwner(): User
+{
+    return createOwner([
+        'name' => 'Import Fixture Owner',
+        'email' => 'import.fixture.owner@fixtures.test',
+    ]);
 }
 
 /**

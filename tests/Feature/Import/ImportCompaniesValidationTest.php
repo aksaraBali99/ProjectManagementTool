@@ -4,7 +4,7 @@ use App\Models\Organization;
 use App\Services\Import\ImportIdCodec;
 
 beforeEach(function () {
-    $this->owner = createOwner();
+    $this->owner = createImportOwner();
 });
 
 test('a blank ID Companies row is marked insert', function () {

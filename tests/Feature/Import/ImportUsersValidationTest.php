@@ -4,7 +4,7 @@ use App\Models\Organization;
 use App\Models\User;
 
 beforeEach(function () {
-    $this->owner = createOwner();
+    $this->owner = createImportOwner();
 
     $this->orgA = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
 });

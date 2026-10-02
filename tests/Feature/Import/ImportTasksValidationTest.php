@@ -6,7 +6,7 @@ use App\Models\Project;
 use App\Models\Task;
 
 beforeEach(function () {
-    $this->owner = createOwner();
+    $this->owner = createImportOwner();
 
     $this->orgA = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
     $this->deptA = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Marketing', 'color' => '#000000']);

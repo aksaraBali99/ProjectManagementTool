@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Services\Import\ImportValidator;
 
 beforeEach(function () {
-    $this->owner = createOwner();
+    $this->owner = createImportOwner();
 
     $this->staff = User::factory()->create();
 });
