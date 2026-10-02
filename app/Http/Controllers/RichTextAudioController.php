@@ -46,7 +46,7 @@ class RichTextAudioController extends Controller
             Gate::authorize('update', $task);
         } else {
             Gate::authorize('view', $task);
-            Gate::authorize('create', Comment::class);
+            Gate::authorize('create', [Comment::class, $task]);
         }
 
         return $this->upload(fn (FileStorageService $service) => $service->upload($request->file('file'), FileCategory::Audio, $task->id));
