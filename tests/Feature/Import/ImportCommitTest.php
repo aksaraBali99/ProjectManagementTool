@@ -14,7 +14,7 @@ use App\Services\Import\ImportIdCodec;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
-    $this->owner = createOwner();
+    $this->owner = createImportOwner();
 
     $this->orgA = Organization::create(['name' => 'Org A', 'slug' => 'org-a', 'accent_color' => '#1D9E75']);
 });

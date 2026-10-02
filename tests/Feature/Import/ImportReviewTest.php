@@ -5,7 +5,7 @@ use App\Models\User;
 use App\Services\Import\ImportIdCodec;
 
 beforeEach(function () {
-    $this->owner = createOwner();
+    $this->owner = createImportOwner();
 
     $this->staff = User::factory()->create();
 
