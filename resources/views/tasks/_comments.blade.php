@@ -85,13 +85,20 @@
                             <button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>
                         @endif
                         {{-- Replying follows the same rule as posting a top-level
-                             comment (anyone who can view the task) — not gated by
-                             canEditComment, which only governs editing/deleting
-                             THIS PARTICULAR comment. Shown on every comment,
+                             comment — TC-55: that means add_edit_own_comment
+                             ($canEditOwnComments), not merely being able to view
+                             the task, matching what CommentPolicy@create now
+                             enforces server-side. Deliberately NOT gated by
+                             canEditComment, which governs editing/deleting THIS
+                             PARTICULAR comment (an author-identity rule on top of
+                             the same permission). Shown on every comment,
                              including replies (see the reply cards below). --}}
-                        <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
-                        {{-- Same permission rule as Reply — anyone who can view
-                             the task can react, not gated by canEditComment. --}}
+                        @if ($canEditOwnComments)
+                            <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
+                        @endif
+                        {{-- Reactions are deliberately NOT gated here: they need
+                             only view access to the task, not add_edit_own_comment
+                             (TC-55 confirmed this as intended behaviour). --}}
                         <button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">{!! $reactIcon !!}</button>
                     </div>
                 </div>
@@ -117,7 +124,9 @@
                                     <button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>
                                     <button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>
                                 @endif
-                                <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
+                                @if ($canEditOwnComments)
+                                    <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
+                                @endif
                                 <button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">{!! $reactIcon !!}</button>
                             </div>
                         </div>
@@ -129,12 +138,20 @@
         @endforelse
     </div>
 
-    <div class="mt-2 flex items-start gap-2">
-        <x-rich-text-editor class="new-comment-editor min-w-0 flex-1" compact label="New comment" placeholder="Add a comment… type @ to mention someone" :mentions="$mentionableUsers ?? []" :image-task-id="$task->id" image-context="comment" :audio-task-id="$task->id" audio-context="comment" :video-task-id="$task->id" video-context="comment" :document-task-id="$task->id" document-context="comment" :link-preview-task-id="$task->id" link-preview-context="comment" />
-        <button type="button" class="post-comment-btn rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
-            Post
-        </button>
-    </div>
+    {{-- TC-55: the composer is gated on add_edit_own_comment, the same
+         permission CommentPolicy@create now enforces on POST — rendering it
+         for a user the server would 403 was the visible half of that bug.
+         Reactions and reading comments stay available either way. --}}
+    @if ($canEditOwnComments)
+        <div class="mt-2 flex items-start gap-2">
+            <x-rich-text-editor class="new-comment-editor min-w-0 flex-1" compact label="New comment" placeholder="Add a comment… type @ to mention someone" :mentions="$mentionableUsers ?? []" :image-task-id="$task->id" image-context="comment" :audio-task-id="$task->id" audio-context="comment" :video-task-id="$task->id" video-context="comment" :document-task-id="$task->id" document-context="comment" :link-preview-task-id="$task->id" link-preview-context="comment" />
+            <button type="button" class="post-comment-btn rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
+                Post
+            </button>
+        </div>
+    @else
+        <p class="comment-no-permission mt-2 text-[11px] text-gray-500">You don't have permission to comment.</p>
+    @endif
     <p class="comment-error mt-1 text-[11px] text-red-600" style="display: none;"></p>
 </div>
 <script>
@@ -147,6 +164,14 @@
         const errorEl = container.querySelector('.comment-error');
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const mentionableUsers = @json($mentionableUsers ?? []);
+        // TC-55: add_edit_own_comment, the same flag the Blade above uses to
+        // decide whether to render the composer and the Reply buttons —
+        // needed here too for the cards this script builds itself (a comment
+        // posted this session, or one the 7s poll discovers), which would
+        // otherwise get a Reply button the server would then 403 on. Read
+        // once at render time: a permission changed mid-session only takes
+        // effect on the next page load, same as $canEditOwnComments itself.
+        const canComment = @json($canEditOwnComments);
 
         // task #70 phase 3: captures each server-rendered comment body's
         // PRISTINE html (before mention-highlight.js wraps any "@Name"
@@ -330,7 +355,10 @@
                 ? '<button type="button" class="edit-comment-btn text-[10px] text-brand-600 hover:underline">Edit</button>'
                     + '<button type="button" class="delete-comment-btn text-[10px] text-gray-500 hover:underline">Delete</button>'
                 : '';
-            const replyHtml = '<button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>';
+            // TC-55: gated exactly like the server-rendered Reply button above.
+            const replyHtml = canComment
+                ? '<button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>'
+                : '';
             // Identical markup to the server-rendered button above (same
             // smiley-plus icon, same title/aria-label) — see this file's
             // top @php block for why this glyph was chosen.
@@ -468,6 +496,11 @@
         // rather than mentioning someone the eligibility check would
         // reject anyway.
         function openReplyCompose(clickedCard) {
+            // TC-55: belt-and-braces — the Reply button isn't rendered without
+            // the permission, so this is only reachable if something else
+            // calls it; refuse rather than open a composer the POST would 403.
+            if (! canComment) return;
+
             const thread = clickedCard.closest('.comment-thread');
             if (thread.querySelector('.reply-compose')) return; // already open
 
@@ -692,6 +725,11 @@
             }
         });
 
+        // TC-55: both are absent when the composer isn't rendered (no
+        // add_edit_own_comment) — everything else on this page (reading,
+        // reactions, the poll) still works, so this guards rather than
+        // bailing out of the whole script.
+        if (postBtn && editorRoot) {
         postBtn.addEventListener('click', function () {
             withEditor(editorRoot).then(function (editor) {
                 if (editor.isEmpty()) return;
@@ -724,6 +762,7 @@
 
         // Ctrl/Cmd+Enter inside the editor posts, same as clicking Post.
         editorRoot.addEventListener('rte:submit', function () { postBtn.click(); });
+        }
 
         // Scoped to this task's own comment list, not a full-page refetch —
         // and only while the container is actually visible, so collapsed

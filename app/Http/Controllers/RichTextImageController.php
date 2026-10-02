@@ -57,7 +57,7 @@ class RichTextImageController extends Controller
             Gate::authorize('update', $task);
         } else {
             Gate::authorize('view', $task);
-            Gate::authorize('create', Comment::class);
+            Gate::authorize('create', [Comment::class, $task]);
         }
 
         if ($data['pasted'] ?? false) {

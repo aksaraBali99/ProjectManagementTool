@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Comment;
+use App\Models\Task;
 use App\Models\User;
 
 class CommentPolicy
@@ -18,18 +19,26 @@ class CommentPolicy
     }
 
     /**
-     * No Comment/Task argument to derive an organization from (the
-     * controller calls this as a blanket check, with the real scoping done
-     * separately via Gate::authorize('view', $task) before this). Checking
-     * hasPermission() without an org here would only see global roles and
-     * incorrectly reject every per-org-role user (staff/management/client
-     * all hold add_edit_own_comment only via their org-specific role, not
-     * a global one) — so this stays unconditional true, same reasoning as
-     * ProjectPolicy::viewAny.
+     * TC-55 (task #70): this used to take no Task and return an
+     * unconditional true, on the reasoning that there was no organization
+     * to resolve add_edit_own_comment against — but every caller already
+     * had the Task in hand (CommentController::store() plus the five
+     * comment-context upload endpoints), so the permission was simply
+     * never enforced: a Staff user with "Add / edit own comments" revoked
+     * could still post comments and replies, even though Edit/Delete
+     * correctly disappeared (those go through update()/delete(), which
+     * have always checked it via canEditOwnComments()).
+     *
+     * Now takes the Task and applies the SAME rule update() does, so
+     * "can create" and "can edit my own" can't drift apart — posting a
+     * comment you'd then be unable to edit was never a coherent state.
+     * The separate Gate::authorize('view', $task) at each call site is
+     * unchanged and still does the per-task scoping; this answers only
+     * "may this user comment in that task's organization at all".
      */
-    public function create(User $user): bool
+    public function create(User $user, Task $task): bool
     {
-        return true;
+        return $this->canEditOwnComments($user, $task->organization_id);
     }
 
     public function update(User $user, Comment $comment): bool

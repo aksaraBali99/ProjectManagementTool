@@ -68,11 +68,11 @@ class CommentController extends Controller
 
     public function store(Request $request, Task $task): JsonResponse
     {
-        // CommentPolicy@create doesn't take the task (it's a blanket "can
-        // this user comment at all" check), so viewing the task itself —
-        // the real scoping rule — is checked separately here.
+        // Two separate rules: can this user see this specific task at all,
+        // and may they comment in its organization (add_edit_own_comment).
+        // TC-55: the second used to be a no-op — see CommentPolicy@create.
         Gate::authorize('view', $task);
-        Gate::authorize('create', Comment::class);
+        Gate::authorize('create', [Comment::class, $task]);
 
         $data = $request->validate([
             'body' => ['required', 'string', 'max:500000'],
