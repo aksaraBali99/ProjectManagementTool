@@ -1840,3 +1840,152 @@ test('each subtask\'s description drilldown renders independently, scoped to its
         }
     }
 });
+
+// ---------------------------------------------------------------------------
+// Grandfathered assignee on save (task #70 follow-up)
+// ---------------------------------------------------------------------------
+
+/**
+ * A task whose assignee was valid when assigned but no longer qualifies
+ * under task #70's unified rule (their department access was revoked).
+ * The Edit page still shows them as the selected option — the whole point
+ * of that change's display fallback — so an untouched save must accept
+ * them back, or the task becomes unsaveable for every field.
+ *
+ * @return array{0: Task, 1: User} the task and its now-ineligible assignee
+ */
+function makeTaskWithGrandfatheredAssignee(Organization $org, Department $department, Project $project): array
+{
+    $assignee = makeStaffWithDepartmentAccess($org, $department);
+    $project->staff()->attach($assignee->id);
+
+    $task = Task::create([
+        'organization_id' => $org->id,
+        'project_id' => $project->id,
+        'department_id' => $department->id,
+        'assignee_id' => $assignee->id,
+        'title' => 'Grandfathered',
+        'description' => 'original',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    // Valid at assignment time, revoked afterwards.
+    AccessPermission::where('user_id', $assignee->id)->delete();
+
+    return [$task, $assignee];
+}
+
+test('task #70 follow-up: editing only the description saves, even though the current assignee no longer qualifies', function () {
+    [$task, $assignee] = makeTaskWithGrandfatheredAssignee($this->orgA, $this->deptA, $this->projectA);
+
+    // Precondition: this assignee really would fail the eligibility rule.
+    expect(Task::eligibleAssigneesFor($this->projectA, $this->deptA->id)->contains('id', $assignee->id))->toBeFalse();
+
+    // Exactly what the Description field's autosave-on-blur submits: the
+    // whole form, with assignee/project/department carried through
+    // untouched.
+    $response = $this->actingAs($this->management)->put("/tasks/{$task->id}", [
+        'project_id' => $task->project_id,
+        'department_id' => $task->department_id,
+        'assignee_id' => $task->assignee_id,
+        'title' => $task->title,
+        'description' => '<p>edited description</p>',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHasNoErrors();
+    expect($task->fresh()->description)->toContain('edited description');
+    expect($task->fresh()->assignee_id)->toBe($assignee->id);
+});
+
+test('task #70 follow-up: changing the DEPARTMENT re-validates the grandfathered assignee and is rejected', function () {
+    [$task, $assignee] = makeTaskWithGrandfatheredAssignee($this->orgA, $this->deptA, $this->projectA);
+    $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
+
+    $response = $this->actingAs($this->management)->put("/tasks/{$task->id}", [
+        'project_id' => $task->project_id,
+        'department_id' => $otherDept->id,
+        'assignee_id' => $assignee->id,
+        'title' => $task->title,
+        'description' => 'original',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasErrors('assignee_id');
+    expect($task->fresh()->department_id)->toBe($this->deptA->id);
+});
+
+test('task #70 follow-up: changing the PROJECT re-validates the grandfathered assignee and is rejected', function () {
+    [$task, $assignee] = makeTaskWithGrandfatheredAssignee($this->orgA, $this->deptA, $this->projectA);
+    $otherProject = Project::create(['organization_id' => $this->orgA->id, 'name' => 'Project C', 'description' => 'd']);
+
+    $response = $this->actingAs($this->management)->put("/tasks/{$task->id}", [
+        'project_id' => $otherProject->id,
+        'department_id' => $task->department_id,
+        'assignee_id' => $assignee->id,
+        'title' => $task->title,
+        'description' => 'original',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasErrors('assignee_id');
+    expect($task->fresh()->project_id)->toBe($this->projectA->id);
+});
+
+test('task #70 follow-up: assigning a DIFFERENT ineligible user is still rejected', function () {
+    [$task] = makeTaskWithGrandfatheredAssignee($this->orgA, $this->deptA, $this->projectA);
+
+    // project_staff but no department access — ineligible under the rule,
+    // and not the value already stored, so no grandfathering applies.
+    $someoneElse = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $this->orgA->id,
+        'user_id' => $someoneElse->id,
+        'role_id' => Role::where('slug', 'staff')->firstOrFail()->id,
+    ]);
+    $this->projectA->staff()->attach($someoneElse->id);
+
+    $response = $this->actingAs($this->management)->put("/tasks/{$task->id}", [
+        'project_id' => $task->project_id,
+        'department_id' => $task->department_id,
+        'assignee_id' => $someoneElse->id,
+        'title' => $task->title,
+        'description' => 'original',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $response->assertSessionHasErrors('assignee_id');
+    expect($task->fresh()->assignee_id)->not->toBe($someoneElse->id);
+});
+
+test('task #70 follow-up: an unchanged ELIGIBLE assignee still saves normally', function () {
+    $assignee = makeStaffWithDepartmentAccess($this->orgA, $this->deptA);
+    $this->projectA->staff()->attach($assignee->id);
+
+    $task = Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'assignee_id' => $assignee->id,
+        'title' => 'Still eligible',
+        'description' => 'original',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->management)->put("/tasks/{$task->id}", [
+        'project_id' => $task->project_id,
+        'department_id' => $task->department_id,
+        'assignee_id' => $assignee->id,
+        'title' => $task->title,
+        'description' => '<p>edited</p>',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertSessionHasNoErrors();
+});
