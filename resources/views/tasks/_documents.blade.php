@@ -62,82 +62,113 @@
          "Attach existing" and "+ Add new document" buttons/panels — one
          search box that filters existing documents as you type, with
          "Upload as a new file" / "Add a link instead" always available
-         below the results. Gated solely by TaskPolicy::attachDocuments()
-         (manage_documents + task view + not a Client-role user) — the
-         exact condition the old "Attach existing" button already used.
-         This is a real, deliberate narrowing versus the old "+ Add new
-         document" button's own gate (DocumentPolicy::create(), which a
-         Client-role uploader COULD pass): a Client can no longer create-
-         and-attach their own document from this page at all, since they
-         never see this merged entry point. Flagged and confirmed with
-         the task's own author before building — not an oversight. --}}
-    @if ($canAttachDocuments)
+         below the results.
+
+         Two different capabilities share this panel, so it has two gates:
+         - $canAttachDocuments (TaskPolicy::attachDocuments(): manage_
+           documents + task view + NOT a Client) — searching and attaching
+           the company's EXISTING documents, plus attaching folders.
+         - $canManageDocuments (DocumentPolicy::create(), which a Client
+           holding manage_documents DOES pass) — creating a brand-new
+           document from here, by upload or link.
+
+         The merged panel originally used attachDocuments() alone, which
+         meant a Client with "Add & edit documents" had no way to add a
+         document on this page at all, even though DocumentController::
+         store() would happily accept it (forcing Public and attaching to
+         the task). So a create-only user now gets the panel with just the
+         two action rows: no search box, no results, no "Attach folder" —
+         they must never browse the company's existing documents. The
+         button reads "Add document" rather than "Attach document" for
+         them, since attaching isn't what they can do. --}}
+    @if ($canAttachDocuments || $canManageDocuments)
         @php
             // task #73 phase 1: a Client-role uploader (in this task's
             // company) never sees the access-level dropdown — always
             // saved as Public, enforced server-side regardless in
             // DocumentUploadService::resolveAccessLevel() even if this
-            // markup were somehow bypassed. Kept even though the merged
-            // panel's own gate already excludes Client — DocumentPolicy::
-            // create() itself doesn't, so this stays a real branch.
+            // markup were somehow bypassed.
+            //
+            // This used to be a defensive leftover, because the panel's
+            // only gate excluded Client outright. It is now the PRIMARY
+            // path: the create-only branch above exists precisely for a
+            // Client holding manage_documents, and
+            // DocumentPolicy::create()'s Client branch requires
+            // isClientInOrg() — the same check as here — so on that
+            // branch this is always true and the hidden public input is
+            // what actually renders. Load-bearing, not vestigial.
             $isClientUploader = auth()->user()->isClientInOrg($task->organization_id);
         @endphp
         <div class="mt-2 flex items-center gap-3">
             <button type="button" class="attach-document-toggle text-[11px] font-medium text-brand-600 hover:underline"
                 aria-haspopup="dialog" aria-expanded="false" aria-controls="attach-document-panel-{{ $task->id }}">
-                Attach document
+                {{ $canAttachDocuments ? 'Attach document' : 'Add document' }}
             </button>
             {{-- task #73 phase 4: a sibling toggle/panel, same structure as
                  "Attach document" above minus the "create instead" rows
-                 (folders aren't created from this picker) — reuses the
-                 exact same gate (TaskPolicy::attachDocuments()), so no
-                 separate @if is needed; a Client never sees either button,
-                 since attachDocuments() already excludes Client
-                 unconditionally (Phase 3's own choice, not something this
-                 phase had to add). --}}
-            <button type="button" class="attach-folder-toggle text-[11px] font-medium text-brand-600 hover:underline"
-                aria-haspopup="dialog" aria-expanded="false" aria-controls="attach-folder-panel-{{ $task->id }}">
-                Attach folder
-            </button>
+                 (folders aren't created from this picker). Attaching a
+                 folder is squarely an "attach existing" action, so it
+                 stays on $canAttachDocuments alone — a create-only Client
+                 never gets this button or its panel in the HTML. --}}
+            @if ($canAttachDocuments)
+                <button type="button" class="attach-folder-toggle text-[11px] font-medium text-brand-600 hover:underline"
+                    aria-haspopup="dialog" aria-expanded="false" aria-controls="attach-folder-panel-{{ $task->id }}">
+                    Attach folder
+                </button>
+            @endif
         </div>
 
-        <div id="attach-folder-panel-{{ $task->id }}" class="attach-folder-panel mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="Attach a folder">
-            <label for="attach-folder-search-{{ $task->id }}" class="sr-only">Search or attach a folder</label>
-            <input type="text" id="attach-folder-search-{{ $task->id }}" class="attach-folder-search w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Search or attach a folder…">
+        @if ($canAttachDocuments)
+            <div id="attach-folder-panel-{{ $task->id }}" class="attach-folder-panel mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="Attach a folder">
+                <label for="attach-folder-search-{{ $task->id }}" class="sr-only">Search or attach a folder</label>
+                <input type="text" id="attach-folder-search-{{ $task->id }}" class="attach-folder-search w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Search or attach a folder…">
 
-            <div>
-                <p class="attach-folder-results-heading text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Folders</p>
-                <ul class="attach-folder-results mt-1 space-y-1" aria-label="Folders"></ul>
-                <p class="attach-folder-status mt-1 text-[11px] text-gray-500"></p>
-                <button type="button" class="attach-folder-load-more hidden text-[11px] font-medium text-brand-600 hover:underline">Load more</button>
+                <div>
+                    <p class="attach-folder-results-heading text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Folders</p>
+                    <ul class="attach-folder-results mt-1 space-y-1" aria-label="Folders"></ul>
+                    <p class="attach-folder-status mt-1 text-[11px] text-gray-500"></p>
+                    <button type="button" class="attach-folder-load-more hidden text-[11px] font-medium text-brand-600 hover:underline">Load more</button>
+                </div>
+
+                <div class="flex items-center gap-3 pt-1">
+                    <button type="button" class="attach-folder-close text-[12px] text-gray-600 hover:underline">Close</button>
+                </div>
             </div>
+        @endif
 
-            <div class="flex items-center gap-3 pt-1">
-                <button type="button" class="attach-folder-close text-[12px] text-gray-600 hover:underline">Close</button>
-            </div>
-        </div>
-
-        <div id="attach-document-panel-{{ $task->id }}" class="attach-document-panel mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="Attach a document">
+        {{-- aria-label tracks the toggle's own label: a create-only user
+             activates "Add document", so being announced into a dialog
+             called "Attach a document" — one containing no attach
+             affordance at all — would be actively misleading. The id stays
+             as-is; it's internal plumbing, not announced. --}}
+        <div id="attach-document-panel-{{ $task->id }}" class="attach-document-panel mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="{{ $canAttachDocuments ? 'Attach a document' : 'Add a document' }}">
             {{-- View 1: search + matching documents + the two "create
                  instead" action rows. --}}
             <div class="attach-document-search-view space-y-2">
-                <label for="attach-document-search-{{ $task->id }}" class="sr-only">Search or attach a document</label>
-                <input type="text" id="attach-document-search-{{ $task->id }}" class="attach-document-search w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Search or attach a document…">
+                {{-- Everything that browses EXISTING documents is omitted
+                     entirely (not merely hidden) for a create-only user —
+                     a Client must never see the company's document list,
+                     and the search endpoint would 403 them anyway. The two
+                     action rows below are all they get. --}}
+                @if ($canAttachDocuments)
+                    <label for="attach-document-search-{{ $task->id }}" class="sr-only">Search or attach a document</label>
+                    <input type="text" id="attach-document-search-{{ $task->id }}" class="attach-document-search w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600" placeholder="Search or attach a document…">
 
-                <div>
-                    {{-- "Recently added" while the search box is empty, not
-                         "Matching documents" — an empty query still shows
-                         the same newest-first list (Phase 3's default
-                         ordering), and labelling it as "matching" reads
-                         like "these are the only files available" rather
-                         than "these are just the most recent ones". --}}
-                    <p class="attach-document-results-heading text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Recently added</p>
-                    <ul class="attach-document-results mt-1 space-y-1" aria-label="Recently added"></ul>
-                    <p class="attach-document-status mt-1 text-[11px] text-gray-500"></p>
-                    <button type="button" class="attach-document-load-more hidden text-[11px] font-medium text-brand-600 hover:underline">Load more</button>
-                </div>
+                    <div>
+                        {{-- "Recently added" while the search box is empty, not
+                             "Matching documents" — an empty query still shows
+                             the same newest-first list (Phase 3's default
+                             ordering), and labelling it as "matching" reads
+                             like "these are the only files available" rather
+                             than "these are just the most recent ones". --}}
+                        <p class="attach-document-results-heading text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Recently added</p>
+                        <ul class="attach-document-results mt-1 space-y-1" aria-label="Recently added"></ul>
+                        <p class="attach-document-status mt-1 text-[11px] text-gray-500"></p>
+                        <button type="button" class="attach-document-load-more hidden text-[11px] font-medium text-brand-600 hover:underline">Load more</button>
+                    </div>
 
-                <hr class="border-gray-200">
+                    <hr class="border-gray-200">
+                @endif
 
                 <div class="space-y-1">
                     <button type="button" class="attach-document-upload-action block w-full rounded-md border border-gray-200 px-3 py-2 text-left text-[12px] text-gray-700 hover:border-brand-600 hover:bg-brand-50">
@@ -157,7 +188,10 @@
                  Starts hidden; a click on either action row picks the
                  mode and reveals this instead of the search view. --}}
             <div class="new-document-form hidden space-y-2 rounded-md border border-gray-200 p-3">
-                <button type="button" class="new-document-back text-[11px] text-gray-500 hover:underline">&larr; Back to search</button>
+                {{-- "Back to search" only makes sense if there IS a search
+                     view to go back to; a create-only user returns to just
+                     the two action rows. --}}
+                <button type="button" class="new-document-back text-[11px] text-gray-500 hover:underline">&larr; {{ $canAttachDocuments ? 'Back to search' : 'Back' }}</button>
 
                 {{-- flex + order-first (only on the upload panel below) is
                      what puts the file picker before the name field on the
@@ -627,22 +661,28 @@
             // just a faster way to get to a specific row without giving
             // up native button semantics (no roving tabindex, no listbox/
             // option ARIA reinterpretation of what are still just buttons).
-            resultsEl.addEventListener('keydown', function (event) {
-                if (! ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+            // Guarded like the search/load-more listeners below: there is no
+            // results list at all for a create-only user, and an
+            // unconditional addEventListener on null here would throw and
+            // take the whole panel's script down with it.
+            if (resultsEl) {
+                resultsEl.addEventListener('keydown', function (event) {
+                    if (! ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
 
-                const buttons = Array.from(resultsEl.querySelectorAll('button'));
-                const currentIndex = buttons.indexOf(document.activeElement);
-                if (currentIndex === -1) return;
+                    const buttons = Array.from(resultsEl.querySelectorAll('button'));
+                    const currentIndex = buttons.indexOf(document.activeElement);
+                    if (currentIndex === -1) return;
 
-                let targetIndex;
-                if (event.key === 'ArrowDown') targetIndex = Math.min(currentIndex + 1, buttons.length - 1);
-                else if (event.key === 'ArrowUp') targetIndex = Math.max(currentIndex - 1, 0);
-                else if (event.key === 'Home') targetIndex = 0;
-                else targetIndex = buttons.length - 1;
+                    let targetIndex;
+                    if (event.key === 'ArrowDown') targetIndex = Math.min(currentIndex + 1, buttons.length - 1);
+                    else if (event.key === 'ArrowUp') targetIndex = Math.max(currentIndex - 1, 0);
+                    else if (event.key === 'Home') targetIndex = 0;
+                    else targetIndex = buttons.length - 1;
 
-                event.preventDefault();
-                buttons[targetIndex].focus();
-            });
+                    event.preventDefault();
+                    buttons[targetIndex].focus();
+                });
+            }
 
             function attachDocument(documentId, triggerEl) {
                 if (triggerEl) triggerEl.disabled = true;
@@ -729,12 +769,25 @@
                 attachToggle.setAttribute('aria-expanded', 'true');
                 attachPanel.classList.remove('hidden');
                 showSearchView();
-                searchInput.value = '';
-                updateResultsHeading('');
                 // task #73 (code-review follow-up): a fresh open never
                 // starts with a stale file/name left over from an attempt
                 // abandoned without going through Back or Close.
                 resetNewDocumentForm();
+
+                // A create-only user (a Client holding manage_documents)
+                // gets no search box or results list at all, so there's
+                // nothing to reset and — importantly — nothing to fetch:
+                // /documents/attachable would 403 them, surfacing an error
+                // in a panel that was working exactly as intended. Focus
+                // the first thing they CAN use instead.
+                if (! searchInput) {
+                    if (uploadActionBtn) uploadActionBtn.focus();
+
+                    return;
+                }
+
+                searchInput.value = '';
+                updateResultsHeading('');
                 searchInput.focus();
                 fetchResults(1, false);
             }
@@ -764,21 +817,26 @@
                 }
             });
 
-            searchInput.addEventListener('input', function () {
-                const query = searchInput.value.trim();
-                uploadLabelEl.textContent = query ? 'Upload "' + query + '" as a new file' : 'Upload a new file';
-                linkLabelEl.textContent = query ? 'Add "' + query + '" as a link' : 'Add a link';
-                updateResultsHeading(query);
+            // Both are absent for a create-only user — see openPanel().
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    const query = searchInput.value.trim();
+                    uploadLabelEl.textContent = query ? 'Upload "' + query + '" as a new file' : 'Upload a new file';
+                    linkLabelEl.textContent = query ? 'Add "' + query + '" as a link' : 'Add a link';
+                    updateResultsHeading(query);
 
-                if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-                searchDebounceTimer = setTimeout(function () {
-                    fetchResults(1, false);
-                }, 300);
-            });
+                    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+                    searchDebounceTimer = setTimeout(function () {
+                        fetchResults(1, false);
+                    }, 300);
+                });
+            }
 
-            loadMoreBtn.addEventListener('click', function () {
-                fetchResults(currentPage + 1, true);
-            });
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', function () {
+                    fetchResults(currentPage + 1, true);
+                });
+            }
 
             uploadActionBtn.addEventListener('click', function () {
                 openCreateForm('upload');
@@ -1026,8 +1084,21 @@
                 newForm.classList.add('hidden');
                 if (searchView) searchView.classList.remove('hidden');
                 resetNewDocumentForm();
+
+                // Focus must land on something still visible. The Back
+                // button itself has just been hidden along with newForm,
+                // so skipping this entirely (as happens for a create-only
+                // user, who has no search box) drops focus to <body> —
+                // which also strands the Escape-to-close handler, since
+                // that's bound to attachPanel. Fall back to the first
+                // control that IS present for them.
                 const searchInput = container.querySelector('.attach-document-search');
-                if (searchInput) searchInput.focus();
+                const uploadAction = container.querySelector('.attach-document-upload-action');
+                if (searchInput) {
+                    searchInput.focus();
+                } else if (uploadAction) {
+                    uploadAction.focus();
+                }
             });
         }
 
