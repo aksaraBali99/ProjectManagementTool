@@ -232,6 +232,14 @@ class TaskDocumentController extends Controller
      * task #73 phase 3: routed through TaskDocumentLinker so this writes
      * the same task.document_unlinked audit entry as every other unlink
      * path, instead of a raw ->detach() call with no trace of it.
+     *
+     * Two gates, not one: unlinkDocuments() answers "may this user detach
+     * things from this task at all" (manage_documents + task view), and
+     * detachDocument() adds "...and specifically THIS document" — the
+     * management tier, or the uploader. Without the second, any
+     * manage_documents holder who could see the task could detach anyone
+     * else's document, including a Client removing a Public document
+     * staff had attached to their project's task.
      */
     public function detach(Task $task, Document $document): JsonResponse
     {
@@ -240,6 +248,13 @@ class TaskDocumentController extends Controller
         if ($document->organization_id !== $task->organization_id || ! Gate::allows('view', $document)) {
             abort(404);
         }
+
+        // Deliberately AFTER the 404 branch: a document this viewer can't
+        // see, or one from another company, must stay indistinguishable
+        // from "no such link" — answering 403 there would confirm it
+        // exists. Only once the document is legitimately visible does the
+        // ownership rule apply.
+        Gate::authorize('detachDocument', [$task, $document]);
 
         app(TaskDocumentLinker::class)->detach($task, $document);
 

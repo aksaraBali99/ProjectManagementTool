@@ -248,8 +248,6 @@ test('manage_documents is required to delete, even for the uploader themselves',
 
 test('the Unlink button and endpoint agree: manage_documents plus task view, no task-edit rights required', function () {
     $task = Task::create(['organization_id' => $this->orgA->id, 'project_id' => $this->project->id, 'department_id' => $this->dept->id, 'title' => 'T', 'priority' => 'medium', 'status' => 'pending']);
-    $document = makeLinkOnlyDocumentForDeleteTest($this->orgA, $this->management);
-    $document->tasks()->attach($task->id);
 
     // A staff member with manage_documents + department access (task
     // view), but WITHOUT create_edit_tasks (so they fail TaskPolicy::
@@ -258,6 +256,13 @@ test('the Unlink button and endpoint agree: manage_documents plus task view, no 
     OrgMember::create(['organization_id' => $this->orgA->id, 'user_id' => $staff->id, 'role_id' => Role::where('slug', 'staff')->firstOrFail()->id]);
     AccessPermission::create(['user_id' => $staff->id, 'organization_id' => $this->orgA->id, 'department_id' => $this->dept->id, 'allowed' => true]);
     grantManageDocumentsForDeleteTest(Role::where('slug', 'staff')->firstOrFail());
+
+    // Uploaded BY this staff member: detaching now also requires being the
+    // uploader or management (TaskPolicy::detachDocument()), so a document
+    // uploaded by someone else would fail here for that reason instead,
+    // which isn't what this test is about.
+    $document = makeLinkOnlyDocumentForDeleteTest($this->orgA, $staff);
+    $document->tasks()->attach($task->id);
 
     expect($staff->can('update', $task))->toBeFalse();
 
