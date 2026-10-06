@@ -36,6 +36,10 @@
     // this initial render had the identical N+1).
     $canEditOwnComments = app(\App\Policies\CommentPolicy::class)->canEditOwnComments(auth()->user(), $task->organization_id);
     $isSuperAdminOrOwner = auth()->user()->isSuperAdmin() || auth()->user()->isOwner();
+    // The toolbar's attach-document button creates a real Document, so it
+    // follows the same manage_documents gate (DocumentPolicy::create) as
+    // RichTextDocumentController — hidden here, refused there.
+    $canAttachFiles = \Illuminate\Support\Facades\Gate::allows('create', [\App\Models\Document::class, $task->organization_id]);
 
     // task #70 phase 4 follow-up: a smiley-plus icon instead of a plain
     // "React" text link, matching the stroke-based icon style
@@ -144,7 +148,7 @@
          Reactions and reading comments stay available either way. --}}
     @if ($canEditOwnComments)
         <div class="mt-2 flex items-start gap-2">
-            <x-rich-text-editor class="new-comment-editor min-w-0 flex-1" compact label="New comment" placeholder="Add a comment… type @ to mention someone" :mentions="$mentionableUsers ?? []" :image-task-id="$task->id" image-context="comment" :audio-task-id="$task->id" audio-context="comment" :video-task-id="$task->id" video-context="comment" :document-task-id="$task->id" document-context="comment" :link-preview-task-id="$task->id" link-preview-context="comment" />
+            <x-rich-text-editor class="new-comment-editor min-w-0 flex-1" compact label="New comment" placeholder="Add a comment… type @ to mention someone" :mentions="$mentionableUsers ?? []" :image-task-id="$task->id" image-context="comment" :audio-task-id="$task->id" audio-context="comment" :video-task-id="$task->id" video-context="comment" :document-task-id="$canAttachFiles ? $task->id : null" document-context="comment" :link-preview-task-id="$task->id" link-preview-context="comment" />
             <button type="button" class="post-comment-btn rounded-md border border-gray-300 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-50">
                 Post
             </button>
@@ -172,6 +176,7 @@
         // once at render time: a permission changed mid-session only takes
         // effect on the next page load, same as $canEditOwnComments itself.
         const canComment = @json($canEditOwnComments);
+        const canAttachFiles = @json($canAttachFiles);
 
         // task #70 phase 3: captures each server-rendered comment body's
         // PRISTINE html (before mention-highlight.js wraps any "@Name"
@@ -526,8 +531,10 @@
             editRoot.dataset.audioContext = 'comment';
             editRoot.dataset.videoTaskId = taskId;
             editRoot.dataset.videoContext = 'comment';
-            editRoot.dataset.documentTaskId = taskId;
-            editRoot.dataset.documentContext = 'comment';
+            if (canAttachFiles) {
+                editRoot.dataset.documentTaskId = taskId;
+                editRoot.dataset.documentContext = 'comment';
+            }
             editRoot.dataset.linkPreviewTaskId = taskId;
             editRoot.dataset.linkPreviewContext = 'comment';
 
@@ -632,8 +639,10 @@
                     editRoot.dataset.audioContext = 'comment';
                     editRoot.dataset.videoTaskId = taskId;
                     editRoot.dataset.videoContext = 'comment';
-                    editRoot.dataset.documentTaskId = taskId;
-                    editRoot.dataset.documentContext = 'comment';
+                    if (canAttachFiles) {
+                        editRoot.dataset.documentTaskId = taskId;
+                        editRoot.dataset.documentContext = 'comment';
+                    }
                     editRoot.dataset.linkPreviewTaskId = taskId;
                     editRoot.dataset.linkPreviewContext = 'comment';
                     bodyText.replaceWith(editRoot);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comment;
+use App\Models\Document;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\LinkPreviewResult;
@@ -48,6 +49,25 @@ class LinkPreviewController extends Controller
             Gate::authorize('create', [Comment::class, $task]);
         }
 
+        // A resolved preview chip is a TRACKED link: resolving it also
+        // creates the Document row below. So someone without
+        // manage_documents (DocumentPolicy::create — the same gate the
+        // editor's file-upload button uses) doesn't get a chip at all,
+        // and this returns the ordinary "couldn't resolve" answer rather
+        // than an error: the editor's resolvePlaceholder() already falls
+        // back to inserting the URL as a plain, clickable autolink, which
+        // is exactly the intended result for them. Deliberately NOT a 403
+        // — there's nothing wrong with pasting a URL, it just doesn't
+        // become a tracked chip, and an error here surfaces in the UI as
+        // noise about a perfectly valid action.
+        //
+        // resolvePending() applies the identical rule for the Add Task
+        // page, so pasting a URL behaves the same whether the task exists
+        // yet or not.
+        if (! Gate::allows('create', [Document::class, $task->organization_id])) {
+            return $this->respond(null);
+        }
+
         $service = app(LinkPreviewService::class);
         $result = $service->resolve($data['url'], $request->user());
 
@@ -82,6 +102,16 @@ class LinkPreviewController extends Controller
         $project = Project::findOrFail($data['project_id']);
 
         Gate::authorize('create', [Task::class, $project->organization_id, $data['department_id'] ?? null]);
+
+        // Same rule as resolve() above: no manage_documents, no chip —
+        // the chip would only become a Document row at save time anyway
+        // (TaskManagementController::attachDocumentChips(), which applies
+        // this same gate), so resolving one here would just promise a
+        // tracked link the save then silently drops. Plain hyperlink
+        // instead, via the editor's existing unavailable fallback.
+        if (! Gate::allows('create', [Document::class, $project->organization_id])) {
+            return $this->respond(null);
+        }
 
         return $this->respond(app(LinkPreviewService::class)->resolve($data['url'], $request->user()));
     }
