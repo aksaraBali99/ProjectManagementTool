@@ -510,6 +510,13 @@ class TaskManagementController extends Controller
 
         $task->load('subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
 
+        // Both computed once, not per document row — see the
+        // 'canDetachAnyDocument' entry below for why that matters.
+        $canUnlinkDocuments = Gate::allows('unlinkDocuments', $task);
+        $viewer = auth()->user();
+        $canDetachAnyDocument = $canUnlinkDocuments
+            && ($viewer->isSuperAdmin() || $viewer->isOwner() || $viewer->isManagementInOrg($task->organization_id));
+
         return view('tasks.edit', array_merge([
             'task' => $task,
             'project' => $project,
@@ -524,9 +531,23 @@ class TaskManagementController extends Controller
             // two happen to overlap for most roles today.
             'canManageDocuments' => Gate::allows('create', [Document::class, $task->organization_id]),
             // task #73 phase 2: TaskPolicy::unlinkDocuments() — manage_
-            // documents + task view, not full task-edit rights — the
-            // Detach button's own gate, separate from $canEdit.
-            'canUnlinkDocuments' => Gate::allows('unlinkDocuments', $task),
+            // documents + task view, not full task-edit rights. Still the
+            // FOLDER Detach button's gate, and the precondition for the
+            // document one.
+            'canUnlinkDocuments' => $canUnlinkDocuments,
+            // Whether this viewer may detach documents they didn't upload.
+            // The per-document half of TaskPolicy::detachDocument() is
+            // applied per row in the view (uploaded_by === auth()->id());
+            // only this management-tier override is computed here, once —
+            // isSuperAdmin()/isOwner()/isManagementInOrg() each run their
+            // own unmemoized query, so calling the gate per row would be a
+            // real N+1 on a task with many documents, which this page has
+            // a query-count test guarding.
+            //
+            // MUST stay in step with TaskPolicy::detachDocument(): this
+            // decides whether the button renders, that decides whether the
+            // endpoint accepts it.
+            'canDetachAnyDocument' => $canDetachAnyDocument,
             // task #73 phase 3: the "Attach existing" picker's own gate —
             // TaskPolicy::attachDocuments() (manage_documents + task view +
             // not a Client-role user), replacing the old select+button

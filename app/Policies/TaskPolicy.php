@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\Document;
 use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\User;
@@ -59,6 +60,34 @@ class TaskPolicy
     public function unlinkDocuments(User $user, Task $task): bool
     {
         return $user->hasPermission('manage_documents', $task->organization_id) && $this->view($user, $task);
+    }
+
+    /**
+     * Detaching one SPECIFIC document, which unlinkDocuments() above
+     * can't answer: it's task-scoped only and never sees the document, so
+     * any manage_documents holder who could view the task could detach
+     * anyone else's — a Staff member removing a document management
+     * attached, or a Client removing a Public document staff attached to
+     * their project's task.
+     *
+     * Adds the ownership half DocumentPolicy::canManage() already applies
+     * to rename/move/delete on the Documents page: the management tier
+     * overrides, otherwise you must be the uploader. There is no
+     * "manage all documents" permission in PermissionSeeder, so the
+     * management tier IS the override, exactly as it is there.
+     *
+     * unlinkDocuments() itself is deliberately unchanged: folder detach
+     * (TaskFolderController::detach()) and the "Attach folder" button
+     * still use it, and folders are out of scope here.
+     */
+    public function detachDocument(User $user, Task $task, Document $document): bool
+    {
+        if (! $this->unlinkDocuments($user, $task)) {
+            return false;
+        }
+
+        return $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($task->organization_id)
+            || $document->uploaded_by === $user->id;
     }
 
     /**

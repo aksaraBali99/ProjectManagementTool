@@ -4,7 +4,8 @@
      and _comments.blade.php, since this is only ever rendered once per
      Edit Task page but follows the same pattern for consistency. --}}
 <div class="document-container" data-task-id="{{ $task->id }}" data-organization-id="{{ $task->organization_id }}"
-     data-project-has-client="{{ $projectHasClient ? '1' : '0' }}" data-can-unlink-documents="{{ $canUnlinkDocuments ? '1' : '0' }}">
+     data-project-has-client="{{ $projectHasClient ? '1' : '0' }}" data-can-unlink-documents="{{ $canUnlinkDocuments ? '1' : '0' }}"
+     data-can-detach-any-document="{{ $canDetachAnyDocument ? '1' : '0' }}" data-current-user-id="{{ auth()->id() }}">
     <div class="document-list space-y-2">
         @foreach ($attachedDocuments as $document)
             <div class="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2" data-document-id="{{ $document->id }}">
@@ -16,11 +17,16 @@
                          never becomes an N+1 across attached rows. --}}
                     <p class="mt-0.5 text-[11px] text-gray-500">{{ $document->uploader->name }} · {{ $document->created_at->format('M j, Y') }}</p>
                 </div>
-                {{-- task #73 phase 2: TaskPolicy::unlinkDocuments() —
-                     manage_documents + task view, NOT $canEdit (task-edit
-                     rights) — deliberately its own gate, separate from the
-                     attach-document panel. --}}
-                @if ($canUnlinkDocuments)
+                {{-- TaskPolicy::detachDocument(), split into its two halves
+                     so the per-row check costs nothing: $canUnlinkDocuments
+                     is the task-level gate (manage_documents + task view,
+                     NOT $canEdit), $canDetachAnyDocument the management-
+                     tier override, and the uploader comparison is the only
+                     thing evaluated per document. Without the last two, any
+                     manage_documents holder could detach anyone's document
+                     — a Staff member removing one management attached, or a
+                     Client removing a Public one staff attached. --}}
+                @if ($canUnlinkDocuments && ($canDetachAnyDocument || $document->uploaded_by === auth()->id()))
                     <button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>
                 @endif
             </div>
@@ -283,6 +289,11 @@
         const organizationId = container.dataset.organizationId;
         const projectHasClient = container.dataset.projectHasClient === '1';
         const canUnlinkDocuments = container.dataset.canUnlinkDocuments === '1';
+        // The same two halves the server-rendered rows above use, so a row
+        // added without a reload gets exactly the same Detach visibility as
+        // one that came from a full page render.
+        const canDetachAnyDocument = container.dataset.canDetachAnyDocument === '1';
+        const currentUserId = Number(container.dataset.currentUserId);
         const listEl = container.querySelector('.document-list');
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
@@ -392,7 +403,13 @@
             // the initial page-load rows above, which correctly gate it.
             // A viewer without unlinkDocuments rights who created-and-
             // attached would see a button the endpoint would then 403 on.
-            const detachButtonHtml = canUnlinkDocuments
+            //
+            // Now mirrors the server-rendered condition exactly, uploader
+            // check included. doc.uploaded_by is present on both payloads
+            // that reach here (TaskDocumentController::attach() and
+            // DocumentController::store() both return the whole model, and
+            // Document declares no $hidden).
+            const detachButtonHtml = (canUnlinkDocuments && (canDetachAnyDocument || Number(doc.uploaded_by) === currentUserId))
                 ? '<button type="button" class="detach-document-btn text-[11px] text-gray-500 hover:underline">Detach</button>'
                 : '';
             // Author + date, matching the Documents page's own list — the
