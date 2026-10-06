@@ -1,11 +1,13 @@
 <?php
 
+use App\Models\AccessPermission;
 use App\Models\Comment;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\LinkPreview;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -13,6 +15,7 @@ use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -276,6 +279,12 @@ test('a user without edit permission on the task cannot resolve a link preview f
 
 test('a user who can comment but cannot edit the description can still resolve a link preview within their own comment', function () {
     $client = makeClientWithProjectAccessForLinkPreview($this->org, $this->project);
+    // This test is about the description-vs-comment permission split, not
+    // about documents — so grant manage_documents explicitly, otherwise the
+    // separate "no chip without manage_documents" rule (see the gate block
+    // at the end of this file) would short-circuit the resolve and make
+    // this test pass for the wrong reason.
+    grantRolePermissionForLinkPreview('client', 'manage_documents');
     Http::fake(['example.com/*' => Http::response('<html><head><meta property="og:title" content="Client Link"></head></html>', 200)]);
 
     $response = $this->actingAs($client)->postJson("/tasks/{$this->task->id}/link-previews", [
@@ -542,3 +551,134 @@ test('two link-preview chips for the same URL pasted twice while drafting a new 
     expect(Document::where('link', 'https://example.com/dup-in-draft')->count())->toBe(1);
     expect($task->documents()->where('link', 'https://example.com/dup-in-draft')->count())->toBe(1);
 });
+
+// ---------------------------------------------------------------------------
+// manage_documents gate (follow-up to the editor's file-upload gate)
+// ---------------------------------------------------------------------------
+
+/**
+ * A link preview creates a real Document row, exactly like the editor's
+ * attach-file button — so it needs the same "Add & edit documents"
+ * (manage_documents) permission that gate added. These cover the hole that
+ * fix left open: file uploads were refused, but pasting a URL still minted
+ * a Document for the very same user.
+ *
+ * Such a user gets no chip at all: a resolved chip IS a tracked link, so
+ * promising one they can't have would be misleading. The response is the
+ * ordinary `available: false`, not a 403 — the editor's
+ * resolvePlaceholder() already falls back to a plain clickable autolink,
+ * which is the intended result, and an error would be UI noise about a
+ * perfectly valid action. The outbound fetch is skipped entirely too.
+ */
+test('a user who can comment but lacks manage_documents gets no preview chip and no Document, just the plain URL', function () {
+    Http::fake(); // any outbound fetch at all fails this test
+
+    $client = makeClientWithProjectAccessForLinkPreview($this->org, $this->project);
+
+    // Sanity: this user CAN comment — only the document permission is missing.
+    expect(Gate::forUser($client)->allows('create', [Comment::class, $this->task]))->toBeTrue();
+    expect(Gate::forUser($client)->allows('create', [Document::class, $this->org->id]))->toBeFalse();
+
+    $response = $this->actingAs($client)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/ungated',
+        'context' => 'comment',
+    ]);
+
+    // available:false is what makes the editor insert a plain hyperlink.
+    // Deliberately 200, not 403 — see this block's docblock.
+    $response->assertOk()->assertJsonPath('available', false);
+    expect(Document::count())->toBe(0);
+    expect($this->task->documents()->count())->toBe(0);
+    Http::assertNothingSent();
+});
+
+test('the Add Task page behaves identically — no manage_documents, no preview chip', function () {
+    Http::fake();
+
+    $staff = makeStaffWhoCanCreateTasksForLinkPreview($this->org, $this->dept);
+
+    expect(Gate::forUser($staff)->allows('create', [Document::class, $this->org->id]))->toBeFalse();
+
+    $this->actingAs($staff)->postJson('/pending-task-link-previews', [
+        'url' => 'https://example.com/pending-ungated',
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+    ])->assertOk()->assertJsonPath('available', false);
+
+    Http::assertNothingSent();
+});
+
+test('a user WITH manage_documents still gets the link tracked as a Document', function () {
+    Http::fake(['example.com/*' => Http::response('<html><head><title>Gated</title></head></html>', 200)]);
+
+    // Management holds manage_documents by default — the regression guard
+    // that the gate above didn't break tracking for permitted users.
+    expect(Gate::forUser($this->management)->allows('create', [Document::class, $this->org->id]))->toBeTrue();
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/gated',
+        'context' => 'comment',
+    ])->assertOk();
+
+    expect(Document::where('link', 'https://example.com/gated')->count())->toBe(1);
+});
+
+test('a hand-written link-preview chip in a new task creates no Document for a user without manage_documents', function () {
+    $staff = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $this->org->id,
+        'user_id' => $staff->id,
+        'role_id' => Role::where('slug', 'staff')->first()->id,
+    ]);
+    AccessPermission::create([
+        'user_id' => $staff->id,
+        'organization_id' => $this->org->id,
+        'department_id' => $this->dept->id,
+        'allowed' => true,
+    ]);
+    grantRolePermissionForLinkPreview('staff', 'create_edit_tasks');
+
+    expect(Gate::forUser($staff)->allows('create', [Document::class, $this->org->id]))->toBeFalse();
+
+    $html = '<p><link-preview href="https://example.com/hand-written" domain="example.com">Hand written</link-preview></p>';
+
+    $this->actingAs($staff)->post('/tasks', [
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'title' => 'Staff drafted with a link',
+        'description' => $html,
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertRedirect();
+
+    $task = Task::where('title', 'Staff drafted with a link')->firstOrFail();
+    expect(Document::where('link', 'https://example.com/hand-written')->count())->toBe(0);
+    expect($task->documents()->count())->toBe(0);
+});
+
+function grantRolePermissionForLinkPreview(string $roleSlug, string $permissionSlug): void
+{
+    $role = Role::where('slug', $roleSlug)->firstOrFail();
+    $permissionId = Permission::where('slug', $permissionSlug)->firstOrFail()->id;
+    $role->permissions()->syncWithoutDetaching([$permissionId]);
+}
+
+/** Staff who may create tasks (so resolvePending()'s own gate passes) but hold no manage_documents. */
+function makeStaffWhoCanCreateTasksForLinkPreview(Organization $org, Department $department): User
+{
+    $staff = User::factory()->create();
+    OrgMember::create([
+        'organization_id' => $org->id,
+        'user_id' => $staff->id,
+        'role_id' => Role::where('slug', 'staff')->firstOrFail()->id,
+    ]);
+    AccessPermission::create([
+        'user_id' => $staff->id,
+        'organization_id' => $org->id,
+        'department_id' => $department->id,
+        'allowed' => true,
+    ]);
+    grantRolePermissionForLinkPreview('staff', 'create_edit_tasks');
+
+    return $staff;
+}

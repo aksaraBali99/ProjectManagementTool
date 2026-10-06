@@ -4,6 +4,7 @@ use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -114,15 +115,20 @@ test('a url whose Document was deleted (task #73 phase 2) 404s with a friendly "
     $response->assertDontSee("We couldn't find the page you're looking for.", false);
 });
 
-test('a client can download a document they themselves attached via a comment on their own project, even though it defaults to internal access and they hold no view_documents permission', function () {
+test('a client can download an internal document they themselves attached via a comment on their own project, even though they hold no view_documents permission', function () {
     $client = makeClientWithProjectAccessForDownload($this->org, $this->project);
+    // Editor uploads now require manage_documents (see
+    // RichTextDocumentController), and a Client's new upload is saved as
+    // Public — so the Internal case this door exists for is a Client
+    // upload from before that change, simulated below.
+    Role::where('slug', 'client')->firstOrFail()->permissions()->attach(Permission::where('slug', 'manage_documents')->firstOrFail()->id);
 
     $url = $this->actingAs($client)->postJson("/tasks/{$this->task->id}/document-uploads", [
         'file' => UploadedFile::fake()->create('client-notes.pdf', 100, 'application/pdf'),
         'context' => 'comment',
     ])->assertCreated()->json('url');
     $document = Document::where('link', $url)->firstOrFail();
-    expect($document->access_level->value)->toBe('internal');
+    $document->update(['access_level' => 'internal']);
 
     // Sanity: DocumentPolicy::view alone would refuse this — internal,
     // not public, and clients never hold view_documents. The

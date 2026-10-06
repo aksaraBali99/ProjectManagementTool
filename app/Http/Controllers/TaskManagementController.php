@@ -297,6 +297,12 @@ class TaskManagementController extends Controller
             // FileStorageService::reconcilePendingFiles()). One id shared
             // across every media category the editor uploads.
             'pendingMediaId' => (string) Str::uuid(),
+            // The Description toolbar's attach-document button — same
+            // manage_documents gate as RichTextDocumentController::
+            // storePending(), for the initially selected project's company
+            // (switching to another company's project is still refused
+            // server-side if the user lacks it there).
+            'canAttachFiles' => Gate::allows('create', [Document::class, $project->organization_id]),
         ], $this->cascadingOptions($projects)));
     }
 
@@ -392,7 +398,12 @@ class TaskManagementController extends Controller
      */
     private function attachDocumentChips(Task $task, string $description): void
     {
-        if (str_contains($description, '<file-chip')) {
+        // Same manage_documents gate RichTextDocumentController::storePending()
+        // applies before a pending file-chip can exist at all — without it,
+        // a hand-written <file-chip> in the submitted description would
+        // still turn into a Document row here for a user who can't add
+        // documents.
+        if (str_contains($description, '<file-chip') && Gate::allows('create', [Document::class, $task->organization_id])) {
             preg_match_all('/<file-chip href="([^"]*)">([^<]*)<\/file-chip>/', $description, $matches, PREG_SET_ORDER);
 
             $storage = app(FileStorageService::class);
@@ -424,7 +435,13 @@ class TaskManagementController extends Controller
             }
         }
 
-        if (str_contains($description, '<link-preview')) {
+        // Same manage_documents gate as the file-chip branch above, and as
+        // LinkPreviewController::resolve()'s own attach — a <link-preview>
+        // chip reaching here (pasted on the Add Task page, where
+        // resolvePending() deliberately creates nothing, or hand-written
+        // into the submitted description) must not become a Document row
+        // for a user who can't add documents.
+        if (str_contains($description, '<link-preview') && Gate::allows('create', [Document::class, $task->organization_id])) {
             $dom = new DOMDocument;
             libxml_use_internal_errors(true);
             $dom->loadHTML('<?xml encoding="utf-8" ?>'.$description);

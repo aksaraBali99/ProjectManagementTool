@@ -1,11 +1,14 @@
 <?php
 
+use App\Enums\DocumentAccessLevel;
 use App\Enums\FileCategory;
+use App\Models\AccessPermission;
 use App\Models\Comment;
 use App\Models\Department;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrgMember;
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -78,6 +81,21 @@ function makeClientWithProjectAccessForDocumentUpload(Organization $org, Project
     $project->clients()->attach($client->id);
 
     return $client;
+}
+
+function makeStaffAssigneeForDocumentUpload(Organization $org, Task $task): User
+{
+    $staff = User::factory()->create();
+    OrgMember::create(['organization_id' => $org->id, 'user_id' => $staff->id, 'role_id' => Role::where('slug', 'staff')->first()->id]);
+    AccessPermission::create(['user_id' => $staff->id, 'organization_id' => $org->id, 'department_id' => $task->department_id, 'allowed' => true]);
+    $task->update(['assignee_id' => $staff->id]);
+
+    return $staff;
+}
+
+function grantRolePermissionForDocumentUpload(string $roleSlug, string $permissionSlug): void
+{
+    Role::where('slug', $roleSlug)->firstOrFail()->permissions()->attach(Permission::where('slug', $permissionSlug)->firstOrFail()->id);
 }
 
 // ---------------------------------------------------------------------------
@@ -234,29 +252,73 @@ test('a user without edit permission on the task cannot upload a document to its
     expect(Document::count())->toBe(0);
 });
 
-test('a user who can comment but cannot edit the description can still upload a document within their own comment — even though they could never create one via the Documents page', function () {
+test('a user who can comment but lacks manage_documents cannot upload a document within their comment, even via a direct request', function () {
     $client = makeClientWithProjectAccessForDocumentUpload($this->org, $this->project);
 
-    // Sanity: DocumentPolicy::create's own, stricter gate would refuse
-    // this exact user — confirming the task's explicit instruction to
-    // follow the field-edit permission instead, not DocumentPolicy.
+    // Sanity: this user CAN comment — only the document permission is missing.
+    expect(Gate::forUser($client)->allows('create', [Comment::class, $this->task]))->toBeTrue();
     expect(Gate::forUser($client)->allows('create', [Document::class, $this->org->id]))->toBeFalse();
+
+    $this->actingAs($client)->postJson("/tasks/{$this->task->id}/document-uploads", [
+        'file' => fakeDocumentFile(null, 'client-notes.pdf'),
+        'context' => 'comment',
+    ])->assertForbidden();
+
+    expect(Storage::disk('r2')->allFiles())->toBeEmpty();
+    expect(Document::count())->toBe(0);
+});
+
+test('staff who can edit the description and comment are refused editor document uploads until manage_documents is granted to their role', function () {
+    $staff = makeStaffAssigneeForDocumentUpload($this->org, $this->task);
+
+    expect(Gate::forUser($staff)->allows('update', $this->task))->toBeTrue();
+
+    foreach (['description', 'comment'] as $context) {
+        $this->actingAs($staff)->postJson("/tasks/{$this->task->id}/document-uploads", [
+            'file' => fakeDocumentFile(),
+            'context' => $context,
+        ])->assertForbidden();
+    }
+    expect(Document::count())->toBe(0);
+
+    grantRolePermissionForDocumentUpload('staff', 'manage_documents');
+
+    foreach (['description', 'comment'] as $context) {
+        $this->actingAs($staff)->postJson("/tasks/{$this->task->id}/document-uploads", [
+            'file' => fakeDocumentFile(),
+            'context' => $context,
+        ])->assertCreated();
+    }
+    expect(Document::count())->toBe(2);
+});
+
+test('a Client granted manage_documents can attach a document from their comment, and it is saved as Public like any other Client upload', function () {
+    $client = makeClientWithProjectAccessForDocumentUpload($this->org, $this->project);
+    grantRolePermissionForDocumentUpload('client', 'manage_documents');
 
     $response = $this->actingAs($client)->postJson("/tasks/{$this->task->id}/document-uploads", [
         'file' => fakeDocumentFile(null, 'client-notes.pdf'),
         'context' => 'comment',
-    ]);
+    ])->assertCreated();
 
-    $response->assertCreated();
-    $url = $response->json('url');
-    $document = Document::where('link', $url)->firstOrFail();
-    expect($document->uploaded_by)->toBe($client->id);
+    $document = Document::where('link', $response->json('url'))->firstOrFail();
+    expect($document->access_level)->toBe(DocumentAccessLevel::Public);
+});
 
-    $comment = $this->actingAs($client)->postJson("/tasks/{$this->task->id}/comments", [
-        'body' => "<p>See attached <file-chip href=\"{$url}\">client-notes.pdf</file-chip></p>",
-    ]);
-    $comment->assertCreated();
-    expect(Comment::firstOrFail()->body)->toContain($url);
+test('the attach-document toolbar button is only wired up for users who hold manage_documents', function () {
+    $staff = makeStaffAssigneeForDocumentUpload($this->org, $this->task);
+
+    $page = $this->actingAs($staff)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
+    expect($page)->not->toContain('data-document-task-id=');
+    expect($page)->toContain('const canAttachFiles = false;');
+    // Other media buttons are untouched by this gate.
+    expect($page)->toContain('data-image-task-id="'.$this->task->id.'"');
+
+    grantRolePermissionForDocumentUpload('staff', 'manage_documents');
+
+    $page = $this->actingAs($staff)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
+    expect($page)->toContain('data-document-task-id="'.$this->task->id.'"');
+    expect($page)->toContain('const canAttachFiles = true;');
 });
 
 test('the comment-document endpoint still requires being able to view the task at all', function () {
@@ -338,6 +400,32 @@ test('a malformed pending id is rejected as a validation error before it ever re
         'project_id' => $this->project->id,
         'pending_id' => 'not-a-uuid',
     ])->assertUnprocessable()->assertJsonValidationErrors('pending_id');
+});
+
+test('a user who can create tasks but lacks manage_documents cannot upload a pending document, and a hand-written file-chip in their new task creates no Document', function () {
+    Role::where('slug', 'management')->firstOrFail()->permissions()->detach(Permission::where('slug', 'manage_documents')->firstOrFail()->id);
+
+    $this->actingAs($this->management)->postJson('/pending-task-document-uploads', [
+        'file' => fakeDocumentFile(),
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'pending_id' => (string) Str::uuid(),
+    ])->assertForbidden();
+    expect(Storage::disk('r2')->allFiles())->toBeEmpty();
+
+    $page = $this->actingAs($this->management)->get("/tasks/create/{$this->project->id}")->assertOk()->getContent();
+    expect($page)->not->toContain('data-document-pending-id=');
+
+    $this->actingAs($this->management)->post('/tasks', [
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'title' => 'Crafted chip',
+        'description' => '<p><file-chip href="https://example.com/x.pdf">x.pdf</file-chip></p>',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ])->assertRedirect();
+
+    expect(Document::count())->toBe(0);
 });
 
 test('a document attached during Add Task creates its Document record and task_documents attachment only once the task is actually saved', function () {
