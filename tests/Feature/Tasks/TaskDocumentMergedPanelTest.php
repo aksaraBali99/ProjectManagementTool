@@ -125,25 +125,119 @@ test('the attached-documents list resolves every row\'s uploader in one query, n
     expect($uploaderEagerLoadQueries)->toHaveCount(1);
 });
 
-test('a Client-role user (who could previously create-and-attach via "+ Add new document") sees no document button at all now', function () {
-    // task #73 (UI merge): a deliberate, flagged narrowing — the merged
-    // panel's single gate is TaskPolicy::attachDocuments(), which excludes
-    // Client unconditionally, unlike the old "+ Add new document"
-    // button's own gate (DocumentPolicy::create(), which Client could
-    // pass with manage_documents). This regression-guards that the
-    // narrowing is what actually ships, not an accidental leftover path.
+/** A Client on this task's project, optionally holding manage_documents. */
+function makeClientForMergedPanel(Organization $org, Project $project, bool $withManageDocuments): User
+{
     $clientRole = Role::where('slug', 'client')->firstOrFail();
-    $manageDocumentsId = Permission::where('slug', 'manage_documents')->firstOrFail()->id;
-    $clientRole->permissions()->syncWithoutDetaching([$manageDocumentsId]);
+
+    if ($withManageDocuments) {
+        $manageDocumentsId = Permission::where('slug', 'manage_documents')->firstOrFail()->id;
+        $clientRole->permissions()->syncWithoutDetaching([$manageDocumentsId]);
+    }
 
     $client = User::factory()->create();
-    OrgMember::create(['organization_id' => $this->org->id, 'user_id' => $client->id, 'role_id' => $clientRole->id]);
-    $this->project->clients()->attach($client->id);
+    OrgMember::create(['organization_id' => $org->id, 'user_id' => $client->id, 'role_id' => $clientRole->id]);
+    $project->clients()->attach($client->id);
+
+    return $client;
+}
+
+/**
+ * Counts REAL elements, not raw substrings. Most of these class names and
+ * labels ("Upload a new file", "Recently added", ".attach-document-search")
+ * also appear inside this view's own inline <script> — as querySelector
+ * arguments or JS-built markup — so assertSee/assertDontSee on them matches
+ * the script text and passes vacuously in BOTH directions. Script contents
+ * are text nodes, never elements, so an XPath element query ignores them.
+ *
+ * @return array{toggle: string, searchInput: int, resultsList: int, folderToggle: int, folderPanel: int, uploadAction: int, linkAction: int}
+ */
+function mergedPanelElements(string $html): array
+{
+    $dom = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html);
+    libxml_clear_errors();
+
+    $xpath = new DOMXPath($dom);
+    $hasClass = fn (string $class) => "contains(concat(' ', normalize-space(@class), ' '), ' {$class} ')";
+
+    $toggle = $xpath->query('//button['.$hasClass('attach-document-toggle').']');
+
+    return [
+        'toggle' => $toggle->length ? trim($toggle->item(0)->textContent) : '',
+        'searchInput' => $xpath->query('//input['.$hasClass('attach-document-search').']')->length,
+        'resultsList' => $xpath->query('//ul['.$hasClass('attach-document-results').']')->length,
+        'folderToggle' => $xpath->query('//button['.$hasClass('attach-folder-toggle').']')->length,
+        'folderPanel' => $xpath->query('//div['.$hasClass('attach-folder-panel').']')->length,
+        'uploadAction' => $xpath->query('//button['.$hasClass('attach-document-upload-action').']')->length,
+        'linkAction' => $xpath->query('//button['.$hasClass('attach-document-link-action').']')->length,
+    ];
+}
+
+test('a Client WITH manage_documents gets a create-only panel: Add document, upload and link, but no search or folders', function () {
+    // The merged panel used to be gated solely on TaskPolicy::
+    // attachDocuments(), which excludes Client unconditionally — so a
+    // Client holding "Add & edit documents" had no way to add a document
+    // here at all, even though DocumentController::store() would accept
+    // it (forcing Public and attaching to the task). The panel now opens
+    // on EITHER capability, with the browse-existing half omitted for
+    // someone who only has create rights.
+    $client = makeClientForMergedPanel($this->org, $this->project, withManageDocuments: true);
 
     $response = $this->actingAs($client)->get("/tasks/{$this->task->id}/edit");
-
     $response->assertOk();
-    $response->assertDontSee('Attach document');
+
+    $el = mergedPanelElements($response->getContent());
+
+    // What they CAN do: create a new document, by upload or by link.
+    expect($el['toggle'])->toBe('Add document')
+        ->and($el['uploadAction'])->toBe(1)
+        ->and($el['linkAction'])->toBe(1);
+
+    // What they must NOT get: any way to browse or attach the company's
+    // existing documents, or to attach a folder — absent from the HTML
+    // entirely, not merely hidden.
+    expect($el['searchInput'])->toBe(0)
+        ->and($el['resultsList'])->toBe(0)
+        ->and($el['folderToggle'])->toBe(0)
+        ->and($el['folderPanel'])->toBe(0);
+
+    // "Search or attach a document/folder" appear only in markup, never in
+    // this view's script, so these two stay safe as plain text assertions.
+    $response->assertDontSee('Search or attach a document');
+    $response->assertDontSee('Search or attach a folder');
+});
+
+test('a Client WITHOUT manage_documents still sees no document button at all', function () {
+    $client = makeClientForMergedPanel($this->org, $this->project, withManageDocuments: false);
+
+    $response = $this->actingAs($client)->get("/tasks/{$this->task->id}/edit");
+    $response->assertOk();
+
+    $el = mergedPanelElements($response->getContent());
+
+    expect($el['toggle'])->toBe('')
+        ->and($el['uploadAction'])->toBe(0)
+        ->and($el['linkAction'])->toBe(0)
+        ->and($el['searchInput'])->toBe(0)
+        ->and($el['folderToggle'])->toBe(0);
+
     $response->assertDontSee('+ Add new document');
     $response->assertDontSee('Attach existing');
+});
+
+test('staff and management are unaffected: the full attach panel still renders with search and folders', function () {
+    $response = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit");
+    $response->assertOk();
+
+    $el = mergedPanelElements($response->getContent());
+
+    expect($el['toggle'])->toBe('Attach document')
+        ->and($el['searchInput'])->toBe(1)
+        ->and($el['resultsList'])->toBe(1)
+        ->and($el['folderToggle'])->toBe(1)
+        ->and($el['folderPanel'])->toBe(1)
+        ->and($el['uploadAction'])->toBe(1)
+        ->and($el['linkAction'])->toBe(1);
 });
