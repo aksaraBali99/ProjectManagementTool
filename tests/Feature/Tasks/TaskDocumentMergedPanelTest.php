@@ -163,9 +163,13 @@ function mergedPanelElements(string $html): array
     $hasClass = fn (string $class) => "contains(concat(' ', normalize-space(@class), ' '), ' {$class} ')";
 
     $toggle = $xpath->query('//button['.$hasClass('attach-document-toggle').']');
+    $panel = $xpath->query('//div['.$hasClass('attach-document-panel').']');
+    $back = $xpath->query('//button['.$hasClass('new-document-back').']');
 
     return [
         'toggle' => $toggle->length ? trim($toggle->item(0)->textContent) : '',
+        'panelLabel' => $panel->length ? $panel->item(0)->getAttribute('aria-label') : '',
+        'backLabel' => $back->length ? trim($back->item(0)->textContent) : '',
         'searchInput' => $xpath->query('//input['.$hasClass('attach-document-search').']')->length,
         'resultsList' => $xpath->query('//ul['.$hasClass('attach-document-results').']')->length,
         'folderToggle' => $xpath->query('//button['.$hasClass('attach-folder-toggle').']')->length,
@@ -194,6 +198,13 @@ test('a Client WITH manage_documents gets a create-only panel: Add document, upl
     expect($el['toggle'])->toBe('Add document')
         ->and($el['uploadAction'])->toBe(1)
         ->and($el['linkAction'])->toBe(1);
+
+    // Review follow-up: the dialog's accessible name and the Back button
+    // both track the toggle, so a screen-reader user activating "Add
+    // document" isn't announced into "Attach a document", and isn't
+    // offered a way "back to search" they never had.
+    expect($el['panelLabel'])->toBe('Add a document')
+        ->and($el['backLabel'])->toBe('← Back');
 
     // What they must NOT get: any way to browse or attach the company's
     // existing documents, or to attach a folder — absent from the HTML
@@ -240,4 +251,8 @@ test('staff and management are unaffected: the full attach panel still renders w
         ->and($el['folderPanel'])->toBe(1)
         ->and($el['uploadAction'])->toBe(1)
         ->and($el['linkAction'])->toBe(1);
+
+    // Unchanged wording for anyone who can actually attach.
+    expect($el['panelLabel'])->toBe('Attach a document')
+        ->and($el['backLabel'])->toBe('← Back to search');
 });

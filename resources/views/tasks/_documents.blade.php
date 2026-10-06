@@ -87,9 +87,16 @@
             // company) never sees the access-level dropdown — always
             // saved as Public, enforced server-side regardless in
             // DocumentUploadService::resolveAccessLevel() even if this
-            // markup were somehow bypassed. Kept even though the merged
-            // panel's own gate already excludes Client — DocumentPolicy::
-            // create() itself doesn't, so this stays a real branch.
+            // markup were somehow bypassed.
+            //
+            // This used to be a defensive leftover, because the panel's
+            // only gate excluded Client outright. It is now the PRIMARY
+            // path: the create-only branch above exists precisely for a
+            // Client holding manage_documents, and
+            // DocumentPolicy::create()'s Client branch requires
+            // isClientInOrg() — the same check as here — so on that
+            // branch this is always true and the hidden public input is
+            // what actually renders. Load-bearing, not vestigial.
             $isClientUploader = auth()->user()->isClientInOrg($task->organization_id);
         @endphp
         <div class="mt-2 flex items-center gap-3">
@@ -129,7 +136,12 @@
             </div>
         @endif
 
-        <div id="attach-document-panel-{{ $task->id }}" class="attach-document-panel mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="Attach a document">
+        {{-- aria-label tracks the toggle's own label: a create-only user
+             activates "Add document", so being announced into a dialog
+             called "Attach a document" — one containing no attach
+             affordance at all — would be actively misleading. The id stays
+             as-is; it's internal plumbing, not announced. --}}
+        <div id="attach-document-panel-{{ $task->id }}" class="attach-document-panel mt-2 hidden space-y-2 rounded-md border border-gray-200 p-3" role="dialog" aria-label="{{ $canAttachDocuments ? 'Attach a document' : 'Add a document' }}">
             {{-- View 1: search + matching documents + the two "create
                  instead" action rows. --}}
             <div class="attach-document-search-view space-y-2">
@@ -176,7 +188,10 @@
                  Starts hidden; a click on either action row picks the
                  mode and reveals this instead of the search view. --}}
             <div class="new-document-form hidden space-y-2 rounded-md border border-gray-200 p-3">
-                <button type="button" class="new-document-back text-[11px] text-gray-500 hover:underline">&larr; Back to search</button>
+                {{-- "Back to search" only makes sense if there IS a search
+                     view to go back to; a create-only user returns to just
+                     the two action rows. --}}
+                <button type="button" class="new-document-back text-[11px] text-gray-500 hover:underline">&larr; {{ $canAttachDocuments ? 'Back to search' : 'Back' }}</button>
 
                 {{-- flex + order-first (only on the upload panel below) is
                      what puts the file picker before the name field on the
@@ -1069,8 +1084,21 @@
                 newForm.classList.add('hidden');
                 if (searchView) searchView.classList.remove('hidden');
                 resetNewDocumentForm();
+
+                // Focus must land on something still visible. The Back
+                // button itself has just been hidden along with newForm,
+                // so skipping this entirely (as happens for a create-only
+                // user, who has no search box) drops focus to <body> —
+                // which also strands the Escape-to-close handler, since
+                // that's bound to attachPanel. Fall back to the first
+                // control that IS present for them.
                 const searchInput = container.querySelector('.attach-document-search');
-                if (searchInput) searchInput.focus();
+                const uploadAction = container.querySelector('.attach-document-upload-action');
+                if (searchInput) {
+                    searchInput.focus();
+                } else if (uploadAction) {
+                    uploadAction.focus();
+                }
             });
         }
 
