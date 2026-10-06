@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\DocumentAccessLevel;
 use App\Exceptions\FileStorageException;
 use App\Models\Comment;
+use App\Models\Document;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\DocumentUploadService;
@@ -36,18 +37,19 @@ use Illuminate\Validation\Rule;
  *     way this controller diverges from the other three's otherwise
  *     identical shape.
  *
- * Permissions follow the same rule as image/audio/video, not
- * DocumentPolicy::create's stricter management-tier gate: whoever can
- * already edit the field (TaskPolicy::update for Description, the
- * ordinary comment-permission rule for Comments) can attach a document
- * through the editor, by this task's own explicit instruction — the same
- * relationship RichTextAudioController::store() already has to
- * TaskPolicy, just naturally extended to documents too. A staff member
- * who could never create a standalone Document via the Documents page
- * (DocumentPolicy::create requires management-tier + manage_documents)
- * can still attach one this way, exactly mirroring Jira's own model where
- * anyone who can comment can attach a file regardless of a separate
- * "manage attachments" permission.
+ * Permissions: BOTH the field's own rule (TaskPolicy::update for
+ * Description, the ordinary comment-permission rule for Comments; for
+ * the Add Task page, TaskPolicy::create) AND DocumentPolicy::create
+ * (manage_documents, "Add & edit documents" in the role matrix). Task #4
+ * originally followed the field rule alone (Jira's "anyone who can
+ * comment can attach" model), but every upload here creates a real
+ * Document record — the same one the Documents page and the Task edit
+ * page's inline upload create, both of which already require
+ * manage_documents — so a role with that permission ticked off could
+ * still add documents through the editor toolbar, and toggling it in the
+ * matrix didn't fully take effect. The toolbar's document button is
+ * hidden by the same check (see tasks/_comments.blade.php,
+ * tasks/_description-field.blade.php, tasks/create.blade.php).
  */
 class RichTextDocumentController extends Controller
 {
@@ -72,6 +74,8 @@ class RichTextDocumentController extends Controller
             Gate::authorize('create', [Comment::class, $task]);
         }
 
+        Gate::authorize('create', [Document::class, $task->organization_id]);
+
         try {
             // task #73 phase 1: same shared service the new Documents-page
             // and Task-edit-page upload endpoints use, so an editor-attached
@@ -83,10 +87,16 @@ class RichTextDocumentController extends Controller
             // href this call returns, so `link` must keep carrying the
             // computed URL for DocumentController::download()'s exact-match
             // lookup to keep finding it.
-            $document = app(DocumentUploadService::class)->uploadForTask(
+            // resolveAccessLevel(): a Client holding manage_documents can
+            // reach this now that DocumentPolicy::create is the gate, and
+            // must get Public like any other Client upload (see
+            // DocumentController::store()) — Internal would hide the file
+            // from the very person who just attached it.
+            $uploadService = app(DocumentUploadService::class);
+            $document = $uploadService->uploadForTask(
                 $request->file('file'),
                 $task,
-                DocumentAccessLevel::Internal,
+                $uploadService->resolveAccessLevel(auth()->user(), $task->organization_id, DocumentAccessLevel::Internal),
                 auth()->user(),
                 populateLegacyLink: true,
             );
@@ -125,6 +135,7 @@ class RichTextDocumentController extends Controller
         $project = Project::findOrFail($data['project_id']);
 
         Gate::authorize('create', [Task::class, $project->organization_id, $data['department_id'] ?? null]);
+        Gate::authorize('create', [Document::class, $project->organization_id]);
 
         $file = $request->file('file');
 

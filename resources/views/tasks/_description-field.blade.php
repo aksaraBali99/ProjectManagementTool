@@ -36,6 +36,9 @@
      id), matching _comments.blade.php's own pattern. --}}
 @php
     $descriptionHtml = \App\Support\RichText::toHtml($value);
+    // Same manage_documents gate as RichTextDocumentController (see
+    // tasks/_comments.blade.php's $canAttachFiles).
+    $canAttachFiles = \Illuminate\Support\Facades\Gate::allows('create', [\App\Models\Document::class, $task->organization_id]);
     $iconAttrs = 'width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 @endphp
 <div class="mt-1" data-description-field data-task-id="{{ $task->id }}">
@@ -80,6 +83,7 @@
     (function () {
         const container = document.currentScript.previousElementSibling;
         const taskId = container.dataset.taskId;
+        const canAttachFiles = @json($canAttachFiles);
         const viewRow = container.querySelector('.description-view-row');
         const editBtn = container.querySelector('.edit-description-btn');
         const fallbackInput = container.querySelector('[data-description-fallback-input]');
@@ -119,8 +123,10 @@
             editRoot.dataset.audioContext = 'description';
             editRoot.dataset.videoTaskId = taskId;
             editRoot.dataset.videoContext = 'description';
-            editRoot.dataset.documentTaskId = taskId;
-            editRoot.dataset.documentContext = 'description';
+            if (canAttachFiles) {
+                editRoot.dataset.documentTaskId = taskId;
+                editRoot.dataset.documentContext = 'description';
+            }
             editRoot.dataset.linkPreviewTaskId = taskId;
             editRoot.dataset.linkPreviewContext = 'description';
 
