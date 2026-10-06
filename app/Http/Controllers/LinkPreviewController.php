@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comment;
+use App\Models\Document;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\LinkPreviewResult;
@@ -56,7 +57,26 @@ class LinkPreviewController extends Controller
         // real task_id to attach to right now, the same reasoning
         // RichTextDocumentController::store() creates its Document
         // immediately rather than deferring.
-        $service->attachAsDocument($task, $data['url'], $result?->title);
+        //
+        // ...but only for someone who may actually add documents. This
+        // call creates a real Document row, exactly like the editor's
+        // file-upload button, so it needs the same manage_documents gate
+        // (DocumentPolicy::create) that
+        // RichTextDocumentController::store() applies — without it, a
+        // role with "Add & edit documents" unticked could still mint
+        // Documents just by pasting a URL into a comment.
+        //
+        // Gated around the attach, NOT the whole endpoint, deliberately:
+        // the preview chip itself is just rich text, and the Add Task
+        // page's equivalent (resolvePending()) creates no Document at all
+        // and so needs no gate. Refusing the request outright here would
+        // mean a staff member got preview chips while drafting a new task
+        // but not when commenting on a saved one — an arbitrary split.
+        // This way the rule is uniform: previews always resolve, Document
+        // rows appear only for users who may create them.
+        if (Gate::allows('create', [Document::class, $task->organization_id])) {
+            $service->attachAsDocument($task, $data['url'], $result?->title);
+        }
 
         return $this->respond($result);
     }

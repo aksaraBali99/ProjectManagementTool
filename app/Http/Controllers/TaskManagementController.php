@@ -435,7 +435,13 @@ class TaskManagementController extends Controller
             }
         }
 
-        if (str_contains($description, '<link-preview')) {
+        // Same manage_documents gate as the file-chip branch above, and as
+        // LinkPreviewController::resolve()'s own attach — a <link-preview>
+        // chip reaching here (pasted on the Add Task page, where
+        // resolvePending() deliberately creates nothing, or hand-written
+        // into the submitted description) must not become a Document row
+        // for a user who can't add documents.
+        if (str_contains($description, '<link-preview') && Gate::allows('create', [Document::class, $task->organization_id])) {
             $dom = new DOMDocument;
             libxml_use_internal_errors(true);
             $dom->loadHTML('<?xml encoding="utf-8" ?>'.$description);
