@@ -9,6 +9,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -59,6 +60,36 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * task #72 phase 0: how many queries $callback runs. The query-count
+ * guards in tests/Feature/Performance use this to hold the line on pages
+ * that currently issue one or more queries PER TASK.
+ *
+ * Stops counting as soon as the callback returns, so a second call in the
+ * same test measures only its own work — the listener itself can't be
+ * detached, but each test gets a fresh application, so none leak across
+ * tests either.
+ */
+function countQueries(callable $callback): int
+{
+    $count = 0;
+    $counting = true;
+
+    DB::listen(function () use (&$count, &$counting) {
+        if ($counting) {
+            $count++;
+        }
+    });
+
+    try {
+        $callback();
+    } finally {
+        $counting = false;
+    }
+
+    return $count;
 }
 
 /**
