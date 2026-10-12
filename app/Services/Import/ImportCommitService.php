@@ -18,6 +18,7 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\CompanyRoleSyncer;
+use App\Support\Access\AccessProfileCache;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -350,6 +351,7 @@ class ImportCommitService
 
                 $staffSync = $project->staff()->sync($staffIds);
                 $clientSync = $project->clients()->sync($clientUserId ? [$clientUserId] : []);
+                AccessProfileCache::flushAll();
                 $pivotsChanged = ! empty($staffSync['attached']) || ! empty($staffSync['detached'])
                     || ! empty($clientSync['attached']) || ! empty($clientSync['detached']);
 

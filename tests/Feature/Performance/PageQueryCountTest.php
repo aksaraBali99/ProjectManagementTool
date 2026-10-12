@@ -12,13 +12,17 @@ use App\Models\Task;
 use App\Models\User;
 
 /**
- * task #72 phase 0: a ratchet, not a target.
+ * task #72: how many queries each heavy page costs, and whether that cost
+ * grows with the number of tasks.
  *
- * Several pages currently run one or more queries PER TASK, so their cost
- * grows with the data. This file pins today's numbers so they cannot get
- * worse while phases 1-10 bring them down. Every constant below was
- * MEASURED, not estimated, and each carries the phase expected to tighten
- * it.
+ * Every constant below was MEASURED, not estimated. Each page asserts one
+ * of two things:
+ *
+ *   - THE TARGET: flat in task count AND within PAGE_QUERY_TARGET. Used
+ *     for every page that has reached it.
+ *   - A RATCHET: today's measured ceiling, plus an explicit assertion
+ *     that the page DOES still grow — so the day it stops growing is a
+ *     deliberate change rather than something nobody noticed.
  *
  * IMPORTANT: these are SQLite in-memory counts from the test environment,
  * because that is what CI asserts against. They are NOT comparable with
@@ -26,23 +30,28 @@ use App\Models\User;
  * and the baseline command measures a 2,000-task company rather than 20.
  * Keep the two sets of numbers apart when recording results.
  *
- * Two different properties are asserted, because the pages differ:
+ * PHASE 1 (permission cache) moved four of the five pages onto the real
+ * target. Every number below was re-measured after it landed:
  *
- *   - GROWTH: does the count rise with the number of tasks? Dashboard,
- *     Projects and Calendar are already flat, so they get a real
- *     behavioural assertion that they stay flat. Tasks list and Kanban
- *     are not, and the test records that explicitly so the day they
- *     become flat is a deliberate change, not an accident.
- *   - CEILING: today's absolute count, as a ratchet.
+ *   Page                  phase 0      phase 1     target met?
+ *   Dashboard             68 /   66    21 /  19    yes - flat, <= 30
+ *   Projects              91 /   89    23 /  21    yes - flat, <= 30
+ *   Calendar              60 /   60    14 /  14    yes - flat, <= 30
+ *   Kanban                153 /  331   29 /  27    yes - now FLAT too
+ *   Kanban (staff)        135 /  223   32 /  30    yes - now FLAT too
+ *   Tasks list            412 / 1220  106 / 254    no  - phase 2
+ *   Tasks list (staff)    398 / 1071  114 / 262    no  - phase 2
  *
- * On the <= 30 target: no page meets it yet, not even the flat ones
- * (Dashboard 66, Projects 89, Calendar 60 at 20 tasks). That cost is
- * per-REQUEST, not per-task — overwhelmingly User::hasPermission(), which
- * runs 3 uncached queries on every call and is called many times per
- * render. Phase 1 (permission cache) is what brings the flat pages under
- * the target; phases 1-2 then flatten Tasks list and Kanban. PAGE_QUERY_
- * TARGET is recorded here so the goal is visible, but it is deliberately
- * not asserted yet — doing so would simply fail on day one.
+ * (counts shown as "5 tasks / 20 tasks")
+ *
+ * Kanban becoming flat is the notable one: its per-card
+ * Gate::allows('updateStatus')/Gate::allows('update') calls were the
+ * growth, and they were growth only because each one re-queried roles and
+ * permissions. Cached, the per-card cost collapses to nothing.
+ *
+ * The Tasks list still grows, and will until phase 2: its per-row
+ * $task->viewableUsers() genuinely loads different data per row, which no
+ * amount of permission caching fixes.
  */
 const PAGE_QUERY_TARGET = 30;
 
@@ -50,21 +59,22 @@ const PAGE_QUERY_TARGET = 30;
 const GROWTH_TOLERANCE = 2;
 
 // --- Measured ceilings at 20 tasks, as management ------------------------
-// Flat today (growth asserted); phase 1's permission cache should take
-// these three under PAGE_QUERY_TARGET.
-const DASHBOARD_MAX_QUERIES_20_TASKS = 66;
-const PROJECTS_MAX_QUERIES_20_TASKS = 89;
-const CALENDAR_MAX_QUERIES_20_TASKS = 60;
+// All four now assert the REAL target (flat AND <= PAGE_QUERY_TARGET).
+// The ceilings are kept alongside it as the ratchet: <= 30 is the
+// contract, <= 19 is what stops it drifting back up to 29.
+const DASHBOARD_MAX_QUERIES_20_TASKS = 19;
+const PROJECTS_MAX_QUERIES_20_TASKS = 21;
+const CALENDAR_MAX_QUERIES_20_TASKS = 14;
+const KANBAN_MAX_QUERIES_20_TASKS = 27;
 
-// Still grow per task; phases 1-2 tighten these to <= 30 and flat.
-const KANBAN_MAX_QUERIES_20_TASKS = 331;
-const TASKS_LIST_MAX_QUERIES_20_TASKS = 1220;
+// Still grows per row; phase 2 (viewableUsers) tightens this to <= 30.
+const TASKS_LIST_MAX_QUERIES_20_TASKS = 254;
 
 // --- Measured ceilings at 20 tasks, as staff -----------------------------
 // Staff visibility runs through department access instead of the
 // management-tier shortcut, so it is a genuinely different query path.
-const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 1071;
-const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 223;
+const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 262;
+const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 30;
 
 beforeEach(function () {
     $this->owner = createOwner();
@@ -154,35 +164,39 @@ function measurePageGrowth(object $context, User $user, string $url): array
     return ['small' => $small, 'large' => $large];
 }
 
-test('Dashboard: flat in task count, held at today s ceiling', function () {
+test('Dashboard: flat in task count and within the target', function () {
     $counts = measurePageGrowth($this, $this->management, route('dashboard', $this->org, false));
 
     expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
+    expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
     expect($counts['large'])->toBeLessThanOrEqual(DASHBOARD_MAX_QUERIES_20_TASKS);
 });
 
-test('Projects: flat in task count, held at today s ceiling', function () {
+test('Projects: flat in task count and within the target', function () {
     $counts = measurePageGrowth($this, $this->management, route('projects.index', $this->org, false));
 
     expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
+    expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
     expect($counts['large'])->toBeLessThanOrEqual(PROJECTS_MAX_QUERIES_20_TASKS);
 });
 
-test('Calendar: flat in task count, held at today s ceiling', function () {
+test('Calendar: flat in task count and within the target', function () {
     $counts = measurePageGrowth($this, $this->management, route('calendar', $this->org, false));
 
     expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
+    expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
     expect($counts['large'])->toBeLessThanOrEqual(CALENDAR_MAX_QUERIES_20_TASKS);
 });
 
-test('Kanban: held at today s ceiling, and still grows per card', function () {
+test('Kanban: flat in task count and within the target', function () {
+    // Was 153 -> 331 before phase 1: the per-card Gate::allows() calls
+    // each re-queried roles and permissions, so the cost scaled with the
+    // number of cards. Cached, it is flat.
     $counts = measurePageGrowth($this, $this->management, route('kanban', $this->org, false));
 
+    expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
+    expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
     expect($counts['large'])->toBeLessThanOrEqual(KANBAN_MAX_QUERIES_20_TASKS);
-    // Records the problem phases 1-2 will fix. When this assertion starts
-    // failing, Kanban has gone flat — swap it for the growth + target
-    // assertions the three pages above use.
-    expect($counts['large'])->toBeGreaterThan($counts['small']);
 });
 
 test('Tasks list: held at today s ceiling, and still grows per row', function () {
@@ -199,9 +213,10 @@ test('Tasks list as STAFF: held at today s ceiling, and still grows per row', fu
     expect($counts['large'])->toBeGreaterThan($counts['small']);
 });
 
-test('Kanban as STAFF: held at today s ceiling, and still grows per card', function () {
+test('Kanban as STAFF: flat in task count and within the target', function () {
     $counts = measurePageGrowth($this, $this->staff, route('kanban', $this->org, false));
 
+    expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
+    expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
     expect($counts['large'])->toBeLessThanOrEqual(KANBAN_MAX_QUERIES_20_TASKS_STAFF);
-    expect($counts['large'])->toBeGreaterThan($counts['small']);
 });

@@ -13,6 +13,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\CompanyRoleSyncer;
 use App\Services\Import\EmployeeIdGenerator;
+use App\Support\Access\AccessProfileCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -176,8 +177,10 @@ class UserManagementController extends Controller
 
         if ($request->boolean('grant_super_admin')) {
             $user->roles()->syncWithoutDetaching([$superAdminId]);
+            AccessProfileCache::flushAll();
         } else {
             $user->roles()->detach($superAdminId);
+            AccessProfileCache::flushAll();
         }
     }
 
@@ -197,7 +200,10 @@ class UserManagementController extends Controller
      */
     private function syncDepartmentAccess(User $user, array $roles, array $departmentIds): void
     {
+        // Query-builder mass delete: no model is loaded, so no deleted
+        // event fires and the trait on AccessPermission can't see it.
         AccessPermission::where('user_id', $user->id)->delete();
+        AccessProfileCache::flushAll();
 
         $staffOrgIds = collect($roles)
             ->filter(fn ($role) => $role === Role::STAFF)

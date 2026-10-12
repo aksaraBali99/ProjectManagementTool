@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\OrgMember;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Access\AccessProfileCache;
 
 /**
  * Extracted from UserManagementController::syncCompanyRoles() so the
@@ -34,6 +35,10 @@ class CompanyRoleSyncer
                     ->delete();
 
                 if ($deleted > 0) {
+                    // Query-builder mass delete: loads no model, so fires no
+                    // deleted event. Without this the revoked company role
+                    // stays live in the profile for the rest of the request.
+                    AccessProfileCache::flushAll();
                     $changes[$organizationId] = 'deleted';
                 }
 
