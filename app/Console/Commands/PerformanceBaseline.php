@@ -34,6 +34,27 @@ class PerformanceBaseline extends Command
 
     protected $description = 'Measure queries, time and memory for the heavy pages (task #72 baseline)';
 
+    /**
+     * Incremented by the single query listener registered in handle().
+     *
+     * Deliberately a property rather than a captured local: DB::listen()
+     * has no counterpart to remove a listener, so registering one per run
+     * (as this command first did) left every earlier listener live. They
+     * all captured the same function-scoped $count by reference, so run 2
+     * counted each query twice and run 3 three times — making every
+     * reported figure runs x the truth. Phase 0's local --runs=3 numbers
+     * were exactly 3x the dev --runs=1 ones for this reason.
+     */
+    private int $queryCount = 0;
+
+    /**
+     * Artisan resolves a command once and reuses the instance, so a
+     * second perf:baseline call in the same process (every test that runs
+     * it twice) would otherwise stack a second listener on this same
+     * counter and double every figure.
+     */
+    private bool $queryCounterRegistered = false;
+
     public function handle(): int
     {
         $organization = Organization::withoutGlobalScopes()
@@ -60,10 +81,16 @@ class PerformanceBaseline extends Command
         // The Tasks list currently exhausts PHP's default 128M at 2,000
         // tasks and dies with an uncatchable fatal, which would stop the
         // whole baseline. Raising the limit turns that from "the tool
-        // crashes" into "the tool reports 600MB peak", which is the
+        // crashes" into "the tool reports 968MB peak", which is the
         // finding we actually want recorded.
-        $previousLimit = ini_get('memory_limit');
-        ini_set('memory_limit', (string) $this->option('memory'));
+        //
+        // Only ever RAISES: dev's CLI limit is 2048M, and the first
+        // version lowered it to the 1G default and then claimed to have
+        // raised it.
+        $previousLimit = (string) ini_get('memory_limit');
+        $raisedTo = $this->raiseMemoryLimit($previousLimit, (string) $this->option('memory'));
+
+        $this->registerQueryCounter();
 
         $this->printEnvironment($organization, $user);
 
@@ -90,16 +117,78 @@ class PerformanceBaseline extends Command
         $this->newLine();
         $this->components->info(sprintf('Median of %d run(s) per page; the first warms caches.', $runs));
 
-        if ($previousLimit !== false && $previousLimit !== $this->option('memory')) {
+        if ($raisedTo !== null) {
             $this->components->warn(sprintf(
-                'memory_limit was raised from %s to %s for this run. A page whose peak approaches %s would fatal under the default.',
+                'memory_limit was raised from %s to %s for this run. A page whose peak approaches %s would fatal under the normal limit.',
                 $previousLimit,
-                $this->option('memory'),
+                $raisedTo,
                 $previousLimit
             ));
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * One listener for the whole command, incrementing $queryCount, which
+     * each run resets to 0. Registering per run would leave the earlier
+     * listeners live and multiply every count by the run number.
+     */
+    private function registerQueryCounter(): void
+    {
+        if ($this->queryCounterRegistered) {
+            return;
+        }
+
+        $this->queryCounterRegistered = true;
+
+        DB::listen(function (): void {
+            $this->queryCount++;
+        });
+    }
+
+    /**
+     * Raises memory_limit to $requested, and only raises it.
+     *
+     * @return string|null what it was raised to, or null if it was left alone
+     */
+    private function raiseMemoryLimit(string $current, string $requested): ?string
+    {
+        $currentBytes = $this->toBytes($current);
+        $requestedBytes = $this->toBytes($requested);
+
+        // -1 is unlimited: nothing can raise it, so never touch it.
+        if ($currentBytes === -1) {
+            return null;
+        }
+
+        if ($requestedBytes !== -1 && $requestedBytes <= $currentBytes) {
+            return null;
+        }
+
+        ini_set('memory_limit', $requested);
+
+        return $requested;
+    }
+
+    /** Parses a PHP shorthand size ("128M", "1G", "512K", "-1") to bytes. */
+    private function toBytes(string $value): int
+    {
+        $value = trim($value);
+
+        if ($value === '' || $value === '-1') {
+            return -1;
+        }
+
+        $unit = strtolower(substr($value, -1));
+        $number = (int) $value;
+
+        return match ($unit) {
+            'g' => $number * 1024 ** 3,
+            'm' => $number * 1024 ** 2,
+            'k' => $number * 1024,
+            default => $number,
+        };
     }
 
     /**
@@ -114,12 +203,9 @@ class PerformanceBaseline extends Command
         $peak = 0.0;
 
         for ($run = 0; $run < $runs; $run++) {
-            $count = 0;
-            $listener = function () use (&$count) {
-                $count++;
-            };
-
-            DB::listen($listener);
+            // Reset the shared counter rather than registering another
+            // listener — see registerQueryCounter() for why that mattered.
+            $this->queryCount = 0;
             memory_reset_peak_usage();
 
             $startedAt = microtime(true);
@@ -148,9 +234,9 @@ class PerformanceBaseline extends Command
                 Auth::logout();
             }
 
-            // Counted after the rollback so the listener sees the whole
+            // Read after the rollback so the counter sees the whole
             // request; the count itself is identical run to run.
-            $queries = $count;
+            $queries = $this->queryCount;
         }
 
         sort($times);
