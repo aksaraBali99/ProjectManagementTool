@@ -219,7 +219,7 @@ test('the edit page for a formatted description is not double-escaped either', f
 test('script, event handlers, javascript links, images and arbitrary classes are stripped from a submitted description', function () {
     $task = makeTaskWithDescription(null);
 
-    $hostile = '<p onclick="steal()">hi <a href="javascript:alert(1)">bad</a> <a href="https://ok.example" onmouseover="x()">ok</a></p>'
+    $hostile = '<p onclick="steal()">KEPT-DESC-7e44 <a href="javascript:alert(1)">bad</a> <a href="https://ok.example" onmouseover="x()">ok</a></p>'
         .'<img src="x" onerror="alert(1)">'
         .'<pre><code class="fixed inset-0 z-50 bg-white">x</code></pre>'
         .'<script>alert(1)</script>';
@@ -230,6 +230,10 @@ test('script, event handlers, javascript links, images and arbitrary classes are
         ->assertRedirect();
 
     $list = $this->actingAs($this->management)->get("/tasks/{$task->id}/preview")->assertOk();
+    // Positive guard first: without it the three assertDontSee calls below
+    // would go green the day the preview stopped rendering descriptions at
+    // all, proving nothing about the sanitizer.
+    $list->assertSee('KEPT-DESC-7e44');
     $list->assertDontSee('<script>alert(1)</script>', false);
     $list->assertDontSee('<img src="x"', false);
     $list->assertDontSee('onclick="steal()"', false);

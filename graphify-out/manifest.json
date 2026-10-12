@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1791808326.7643414,
-    "ast_hash": "42a22a19031d110a031a5f9ad606ddc1",
+    "mtime": 1791812570.9680953,
+    "ast_hash": "a4b0edb5bd4b7eb37b9915c33704663b",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -805,8 +805,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
-    "mtime": 1791807847.162855,
-    "ast_hash": "11decbffc16146278f5681bbf48e8563",
+    "mtime": 1791812502.0223632,
+    "ast_hash": "953949648139737a47eb5cc77fcbcb42",
     "semantic_hash": ""
   },
   "resources/views/users/_inline-validation.blade.php": {
@@ -1575,8 +1575,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/CommentRichTextTest.php": {
-    "mtime": 1791809550.1262739,
-    "ast_hash": "33276e79724c45a58535a058f968e4e9",
+    "mtime": 1791812526.1915815,
+    "ast_hash": "187643e9b27bc86d7943e8cbc14841e5",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/LongtextMigrationTest.php": {
@@ -1585,8 +1585,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/TaskDescriptionEditorTest.php": {
-    "mtime": 1791809834.1544898,
-    "ast_hash": "a8e6d1d9ae38c84832426e36ea82c7aa",
+    "mtime": 1791812544.0833697,
+    "ast_hash": "e5dc9ad158cb1244ec7a6cb9cd9b08f7",
     "semantic_hash": ""
   },
   "tests/Unit/RichTextTest.php": {
@@ -1690,8 +1690,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentViewingBehaviorTest.php": {
-    "mtime": 1791809955.3052738,
-    "ast_hash": "ee6e667549212fb2489b25300f393f91",
+    "mtime": 1791812552.390704,
+    "ast_hash": "23df607607df0f61c8fa9db7ad62437c",
     "semantic_hash": ""
   },
   "app/Http/Controllers/LinkPreviewController.php": {
@@ -2220,13 +2220,13 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_preview.blade.php": {
-    "mtime": 1791807521.9962697,
-    "ast_hash": "047cd59b6aec06eb51e33b7e99c76ff7",
+    "mtime": 1791812557.759688,
+    "ast_hash": "c6c5199ebd4a8829b729c4fe6a7da4d8",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskPreviewTest.php": {
-    "mtime": 1791808421.484538,
-    "ast_hash": "c02b3b5a0cf569dbbe8d7ca4e39d02d2",
+    "mtime": 1791812588.0051706,
+    "ast_hash": "6feb2d7cc840dde761427d4c2f7e407e",
     "semantic_hash": ""
   }
 }

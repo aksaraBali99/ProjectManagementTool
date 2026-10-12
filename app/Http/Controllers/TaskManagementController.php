@@ -171,10 +171,19 @@ class TaskManagementController extends Controller
      * whether this person may open tasks.edit. A user who cannot see the
      * task gets 403, never a partial preview.
      *
-     * Cost is constant in the number of subtasks and comments: the
+     * QUERY cost is constant in the number of subtasks and comments: the
      * subtasks and the three comments shown are eager-loaded, and the two
      * counts come from withCount, so a task with 30 comments costs the
      * same as one with 1.
+     *
+     * PAYLOAD size is not, and deliberately so: comments are capped at
+     * PREVIEW_COMMENT_LIMIT, but every subtask is listed, because a task's
+     * subtasks are the checklist someone opened the row to read and a
+     * truncated one would send them to the task page for the common case.
+     * A subtask row is a handful of short fields, nowhere near the cost of
+     * the comment editor this replaced, so the cap is not worth the
+     * surprise. If subtask counts ever get large enough to matter, cap it
+     * here with an "N more subtasks" line the way comments do.
      */
     public function preview(Task $task): View
     {

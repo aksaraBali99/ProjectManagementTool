@@ -319,19 +319,32 @@
             }
 
             container.dataset.loading = '1';
+            // Re-shown on a retry too: without this the previous attempt's
+            // error text just sits there for the whole of the new request,
+            // and the click looks like it did nothing.
+            showPreviewLoading(container);
 
             fetch(container.dataset.previewUrl, {
                 credentials: 'same-origin',
                 headers: { 'Accept': 'text/html' },
             })
                 .then(function (response) {
+                    // An expired session is the failure this page will
+                    // actually hit — it can sit open for hours. The request
+                    // asks for text/html, so Laravel's auth middleware
+                    // REDIRECTS to /login rather than returning 401, fetch
+                    // follows that by default, and response.ok is true. Left
+                    // unchecked, the login form's HTML (and a stale CSRF
+                    // token) gets injected into a table cell and the row is
+                    // stuck that way with no retry possible.
+                    if (response.redirected) throw new Error('redirected to ' + response.url);
                     if (! response.ok) throw new Error('HTTP ' + response.status);
 
                     return response.text();
                 })
                 .then(function (html) {
                     container.innerHTML = html;
-                    container.dataset.loaded = '1';
+
                     // Mentions, code blocks, video thumbnails, file chips and
                     // link previews are all render-time enhancements, so
                     // injected HTML needs this pass the way a page load gets
@@ -339,9 +352,22 @@
                     // reopening one row never re-walks the whole page.
                     // Click behaviour (lightbox, chips, link previews) is
                     // delegated on document in app.js and needs nothing here.
-                    if (window.solavaRichText) {
-                        window.solavaRichText.highlight(container);
+                    //
+                    // Guarded separately from the fetch: the fragment has
+                    // already rendered correctly by this point, so a throw in
+                    // here must not send us to the catch below and replace it
+                    // with an error message.
+                    try {
+                        if (window.solavaRichText) {
+                            window.solavaRichText.highlight(container);
+                        }
+                    } catch (error) {
+                        // Enhancements are cosmetic; the content stands without them.
                     }
+
+                    // Set LAST, so the row is only marked done once the
+                    // fragment is actually in place.
+                    container.dataset.loaded = '1';
                 })
                 .catch(function () {
                     // Left un-loaded on purpose: the next open retries.
@@ -362,6 +388,13 @@
                 .finally(function () {
                     delete container.dataset.loading;
                 });
+        }
+
+        function showPreviewLoading(container) {
+            const loading = document.createElement('p');
+            loading.className = 'task-preview-loading text-[11px] text-gray-500';
+            loading.textContent = 'Loading…';
+            container.replaceChildren(loading);
         }
     })();
 </script>

@@ -114,7 +114,8 @@ test('a task with no subtasks says so', function () {
     $this->actingAs($this->management)
         ->get(previewUrl($this->task))
         ->assertOk()
-        ->assertSee('No subtasks.');
+        // Same wording as the task page's own partial.
+        ->assertSee('No subtasks yet.');
 });
 
 test('subtasks are read-only: no input, select or textarea anywhere in the preview', function () {
@@ -401,6 +402,20 @@ function makePreviewViewer(object $context, string $shape): User
         'foreignUser' => $staffIn($context->otherOrg),
     };
 }
+
+test('an unauthenticated preview request REDIRECTS to login rather than returning 401', function () {
+    // Pins the contract the drilldown's fetch is written against. Because
+    // the request asks for text/html, Laravel's auth middleware redirects
+    // instead of returning a status code, and fetch follows redirects by
+    // default — so response.ok would be true and the login page's HTML
+    // would land inside a table cell. index.blade.php therefore checks
+    // response.redirected explicitly. If this ever becomes a 401, that
+    // check is merely redundant rather than wrong, but the JS comment
+    // explaining it would need revisiting.
+    $this->withHeaders(['Accept' => 'text/html'])
+        ->get(previewUrl($this->task))
+        ->assertRedirect('/login');
+});
 
 // --- The list page itself ------------------------------------------------
 

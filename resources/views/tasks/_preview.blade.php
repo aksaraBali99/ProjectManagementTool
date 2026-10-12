@@ -36,7 +36,10 @@
             </span>
         </div>
     @empty
-        <p class="text-[11px] text-gray-500">No subtasks.</p>
+        {{-- "No subtasks yet." verbatim from _subtasks.blade.php, not a
+             shortened "No subtasks." — the list and the task page should not
+             word the same empty state two different ways. --}}
+        <p class="text-[11px] text-gray-500">No subtasks yet.</p>
     @endforelse
 </div>
 

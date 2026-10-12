@@ -142,6 +142,7 @@ test('the task list row preview does not render attached documents at all — on
         'project_id' => $this->project->id,
         'department_id' => $this->dept->id,
         'title' => 'Ship it',
+        'description' => '<p>KEPT-TASK-2a69</p>',
         'priority' => 'medium',
         'status' => 'pending',
     ]);
@@ -150,9 +151,10 @@ test('the task list row preview does not render attached documents at all — on
     $response = $this->actingAs($this->management)->get("/tasks/{$task->id}/preview");
 
     $response->assertOk();
-    // The preview genuinely rendered this task — so the absence below is
-    // about documents, not about having fetched the wrong thing.
-    $response->assertSee('Description');
+    // Content unique to THIS task, not the static "Description" heading every
+    // preview emits — otherwise the guard would pass against any task's
+    // preview, or an empty one, and the absence below would mean nothing.
+    $response->assertSee('KEPT-TASK-2a69');
     $response->assertDontSee('Project brief.pdf');
 });
 

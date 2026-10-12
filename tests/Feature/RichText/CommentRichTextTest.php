@@ -127,7 +127,7 @@ test('the polling hash changes only when the body changes', function () {
 
 test('script, event handlers, javascript links and images are stripped from a comment', function () {
     $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [
-        'body' => '<p onclick="steal()">hi <a href="javascript:alert(1)">bad</a></p><p><img src="x" onerror="alert(1)"><script>alert(1)</script></p>',
+        'body' => '<p onclick="steal()">KEPT-TEXT-4c81 <a href="javascript:alert(1)">bad</a></p><p><img src="x" onerror="alert(1)"><script>alert(1)</script></p>',
     ])->assertCreated();
 
     $stored = Comment::firstOrFail()->body;
@@ -142,8 +142,12 @@ test('script, event handlers, javascript links and images are stripped from a co
     // the assertion would have passed without rendering the hostile comment
     // at all — a sanitizer test that proves nothing. The preview really does
     // render it (one comment, so it is within the latest 3).
+    // A deliberately unique marker, NOT a short word: the first version of
+    // this guard asserted "hi", which is a substring of the "bg-white" class
+    // on every comment card, so it passed even when the body rendered
+    // nothing at all — the exact vacuity it was added to prevent.
     $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
-        ->assertSee('hi')   // the comment really is on the page being checked
+        ->assertSee('KEPT-TEXT-4c81')
         ->assertDontSee('<script>alert(1)</script>', false)
         ->assertDontSee('onerror=', false);
 });
@@ -153,13 +157,14 @@ test('hostile markup written straight into the database is still neutralized whe
     Comment::create([
         'task_id' => $this->task->id,
         'user_id' => $this->management->id,
-        'body' => '<p onmouseover="x()">hi</p><p><script>alert(9)</script><img src=x onerror=alert(8)></p>',
+        'body' => '<p onmouseover="x()">KEPT-TEXT-9d20</p><p><script>alert(9)</script><img src=x onerror=alert(8)></p>',
     ]);
 
     // task #72 phase 2: moved to the row preview for the same reason as the
     // test above — on the list these assertions would now be vacuous.
     $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk();
-    $page->assertSee('hi');   // the hostile comment is genuinely rendered here
+    // Unique marker, for the same reason as the test above.
+    $page->assertSee('KEPT-TEXT-9d20');
     $page->assertDontSee('alert(9)', false);
     $page->assertDontSee('onerror=alert(8)', false);
     $page->assertDontSee('onmouseover', false);
