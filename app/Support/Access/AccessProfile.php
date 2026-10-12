@@ -228,12 +228,6 @@ final class AccessProfile
         return $this->clientProjects()[$projectId] ?? null;
     }
 
-    /** @return array<int, int> */
-    public function clientProjectIds(): array
-    {
-        return array_keys($this->clientProjects());
-    }
-
     /**
      * Project id => organization id, for every project this user is a
      * listed client on.
