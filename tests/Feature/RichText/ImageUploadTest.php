@@ -100,8 +100,10 @@ test('a valid image upload for a task description succeeds, returns a URL, and t
     // Description view (task #4, view/edit split) and the drilldown.
     $editPage = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
     expect(descriptionViewContent($editPage))->toContain($url);
+    // task #72 phase 2: the drilldown moved to the row preview endpoint;
+    // the Tasks list no longer renders the stored description/comment.
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()->assertSee($url, false);
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()->assertSee($url, false);
 });
 
 test('an oversized image upload is rejected using FileStorageService\'s own validation, and nothing is stored', function () {

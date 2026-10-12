@@ -59,7 +59,10 @@ test('a comment saved through the editor keeps its formatting and renders it in 
         ->toContain('href="https://example.com/runbook"')
         ->toContain('rel="noopener noreferrer nofollow"');
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
+    // task #72 phase 2: the Tasks list no longer renders comments — the row
+    // preview does, and it is the second independent render path this
+    // assertion has always been about.
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
         ->assertSee('<strong>after</strong>', false)
         ->assertSee('<em>review</em>', false)
         ->assertSee('<pre><code class="language-js">run();</code></pre>', false)
@@ -74,7 +77,11 @@ test('an existing plain-text comment renders as escaped text, with its line brea
     $legacy = "Looks good <b>to me</b> & ready\nsecond line";
     Comment::create(['task_id' => $this->task->id, 'user_id' => $this->management->id, 'body' => $legacy]);
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
+    // task #72 phase 2: moved from the Tasks list to the row preview, which
+    // is where a comment's HTML now renders. The assertDontSee matters
+    // specifically here — on the list it would now pass for the wrong
+    // reason, since no comment body reaches that page at all.
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
         ->assertSee('Looks good &lt;b&gt;to me&lt;/b&gt; &amp; ready<br>', false)
         ->assertDontSee('<b>to me</b>', false);
 
@@ -120,7 +127,7 @@ test('the polling hash changes only when the body changes', function () {
 
 test('script, event handlers, javascript links and images are stripped from a comment', function () {
     $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [
-        'body' => '<p onclick="steal()">hi <a href="javascript:alert(1)">bad</a></p><p><img src="x" onerror="alert(1)"><script>alert(1)</script></p>',
+        'body' => '<p onclick="steal()">KEPT-TEXT-4c81 <a href="javascript:alert(1)">bad</a></p><p><img src="x" onerror="alert(1)"><script>alert(1)</script></p>',
     ])->assertCreated();
 
     $stored = Comment::firstOrFail()->body;
@@ -130,7 +137,17 @@ test('script, event handlers, javascript links and images are stripped from a co
         ->not->toContain('onerror')
         ->not->toContain('<script');
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
+    // task #72 phase 2: the row preview, not the Tasks list. This one HAD to
+    // move rather than stay: the list no longer renders comment bodies, so
+    // the assertion would have passed without rendering the hostile comment
+    // at all — a sanitizer test that proves nothing. The preview really does
+    // render it (one comment, so it is within the latest 3).
+    // A deliberately unique marker, NOT a short word: the first version of
+    // this guard asserted "hi", which is a substring of the "bg-white" class
+    // on every comment card, so it passed even when the body rendered
+    // nothing at all — the exact vacuity it was added to prevent.
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
+        ->assertSee('KEPT-TEXT-4c81')
         ->assertDontSee('<script>alert(1)</script>', false)
         ->assertDontSee('onerror=', false);
 });
@@ -140,10 +157,14 @@ test('hostile markup written straight into the database is still neutralized whe
     Comment::create([
         'task_id' => $this->task->id,
         'user_id' => $this->management->id,
-        'body' => '<p onmouseover="x()">hi</p><p><script>alert(9)</script><img src=x onerror=alert(8)></p>',
+        'body' => '<p onmouseover="x()">KEPT-TEXT-9d20</p><p><script>alert(9)</script><img src=x onerror=alert(8)></p>',
     ]);
 
-    $page = $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk();
+    // task #72 phase 2: moved to the row preview for the same reason as the
+    // test above — on the list these assertions would now be vacuous.
+    $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk();
+    // Unique marker, for the same reason as the test above.
+    $page->assertSee('KEPT-TEXT-9d20');
     $page->assertDontSee('alert(9)', false);
     $page->assertDontSee('onerror=alert(8)', false);
     $page->assertDontSee('onmouseover', false);
