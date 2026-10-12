@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\Access\AccessProfileCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -83,6 +84,7 @@ class PermissionManagementController extends Controller
             $permissionIds = array_values(array_diff($permissionIds, $this->forcedOffPermissionIdsForRole($role)));
 
             $role->permissions()->sync($permissionIds);
+            AccessProfileCache::flushAll();
         }
 
         return redirect()->route('roles.permissions.edit')->with('status', 'Permissions updated.');

@@ -18,6 +18,7 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\CompanyRoleSyncer;
+use App\Support\Access\AccessProfileCache;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -352,6 +353,16 @@ class ImportCommitService
                 $clientSync = $project->clients()->sync($clientUserId ? [$clientUserId] : []);
                 $pivotsChanged = ! empty($staffSync['attached']) || ! empty($staffSync['detached'])
                     || ! empty($clientSync['attached']) || ! empty($clientSync['detached']);
+
+                // Only the CLIENT pivot feeds the access profile, and only
+                // when it actually moved. Flushing on every row would make
+                // the next scoped query in the loop rebuild the importer's
+                // own profile from scratch — a few hundred times over a
+                // large import, mostly for syncs that changed nothing.
+                // project_staff isn't in the profile at all.
+                if (! empty($clientSync['attached']) || ! empty($clientSync['detached'])) {
+                    AccessProfileCache::flushAll();
+                }
 
                 $diff = $attributes;
                 if ($before !== null) {

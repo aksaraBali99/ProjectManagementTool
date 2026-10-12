@@ -11,6 +11,7 @@ use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Access\AccessProfileCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -203,6 +204,9 @@ class ProjectManagementController extends Controller
 
         $project->staff()->sync($request->input('staff', []));
         $project->clients()->sync($request->filled('client') ? [$request->integer('client')] : []);
+        // Pivot write: fires no model event, and isClientOnProject()
+        // reads from the profile.
+        AccessProfileCache::flushAll();
 
         return redirect()->route('projects.index', $project->organization_id)->with('status', 'Project created.');
     }
@@ -237,6 +241,9 @@ class ProjectManagementController extends Controller
 
         $project->staff()->sync($request->input('staff', []));
         $project->clients()->sync($request->filled('client') ? [$request->integer('client')] : []);
+        // Pivot write: fires no model event, and isClientOnProject()
+        // reads from the profile.
+        AccessProfileCache::flushAll();
 
         return redirect()->route('projects.index', $project->organization_id)->with('status', 'Project updated.');
     }

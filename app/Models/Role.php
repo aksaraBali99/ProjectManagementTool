@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\FlushesAccessProfiles;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['name', 'slug', 'description', 'is_system'])]
 class Role extends Model
 {
+    use FlushesAccessProfiles;
+
     public const SUPER_ADMIN = 'super_admin';
 
     public const OWNER = 'owner';
