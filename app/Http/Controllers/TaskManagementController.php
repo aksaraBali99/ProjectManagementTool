@@ -39,6 +39,9 @@ class TaskManagementController extends Controller
 {
     use BuildsAssigneeOptions, ResolvesCurrentOrganization, ValidatesTaskAssignment;
 
+    /** How many top-level comments the row preview shows (task #72 phase 2). */
+    private const PREVIEW_COMMENT_LIMIT = 3;
+
     public function index(?Organization $organization = null): View
     {
         Gate::authorize('viewAny', Task::class);
@@ -65,7 +68,12 @@ class TaskManagementController extends Controller
 
         $visibleScope = fn () => Task::visibleTo($user, $organization->id);
 
-        $query = $visibleScope()->with(['project', 'department', 'assignee', 'subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user']);
+        // task #72 phase 2: project/department/assignee only. The subtask
+        // and comment relations used to be loaded here for the drilldown
+        // row, which rendered for every task whether it was ever opened or
+        // not; the drilldown now fetches tasks.preview on first open, so
+        // nothing on this page reads them.
+        $query = $visibleScope()->with(['project', 'department', 'assignee']);
 
         if ($showInactive) {
             $query->withTrashed();
@@ -136,7 +144,10 @@ class TaskManagementController extends Controller
             'tasks' => $tasks,
             'showInactive' => $showInactive,
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
-            'eligibleAssignees' => $this->eligibleAssigneesByTask($tasks),
+            // No 'eligibleAssignees': it only ever fed the drilldown's
+            // subtask assignee dropdowns. eligibleAssigneesByTask() itself
+            // stays — it lives in the shared BuildsAssigneeOptions trait
+            // and KanbanController still uses it.
             'filters' => $filters,
             'sort' => $sort,
             'direction' => $direction,
@@ -147,10 +158,64 @@ class TaskManagementController extends Controller
     }
 
     /**
+     * task #72 phase 2: the Tasks list drilldown, as a read-only fragment
+     * fetched on first open instead of rendered inline for every task.
+     *
+     * The list used to render the full interactive _subtasks and _comments
+     * partials plus the description for every row, opened or not — that
+     * was ~185 MB of HTML and ~8 queries per row (viewableUsers()) at
+     * 2,000 tasks. Commenting and subtask editing now happen on the task
+     * page only, so this fragment needs none of that machinery.
+     *
+     * Authorization is Gate 'view' — byte for byte the rule that decides
+     * whether this person may open tasks.edit. A user who cannot see the
+     * task gets 403, never a partial preview.
+     *
+     * Cost is constant in the number of subtasks and comments: the
+     * subtasks and the three comments shown are eager-loaded, and the two
+     * counts come from withCount, so a task with 30 comments costs the
+     * same as one with 1.
+     */
+    public function preview(Task $task): View
+    {
+        Gate::authorize('view', $task);
+
+        // Deliberately NOT $task->comments: that relation returns replies
+        // too (same table), and this shows top-level comments only.
+        $comments = $task->comments()
+            ->whereNull('parent_comment_id')
+            ->with('user', 'mentionedUsers')
+            ->withCount('replies')
+            // id breaks the tie: two comments posted in the same second
+            // would otherwise come back in whatever order the database
+            // felt like, so "latest 3" wouldn't be a stable answer.
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(self::PREVIEW_COMMENT_LIMIT)
+            ->get();
+
+        $topLevelCommentCount = $task->comments()->whereNull('parent_comment_id')->count();
+
+        return view('tasks._preview', [
+            'task' => $task->load(['subtasks.assignee']),
+            'comments' => $comments,
+            'remainingCommentCount' => max(0, $topLevelCommentCount - $comments->count()),
+            // The list's own URL, so "Open task" comes back to the same
+            // filters and sort. Client-supplied, so it goes through the
+            // same same-origin validation and label allow-list as every
+            // other entry point's return_to — see resolveReturnTo().
+            'returnTo' => $this->resolveReturnTo(route('tasks.index', $task->organization_id)),
+        ]);
+    }
+
+    /**
      * Sorted at the collection level, not via the query builder, since
-     * project/department/assignee live on related models already eager-
-     * loaded for the drilldown rows — joining for those would duplicate
-     * what's already in memory. A missing value (no due date, no assignee)
+     * project/department/assignee live on related models the row itself
+     * already eager-loads — joining for those would duplicate what's
+     * already in memory. (Before task #72 phase 2 the same relations were
+     * loaded for the drilldown; the row needs them either way, so this
+     * reasoning is unchanged by the drilldown moving to tasks.preview.)
+     * A missing value (no due date, no assignee)
      * always sorts last regardless of direction; ties break on title so the
      * list order stays stable and predictable.
      */

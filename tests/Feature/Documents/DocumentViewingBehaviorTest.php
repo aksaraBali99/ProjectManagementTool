@@ -126,11 +126,17 @@ test('a document attached to a task via task_documents opens as a plain new-tab 
     assertNotRenderedAsInlineMedia($html, 'Project brief.pdf');
 });
 
-test('the task list drilldown does not render attached documents at all — only Description, Subtasks and Comments live there', function () {
+test('the task list row preview does not render attached documents at all — only Description, Subtasks and Comments live there', function () {
     // Documents-per-task are shown exclusively on the Edit Task page
     // (tasks/_documents.blade.php) — confirming the *other* task surface
-    // (the list drilldown tasks/index.blade.php renders) has no separate,
-    // possibly-differently-behaved rendering path for the same data.
+    // has no separate, possibly-differently-behaved rendering path for the
+    // same data.
+    //
+    // task #72 phase 2: that other surface is now the row preview endpoint
+    // rather than markup inside tasks/index.blade.php. Re-pointed rather
+    // than dropped: this is the only guard against a second
+    // document-rendering path appearing, and asserting it against the list
+    // page would be vacuous now that the list renders no task detail at all.
     $task = Task::create([
         'organization_id' => $this->org->id,
         'project_id' => $this->project->id,
@@ -141,9 +147,12 @@ test('the task list drilldown does not render attached documents at all — only
     ]);
     $task->documents()->attach($this->document->id);
 
-    $response = $this->actingAs($this->management)->get("/tasks/{$this->org->id}");
+    $response = $this->actingAs($this->management)->get("/tasks/{$task->id}/preview");
 
     $response->assertOk();
+    // The preview genuinely rendered this task — so the absence below is
+    // about documents, not about having fetched the wrong thing.
+    $response->assertSee('Description');
     $response->assertDontSee('Project brief.pdf');
 });
 
