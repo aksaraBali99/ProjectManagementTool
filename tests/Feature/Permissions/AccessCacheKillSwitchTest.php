@@ -42,6 +42,14 @@ test('with the cache ON, repeated calls cost nothing after the first', function 
 
     $first = countQueries(fn () => $this->staff->hasPermission('view_tasks', $this->org->id));
     $second = countQueries(fn () => $this->staff->hasPermission('view_tasks', $this->org->id));
+
+    // Department grants are deferred, so the FIRST department question
+    // costs exactly one query — the slice nothing had asked for yet — and
+    // every one after it is free. Asserted separately rather than folded
+    // into the loop below, so that one query stays visible instead of
+    // being quietly absorbed into a looser bound.
+    $firstDepartmentQuestion = countQueries(fn () => $this->staff->hasDepartmentAccess($this->org->id, $this->dept->id));
+
     $tenMore = countQueries(function () {
         for ($i = 0; $i < 10; $i++) {
             $this->staff->hasPermission('view_tasks', $this->org->id);
@@ -50,9 +58,10 @@ test('with the cache ON, repeated calls cost nothing after the first', function 
         }
     });
 
-    expect($first)->toBeGreaterThan(0);      // the profile load
-    expect($second)->toBe(0);                 // answered from memory
-    expect($tenMore)->toBe(0);                // 30 more questions, no queries
+    expect($first)->toBeGreaterThan(0);        // the profile load
+    expect($second)->toBe(0);                  // answered from memory
+    expect($firstDepartmentQuestion)->toBe(1); // the one deferred slice
+    expect($tenMore)->toBe(0);                 // 30 more questions, no queries
 });
 
 test('with the cache OFF, every call queries again', function () {

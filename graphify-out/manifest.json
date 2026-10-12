@@ -191,7 +191,7 @@
   },
   ".claude/settings.json": {
     "mtime": 1786945326.1182406,
-    "ast_hash": "e61c0a9c8c8ae7364048d4afd7bd1061",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Auth/AuthenticatedSessionController.php": {
@@ -1390,8 +1390,8 @@
     "semantic_hash": ""
   },
   "app/Services/Import/ImportCommitService.php": {
-    "mtime": 1791791046.7654264,
-    "ast_hash": "9411c0b73d1b076e2aeead5c92b9ade9",
+    "mtime": 1791794710.7594752,
+    "ast_hash": "8d00fc5234b047ce18625a827cfe6e2f",
     "semantic_hash": ""
   },
   "app/Services/Import/ImportCommitSummary.php": {
@@ -2145,8 +2145,8 @@
     "semantic_hash": ""
   },
   "app/Console/Commands/PerformanceBaseline.php": {
-    "mtime": 1791788059.9788196,
-    "ast_hash": "3a270790d9f2b58aabc26b879634b209",
+    "mtime": 1791794718.446719,
+    "ast_hash": "fb4dca933b4a0f2acec925a438a43ce2",
     "semantic_hash": ""
   },
   "app/Console/Commands/SeedPerformanceData.php": {
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Performance/PageQueryCountTest.php": {
-    "mtime": 1791792591.8457081,
-    "ast_hash": "89034ee77786477868ab2ff40d2eedcc",
+    "mtime": 1791794886.279972,
+    "ast_hash": "adb866144b529a78967a02cc7daa775f",
     "semantic_hash": ""
   },
   "tests/Feature/Performance/PerformanceBaselineCommandTest.php": {
@@ -2190,13 +2190,13 @@
     "semantic_hash": ""
   },
   "app/Support/Access/AccessProfile.php": {
-    "mtime": 1791792269.3131876,
-    "ast_hash": "6dbff8229ed57a74b07c5aa95602e82d",
+    "mtime": 1791794685.5873196,
+    "ast_hash": "40ecef982735d0d21706b595363e6b01",
     "semantic_hash": ""
   },
   "app/Support/Access/AccessProfileCache.php": {
-    "mtime": 1791790201.4452968,
-    "ast_hash": "dcf43dcf9fc979f39855db57409283d3",
+    "mtime": 1791794697.1094718,
+    "ast_hash": "ba391eda97af69e724ae47ef1a17e052",
     "semantic_hash": ""
   },
   "config/solava.php": {
@@ -2205,13 +2205,13 @@
     "semantic_hash": ""
   },
   "tests/Feature/Permissions/AccessCacheKillSwitchTest.php": {
-    "mtime": 1791791018.445759,
-    "ast_hash": "634bc0461a67f3f2364e632b8c8ad7b4",
+    "mtime": 1791794800.414152,
+    "ast_hash": "cc3fba6667fff76ad768d10a2a6604d5",
     "semantic_hash": ""
   },
   "tests/Feature/Permissions/AccessProfileInvalidationTest.php": {
-    "mtime": 1791792513.426916,
-    "ast_hash": "942a0a7cb67eea8a6739d78012387acb",
+    "mtime": 1791794744.4649906,
+    "ast_hash": "74709284438b7e6a63cfcfbe77c91d35",
     "semantic_hash": ""
   },
   "tests/Feature/Permissions/AccessProfileParityTest.php": {

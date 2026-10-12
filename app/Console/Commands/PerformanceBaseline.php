@@ -171,13 +171,26 @@ class PerformanceBaseline extends Command
         return $requested;
     }
 
-    /** Parses a PHP shorthand size ("128M", "1G", "512K", "-1") to bytes. */
+    /**
+     * Parses a PHP shorthand size ("128M", "1G", "512K", "-1") to bytes.
+     *
+     * Only a literal "-1" means unlimited. An empty or unparseable value
+     * returns 0 — "unknown", which makes raiseMemoryLimit() raise anyway
+     * rather than assume there is no limit to raise. Guessing "unlimited"
+     * there would silently skip the raise and swallow its warning, and the
+     * one case --memory exists for is the Tasks list fataling at PHP's
+     * 128M default partway through a baseline.
+     */
     private function toBytes(string $value): int
     {
         $value = trim($value);
 
-        if ($value === '' || $value === '-1') {
+        if ($value === '-1') {
             return -1;
+        }
+
+        if ($value === '') {
+            return 0;
         }
 
         $unit = strtolower(substr($value, -1));

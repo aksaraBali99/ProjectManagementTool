@@ -48,18 +48,33 @@ test('attaching a global role is seen immediately', function () {
 });
 
 test('the UserManagementController super-admin toggle is seen immediately', function () {
-    $superAdminId = Role::where('slug', 'super_admin')->firstOrFail()->id;
-
+    // Driven through the real route, not by replicating the pivot write
+    // here: the point is that syncSuperAdminGrant() flushes, and a test
+    // that flushes on its own behalf would stay green if that flush were
+    // deleted from the controller.
     $this->actingAs($this->owner);
     expect($this->user->isSuperAdmin())->toBeFalse();
 
-    // Exactly what the controller does (pivot write, no model event).
-    $this->user->roles()->syncWithoutDetaching([$superAdminId]);
-    AccessProfileCache::flushAll();
+    // Granting super admin requires management somewhere, so the payload
+    // carries it — see UserManagementTest's own super-admin cases.
+    $payload = [
+        'username' => $this->user->username,
+        'name' => $this->user->name,
+        'employee_id' => $this->user->employee_id,
+        'email' => $this->user->email,
+        'phone' => '+1 202 555 0100',
+        'roles' => [$this->org->id => 'management'],
+    ];
+
+    $this->actingAs($this->owner)
+        ->put("/users/{$this->user->id}", $payload + ['grant_super_admin' => '1'])
+        ->assertRedirect('/users');
     expect($this->user->fresh()->isSuperAdmin())->toBeTrue();
 
-    $this->user->roles()->detach($superAdminId);
-    AccessProfileCache::flushAll();
+    // Unchecked box: the same route must revoke it just as immediately.
+    $this->actingAs($this->owner)
+        ->put("/users/{$this->user->id}", $payload)
+        ->assertRedirect('/users');
     expect($this->user->fresh()->isSuperAdmin())->toBeFalse();
 });
 

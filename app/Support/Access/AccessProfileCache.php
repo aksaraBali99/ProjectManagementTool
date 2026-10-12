@@ -38,23 +38,19 @@ class AccessProfileCache
     }
 
     /**
-     * Drops one user's profile, or everything when no user is given.
+     * Drops every profile.
      *
-     * Called whenever anything the profiles are built from changes. It is
-     * deliberately blunt: flushing too often only costs a reload, while
-     * missing a flush would serve a stale permission — so every write
-     * path that cannot be covered by a model event calls flush() with no
-     * argument rather than trying to work out whose profile is affected.
+     * Called whenever anything the profiles are built from changes. There
+     * is deliberately NO per-user variant: flushing too much only costs a
+     * reload, while missing a flush serves a stale permission, and working
+     * out whose profile a change affects is exactly the kind of reasoning
+     * that gets it wrong (a role's permissions changing touches everyone
+     * holding that role, a company being deactivated touches everyone in
+     * it). Blunt and total is the safe default here.
      */
-    public function flush(?int $userId = null): void
+    public function flush(): void
     {
-        if ($userId === null) {
-            $this->profiles = [];
-
-            return;
-        }
-
-        unset($this->profiles[$userId]);
+        $this->profiles = [];
     }
 
     /**

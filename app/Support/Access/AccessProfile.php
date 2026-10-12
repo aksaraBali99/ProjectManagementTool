@@ -39,7 +39,6 @@ final class AccessProfile
      * @param  array<int, int>  $globalRoleIds
      * @param  array<int, array{role_id: int, slug: string}>  $orgRoles  keyed by organization id
      * @param  array<int, array<int, string>>  $permissionSlugsByRoleId
-     * @param  array<int, array<int, bool>>  $departmentGrants  org id => [department id => is_active]
      */
     private function __construct(
         private readonly int $userId,
@@ -47,7 +46,13 @@ final class AccessProfile
         private readonly array $globalRoleIds,
         private readonly array $orgRoles,
         private readonly array $permissionSlugsByRoleId,
-        private readonly array $departmentGrants,
+        /**
+         * Loaded lazily — see departmentGrants(). Org id => [department id
+         * => is_active].
+         *
+         * @var array<int, array<int, bool>>|null
+         */
+        private ?array $departmentGrants = null,
         /**
          * Loaded lazily — most requests never ask a client-on-project
          * question. Project id => that project's organization id, because
@@ -65,11 +70,13 @@ final class AccessProfile
     ) {}
 
     /**
-     * Four queries up front, regardless of how many companies, roles or
-     * departments the user has. Two more are spent only if something asks
-     * a client-on-project question (clientProjects()) or needs the user's
-     * visible companies (visibleOrganizationIds()) — both lazy, both at
-     * most once per request per user.
+     * THREE queries up front, regardless of how many companies, roles or
+     * departments the user has: global roles, company roles, and the
+     * permissions of every role held. Everything else is deferred and
+     * spent at most once per request per user, only if asked —
+     * departmentGrants(), clientProjects(), visibleOrganizationIds(). That
+     * matters because most profiles are built for someone other than the
+     * signed-in user and only ever asked a permission question.
      */
     public static function load(int $userId): self
     {
@@ -108,31 +115,53 @@ final class AccessProfile
             }
         }
 
-        // allowed = true only, carrying the department's active flag so
-        // allowedDepartmentIds() (active or not) and
-        // allowedActiveDepartmentIds()/hasDepartmentAccess() (active only)
-        // can both be answered from this one load without conflating them.
-        // INNER JOIN is safe: access_permissions.department_id cascades on
-        // delete, so a grant can never outlive its department.
-        $grants = DB::table('access_permissions')
-            ->join('departments', 'departments.id', '=', 'access_permissions.department_id')
-            ->where('access_permissions.user_id', $userId)
-            ->where('access_permissions.allowed', true)
-            ->get(['access_permissions.organization_id', 'access_permissions.department_id', 'departments.is_active']);
-
-        $departmentGrants = [];
-        foreach ($grants as $grant) {
-            $departmentGrants[(int) $grant->organization_id][(int) $grant->department_id] = (bool) $grant->is_active;
-        }
-
         return new self(
             $userId,
             $globalRoles->pluck('slug')->map(fn ($slug) => (string) $slug)->all(),
             $globalRoles->pluck('id')->map(fn ($id) => (int) $id)->all(),
             $orgRoles,
             $permissionSlugsByRoleId,
-            $departmentGrants,
         );
+    }
+
+    /**
+     * Org id => [department id => is_active], for every allowed grant.
+     *
+     * Deferred, and that is worth more than it looks. Department access is
+     * only ever asked about the signed-in user (TaskPolicy, the Dashboard,
+     * TaskManagementController all pass the request's own user), but
+     * profiles get built for plenty of OTHER users — Task::viewableUsers()
+     * builds one per candidate assignee, per row of the Tasks list, purely
+     * to ask hasPermission('view_tasks'). Loading grants eagerly charged
+     * every one of those a query nothing would ever read.
+     *
+     * allowed = true only, carrying the department's active flag so
+     * allowedDepartmentIds() (active or not) and
+     * allowedActiveDepartmentIds()/hasDepartmentAccess() (active only) can
+     * both be answered from this one load without conflating them. INNER
+     * JOIN is safe: access_permissions.department_id cascades on delete, so
+     * a grant can never outlive its department.
+     *
+     * @return array<int, array<int, bool>>
+     */
+    private function departmentGrants(): array
+    {
+        if ($this->departmentGrants !== null) {
+            return $this->departmentGrants;
+        }
+
+        $grants = DB::table('access_permissions')
+            ->join('departments', 'departments.id', '=', 'access_permissions.department_id')
+            ->where('access_permissions.user_id', $this->userId)
+            ->where('access_permissions.allowed', true)
+            ->get(['access_permissions.organization_id', 'access_permissions.department_id', 'departments.is_active']);
+
+        $this->departmentGrants = [];
+        foreach ($grants as $grant) {
+            $this->departmentGrants[(int) $grant->organization_id][(int) $grant->department_id] = (bool) $grant->is_active;
+        }
+
+        return $this->departmentGrants;
     }
 
     public function isSuperAdmin(): bool
@@ -181,7 +210,7 @@ final class AccessProfile
     /** Granted AND the department still active — matches hasDepartmentAccess(). */
     public function hasDepartmentAccess(int $organizationId, int $departmentId): bool
     {
-        return ($this->departmentGrants[$organizationId][$departmentId] ?? false) === true;
+        return ($this->departmentGrants()[$organizationId][$departmentId] ?? false) === true;
     }
 
     /**
@@ -191,7 +220,7 @@ final class AccessProfile
      */
     public function allowedDepartmentIds(int $organizationId): Collection
     {
-        return Collection::make(array_keys($this->departmentGrants[$organizationId] ?? []));
+        return Collection::make(array_keys($this->departmentGrants()[$organizationId] ?? []));
     }
 
     /**
@@ -201,27 +230,22 @@ final class AccessProfile
      */
     public function allowedActiveDepartmentIds(int $organizationId): Collection
     {
-        return Collection::make($this->departmentGrants[$organizationId] ?? [])
+        return Collection::make($this->departmentGrants()[$organizationId] ?? [])
             ->filter(fn (bool $isActive) => $isActive)
             ->keys();
     }
 
-    /** @return array<int, int> organization ids this user holds any role in */
-    public function organizationIdsWithRole(): array
-    {
-        return array_keys($this->orgRoles);
-    }
-
-    public function isClientOnProject(int $projectId): bool
-    {
-        return array_key_exists($projectId, $this->clientProjects());
-    }
-
     /**
      * The company owning a project this user is a client on, or null if
-     * they aren't a client on it. User::isClientOnProject() needs the
-     * company to apply the viewer's visible-org filter, which is what
-     * Project's BelongsToOrganization scope used to do to this query.
+     * they aren't a client on it.
+     *
+     * Deliberately NOT an isClientOnProject() on this class, tempting as
+     * the name is. The question cannot be answered from the subject's data
+     * alone: Project carries BelongsToOrganization, so the pre-cache query
+     * was filtered to the SIGNED-IN user's visible companies, and a
+     * profile shared across viewers has no business deciding that. Callers
+     * get the company and User::isClientOnProject() applies the viewer
+     * filter to it.
      */
     public function clientProjectOrganizationId(int $projectId): ?int
     {

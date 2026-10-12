@@ -351,9 +351,18 @@ class ImportCommitService
 
                 $staffSync = $project->staff()->sync($staffIds);
                 $clientSync = $project->clients()->sync($clientUserId ? [$clientUserId] : []);
-                AccessProfileCache::flushAll();
                 $pivotsChanged = ! empty($staffSync['attached']) || ! empty($staffSync['detached'])
                     || ! empty($clientSync['attached']) || ! empty($clientSync['detached']);
+
+                // Only the CLIENT pivot feeds the access profile, and only
+                // when it actually moved. Flushing on every row would make
+                // the next scoped query in the loop rebuild the importer's
+                // own profile from scratch — a few hundred times over a
+                // large import, mostly for syncs that changed nothing.
+                // project_staff isn't in the profile at all.
+                if (! empty($clientSync['attached']) || ! empty($clientSync['detached'])) {
+                    AccessProfileCache::flushAll();
+                }
 
                 $diff = $attributes;
                 if ($before !== null) {
