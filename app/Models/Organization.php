@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\FlushesAccessProfiles;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,6 +12,11 @@ use Illuminate\Support\Str;
 #[Fillable(['name', 'slug', 'accent_color', 'is_active'])]
 class Organization extends Model
 {
+    // task #72 phase 1: is_active decides visibleOrganizationIds(), which
+    // the access profile now caches, so activating or deactivating a
+    // company has to drop the cached profiles.
+    use FlushesAccessProfiles;
+
     protected function casts(): array
     {
         return [

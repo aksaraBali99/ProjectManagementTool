@@ -34,13 +34,13 @@ use App\Models\User;
  * target. Every number below was re-measured after it landed:
  *
  *   Page                  phase 0      phase 1     target met?
- *   Dashboard             68 /   66    21 /  19    yes - flat, <= 30
- *   Projects              91 /   89    23 /  21    yes - flat, <= 30
- *   Calendar              60 /   60    14 /  14    yes - flat, <= 30
- *   Kanban                153 /  331   29 /  27    yes - now FLAT too
- *   Kanban (staff)        135 /  223   32 /  30    yes - now FLAT too
- *   Tasks list            412 / 1220  106 / 254    no  - phase 2
- *   Tasks list (staff)    398 / 1071  114 / 262    no  - phase 2
+ *   Dashboard             68 /   66    17 /  15    yes - flat, <= 30
+ *   Projects              91 /   89    18 /  16    yes - flat, <= 30
+ *   Calendar              60 /   60    11 /  11    yes - flat, <= 30
+ *   Kanban                153 /  331   22 /  20    yes - now FLAT too
+ *   Kanban (staff)        135 /  223   23 /  21    yes - now FLAT too
+ *   Tasks list            412 / 1220   83 / 201    no  - phase 2
+ *   Tasks list (staff)    398 / 1071   86 / 204    no  - phase 2
  *
  * (counts shown as "5 tasks / 20 tasks")
  *
@@ -48,6 +48,11 @@ use App\Models\User;
  * Gate::allows('updateStatus')/Gate::allows('update') calls were the
  * growth, and they were growth only because each one re-queried roles and
  * permissions. Cached, the per-card cost collapses to nothing.
+ *
+ * Caching visibleOrganizationIds() took another 2-7 queries off every
+ * page on top of that: BelongsToOrganization's global scope calls it on
+ * every scoped query, so it was being re-answered once per query on
+ * pages that run dozens.
  *
  * The Tasks list still grows, and will until phase 2: its per-row
  * $task->viewableUsers() genuinely loads different data per row, which no
@@ -62,19 +67,19 @@ const GROWTH_TOLERANCE = 2;
 // All four now assert the REAL target (flat AND <= PAGE_QUERY_TARGET).
 // The ceilings are kept alongside it as the ratchet: <= 30 is the
 // contract, <= 19 is what stops it drifting back up to 29.
-const DASHBOARD_MAX_QUERIES_20_TASKS = 19;
-const PROJECTS_MAX_QUERIES_20_TASKS = 21;
-const CALENDAR_MAX_QUERIES_20_TASKS = 14;
-const KANBAN_MAX_QUERIES_20_TASKS = 27;
+const DASHBOARD_MAX_QUERIES_20_TASKS = 15;
+const PROJECTS_MAX_QUERIES_20_TASKS = 16;
+const CALENDAR_MAX_QUERIES_20_TASKS = 11;
+const KANBAN_MAX_QUERIES_20_TASKS = 20;
 
 // Still grows per row; phase 2 (viewableUsers) tightens this to <= 30.
-const TASKS_LIST_MAX_QUERIES_20_TASKS = 254;
+const TASKS_LIST_MAX_QUERIES_20_TASKS = 201;
 
 // --- Measured ceilings at 20 tasks, as staff -----------------------------
 // Staff visibility runs through department access instead of the
 // management-tier shortcut, so it is a genuinely different query path.
-const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 262;
-const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 30;
+const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 204;
+const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 21;
 
 beforeEach(function () {
     $this->owner = createOwner();

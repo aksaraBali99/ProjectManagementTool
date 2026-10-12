@@ -174,6 +174,39 @@ test('deactivating a department is seen immediately', function () {
     expect($fresh->allowedDepartmentIds($this->org->id)->all())->toBe([$this->dept->id]);
 });
 
+test('deactivating a COMPANY through its controller is seen immediately', function () {
+    // visibleOrganizationIds() is cached in the profile now, and it turns
+    // on organizations.is_active — which is also the viewer filter the
+    // department and client-project helpers apply. So the company
+    // activate/deactivate toggle has to drop the profiles, which is why
+    // Organization carries FlushesAccessProfiles.
+    OrgMember::create([
+        'organization_id' => $this->org->id,
+        'user_id' => $this->user->id,
+        'role_id' => Role::where('slug', 'staff')->firstOrFail()->id,
+    ]);
+    AccessPermission::create([
+        'user_id' => $this->user->id,
+        'organization_id' => $this->org->id,
+        'department_id' => $this->dept->id,
+        'allowed' => true,
+    ]);
+
+    $this->actingAs($this->user);
+    expect($this->user->visibleOrganizationIds())->toBe([$this->org->id]);
+    expect($this->user->hasDepartmentAccess($this->org->id, $this->dept->id))->toBeTrue();
+
+    $this->actingAs($this->owner)
+        ->patch("/organizations/{$this->org->id}/toggle-active")
+        ->assertRedirect();
+
+    $this->actingAs($this->user);
+    $fresh = $this->user->fresh();
+    expect($fresh->visibleOrganizationIds())->toBe([]);
+    expect($fresh->hasDepartmentAccess($this->org->id, $this->dept->id))->toBeFalse();
+    expect($fresh->allowedDepartmentIds($this->org->id)->all())->toBe([]);
+});
+
 test('changing a role s permissions through PermissionManagementController is seen immediately', function () {
     OrgMember::create([
         'organization_id' => $this->org->id,

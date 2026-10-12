@@ -22,6 +22,15 @@ use Illuminate\Support\Facades\DB;
  *
  * Immutable once built: anything that changes the underlying data flushes
  * the whole profile rather than mutating it (see AccessProfileCache).
+ *
+ * Deliberately UNFILTERED and keyed by subject only. It describes what one
+ * user holds, never what some other signed-in user is allowed to be told
+ * about them. The two helpers whose pre-cache queries did depend on the
+ * viewer — the department ones (AccessPermission's BelongsToOrganization)
+ * and isClientOnProject() (Project's) — keep that dependence in User,
+ * applied to this profile's answers at answer time. Baking the viewer into
+ * the profile would make it wrong the moment it were reused for a
+ * different viewer, which is exactly what caching by user id invites.
  */
 final class AccessProfile
 {
@@ -39,14 +48,28 @@ final class AccessProfile
         private readonly array $orgRoles,
         private readonly array $permissionSlugsByRoleId,
         private readonly array $departmentGrants,
-        /** Loaded lazily — most requests never ask a client-on-project question. */
-        private ?array $clientProjectIds = null,
+        /**
+         * Loaded lazily — most requests never ask a client-on-project
+         * question. Project id => that project's organization id, because
+         * isClientOnProject()'s viewer filter needs the company.
+         *
+         * @var array<int, int>|null
+         */
+        private ?array $clientProjects = null,
+        /**
+         * Loaded lazily — see visibleOrganizationIds().
+         *
+         * @var array<int, int>|null
+         */
+        private ?array $visibleOrganizationIds = null,
     ) {}
 
     /**
      * Four queries up front, regardless of how many companies, roles or
-     * departments the user has. A fifth is spent only if something asks a
-     * client-on-project question (see clientProjectIds()).
+     * departments the user has. Two more are spent only if something asks
+     * a client-on-project question (clientProjects()) or needs the user's
+     * visible companies (visibleOrganizationIds()) — both lazy, both at
+     * most once per request per user.
      */
     public static function load(int $userId): self
     {
@@ -191,21 +214,86 @@ final class AccessProfile
 
     public function isClientOnProject(int $projectId): bool
     {
-        return in_array($projectId, $this->clientProjectIds(), true);
+        return array_key_exists($projectId, $this->clientProjects());
+    }
+
+    /**
+     * The company owning a project this user is a client on, or null if
+     * they aren't a client on it. User::isClientOnProject() needs the
+     * company to apply the viewer's visible-org filter, which is what
+     * Project's BelongsToOrganization scope used to do to this query.
+     */
+    public function clientProjectOrganizationId(int $projectId): ?int
+    {
+        return $this->clientProjects()[$projectId] ?? null;
     }
 
     /** @return array<int, int> */
     public function clientProjectIds(): array
     {
+        return array_keys($this->clientProjects());
+    }
+
+    /**
+     * Project id => organization id, for every project this user is a
+     * listed client on.
+     *
+     * @return array<int, int>
+     */
+    private function clientProjects(): array
+    {
         // Deferred: most requests never ask, so most requests never pay.
-        if ($this->clientProjectIds === null) {
-            $this->clientProjectIds = DB::table('project_clients')
-                ->where('user_id', $this->userId)
-                ->pluck('project_id')
+        if ($this->clientProjects === null) {
+            // INNER JOIN matches the old projectsAsClient() relation, which
+            // joined projects too — a pivot row for a deleted project was
+            // never counted and still isn't.
+            $rows = DB::table('project_clients')
+                ->join('projects', 'projects.id', '=', 'project_clients.project_id')
+                ->where('project_clients.user_id', $this->userId)
+                ->get(['project_clients.project_id', 'projects.organization_id']);
+
+            $this->clientProjects = [];
+            foreach ($rows as $row) {
+                $this->clientProjects[(int) $row->project_id] = (int) $row->organization_id;
+            }
+        }
+
+        return $this->clientProjects;
+    }
+
+    /**
+     * Mirrors User::visibleOrganizationIds(): global-role users see every
+     * company, active or not; everyone else only the active companies they
+     * hold an org_members row in.
+     *
+     * Cached here for two reasons. It is what every BelongsToOrganization
+     * global scope calls on every scoped query, so it was itself a large
+     * part of the per-row cost this phase removes; and it is now also the
+     * viewer filter User's department/client helpers apply, which would
+     * otherwise put a query back on exactly the per-row path the cache
+     * exists to clear.
+     *
+     * @return array<int, int>
+     */
+    public function visibleOrganizationIds(): array
+    {
+        if ($this->visibleOrganizationIds !== null) {
+            return $this->visibleOrganizationIds;
+        }
+
+        if ($this->hasGlobalRole()) {
+            return $this->visibleOrganizationIds = DB::table('organizations')
+                ->pluck('id')
                 ->map(fn ($id) => (int) $id)
                 ->all();
         }
 
-        return $this->clientProjectIds;
+        return $this->visibleOrganizationIds = DB::table('org_members')
+            ->join('organizations', 'organizations.id', '=', 'org_members.organization_id')
+            ->where('org_members.user_id', $this->userId)
+            ->where('organizations.is_active', true)
+            ->pluck('org_members.organization_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 }

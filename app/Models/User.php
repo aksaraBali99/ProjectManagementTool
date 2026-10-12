@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 #[Fillable(['username', 'name', 'employee_id', 'email', 'phone', 'password', 'must_change_password', 'is_active', 'auth_provider', 'provider_id'])]
 #[Hidden(['password'])]
@@ -149,6 +150,45 @@ class User extends Authenticatable
     private function accessProfile(): AccessProfile
     {
         return app(AccessProfileCache::class)->for($this);
+    }
+
+    /**
+     * Whether the SIGNED-IN user is allowed to be told about things in
+     * $organizationId at all (task #72 phase 1).
+     *
+     * This reproduces, at answer time, what AccessPermission's and
+     * Project's BelongsToOrganization global scopes used to do to the
+     * queries hasDepartmentAccess(), allowedDepartmentIds(),
+     * allowedActiveDepartmentIds() and isClientOnProject() ran before this
+     * phase: for a viewer without a global role those scopes restricted
+     * every row to the viewer's own visibleOrganizationIds(), which
+     * notably excludes a DEACTIVATED company. So a staff member's grant in
+     * a company that has since been switched off doesn't count, and
+     * neither does a grant in a company the person asking can't see.
+     *
+     * It lives here rather than in AccessProfile on purpose: the profile
+     * is cached per subject and shared across every User object for that
+     * person, so anything that varies with who is logged in has to be
+     * applied outside it. The three helpers below are already scoped to a
+     * single company by their argument, which reduces the whole filter to
+     * this one membership test.
+     *
+     * Returns true when no filter applied before either — nobody signed in
+     * (the scopes return early) or a viewer holding a global role.
+     */
+    private function viewerCanSeeOrganization(int $organizationId): bool
+    {
+        if (! Auth::check()) {
+            return true;
+        }
+
+        $viewer = Auth::user();
+
+        if ($viewer->hasGlobalRole()) {
+            return true;
+        }
+
+        return in_array($organizationId, $viewer->visibleOrganizationIds(), true);
     }
 
     /** Answered from this request's access profile (task #72 phase 1). */
@@ -292,6 +332,10 @@ class User extends Authenticatable
                 ->exists();
         }
 
+        if (! $this->viewerCanSeeOrganization($organizationId)) {
+            return false;
+        }
+
         return $this->accessProfile()->hasDepartmentAccess($organizationId, $departmentId);
     }
 
@@ -318,6 +362,10 @@ class User extends Authenticatable
                 ->pluck('department_id');
         }
 
+        if (! $this->viewerCanSeeOrganization($organizationId)) {
+            return Collection::make();
+        }
+
         return $this->accessProfile()->allowedDepartmentIds($organizationId);
     }
 
@@ -342,17 +390,28 @@ class User extends Authenticatable
                 ->pluck('department_id');
         }
 
+        if (! $this->viewerCanSeeOrganization($organizationId)) {
+            return Collection::make();
+        }
+
         return $this->accessProfile()->allowedActiveDepartmentIds($organizationId);
     }
 
-    /** Answered from this request's access profile (task #72 phase 1). */
+    /**
+     * Answered from this request's access profile (task #72 phase 1), then
+     * filtered by what the signed-in user can see — Project carries
+     * BelongsToOrganization, so the pre-cache query was viewer-scoped too
+     * (see viewerCanSeeOrganization()).
+     */
     public function isClientOnProject(int $projectId): bool
     {
         if (! AccessProfileCache::enabled()) {
             return $this->projectsAsClient()->where('projects.id', $projectId)->exists();
         }
 
-        return $this->accessProfile()->isClientOnProject($projectId);
+        $organizationId = $this->accessProfile()->clientProjectOrganizationId($projectId);
+
+        return $organizationId !== null && $this->viewerCanSeeOrganization($organizationId);
     }
 
     /**
@@ -447,14 +506,21 @@ class User extends Authenticatable
      */
     public function visibleOrganizationIds(): array
     {
-        if ($this->isSuperAdmin() || $this->isOwner()) {
-            return Organization::query()->pluck('id')->all();
+        if (! AccessProfileCache::enabled()) {
+            if ($this->isSuperAdmin() || $this->isOwner()) {
+                return Organization::query()->pluck('id')->all();
+            }
+
+            return $this->orgMemberships()
+                ->whereHas('organization', fn ($query) => $query->where('is_active', true))
+                ->pluck('organization_id')
+                ->all();
         }
 
-        return $this->orgMemberships()
-            ->whereHas('organization', fn ($query) => $query->where('is_active', true))
-            ->pluck('organization_id')
-            ->all();
+        // Neither Organization nor OrgMember carries a global scope, so
+        // this one was never viewer-dependent — no filter to re-apply,
+        // unlike the department and client-project helpers above.
+        return $this->accessProfile()->visibleOrganizationIds();
     }
 
     /**
