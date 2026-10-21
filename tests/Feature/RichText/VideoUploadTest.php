@@ -108,8 +108,10 @@ test('a valid video upload for a task description succeeds, returns a URL, and t
     $editPage = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
     $editorContent = descriptionViewContent($editPage);
     expect($editorContent)->toContain($url)->toContain('<video');
+    // task #72 phase 2: the drilldown moved to the row preview endpoint;
+    // the Tasks list no longer renders the stored description/comment.
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
         ->assertSee($url, false)
         ->assertSee('<video', false);
 });

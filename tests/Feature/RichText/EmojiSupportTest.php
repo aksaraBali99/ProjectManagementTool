@@ -70,8 +70,10 @@ test('a description saved with emoji persists byte-for-byte and re-renders in th
     $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
     expect(descriptionViewContent($page))->toBe($html);
     expect(descriptionFallbackInputValue($page))->toBe($html);
+    // task #72 phase 2: the drilldown moved to the row preview endpoint;
+    // the Tasks list no longer renders the stored description/comment.
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()->assertSee($html, false);
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()->assertSee($html, false);
 });
 
 test('an emoji saved next to formatting keeps both', function () {
@@ -127,7 +129,7 @@ test('a comment with emoji persists and renders formatted in the task list drill
         ->assertOk()
         ->assertJsonPath('comments.0.body_html', $html);
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()->assertSee($html, false);
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()->assertSee($html, false);
     $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->assertSee($html, false);
 });
 

@@ -109,6 +109,10 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/tasks/create/{project?}', [TaskManagementController::class, 'create'])->name('tasks.create');
     Route::post('/tasks', [TaskManagementController::class, 'store'])->name('tasks.store');
     Route::get('/tasks/{task}/edit', [TaskManagementController::class, 'edit'])->name('tasks.edit')->withTrashed();
+    // task #72 phase 2: the Tasks list drilldown, fetched on first open.
+    // ->withTrashed() matches tasks.edit above — the list shows
+    // deactivated tasks when "Show inactive" is on, so their rows open too.
+    Route::get('/tasks/{task}/preview', [TaskManagementController::class, 'preview'])->name('tasks.preview')->withTrashed();
     Route::put('/tasks/{task}', [TaskManagementController::class, 'update'])->name('tasks.update')->withTrashed();
     Route::patch('/tasks/{task}/toggle-active', [TaskManagementController::class, 'toggleActive'])->name('tasks.toggle-active')->withTrashed();
     Route::patch('/tasks/{task}/status', [TaskManagementController::class, 'updateStatus'])->name('tasks.update-status');

@@ -260,17 +260,15 @@
                         <tr class="drilldown-row block border-t border-gray-100 md:table-row" data-drilldown="{{ $task->id }}" style="display: none;">
                             <td class="hidden md:table-cell"></td>
                             <td colspan="{{ $showInactive ? 8 : 7 }}" class="block bg-gray-50 px-3 py-3 md:table-cell">
-                                <div class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Description</div>
-                                <x-rich-text :value="$task->description" empty="No description." class="mt-1 text-[12px] text-gray-700" />
-
-                                <div class="mt-3 text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Subtasks</div>
-                                <div class="mt-1">
-                                    @include('tasks._subtasks', ['task' => $task, 'canEdit' => $canEditTask, 'staffOptions' => $eligibleAssignees[$task->project_id][$task->department_id] ?? []])
-                                </div>
-
-                                <div class="mt-3 text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Comments</div>
-                                <div class="mt-1">
-                                    @include('tasks._comments', ['task' => $task, 'mentionableUsers' => $task->viewableUsers()->reject(fn ($user) => $user->id === auth()->id())->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()])
+                                {{-- task #72 phase 2: empty until the row is first
+                                     opened, then filled from tasks.preview. Rendering
+                                     the description and the full _subtasks/_comments
+                                     partials here for every task — opened or not —
+                                     was this page's entire remaining cost. --}}
+                                <div class="task-preview"
+                                    data-preview-url="{{ route('tasks.preview', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Tasks']) }}"
+                                    data-open-url="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Tasks']) }}">
+                                    <p class="task-preview-loading text-[11px] text-gray-500">Loading…</p>
                                 </div>
                             </td>
                         </tr>
@@ -302,8 +300,102 @@
                 document.querySelectorAll('.drilldown-btn[data-target="' + btn.dataset.target + '"]').forEach(function (twin) {
                     twin.textContent = isHidden ? '−' : '+';
                 });
+
+                if (isHidden) {
+                    loadPreview(target.querySelector('.task-preview'));
+                }
             });
         });
+
+        // task #72 phase 2: the drilldown's contents arrive from
+        // tasks.preview on FIRST open only. Reopening a row shows the HTML
+        // already in the DOM, so open/close after that is instant and
+        // costs nothing.
+        function loadPreview(container) {
+            if (! container || container.dataset.loaded === '1' || container.dataset.loading === '1') {
+                // Nothing to do, already have it, or a request is still in
+                // flight — double clicks must not fire a second fetch.
+                return;
+            }
+
+            container.dataset.loading = '1';
+            // Re-shown on a retry too: without this the previous attempt's
+            // error text just sits there for the whole of the new request,
+            // and the click looks like it did nothing.
+            showPreviewLoading(container);
+
+            fetch(container.dataset.previewUrl, {
+                credentials: 'same-origin',
+                headers: { 'Accept': 'text/html' },
+            })
+                .then(function (response) {
+                    // An expired session is the failure this page will
+                    // actually hit — it can sit open for hours. The request
+                    // asks for text/html, so Laravel's auth middleware
+                    // REDIRECTS to /login rather than returning 401, fetch
+                    // follows that by default, and response.ok is true. Left
+                    // unchecked, the login form's HTML (and a stale CSRF
+                    // token) gets injected into a table cell and the row is
+                    // stuck that way with no retry possible.
+                    if (response.redirected) throw new Error('redirected to ' + response.url);
+                    if (! response.ok) throw new Error('HTTP ' + response.status);
+
+                    return response.text();
+                })
+                .then(function (html) {
+                    container.innerHTML = html;
+
+                    // Mentions, code blocks, video thumbnails, file chips and
+                    // link previews are all render-time enhancements, so
+                    // injected HTML needs this pass the way a page load gets
+                    // one. Scoped to the container, not document, so
+                    // reopening one row never re-walks the whole page.
+                    // Click behaviour (lightbox, chips, link previews) is
+                    // delegated on document in app.js and needs nothing here.
+                    //
+                    // Guarded separately from the fetch: the fragment has
+                    // already rendered correctly by this point, so a throw in
+                    // here must not send us to the catch below and replace it
+                    // with an error message.
+                    try {
+                        if (window.solavaRichText) {
+                            window.solavaRichText.highlight(container);
+                        }
+                    } catch (error) {
+                        // Enhancements are cosmetic; the content stands without them.
+                    }
+
+                    // Set LAST, so the row is only marked done once the
+                    // fragment is actually in place.
+                    container.dataset.loaded = '1';
+                })
+                .catch(function () {
+                    // Left un-loaded on purpose: the next open retries.
+                    // Built with DOM calls rather than an innerHTML string so
+                    // the URL's own & separators need no escaping.
+                    const message = document.createElement('p');
+                    message.className = 'task-preview-error text-[11px] text-gray-500';
+                    message.append("Couldn't load this preview. ");
+
+                    const link = document.createElement('a');
+                    link.href = container.dataset.openUrl;
+                    link.className = 'font-medium text-brand-600 hover:underline';
+                    link.textContent = 'Open task';
+                    message.append(link);
+
+                    container.replaceChildren(message);
+                })
+                .finally(function () {
+                    delete container.dataset.loading;
+                });
+        }
+
+        function showPreviewLoading(container) {
+            const loading = document.createElement('p');
+            loading.className = 'task-preview-loading text-[11px] text-gray-500';
+            loading.textContent = 'Loading…';
+            container.replaceChildren(loading);
+        }
     })();
 </script>
 @endsection

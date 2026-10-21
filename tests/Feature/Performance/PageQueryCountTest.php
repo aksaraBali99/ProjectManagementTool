@@ -31,18 +31,23 @@ use App\Models\User;
  * Keep the two sets of numbers apart when recording results.
  *
  * PHASE 1 (permission cache) moved four of the five pages onto the real
- * target. Every number below was re-measured after it landed:
+ * target; PHASE 2 (on-demand row preview) moved the fifth. Every number
+ * below was re-measured after each landed:
  *
- *   Page                  phase 0      phase 1     target met?
- *   Dashboard             68 /   66    16 /  14    yes - flat, <= 30
- *   Projects              91 /   89    17 /  15    yes - flat, <= 30
- *   Calendar              60 /   60    10 /  10    yes - flat, <= 30
- *   Kanban                153 /  331   21 /  19    yes - now FLAT too
- *   Kanban (staff)        135 /  223   22 /  20    yes - now FLAT too
- *   Tasks list            412 / 1220   80 / 198    no  - phase 2
- *   Tasks list (staff)    398 / 1071   83 / 201    no  - phase 2
+ *   Page                  phase 0      phase 1     phase 2     target met?
+ *   Dashboard             68 /   66    16 /  14    16 /  14    yes - flat, <= 30
+ *   Projects              91 /   89    17 /  15    17 /  15    yes - flat, <= 30
+ *   Calendar              60 /   60    10 /  10    10 /  10    yes - flat, <= 30
+ *   Kanban                153 /  331   21 /  19    21 /  19    yes - flat, <= 30
+ *   Kanban (staff)        135 /  223   22 /  20    22 /  20    yes - flat, <= 30
+ *   Tasks list            412 / 1220   80 / 198    21 /  19    yes - flat, <= 30
+ *   Tasks list (staff)    398 / 1071   83 / 201    24 /  22    yes - flat, <= 30
  *
  * (counts shown as "5 tasks / 20 tasks")
+ *
+ * Every page is now on the real target, so there are no ratchets left in
+ * this file — each test asserts flat AND <= PAGE_QUERY_TARGET, with the
+ * measured ceiling kept alongside to stop it drifting back up.
  *
  * Kanban becoming flat is the notable one: its per-card
  * Gate::allows('updateStatus')/Gate::allows('update') calls were the
@@ -60,9 +65,12 @@ use App\Models\User;
  * builds a profile for every candidate assignee just to ask a permission
  * question, and each of those was paying for grants nothing would read.
  *
- * The Tasks list still grows, and will until phase 2: its per-row
- * $task->viewableUsers() genuinely loads different data per row, which no
- * amount of permission caching fixes.
+ * The Tasks list's own remaining growth was viewableUsers(), called once
+ * per row to build the drilldown's @mention list. Phase 2 removed the
+ * reason to call it: the drilldown is read-only now and fetched on
+ * demand, so there is no mention autocomplete on the list to feed. The
+ * preview endpoint has its own constant-cost test — see
+ * tests/Feature/Tasks/TaskPreviewTest.php.
  */
 const PAGE_QUERY_TARGET = 30;
 
@@ -77,14 +85,12 @@ const DASHBOARD_MAX_QUERIES_20_TASKS = 14;
 const PROJECTS_MAX_QUERIES_20_TASKS = 15;
 const CALENDAR_MAX_QUERIES_20_TASKS = 10;
 const KANBAN_MAX_QUERIES_20_TASKS = 19;
-
-// Still grows per row; phase 2 (viewableUsers) tightens this to <= 30.
-const TASKS_LIST_MAX_QUERIES_20_TASKS = 198;
+const TASKS_LIST_MAX_QUERIES_20_TASKS = 19;
 
 // --- Measured ceilings at 20 tasks, as staff -----------------------------
 // Staff visibility runs through department access instead of the
 // management-tier shortcut, so it is a genuinely different query path.
-const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 201;
+const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 22;
 const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 20;
 
 beforeEach(function () {
@@ -210,18 +216,26 @@ test('Kanban: flat in task count and within the target', function () {
     expect($counts['large'])->toBeLessThanOrEqual(KANBAN_MAX_QUERIES_20_TASKS);
 });
 
-test('Tasks list: held at today s ceiling, and still grows per row', function () {
+test('Tasks list: flat in task count and within the target', function () {
+    // Was 412 -> 1220 at phase 0 and still 83 -> 201 after phase 1: the
+    // hidden drilldown row rendered the description and the full
+    // _subtasks/_comments partials for every task whether anyone opened it
+    // or not, and called viewableUsers() (~8 queries) per row to do it.
+    // Phase 2 fetches tasks.preview on first open instead, so the list
+    // itself is flat — the last of the five pages to get there.
     $counts = measurePageGrowth($this, $this->management, route('tasks.index', $this->org, false));
 
+    expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
+    expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
     expect($counts['large'])->toBeLessThanOrEqual(TASKS_LIST_MAX_QUERIES_20_TASKS);
-    expect($counts['large'])->toBeGreaterThan($counts['small']);
 });
 
-test('Tasks list as STAFF: held at today s ceiling, and still grows per row', function () {
+test('Tasks list as STAFF: flat in task count and within the target', function () {
     $counts = measurePageGrowth($this, $this->staff, route('tasks.index', $this->org, false));
 
+    expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
+    expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
     expect($counts['large'])->toBeLessThanOrEqual(TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF);
-    expect($counts['large'])->toBeGreaterThan($counts['small']);
 });
 
 test('Kanban as STAFF: flat in task count and within the target', function () {
