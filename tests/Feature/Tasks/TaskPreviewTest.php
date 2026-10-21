@@ -237,7 +237,10 @@ test('a mention in a comment carries the same markup the task page renders', fun
 });
 
 test('the Open task link preserves the list filters and sort, and the hint is shown', function () {
-    $listUrl = "http://localhost/tasks/{$this->org->id}?status=pending&sort=title&direction=desc";
+    // Built from the route, not a hardcoded "http://localhost": return_to is
+    // only accepted when its host matches the request's, which follows
+    // APP_URL - localhost on a dev machine, founderos.test in CI.
+    $listUrl = route('tasks.index', $this->org->id).'?status=pending&sort=title&direction=desc';
 
     $response = $this->actingAs($this->management)
         ->get(previewUrl($this->task).'?'.http_build_query(['return_to' => $listUrl, 'return_label' => 'Tasks']))
