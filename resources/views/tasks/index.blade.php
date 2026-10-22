@@ -58,6 +58,12 @@
         <form method="GET" action="{{ route('tasks.index', $organization) }}" class="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-3">
             <input type="hidden" name="sort" value="{{ $sort }}">
             <input type="hidden" name="direction" value="{{ $direction }}">
+            {{-- The "Show inactive tasks" checkbox below has no name (it
+                 navigates on change instead of submitting), so without this
+                 the Filter button would silently switch inactive tasks off. --}}
+            @if ($showInactive)
+                <input type="hidden" name="show_inactive" value="1">
+            @endif
 
             <div>
                 <label for="task-filter-q" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</label>
@@ -139,7 +145,7 @@
 
             <label class="ml-auto flex items-center gap-1.5 text-[11px] text-gray-600">
                 <input type="checkbox" {{ $showInactive ? 'checked' : '' }}
-                    onchange="const params = new URLSearchParams(window.location.search); params.delete('show_inactive'); if (this.checked) { params.set('show_inactive', '1'); } window.location = '{{ route('tasks.index', $organization) }}' + (params.toString() ? '?' + params.toString() : '');">
+                    onchange="const params = new URLSearchParams(window.location.search); params.delete('show_inactive'); params.delete('page'); if (this.checked) { params.set('show_inactive', '1'); } window.location = '{{ route('tasks.index', $organization) }}' + (params.toString() ? '?' + params.toString() : '');">
                 Show inactive tasks
             </label>
         </form>
@@ -280,6 +286,37 @@
                 </tbody>
             </table>
         </div>
+
+        {{-- task #72 phase 4: one page at a time. The count line, then the
+             page links and the "Per page" box on one row (stacked below md). --}}
+        <div class="mt-3 flex flex-col items-end gap-2">
+            @if ($tasks->total() > 0)
+                <p class="tasks-showing text-[11px] text-gray-500">
+                    Showing {{ number_format($tasks->firstItem()) }}–{{ number_format($tasks->lastItem()) }} of {{ number_format($tasks->total()) }} {{ \Illuminate\Support\Str::plural('task', $tasks->total()) }}
+                </p>
+            @endif
+
+            <div class="flex w-full flex-col items-end gap-2 md:w-auto md:flex-row md:items-center md:gap-4">
+                {{ $tasks->links('tasks._pagination-links') }}
+
+                <form method="POST" action="{{ route('tasks.per-page') }}" class="flex items-center gap-1.5" data-per-page-form>
+                    @csrf
+                    @method('PATCH')
+                    <input type="hidden" name="return_to" value="{{ url()->full() }}">
+                    <label for="tasks-per-page" class="text-[11px] text-gray-500">Per page</label>
+                    {{-- type="text", not "number": a number box with max="100"
+                         would make the browser refuse 150 on Enter, and the
+                         server's clamp and hint would never happen. --}}
+                    <input id="tasks-per-page" name="per_page" type="text" inputmode="numeric" autocomplete="off"
+                        value="{{ $perPage }}" data-current="{{ $perPage }}"
+                        class="w-14 rounded-md border border-gray-300 px-2 py-1 text-center text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                </form>
+            </div>
+
+            @if (session('tasks_per_page_hint'))
+                <p class="tasks-per-page-hint text-[11px] text-gray-500">{{ session('tasks_per_page_hint') }}</p>
+            @endif
+        </div>
         </x-company-tabs>
     @endif
 </div>
@@ -395,6 +432,45 @@
             loading.className = 'task-preview-loading text-[11px] text-gray-500';
             loading.textContent = 'Loading…';
             container.replaceChildren(loading);
+        }
+
+        // task #72 phase 4: the "Per page" box saves on Enter or when
+        // leaving it, never on each keystroke, and only if the value
+        // changed. Anything that isn't a whole number (empty, "abc", "2.5")
+        // just puts the current value back. 0 or 150 ARE sent: the server
+        // clamps them to 1–100 and the list says so.
+        const perPageForm = document.querySelector('[data-per-page-form]');
+        if (perPageForm) {
+            const perPageInput = perPageForm.querySelector('input[name="per_page"]');
+            const currentPerPage = perPageInput.dataset.current;
+            let perPageSubmitting = false;
+
+            const shouldSavePerPage = function () {
+                const value = perPageInput.value.trim();
+                if (! /^-?\d+$/.test(value) || String(parseInt(value, 10)) === currentPerPage) {
+                    perPageInput.value = currentPerPage;
+
+                    return false;
+                }
+
+                return true;
+            };
+
+            perPageForm.addEventListener('submit', function (event) {
+                if (perPageSubmitting || ! shouldSavePerPage()) {
+                    event.preventDefault();
+
+                    return;
+                }
+                perPageSubmitting = true;
+            });
+
+            perPageInput.addEventListener('blur', function () {
+                // Enter already submitted; the page unloading blurs the box.
+                if (perPageSubmitting || ! shouldSavePerPage()) return;
+                perPageSubmitting = true;
+                perPageForm.submit();
+            });
         }
     })();
 </script>

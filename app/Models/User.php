@@ -17,7 +17,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
-#[Fillable(['username', 'name', 'employee_id', 'email', 'phone', 'password', 'must_change_password', 'is_active', 'auth_provider', 'provider_id'])]
+#[Fillable(['username', 'name', 'employee_id', 'email', 'phone', 'password', 'must_change_password', 'is_active', 'auth_provider', 'provider_id', 'tasks_per_page'])]
 #[Hidden(['password'])]
 class User extends Authenticatable
 {
@@ -30,6 +30,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'must_change_password' => 'boolean',
             'is_active' => 'boolean',
+            'tasks_per_page' => 'integer',
         ];
     }
 

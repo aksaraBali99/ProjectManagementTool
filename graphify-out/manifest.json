@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "app/Models/User.php": {
-    "mtime": 1791797755.2443137,
-    "ast_hash": "a85352d09c1858e6fac0e46fe2f94a6c",
+    "mtime": 1792665388.4675515,
+    "ast_hash": "85a1370bd65123a229f7453283d22942",
     "semantic_hash": ""
   },
   "app/Providers/AppServiceProvider.php": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1792588836.8427477,
-    "ast_hash": "ad7945d27aa5310403f252f27a53cbc3",
+    "mtime": 1792665443.4842126,
+    "ast_hash": "87bd7d7ea895505abb17da2f66c00648",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -140,8 +140,8 @@
     "semantic_hash": ""
   },
   "tests/Pest.php": {
-    "mtime": 1791787720.857824,
-    "ast_hash": "363056807af9963d53429e0cb5713214",
+    "mtime": 1792665579.9651804,
+    "ast_hash": "542d01efc3b8d70f410232939101d58d",
     "semantic_hash": ""
   },
   "tests/TestCase.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1792588836.735644,
-    "ast_hash": "a4b0edb5bd4b7eb37b9915c33704663b",
+    "mtime": 1792666080.194007,
+    "ast_hash": "f9b2afe2c2afc211d40ce4c7fe350e09",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -805,8 +805,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
-    "mtime": 1792588836.8377116,
-    "ast_hash": "953949648139737a47eb5cc77fcbcb42",
+    "mtime": 1792665474.9957414,
+    "ast_hash": "37adc491789a799c1225da07ebeb84c1",
     "semantic_hash": ""
   },
   "resources/views/users/_inline-validation.blade.php": {
@@ -835,8 +835,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskManagementTest.php": {
-    "mtime": 1791263835.6172411,
-    "ast_hash": "9088afb9d5ea0b9ea80971b851bf0070",
+    "mtime": 1792665160.0291903,
+    "ast_hash": "0dcb58a0575d1f3bff1a6ee3fa528fb6",
     "semantic_hash": ""
   },
   "app/Enums/DocumentAccessLevel.php": {
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Performance/PageQueryCountTest.php": {
-    "mtime": 1792588836.8508003,
-    "ast_hash": "5b6cbdd7b5d39ef740476a632fab7589",
+    "mtime": 1792665864.6005013,
+    "ast_hash": "ee924950ea61fefef1f0bf58ee9ccab5",
     "semantic_hash": ""
   },
   "tests/Feature/Performance/PerformanceBaselineCommandTest.php": {
@@ -2230,13 +2230,43 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_10_21_000000_add_task_query_indexes.php": {
-    "mtime": 1792590187.734666,
+    "mtime": 1792592234.3979297,
     "ast_hash": "6d689633b8993a988213411a8a0dcb8f",
     "semantic_hash": ""
   },
   "tests/Feature/Database/TaskIndexesTest.php": {
-    "mtime": 1792590206.5461483,
+    "mtime": 1792592234.442987,
     "ast_hash": "459f1c6463fdf0ea426c79bd07ad7999",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_10_22_000000_add_tasks_per_page_to_users_table.php": {
+    "mtime": 1792665382.874374,
+    "ast_hash": "1ae6ef88295608313c03ad07810ceacc",
+    "semantic_hash": ""
+  },
+  "resources/views/tasks/_pagination-links.blade.php": {
+    "mtime": 1792665452.4457345,
+    "ast_hash": "c2c76e54ec5e0d8b9973176de500340e",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Tasks/TaskListPaginationTest.php": {
+    "mtime": 1792665803.5235195,
+    "ast_hash": "3ec7287428214f1f72852051e10fdbb7",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Tasks/TaskListPerPageTest.php": {
+    "mtime": 1792665826.9269726,
+    "ast_hash": "75a1ac21141bb943b19aec4215b079ee",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Tasks/TaskListSortTest.php": {
+    "mtime": 1792665600.423902,
+    "ast_hash": "8ffe2877bfac383f0e39ccbde5a4545c",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Tasks/TaskListVisibilityTest.php": {
+    "mtime": 1792665712.0420928,
+    "ast_hash": "e0a3c739af6a5cbe7a10760bdddc0604",
     "semantic_hash": ""
   }
 }

@@ -43,6 +43,11 @@ use App\Models\User;
  *   Tasks list            412 / 1220   80 / 198    21 /  19    yes - flat, <= 30
  *   Tasks list (staff)    398 / 1071   83 / 201    24 /  22    yes - flat, <= 30
  *
+ * PHASE 4 (pagination) added exactly one query to the Tasks list, the
+ * paginator's count(*): 22 / 20 as management, 25 / 23 as staff. In
+ * exchange the page renders 25 rows however many tasks there are; see the
+ * 60-task test at the bottom.
+ *
  * (counts shown as "5 tasks / 20 tasks")
  *
  * Every page is now on the real target, so there are no ratchets left in
@@ -85,12 +90,14 @@ const DASHBOARD_MAX_QUERIES_20_TASKS = 14;
 const PROJECTS_MAX_QUERIES_20_TASKS = 15;
 const CALENDAR_MAX_QUERIES_20_TASKS = 10;
 const KANBAN_MAX_QUERIES_20_TASKS = 19;
-const TASKS_LIST_MAX_QUERIES_20_TASKS = 19;
+// Tasks list: +1 since phase 4 (task #72), the page's own count(*) for the
+// paginator. It shows one page now, so this stays put however many tasks.
+const TASKS_LIST_MAX_QUERIES_20_TASKS = 20;
 
 // --- Measured ceilings at 20 tasks, as staff -----------------------------
 // Staff visibility runs through department access instead of the
 // management-tier shortcut, so it is a genuinely different query path.
-const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 22;
+const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 23;
 const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 20;
 
 beforeEach(function () {
@@ -244,4 +251,29 @@ test('Kanban as STAFF: flat in task count and within the target', function () {
     expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
     expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
     expect($counts['large'])->toBeLessThanOrEqual(KANBAN_MAX_QUERIES_20_TASKS_STAFF);
+});
+
+test('Tasks list: a 60-task company renders exactly one page of 25 rows', function () {
+    // task #72 phase 4: the list used to render every visible task.
+    // Plain tasks are enough here: this is about row count, not row cost.
+    for ($i = 0; $i < 60; $i++) {
+        Task::create([
+            'organization_id' => $this->org->id,
+            'project_id' => $this->project->id,
+            'department_id' => $this->dept->id,
+            'title' => 'Paged task '.$i,
+            'priority' => 'medium',
+            'status' => 'pending',
+        ]);
+    }
+
+    $queries = countQueries(function () use (&$html) {
+        $html = $this->actingAs($this->management)->get(route('tasks.index', $this->org, false))->assertOk()->getContent();
+    });
+
+    expect(substr_count($html, 'data-drilldown-toggle='))->toBe(25);
+    // Against the target, not the 20-task ceiling: this is the test's first
+    // request, which pays the one-off cache warm-up the measured ceilings
+    // above (taken on a second request) don't.
+    expect($queries)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
 });
