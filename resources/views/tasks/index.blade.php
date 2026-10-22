@@ -58,6 +58,12 @@
         <form method="GET" action="{{ route('tasks.index', $organization) }}" class="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-3">
             <input type="hidden" name="sort" value="{{ $sort }}">
             <input type="hidden" name="direction" value="{{ $direction }}">
+            {{-- The "Show inactive tasks" checkbox below has no name (it
+                 navigates on change instead of submitting), so without this
+                 the Filter button would silently switch inactive tasks off. --}}
+            @if ($showInactive)
+                <input type="hidden" name="show_inactive" value="1">
+            @endif
 
             <div>
                 <label for="task-filter-q" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</label>
