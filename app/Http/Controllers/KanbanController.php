@@ -190,6 +190,6 @@ class KanbanController extends Controller
             // 'canEdit' above uses, since handing a task to someone
             // else is a bigger action than moving your own card.
             'canReassign' => Gate::allows('update', $task),
-        ])->toBase();
+        ]);
     }
 }

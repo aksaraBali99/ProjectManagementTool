@@ -116,36 +116,6 @@ class Task extends Model
      * single-task check). See TaskViewableIdsParityTest for the batched
      * equivalent's own, already-correct version of this same logic.
      */
-    /**
-     * Orders by an enum-backed column (priority, status) in the enum's
-     * DECLARED case order — High, Medium, Low; Pending … Completed — not
-     * alphabetically. Shared by the Tasks list sort (task #72 phase 4) and
-     * the Kanban column order (phase 5).
-     *
-     * On MySQL the columns are ENUMs declared from the enum's own values()
-     * in case order, so the bare column already sorts that way and an index
-     * on it stays usable (don't wrap it in FIELD()/CASE there). On SQLite
-     * they are plain strings, so a CASE built from the enum cases stands in.
-     *
-     * @param  class-string<\BackedEnum>  $enum
-     */
-    public function scopeOrderByEnum(Builder $query, string $column, string $enum, string $direction = 'asc'): Builder
-    {
-        $direction = $direction === 'desc' ? 'desc' : 'asc';
-
-        if ($query->getConnection()->getDriverName() !== 'sqlite') {
-            return $query->orderBy('tasks.'.$column, $direction);
-        }
-
-        $cases = $enum::cases();
-        $whens = implode(' ', array_map(fn ($rank) => 'WHEN ? THEN '.$rank, array_keys($cases)));
-
-        return $query->orderByRaw(
-            "CASE tasks.{$column} {$whens} END {$direction}",
-            array_map(fn ($case) => $case->value, $cases),
-        );
-    }
-
     public function scopeVisibleTo(Builder $query, User $user, int $organizationId): Builder
     {
         $query->where('organization_id', $organizationId);
@@ -178,6 +148,36 @@ class Task extends Model
                 ->orWhere('assignee_id', $user->id)
                 ->orWhereHas('subtasks', fn ($sq) => $sq->where('assignee_id', $user->id));
         });
+    }
+
+    /**
+     * Orders by an enum-backed column (priority, status) in the enum's
+     * DECLARED case order — High, Medium, Low; Pending … Completed — not
+     * alphabetically. Shared by the Tasks list sort (task #72 phase 4) and
+     * the Kanban column order (phase 5).
+     *
+     * On MySQL the columns are ENUMs declared from the enum's own values()
+     * in case order, so the bare column already sorts that way and an index
+     * on it stays usable (don't wrap it in FIELD()/CASE there). On SQLite
+     * they are plain strings, so a CASE built from the enum cases stands in.
+     *
+     * @param  class-string<\BackedEnum>  $enum
+     */
+    public function scopeOrderByEnum(Builder $query, string $column, string $enum, string $direction = 'asc'): Builder
+    {
+        $direction = $direction === 'desc' ? 'desc' : 'asc';
+
+        if ($query->getConnection()->getDriverName() !== 'sqlite') {
+            return $query->orderBy('tasks.'.$column, $direction);
+        }
+
+        $cases = $enum::cases();
+        $whens = implode(' ', array_map(fn ($rank) => 'WHEN ? THEN '.$rank, array_keys($cases)));
+
+        return $query->orderByRaw(
+            "CASE tasks.{$column} {$whens} END {$direction}",
+            array_map(fn ($case) => $case->value, $cases),
+        );
     }
 
     /**

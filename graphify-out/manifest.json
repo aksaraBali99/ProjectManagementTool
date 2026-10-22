@@ -280,8 +280,8 @@
     "semantic_hash": ""
   },
   "app/Models/Task.php": {
-    "mtime": 1792671093.076594,
-    "ast_hash": "27c7b02b876eeabd503e16cc0e1d8d65",
+    "mtime": 1792674235.3029444,
+    "ast_hash": "9f98a0fbb40edaab912fb691ff213101",
     "semantic_hash": ""
   },
   "app/Policies/CommentPolicy.php": {
@@ -885,8 +885,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/KanbanController.php": {
-    "mtime": 1792671359.9192815,
-    "ast_hash": "5721c9383b940a70f9d3daf5078187eb",
+    "mtime": 1792674236.204548,
+    "ast_hash": "fa36b4d7683099a2c1b696d12c086ad5",
     "semantic_hash": ""
   },
   "resources/views/kanban.blade.php": {
