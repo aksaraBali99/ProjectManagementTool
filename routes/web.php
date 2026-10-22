@@ -108,6 +108,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
 
     Route::get('/tasks/create/{project?}', [TaskManagementController::class, 'create'])->name('tasks.create');
     Route::post('/tasks', [TaskManagementController::class, 'store'])->name('tasks.store');
+    // task #72 phase 4: the Tasks list's "Per page" box, saved on the user.
+    Route::patch('/tasks/per-page', [TaskManagementController::class, 'updatePerPage'])->name('tasks.per-page');
     Route::get('/tasks/{task}/edit', [TaskManagementController::class, 'edit'])->name('tasks.edit')->withTrashed();
     // task #72 phase 2: the Tasks list drilldown, fetched on first open.
     // ->withTrashed() matches tasks.edit above — the list shows

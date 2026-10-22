@@ -319,3 +319,31 @@ function touchDiskFile(string $disk, string $path, DateTimeInterface $when): voi
 {
     touch(Storage::disk($disk)->path($path), $when->getTimestamp());
 }
+
+/**
+ * task #72 phase 4: every task id the Tasks list shows for $query, in
+ * order, walking page 1 to the last page. Ids come from the rendered rows
+ * (not the view data), so this checks what the user actually sees; the
+ * paginator is read only to know where the last page is.
+ *
+ * @param  array<string, mixed>  $query
+ * @return list<int>
+ */
+function taskListIdsAcrossPages(User $user, int $organizationId, array $query = []): array
+{
+    $ids = [];
+    $page = 1;
+
+    do {
+        $response = test()->actingAs($user)
+            ->get(route('tasks.index', $organizationId).'?'.http_build_query(array_merge($query, ['page' => $page])))
+            ->assertOk();
+
+        preg_match_all('/data-drilldown-toggle="(\d+)"/', $response->getContent(), $matches);
+        array_push($ids, ...array_map('intval', $matches[1]));
+
+        $lastPage = $response->viewData('tasks')->lastPage();
+    } while ($page++ < $lastPage);
+
+    return $ids;
+}
