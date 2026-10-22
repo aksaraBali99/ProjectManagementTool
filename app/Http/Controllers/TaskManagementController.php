@@ -327,11 +327,8 @@ class TaskManagementController extends Controller
      * - Ties break on title ascending, case-insensitively, even when the
      *   column itself is descending; then tasks.id ascending, so a page
      *   boundary never repeats or skips a task.
-     * - priority/status follow the enum's declared order. On MySQL they are
-     *   ENUM columns declared in that order (Priority::values(),
-     *   TaskStatus::values()), so the bare column already sorts that way
-     *   and keeps the phase 3 index usable; on SQLite they are plain
-     *   strings, so a CASE built from the enum cases stands in.
+     * - priority/status follow the enum's declared order — see
+     *   Task::scopeOrderByEnum(), shared with Kanban (phase 5).
      *
      * Project/department/assignee names come from correlated subqueries,
      * not joins: projects and departments both have organization_id (and
@@ -357,26 +354,12 @@ class TaskManagementController extends Controller
                 ->orderByRaw($caseless($subquery).' '.$direction);
         };
 
-        $orderByEnum = function (string $column, array $cases) use ($query, $isSqlite, $direction) {
-            if (! $isSqlite) {
-                $query->orderBy('tasks.'.$column, $direction);
-
-                return;
-            }
-
-            $whens = implode(' ', array_map(fn ($rank) => 'WHEN ? THEN '.$rank, array_keys($cases)));
-            $query->orderByRaw(
-                "CASE tasks.{$column} {$whens} END {$direction}",
-                array_map(fn ($case) => $case->value, $cases),
-            );
-        };
-
         match ($sort) {
             'project' => $orderByName('(select projects.name from projects where projects.id = tasks.project_id)'),
             'department' => $orderByName('(select departments.name from departments where departments.id = tasks.department_id)'),
             'assignee' => $orderByName('(select users.name from users where users.id = tasks.assignee_id)'),
-            'priority' => $orderByEnum('priority', Priority::cases()),
-            'status' => $orderByEnum('status', TaskStatus::cases()),
+            'priority' => $query->orderByEnum('priority', Priority::class, $direction),
+            'status' => $query->orderByEnum('status', TaskStatus::class, $direction),
             // Ascending puts inactive first, as it always has. Never "empty".
             'active' => $query->orderByRaw('tasks.deleted_at IS NULL '.$direction),
             'due_date' => $query->orderByRaw('tasks.due_date IS NULL')->orderBy('tasks.due_date', $direction),

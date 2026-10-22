@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TaskStatus;
 use App\Models\ImportBatch;
 use App\Models\Role;
 use App\Models\User;
@@ -344,6 +345,48 @@ function taskListIdsAcrossPages(User $user, int $organizationId, array $query = 
 
         $lastPage = $response->viewData('tasks')->lastPage();
     } while ($page++ < $lastPage);
+
+    return $ids;
+}
+
+/** Task ids of the Kanban cards in $html, in order (task #72 phase 5). */
+function kanbanCardIds(string $html): array
+{
+    preg_match_all('/<div class="kanban-card [^>]*data-task-id="(\d+)"/', $html, $matches);
+
+    return array_map('intval', $matches[1]);
+}
+
+/**
+ * task #72 phase 5: every card one Kanban column shows for $user — the
+ * board's first batch, then Load more from offset 30, 60, ... until
+ * `remaining` reaches 0 — in order. Asserts each Load more's `remaining`
+ * counts down exactly, so a stuck or overshooting batch fails here.
+ *
+ * @return list<int>
+ */
+function kanbanColumnIdsAcrossBatches(User $user, int $organizationId, TaskStatus $status): array
+{
+    $column = test()->actingAs($user)->get(route('kanban', $organizationId))->assertOk()
+        ->viewData('columns')->firstWhere('status', $status);
+
+    $ids = $column['tasks']->pluck('task.id')->all();
+    $total = $column['total'];
+    $remaining = $column['remaining'];
+
+    while ($remaining > 0) {
+        $json = test()->actingAs($user)
+            ->getJson(route('kanban.column', [$organizationId, $status->value]).'?offset='.count($ids))
+            ->assertOk()
+            ->json();
+
+        $batch = kanbanCardIds($json['html']);
+        expect($batch)->not->toBeEmpty();
+        array_push($ids, ...$batch);
+
+        expect($json['remaining'])->toBe($total - count($ids));
+        $remaining = $json['remaining'];
+    }
 
     return $ids;
 }
