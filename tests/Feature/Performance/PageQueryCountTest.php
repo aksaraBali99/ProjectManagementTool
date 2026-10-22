@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\TaskStatus;
+use App\Http\Controllers\KanbanController;
 use App\Models\AccessPermission;
 use App\Models\Comment;
 use App\Models\Department;
@@ -48,6 +50,13 @@ use App\Models\User;
  * exchange the page renders 25 rows however many tasks there are; see the
  * 60-task test at the bottom.
  *
+ * PHASE 5 (Kanban column cap) runs one grouped count plus one capped query
+ * per NON-EMPTY column instead of one query for the whole company. Here
+ * every task is Pending, so that is +1: 21 / 20 as management, 22 / 21 as
+ * staff. With all four columns in use it is +4, still within the target —
+ * see the full-board test at the bottom, which also pins 30 cards per
+ * column and a Load more whose cost doesn't grow with the column.
+ *
  * (counts shown as "5 tasks / 20 tasks")
  *
  * Every page is now on the real target, so there are no ratchets left in
@@ -89,7 +98,7 @@ const GROWTH_TOLERANCE = 2;
 const DASHBOARD_MAX_QUERIES_20_TASKS = 14;
 const PROJECTS_MAX_QUERIES_20_TASKS = 15;
 const CALENDAR_MAX_QUERIES_20_TASKS = 10;
-const KANBAN_MAX_QUERIES_20_TASKS = 19;
+const KANBAN_MAX_QUERIES_20_TASKS = 20;
 // Tasks list: +1 since phase 4 (task #72), the page's own count(*) for the
 // paginator. It shows one page now, so this stays put however many tasks.
 const TASKS_LIST_MAX_QUERIES_20_TASKS = 20;
@@ -98,7 +107,7 @@ const TASKS_LIST_MAX_QUERIES_20_TASKS = 20;
 // Staff visibility runs through department access instead of the
 // management-tier shortcut, so it is a genuinely different query path.
 const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 23;
-const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 20;
+const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 21;
 
 beforeEach(function () {
     $this->owner = createOwner();
@@ -276,4 +285,59 @@ test('Tasks list: a 60-task company renders exactly one page of 25 rows', functi
     // request, which pays the one-off cache warm-up the measured ceilings
     // above (taken on a second request) don't.
     expect($queries)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+});
+
+/** Plain tasks (no subtasks/comments): these tests are about card count, not card cost. */
+function makePlainKanbanTasks(object $context, int $count, string $status): void
+{
+    for ($i = 0; $i < $count; $i++) {
+        Task::create([
+            'organization_id' => $context->org->id,
+            'project_id' => $context->project->id,
+            'department_id' => $context->dept->id,
+            'assignee_id' => $context->staff->id,
+            'title' => 'Board task '.$status.' '.$i,
+            'priority' => ['high', 'medium', 'low'][$i % 3],
+            'status' => $status,
+        ]);
+    }
+}
+
+test('Kanban: with every column over 30, the board shows 30 cards per column within the target', function () {
+    // task #72 phase 5: the board used to render every card in the company.
+    foreach (TaskStatus::cases() as $status) {
+        makePlainKanbanTasks($this, 40, $status->value);
+    }
+
+    foreach ([$this->management, $this->staff] as $user) {
+        $html = null;
+        $queries = countQueries(function () use ($user, &$html) {
+            $html = $this->actingAs($user)->get(route('kanban', $this->org, false))->assertOk()->getContent();
+        });
+
+        expect(substr_count($html, 'class="kanban-card '))->toBe(4 * KanbanController::COLUMN_BATCH);
+        expect($queries)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+    }
+});
+
+test('Kanban Load more: the same number of queries whether the column holds 30 or 300 tasks', function () {
+    $url = route('kanban.column', [$this->org, 'pending'], false).'?offset=0';
+
+    $measure = function () use ($url) {
+        return countQueries(function () use ($url) {
+            $this->actingAs($this->management)->getJson($url)->assertOk();
+        });
+    };
+
+    makePlainKanbanTasks($this, 30, 'pending');
+    // Warm-up request: the first request in a test pays one-off cache
+    // misses the measured ones don't.
+    $measure();
+    $small = $measure();
+
+    makePlainKanbanTasks($this, 270, 'pending');
+    $large = $measure();
+
+    expect($large)->toBe($small);
+    expect($large)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
 });
