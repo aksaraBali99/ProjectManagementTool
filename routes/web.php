@@ -48,6 +48,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::get('/dashboard/{organization?}', DashboardController::class)->name('dashboard');
     Route::get('/kanban/{organization?}', KanbanController::class)->name('kanban');
+    // task #72 phase 5: a column's Load more.
+    Route::get('/kanban/{organization}/columns/{status}', [KanbanController::class, 'column'])->name('kanban.column');
     Route::get('/calendar/{organization?}', CalendarController::class)->name('calendar');
     Route::get('/settings', SettingsController::class)->name('settings.index');
     Route::get('/audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail.index');

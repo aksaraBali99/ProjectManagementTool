@@ -32,85 +32,28 @@
                     <div class="flex items-center justify-between rounded-t-lg border-b border-gray-200 px-3 py-2"
                          style="background-color: {{ $column['status']->badgeBackground() }}">
                         <span class="text-[10px] font-medium uppercase tracking-[0.06em]" style="color: {{ $column['status']->badgeText() }}">{{ $column['status']->label() }}</span>
-                        <span class="text-[10px]" style="color: {{ $column['status']->badgeText() }}">{{ $column['tasks']->count() }}</span>
+                        <span class="text-[10px]" style="color: {{ $column['status']->badgeText() }}">{{ number_format($column['total']) }}</span>
                     </div>
                     <div class="kanban-column-body min-h-[80px] space-y-2 p-2">
                         @forelse ($column['tasks'] as $item)
-                            @php
-                                [$task, $canEdit, $canReassign] = [$item['task'], $item['canEdit'], $item['canReassign']];
-                                // task #71: shown on the closed <select> itself in addition to the
-                                // avatar's own existing tooltip (avatar.blade.php always sets
-                                // title="{{ $user->name }}") — belt and braces once the option text
-                                // can be truncated below.
-                                $assigneeName = $task->assignee->name ?? 'Unassigned';
-                            @endphp
-                            <div class="kanban-card rounded-md border border-gray-200 p-2 {{ $canEdit ? 'cursor-move' : '' }}"
-                                 style="background-color: {{ $task->priority->badgeBackground() }}"
-                                 draggable="{{ $canEdit ? 'true' : 'false' }}" data-task-id="{{ $task->id }}">
-                                {{-- task #71: the avatar moved up into this title row (was a
-                                     card-level sibling spanning the card's full height) — this row
-                                     and the priority/assignee/status row below it are now both
-                                     direct children of the card, with the same horizontal padding,
-                                     so the avatar's right edge and the status select's right edge
-                                     (the last item in that row — see below) land at the exact same
-                                     x-position without any special-case alignment CSS. --}}
-                                <div class="flex items-start justify-between gap-2">
-                                    <div class="min-w-0 flex-1">
-                                        <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Kanban']) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline">{{ $task->title }}</a>
-                                        {{-- task #71: the task's own permanent database id, "#<id>" —
-                                             unrelated to the Import feature's file-scoped "Task Ref"
-                                             numbering. Folded into the existing muted metadata line
-                                             rather than a whole new line, so it doesn't compete with
-                                             the title. --}}
-                                        <p class="mt-1 text-[10px] text-gray-500">
-                                            #{{ $task->id }} &middot; {{ $task->project->name }}
-                                            @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
-                                        </p>
-                                    </div>
-                                    <x-avatar :user="$task->assignee" size="32px" class="shrink-0" />
-                                </div>
-                                {{-- task #71: Assignee moved up onto the SAME row as Status (was
-                                     its own row below) — Assignee comes first so Status, being the
-                                     last element, is what actually touches the row's right edge
-                                     (see the avatar note above). The assignee select's width is now
-                                     fixed (was sizing to fit whichever name happened to be selected)
-                                     with `truncate` for anything longer — the avatar's own tooltip
-                                     and this select's own title="" attribute both still show the
-                                     full name on hover, the same reliance on a tooltip Calendar's
-                                     own task-label truncation (Phase 8) already established. --}}
-                                <div class="mt-1.5 flex items-center justify-between gap-2">
-                                    <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
-
-                                    <div class="flex items-center gap-1.5">
-                                        @php $kanbanAssigneeOptions = $eligibleAssignees[$task->project_id][$task->department_id] ?? []; @endphp
-                                        <select class="kanban-assignee-select w-20 truncate rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
-                                                data-task-id="{{ $task->id }}" title="{{ $assigneeName }}" {{ $canReassign ? '' : 'disabled' }}>
-                                            <option value="">Unassigned</option>
-                                            @foreach ($kanbanAssigneeOptions as $option)
-                                                <option value="{{ $option['id'] }}" {{ (int) $task->assignee_id === $option['id'] ? 'selected' : '' }}>{{ $option['name'] }}</option>
-                                            @endforeach
-                                            {{-- task #70 (unified eligibility): the CURRENT assignee
-                                                 must still display correctly even if they no longer
-                                                 qualify under the new rule — the new rule governs
-                                                 future assignment, not existing data. --}}
-                                            @if ($task->assignee_id && ! collect($kanbanAssigneeOptions)->contains('id', $task->assignee_id))
-                                                <option value="{{ $task->assignee_id }}" selected>{{ $assigneeName }}</option>
-                                            @endif
-                                        </select>
-
-                                        <select class="kanban-status-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
-                                                data-task-id="{{ $task->id }}" {{ $canEdit ? '' : 'disabled' }}>
-                                            @foreach (\App\Enums\TaskStatus::cases() as $statusOption)
-                                                <option value="{{ $statusOption->value }}" {{ $task->status === $statusOption ? 'selected' : '' }}>{{ $statusOption->label() }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
+                            @include('kanban._card', $item + ['eligibleAssignees' => $eligibleAssignees, 'returnTo' => $returnTo])
                         @empty
                             <p class="py-4 text-center text-[11px] text-gray-400">No tasks</p>
                         @endforelse
                     </div>
+                    {{-- task #72 phase 5: a column shows its first 30 cards;
+                         the rest arrive 30 at a time from kanban.column. --}}
+                    @if ($column['remaining'] > 0)
+                        <div class="kanban-load-more border-t border-gray-100 px-2 py-2 text-center"
+                             data-url="{{ route('kanban.column', [$organization, $column['status']->value]) }}"
+                             data-offset="{{ $column['tasks']->count() }}">
+                            <p class="kanban-more-count text-[10px] text-gray-500">{{ number_format($column['remaining']) }} more</p>
+                            <button type="button" class="kanban-load-more-btn mt-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-wait disabled:opacity-60">
+                                Load more
+                            </button>
+                            <p class="kanban-load-more-error mt-1 text-[10px] text-[#A32D2D]" hidden>Couldn't load more cards. Try again.</p>
+                        </div>
+                    @endif
                 </div>
             @endforeach
         </div>
@@ -154,29 +97,97 @@
                 });
         }
 
-        board.querySelectorAll('.kanban-card[draggable="true"]').forEach(function (card) {
-            card.addEventListener('dragstart', function (event) {
-                event.dataTransfer.setData('text/plain', card.dataset.taskId);
-            });
+        // task #72 phase 5: every listener is delegated on the board rather
+        // than bound per card, so cards appended by Load more drag and use
+        // both dropdowns without any re-binding.
+        function closestIn(event, selector) {
+            return event.target instanceof Element ? event.target.closest(selector) : null;
+        }
+
+        board.addEventListener('dragstart', function (event) {
+            const card = closestIn(event, '.kanban-card[draggable="true"]');
+            if (! card) return;
+            event.dataTransfer.setData('text/plain', card.dataset.taskId);
         });
 
-        board.querySelectorAll('.kanban-column').forEach(function (column) {
-            column.addEventListener('dragover', function (event) {
-                event.preventDefault();
-            });
-            column.addEventListener('drop', function (event) {
-                event.preventDefault();
-                const taskId = event.dataTransfer.getData('text/plain');
-                if (! taskId) return;
-                changeStatus(taskId, column.dataset.status);
-            });
+        board.addEventListener('dragover', function (event) {
+            if (closestIn(event, '.kanban-column')) event.preventDefault();
         });
 
-        board.querySelectorAll('.kanban-status-select').forEach(function (select) {
-            select.addEventListener('change', function () {
+        board.addEventListener('drop', function (event) {
+            const column = closestIn(event, '.kanban-column');
+            if (! column) return;
+            event.preventDefault();
+            const taskId = event.dataTransfer.getData('text/plain');
+            if (! taskId) return;
+            changeStatus(taskId, column.dataset.status);
+        });
+
+        board.addEventListener('change', function (event) {
+            const select = event.target;
+            if (! (select instanceof Element)) return;
+
+            if (select.matches('.kanban-status-select')) {
                 changeStatus(select.dataset.taskId, select.value);
-            });
+            } else if (select.matches('.kanban-assignee-select')) {
+                changeAssignee(select.dataset.taskId, select.value);
+            }
         });
+
+        board.addEventListener('click', function (event) {
+            const button = closestIn(event, '.kanban-load-more-btn');
+            if (button) loadMore(button.closest('.kanban-load-more'));
+        });
+
+        // task #72 phase 5: the next 30 cards of one column. The offset is
+        // how many cards the server has sent this column so far; a card
+        // already on the board (it moved here from another column since
+        // the page loaded) is skipped, never shown twice.
+        function loadMore(container) {
+            const button = container.querySelector('.kanban-load-more-btn');
+            const error = container.querySelector('.kanban-load-more-error');
+            if (button.disabled) return;
+
+            button.disabled = true;
+            error.hidden = true;
+
+            fetch(container.dataset.url + '?offset=' + encodeURIComponent(container.dataset.offset), {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+            })
+                .then(function (response) {
+                    if (response.redirected) throw new Error('redirected to ' + response.url);
+                    if (! response.ok) throw new Error('HTTP ' + response.status);
+
+                    return response.json();
+                })
+                .then(function (data) {
+                    const body = container.closest('.kanban-column').querySelector('.kanban-column-body');
+                    const template = document.createElement('template');
+                    template.innerHTML = data.html;
+
+                    const cards = Array.from(template.content.querySelectorAll('.kanban-card'));
+                    cards.forEach(function (card) {
+                        if (board.querySelector('.kanban-card[data-task-id="' + card.dataset.taskId + '"]')) return;
+                        body.appendChild(card);
+                    });
+
+                    container.dataset.offset = String(Number(container.dataset.offset) + cards.length);
+
+                    if (data.remaining > 0) {
+                        container.querySelector('.kanban-more-count').textContent = data.remaining.toLocaleString('en-US') + ' more';
+                    } else {
+                        container.remove();
+                    }
+                })
+                .catch(function () {
+                    // The button stays, so the next click retries.
+                    error.hidden = false;
+                })
+                .finally(function () {
+                    button.disabled = false;
+                });
+        }
 
         function changeAssignee(taskId, assigneeId) {
             fetch('/tasks/' + taskId + '/assignee', {
@@ -207,12 +218,6 @@
                     window.location.reload();
                 });
         }
-
-        board.querySelectorAll('.kanban-assignee-select').forEach(function (select) {
-            select.addEventListener('change', function () {
-                changeAssignee(select.dataset.taskId, select.value);
-            });
-        });
     })();
 </script>
 @endsection
