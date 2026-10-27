@@ -37,11 +37,29 @@ class TaskObserver
      * every save while a task happens to already be in_progress) and only
      * if start_date is still empty — a manual edit afterward is never
      * clobbered by re-entering in_progress later.
+     *
+     * completed_at (task #72 phase 6) follows status exactly: set on the
+     * transition into completed (including being created as completed),
+     * cleared on the way out, untouched by any save that leaves status
+     * alone — so editing a completed task, or deactivating/reactivating
+     * it, keeps its date. Re-completing a reopened task takes the new
+     * time. Being dirty here, it also lands in updated()'s audit payload,
+     * next to status.
      */
     public function saving(Task $task): void
     {
         if ($task->isDirty('status') && $task->status === TaskStatus::InProgress && ! $task->start_date) {
             $task->start_date = now()->toDateString();
+        }
+
+        if ($task->isDirty('status')) {
+            $wasCompleted = $task->exists && $task->getRawOriginal('status') === TaskStatus::Completed->value;
+
+            if ($task->status === TaskStatus::Completed && ! $wasCompleted) {
+                $task->completed_at = now();
+            } elseif ($task->status !== TaskStatus::Completed) {
+                $task->completed_at = null;
+            }
         }
     }
 

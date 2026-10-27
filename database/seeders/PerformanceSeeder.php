@@ -703,10 +703,17 @@ class PerformanceSeeder extends Seeder
      *     changed both is logged under this action with both keys
      *
      * Distribution across completed tasks: ~10% completed→reopened→
-     * completed (the LAST row is the real completion), ~5% created already
-     * completed, ~5% completed via a reassignment save, ~3% no audit rows
-     * at all (TaskObserver::log() returns early when auth()->check() is
-     * false, e.g. an import), the rest a single status change.
+     * completed (the LAST row is the real completion), ~5% completed via
+     * a reassignment save, ~3% no audit rows at all (TaskObserver::log()
+     * returns early when auth()->check() is false, e.g. a console
+     * command), and the rest (~82%) only a task.created row that already
+     * says completed — the ~5% 'created_completed' flavour plus every
+     * 'plain' one, whose task.created carries the task's current status.
+     * No completed task gets a single pending→completed status change.
+     *
+     * Audit times step forward from created_at without a cap, so a few
+     * recently created tasks end up with history (and updated_at) in the
+     * future.
      *
      * @param  array<int, array<string, mixed>>  $tasks
      * @param  array<int, array{id:int, role:string, projects:array<int,int>, departments:array<int,int>}>  $users

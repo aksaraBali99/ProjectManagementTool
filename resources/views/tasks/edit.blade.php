@@ -101,6 +101,9 @@
                             <option value="{{ $statusCase->value }}" {{ $statusValue === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
                         @endforeach
                     </select>
+                    @if ($task->status === \App\Enums\TaskStatus::Completed && $task->completed_at)
+                        <p class="mt-1 text-[10px] text-gray-500">Completed on {{ $task->completed_at->format('M j, Y') }}</p>
+                    @endif
                 </div>
             </div>
 
@@ -214,6 +217,9 @@
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Status</span><p class="mt-1"><x-badge :background="$task->status->badgeBackground()" :text="$task->status->badgeText()">{{ $task->status->label() }}</x-badge></p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Start date</span><p class="mt-0.5 text-gray-700">{{ $task->start_date?->format('M j, Y') ?? '—' }}</p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Due date</span><p class="mt-0.5 text-gray-700">{{ $task->due_date?->format('M j, Y') ?? '—' }}</p></div>
+            @if ($task->status === \App\Enums\TaskStatus::Completed && $task->completed_at)
+                <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Completed on</span><p class="mt-0.5 text-gray-700">{{ $task->completed_at->format('M j, Y') }}</p></div>
+            @endif
         </div>
         <p class="mt-3 text-[11px] text-gray-500">You can view this task and toggle its subtasks, but only its assignee or a manager can edit it.</p>
     @endif
