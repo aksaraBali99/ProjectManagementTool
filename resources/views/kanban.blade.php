@@ -45,13 +45,26 @@
                          the rest arrive 30 at a time from kanban.column. --}}
                     @if ($column['remaining'] > 0)
                         <div class="kanban-load-more border-t border-gray-100 px-2 py-2 text-center"
-                             data-url="{{ route('kanban.column', [$organization, $column['status']->value]) }}"
+                             data-url="{{ route('kanban.column', [$organization, $column['status']->value] + ($column['showAllCompleted'] ? ['completed' => 'all'] : [])) }}"
                              data-offset="{{ $column['tasks']->count() }}">
                             <p class="kanban-more-count text-[10px] text-gray-500">{{ number_format($column['remaining']) }} more</p>
                             <button type="button" class="kanban-load-more-btn mt-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-wait disabled:opacity-60">
                                 Load more
                             </button>
                             <p class="kanban-load-more-error mt-1 text-[10px] text-[#A32D2D]" hidden>Couldn't load more cards. Try again.</p>
+                        </div>
+                    @endif
+                    {{-- task #72 phase 7: the Completed column shows the
+                         company's window by default; ?completed=all for
+                         this visit only. --}}
+                    @if ($column['showAllCompleted'])
+                        <div class="kanban-completed-window border-t border-gray-100 px-2 py-2 text-center text-[10px] text-gray-500">
+                            <a href="{{ route('kanban', $organization) }}" class="text-brand-700 hover:underline">Show recent only</a>
+                        </div>
+                    @elseif ($column['older'] > 0)
+                        <div class="kanban-completed-window border-t border-gray-100 px-2 py-2 text-center text-[10px] text-gray-500">
+                            {{ number_format($column['older']) }} older completed {{ \Illuminate\Support\Str::plural('task', $column['older']) }} ·
+                            <a href="{{ route('kanban', [$organization, 'completed' => 'all']) }}" class="text-brand-700 hover:underline">Show all</a>
                         </div>
                     @endif
                 </div>
@@ -151,7 +164,10 @@
             button.disabled = true;
             error.hidden = true;
 
-            fetch(container.dataset.url + '?offset=' + encodeURIComponent(container.dataset.offset), {
+            // The URL may already carry ?completed=all (task #72 phase 7).
+            const url = new URL(container.dataset.url, window.location.origin);
+            url.searchParams.set('offset', container.dataset.offset);
+            fetch(url.toString(), {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
             })

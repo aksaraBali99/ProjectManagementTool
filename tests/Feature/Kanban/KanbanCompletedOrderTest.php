@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -20,6 +21,13 @@ use Illuminate\Support\Facades\DB;
  * Expected orders are built in PHP, independently of the SQL.
  */
 beforeEach(function () {
+    // task #72 phase 7: the Completed column now hides tasks completed
+    // before the company's window (default 14 days). The completion dates
+    // below run from Sep 15 to Oct 20, 2026, so the clock is pinned where
+    // all of them count as recent and the ORDER is what's tested here —
+    // the window itself has its own tests (KanbanCompletedWindowTest).
+    $this->travelTo(Carbon::parse('2026-09-20 00:00:00'));
+
     createOwner();
 
     $this->org = Organization::create(['name' => 'Board Org', 'slug' => 'board-org', 'accent_color' => '#1D9E75']);
@@ -89,7 +97,7 @@ test('the Completed column is newest completion first, then id desc, nulls last,
 test('completing a card puts it at the top of the Completed column', function () {
     for ($i = 0; $i < 3; $i++) {
         $task = makeKanbanOrderTask($this, 'completed', 'high');
-        DB::table('tasks')->where('id', $task->id)->update(['completed_at' => '2026-10-0'.($i + 1).' 10:00:00']);
+        DB::table('tasks')->where('id', $task->id)->update(['completed_at' => '2026-09-1'.($i + 1).' 10:00:00']);
     }
     $justDone = makeKanbanOrderTask($this, 'pending', 'low');
 

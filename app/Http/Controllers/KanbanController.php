@@ -8,6 +8,7 @@ use App\Http\Controllers\Concerns\BuildsAssigneeOptions;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\Organization;
 use App\Models\Task;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
@@ -63,10 +64,23 @@ class KanbanController extends Controller
             ->groupBy('status')
             ->pluck('aggregate', 'status');
 
+        // task #72 phase 7: the Completed column shows only tasks completed
+        // within the company's window, unless ?completed=all. Its header
+        // counts the window; the rest are "older", by subtraction, so the
+        // window costs one extra count.
+        $since = $this->completedWindowStart($organization);
+        $completedTotal = (int) ($totals[TaskStatus::Completed->value] ?? 0);
+        $completedOlder = 0;
+        if ($since && $completedTotal > 0) {
+            $inWindow = (clone $visible)->completedWithin($since)->count();
+            $completedOlder = $completedTotal - $inWindow;
+            $totals[TaskStatus::Completed->value] = $inWindow;
+        }
+
         $tasksByStatus = collect(TaskStatus::cases())->mapWithKeys(fn (TaskStatus $status) => [
             // An empty column needs no query.
             $status->value => ($totals[$status->value] ?? 0) > 0
-                ? $this->columnPage($visible, $status, 0)
+                ? $this->columnPage($visible, $status, 0, $since)
                 : new EloquentCollection,
         ]);
 
@@ -76,7 +90,8 @@ class KanbanController extends Controller
         $rendered = new EloquentCollection($tasksByStatus->flatten(1)->all());
         $rendered->load(['project', 'department', 'assignee']);
 
-        $columns = collect(TaskStatus::cases())->map(function (TaskStatus $status) use ($tasksByStatus, $totals) {
+        $showAllCompleted = $since === null;
+        $columns = collect(TaskStatus::cases())->map(function (TaskStatus $status) use ($tasksByStatus, $totals, $completedOlder, $showAllCompleted) {
             $tasks = $tasksByStatus[$status->value];
             $total = (int) ($totals[$status->value] ?? 0);
 
@@ -85,6 +100,10 @@ class KanbanController extends Controller
                 'tasks' => $this->cardItems($tasks),
                 'total' => $total,
                 'remaining' => max(0, $total - $tasks->count()),
+                // Completed column only: hidden by the window, and whether
+                // this visit asked to see them.
+                'older' => $status === TaskStatus::Completed ? $completedOlder : 0,
+                'showAllCompleted' => $status === TaskStatus::Completed && $showAllCompleted,
             ];
         });
 
@@ -135,9 +154,15 @@ class KanbanController extends Controller
         $offset = is_string($offset) && ctype_digit($offset) ? (int) $offset : 0;
 
         $visible = Task::visibleTo($user, $organization->id);
-        $total = (clone $visible)->where('status', $status->value)->count();
+        // Same window as the board, so Load more continues the same list.
+        $since = $this->completedWindowStart($organization);
+        $columnQuery = (clone $visible)->where('status', $status->value);
+        if ($since && $status === TaskStatus::Completed) {
+            $columnQuery->completedWithin($since);
+        }
+        $total = $columnQuery->count();
 
-        $tasks = $this->columnPage($visible, $status, $offset);
+        $tasks = $this->columnPage($visible, $status, $offset, $since);
         $tasks->load(['project', 'department', 'assignee']);
 
         $eligibleAssignees = $this->eligibleAssigneesByTask($tasks);
@@ -168,11 +193,14 @@ class KanbanController extends Controller
      * completed_at goes last without an IS NULL term that would defeat
      * the index.
      */
-    private function columnPage(Builder $visible, TaskStatus $status, int $offset): EloquentCollection
+    private function columnPage(Builder $visible, TaskStatus $status, int $offset, ?DateTimeInterface $completedSince = null): EloquentCollection
     {
         $query = (clone $visible)->where('status', $status->value);
 
         if ($status === TaskStatus::Completed) {
+            if ($completedSince) {
+                $query->completedWithin($completedSince);
+            }
             $query->orderByDesc('tasks.completed_at')->orderByDesc('tasks.id');
         } else {
             $query->orderByEnum('priority', Priority::class)
@@ -185,6 +213,16 @@ class KanbanController extends Controller
             ->offset($offset)
             ->limit(self::COLUMN_BATCH)
             ->get();
+    }
+
+    /**
+     * task #72 phase 7: where the Completed column's window starts for this
+     * request — null when the visit asked for ?completed=all. Never saved:
+     * a new visit starts with the window again.
+     */
+    private function completedWindowStart(Organization $organization): ?DateTimeInterface
+    {
+        return request()->query('completed') === 'all' ? null : $organization->completedWindowStart();
     }
 
     /**
