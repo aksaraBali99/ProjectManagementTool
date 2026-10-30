@@ -393,6 +393,14 @@ class TaskManagementController extends Controller
      */
     private function applyListOrder(Builder $query, string $sort, string $direction): void
     {
+        // Shared with the Dashboard sections (task #72 phase 8), tie-break
+        // included.
+        if ($sort === 'due_date') {
+            $query->orderByDueSoonest($direction);
+
+            return;
+        }
+
         $isSqlite = $query->getConnection()->getDriverName() === 'sqlite';
         // MySQL's columns are utf8mb4_unicode_ci, already case-insensitive;
         // wrapping them in lower() measured ~3x slower there.
@@ -411,7 +419,6 @@ class TaskManagementController extends Controller
             'status' => $query->orderByEnum('status', TaskStatus::class, $direction),
             // Ascending puts inactive first, as it always has. Never "empty".
             'active' => $query->orderByRaw('tasks.deleted_at IS NULL '.$direction),
-            'due_date' => $query->orderByRaw('tasks.due_date IS NULL')->orderBy('tasks.due_date', $direction),
             // task #72 phase 7: tasks with no completion date (not
             // completed) go last in both directions, like due_date.
             'completed' => $query->orderByRaw('tasks.completed_at IS NULL')->orderBy('tasks.completed_at', $direction),
