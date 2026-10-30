@@ -2,6 +2,7 @@
 
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KanbanController;
 use App\Models\AccessPermission;
 use App\Models\Comment;
@@ -99,7 +100,9 @@ const GROWTH_TOLERANCE = 2;
 // All four now assert the REAL target (flat AND <= PAGE_QUERY_TARGET).
 // The ceilings are kept alongside it as the ratchet: <= 30 is the
 // contract, <= 19 is what stops it drifting back up to 29.
-const DASHBOARD_MAX_QUERIES_20_TASKS = 16;
+// Dashboard: +5 in phase 8. Per section, a limited query instead of one
+// load of every task: grouped count, five lists of 10, My Task's count.
+const DASHBOARD_MAX_QUERIES_20_TASKS = 21;
 const PROJECTS_MAX_QUERIES_20_TASKS = 17;
 const CALENDAR_MAX_QUERIES_20_TASKS = 10;
 const KANBAN_MAX_QUERIES_20_TASKS = 22;
@@ -368,4 +371,42 @@ test('Kanban Load more: the same number of queries whether the column holds 30 o
 
     expect($large)->toBe($small);
     expect($large)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+});
+
+test('Dashboard: with every section over 10, each shows 10 within the target, for every role', function () {
+    // task #72 phase 8: the Dashboard used to load and render every task.
+    // 15 per status x priority: 60 High (30 of them Active), 60 Medium,
+    // 60 Low, all assigned to the staff member so My Task is full too.
+    foreach (['high', 'medium', 'low'] as $priority) {
+        foreach (TaskStatus::cases() as $status) {
+            for ($i = 0; $i < 15; $i++) {
+                Task::create([
+                    'organization_id' => $this->org->id,
+                    'project_id' => $this->project->id,
+                    'department_id' => $this->dept->id,
+                    'assignee_id' => $this->staff->id,
+                    'title' => "Dashboard task {$priority} {$status->value} {$i}",
+                    'priority' => $priority,
+                    'status' => $status->value,
+                ]);
+            }
+        }
+    }
+
+    foreach ([$this->owner, $this->management, $this->staff] as $user) {
+        $response = null;
+        $queries = countRequestQueries(function () use ($user, &$response) {
+            $response = $this->actingAs($user)->get(route('dashboard', $this->org, false))->assertOk();
+        });
+
+        $sections = $response->viewData('priorityGroups')->values()
+            ->push($response->viewData('activeTasks'), $response->viewData('myTasks'));
+        foreach ($sections as $section) {
+            expect($section)->toHaveCount(DashboardController::SECTION_LIMIT);
+        }
+        // Every rendered task card links to its task page with a
+        // Dashboard return label: 5 sections x 10, never the company.
+        expect(substr_count($response->getContent(), 'return_label=Dashboard'))->toBe(5 * DashboardController::SECTION_LIMIT);
+        expect($queries)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+    }
 });

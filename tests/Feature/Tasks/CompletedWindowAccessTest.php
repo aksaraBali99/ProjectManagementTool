@@ -68,6 +68,7 @@ test('the window never adds a task the user could not already see', function (st
     $dashboard = $this->actingAs($user)->get(route('dashboard', $this->org));
     if ($dashboard->status() === 200) {
         $shown = $dashboard->viewData('priorityGroups')->flatten(1)->pluck('id')
+            ->merge($dashboard->viewData('activeTasks')->pluck('id'))
             ->merge($dashboard->viewData('myTasks')->pluck('id'));
         expect($shown->diff($visible)->all())->toBe([]);
     }

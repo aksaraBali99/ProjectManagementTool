@@ -13,7 +13,7 @@
         <div class="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2]">
             <div class="flex items-center justify-between border-b border-[#FCA5A5] px-3 py-2">
                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-[#B91C1C]">Active</span>
-                <span class="text-[10px] text-[#B91C1C]">{{ $activeTasks->count() }}</span>
+                <span class="text-[10px] text-[#B91C1C]">{{ number_format($sectionCounts['active']) }}</span>
             </div>
             <div class="divide-y divide-[#FECACA]">
                 @forelse ($activeTasks as $task)
@@ -32,6 +32,12 @@
                     <p class="px-3 py-4 text-center text-[11px] text-gray-400">No active high-priority tasks</p>
                 @endforelse
             </div>
+            {{-- task #72 phase 8: each section shows its first
+                 DashboardController::SECTION_LIMIT tasks; the header counts
+                 them all and the link opens the rest. --}}
+            <div class="border-t border-[#FECACA] px-3 py-1.5 text-right">
+                <a href="{{ $sectionLinks['active']['url'] }}" class="dashboard-tasks-link text-[10px] text-brand-700 hover:underline">{{ $sectionLinks['active']['label'] }}</a>
+            </div>
         </div>
 
         <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -43,7 +49,7 @@
                             <x-dot :color="$priority->badgeText()" size="8px" />
                             <span class="text-[10px] font-medium uppercase tracking-[0.06em]" style="color: {{ $priority->badgeText() }}">{{ $priority->label() }}</span>
                         </span>
-                        <span class="text-[10px] text-gray-400">{{ $group->count() }}</span>
+                        <span class="text-[10px] text-gray-400">{{ number_format($sectionCounts[$priority->value]) }}</span>
                     </div>
                     <div class="space-y-1.5 p-2">
                         @forelse ($group as $task)
@@ -60,23 +66,21 @@
                             <p class="py-4 text-center text-[11px] text-gray-400">No tasks</p>
                         @endforelse
                     </div>
-                    {{-- task #72 phase 7: older completed tasks are hidden
-                         here; the Tasks list shows them all. --}}
                     <div class="border-t border-gray-100 px-3 py-1.5 text-right">
-                        <a href="{{ route('tasks.index', [$organization, 'priority' => $priority->value, 'completed' => 'all']) }}" class="dashboard-tasks-link text-[10px] text-brand-700 hover:underline">View all in Tasks list</a>
+                        <a href="{{ $sectionLinks[$priority->value]['url'] }}" class="dashboard-tasks-link text-[10px] text-brand-700 hover:underline">{{ $sectionLinks[$priority->value]['label'] }}</a>
                     </div>
                 </div>
             @endforeach
         </div>
 
         {{-- Client falls through to mode 'none': their entire visible task
-             set is already project-scoped and shown in full above (Active +
-             Priority groups), so a MyTask section here would just repeat it. --}}
+             set is already project-scoped and shown above (Active + Priority
+             groups), so a MyTask section here would just repeat it. --}}
         @if ($myTaskMode !== 'none')
         <div class="mt-4 rounded-lg border border-gray-200 bg-white">
             <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">My Task</span>
-                <span class="text-[10px] text-gray-400">{{ $myTasks->count() }}</span>
+                <span class="text-[10px] text-gray-400">{{ number_format($sectionCounts['my']) }}</span>
             </div>
 
             @if ($myTaskMode === 'admin' && $staffOptions->isNotEmpty())
@@ -103,7 +107,8 @@
                         // For staff, a task can show up here because a subtask
                         // (not the task itself) is assigned to them — surface
                         // which subtask, so they can find it once they drill
-                        // into the task.
+                        // into the task. Staff's $task->subtasks holds only
+                        // their own subtasks (DashboardController).
                         $myViaSubtask = $myTaskMode === 'staff' && $task->assignee_id !== auth()->id()
                             ? $task->subtasks->firstWhere('assignee_id', auth()->id())
                             : null;

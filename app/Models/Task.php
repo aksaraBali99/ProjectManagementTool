@@ -185,6 +185,25 @@ class Task extends Model
     }
 
     /**
+     * Soonest due first, no due date last, then title (case-insensitive),
+     * then id — the Tasks list's default order (TaskManagementController::
+     * applyListOrder(), due date ascending), so a Dashboard section and the
+     * list it links to read the same way (task #72 phase 8).
+     *
+     * MySQL's columns are utf8mb4_unicode_ci, already case-insensitive;
+     * SQLite needs COLLATE NOCASE.
+     */
+    public function scopeOrderByDueSoonest(Builder $query): Builder
+    {
+        $title = $query->getConnection()->getDriverName() === 'sqlite' ? 'tasks.title COLLATE NOCASE' : 'tasks.title';
+
+        return $query->orderByRaw('tasks.due_date IS NULL')
+            ->orderBy('tasks.due_date')
+            ->orderByRaw($title.' asc')
+            ->orderBy('tasks.id');
+    }
+
+    /**
      * task #72 phase 7: the completed-tasks window. The working pages
      * (Kanban, Tasks list, Dashboard, Projects) hide tasks completed
      * before the company's window start (Organization::completedWindowStart())
