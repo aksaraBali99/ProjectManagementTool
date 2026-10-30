@@ -6,6 +6,7 @@ use App\Enums\Priority;
 use App\Enums\TaskStatus;
 use App\Models\Concerns\BelongsToOrganization;
 use App\Observers\TaskObserver;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -181,6 +182,48 @@ class Task extends Model
             "CASE tasks.{$column} {$whens} END {$direction}",
             array_map(fn ($case) => $case->value, $cases),
         );
+    }
+
+    /**
+     * task #72 phase 7: the completed-tasks window. The working pages
+     * (Kanban, Tasks list, Dashboard, Projects) hide tasks completed
+     * before the company's window start (Organization::completedWindowStart())
+     * unless asked to show all. A display rule only — it removes tasks
+     * from a page, never adds one, so it always sits on top of
+     * scopeVisibleTo(), never in place of it.
+     *
+     * "Recent" means: not Completed, or Completed at or after $since. A
+     * Completed task with no completed_at counts as recent, so nothing is
+     * hidden without a date (phase 6's backfill should leave none).
+     *
+     * The three scopes share completedWithinCondition(), so the rule lives
+     * in one place. EXPLAIN on the 2,000-task perf data: the IS NULL OR >=
+     * form still reads a range of tasks_org_status_completed_at_index.
+     */
+    public function scopeOpenOrCompletedWithin(Builder $query, DateTimeInterface $since): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->where('tasks.status', '!=', TaskStatus::Completed->value)
+            ->orWhere(fn (Builder $completed) => $this->completedWithinCondition($completed, $since)));
+    }
+
+    /** Completed tasks inside the window (the Kanban Completed column). */
+    public function scopeCompletedWithin(Builder $query, DateTimeInterface $since): Builder
+    {
+        return $query->where(fn (Builder $q) => $this->completedWithinCondition($q, $since));
+    }
+
+    /** Completed tasks the window hides (the Kanban "N older" count). */
+    public function scopeCompletedBefore(Builder $query, DateTimeInterface $since): Builder
+    {
+        return $query->where('tasks.status', TaskStatus::Completed->value)
+            ->where('tasks.completed_at', '<', $since);
+    }
+
+    private function completedWithinCondition(Builder $query, DateTimeInterface $since): Builder
+    {
+        return $query->where('tasks.status', TaskStatus::Completed->value)
+            ->where(fn (Builder $q) => $q->whereNull('tasks.completed_at')->orWhere('tasks.completed_at', '>=', $since));
     }
 
     /**

@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'slug', 'accent_color', 'is_active'])]
+#[Fillable(['name', 'slug', 'accent_color', 'is_active', 'completed_window_days'])]
 class Organization extends Model
 {
     // task #72 phase 1: is_active decides visibleOrganizationIds(), which
@@ -17,11 +18,35 @@ class Organization extends Model
     // company has to drop the cached profiles.
     use FlushesAccessProfiles;
 
+    /** task #72 phase 7: the choices for completed_window_days. */
+    public const COMPLETED_WINDOW_OPTIONS = [7, 14, 30];
+
+    public const DEFAULT_COMPLETED_WINDOW_DAYS = 14;
+
+    /**
+     * Mirrors the column default, so a company just created through
+     * Eloquent already knows its window without a refresh.
+     */
+    protected $attributes = [
+        'completed_window_days' => self::DEFAULT_COMPLETED_WINDOW_DAYS,
+    ];
+
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'completed_window_days' => 'integer',
         ];
+    }
+
+    /**
+     * task #72 phase 7: completed tasks finished before this moment are
+     * hidden by default on the working pages — now minus the company's
+     * window, in the app timezone (UTC). See Task::scopeOpenOrCompletedWithin().
+     */
+    public function completedWindowStart(): Carbon
+    {
+        return now()->subDays($this->completed_window_days ?? self::DEFAULT_COMPLETED_WINDOW_DAYS);
     }
 
     /**

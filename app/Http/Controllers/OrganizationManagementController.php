@@ -53,7 +53,7 @@ class OrganizationManagementController extends Controller
 
         // slug is intentionally excluded — fixed once created, never
         // regenerated on rename (see Organization::generateUniqueSlug).
-        $organization->update($request->only('name', 'accent_color'));
+        $organization->update($request->only('name', 'accent_color', 'completed_window_days'));
 
         return redirect()->route('organizations.index')->with('status', 'Company updated.');
     }
