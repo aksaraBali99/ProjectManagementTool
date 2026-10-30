@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "app/Models/AuditLog.php": {
-    "mtime": 1790608278.461545,
-    "ast_hash": "555e7430b95995eed330a57c8ec5cf3f",
+    "mtime": 1793338732.8485596,
+    "ast_hash": "a61148b956e12ff97e3aa2a8cbd046ce",
     "semantic_hash": ""
   },
   "app/Models/Comment.php": {
@@ -2285,8 +2285,8 @@
     "semantic_hash": ""
   },
   "app/Console/Commands/BackfillTaskCompletedAt.php": {
-    "mtime": 1793087535.5601494,
-    "ast_hash": "c1f1a6774d6a60b6233dadd2269c1469",
+    "mtime": 1793338722.7840984,
+    "ast_hash": "dcb01f6cd73b940090178de4efe12b93",
     "semantic_hash": ""
   },
   "database/migrations/2026_10_27_000000_add_completed_at_to_tasks_table.php": {
@@ -2295,8 +2295,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Console/BackfillTaskCompletedAtTest.php": {
-    "mtime": 1793087535.8075914,
-    "ast_hash": "ac8614369c2ba9296a350366b7228614",
+    "mtime": 1793338776.4082053,
+    "ast_hash": "3951a5f48c519b95b6feba91106f18f0",
     "semantic_hash": ""
   },
   "tests/Feature/Kanban/KanbanCompletedOrderTest.php": {
@@ -2305,8 +2305,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskCompletedAtTest.php": {
-    "mtime": 1793087188.266415,
-    "ast_hash": "37aa89595d7eae86b1c0845a0eede408",
+    "mtime": 1793338770.7227204,
+    "ast_hash": "47ccd54f940b5f06b5b5594d85c2dfbc",
     "semantic_hash": ""
   }
 }
