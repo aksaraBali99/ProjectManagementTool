@@ -25,6 +25,15 @@ function windowIds(object $context, ?int $days = null): array
         ->orderBy('id')->pluck('id')->all();
 }
 
+/** Completed tasks the window hides: every completed task not completedWithin(). */
+function hiddenCompletedIds(object $context): array
+{
+    $within = Task::where('organization_id', $context->org->id)->completedWithin($context->org->completedWindowStart())->pluck('id')->all();
+
+    return Task::where('organization_id', $context->org->id)->where('status', 'completed')
+        ->whereNotIn('id', $within)->orderBy('id')->pluck('id')->all();
+}
+
 test('open tasks are always included, however old', function (string $status) {
     $task = makeWindowTask($this, $status);
     $task->forceFill(['created_at' => '2020-01-01', 'updated_at' => '2020-01-01'])->saveQuietly();
@@ -40,7 +49,7 @@ test('completed inside, exactly at, and outside the 14-day window', function () 
 
     expect(windowIds($this))->toBe([$inside->id, $atStart->id])
         ->and(Task::where('organization_id', $this->org->id)->completedWithin($this->org->completedWindowStart())->orderBy('id')->pluck('id')->all())->toBe([$inside->id, $atStart->id])
-        ->and(Task::where('organization_id', $this->org->id)->completedBefore($this->org->completedWindowStart())->orderBy('id')->pluck('id')->all())->toBe([$justOutside->id, $old->id]);
+        ->and(hiddenCompletedIds($this))->toBe([$justOutside->id, $old->id]);
 });
 
 test('a completed task with no completed_at counts as inside the window', function () {
@@ -48,7 +57,7 @@ test('a completed task with no completed_at counts as inside the window', functi
 
     expect($undated->completed_at)->toBeNull()
         ->and(windowIds($this))->toBe([$undated->id])
-        ->and(Task::where('organization_id', $this->org->id)->completedBefore($this->org->completedWindowStart())->count())->toBe(0);
+        ->and(hiddenCompletedIds($this))->toBe([]);
 });
 
 test('the window follows the company setting: 7, 14 and 30 days', function () {

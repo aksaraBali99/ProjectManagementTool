@@ -165,3 +165,31 @@ test('the filter dropdowns still list options that only old completed tasks use'
 
     expect($response->viewData('filterProjects')->pluck('name'))->toContain('Finished project');
 });
+
+test('impossible dates are ignored, not rolled over to a real day', function (string $date) {
+    expect(listIds($this, ['completed_to' => $date]))->toBe(idsOf($this->open, $this->recent, $this->undated))
+        ->and(listIds($this, ['completed_from' => $date]))->toBe(idsOf($this->open, $this->recent, $this->undated));
+})->with(['2026-02-31', '2026-13-01', '2026-00-10', '2026-10-32']);
+
+test('a real date at a month edge still works', function () {
+    expect(listIds($this, ['completed_from' => '2026-09-30', 'completed_to' => '2026-09-30']))->toBe(idsOf($this->sep30));
+});
+
+test('a date range with another Status explains why nothing matches', function () {
+    $html = $this->actingAs($this->management)
+        ->get(route('tasks.index', [$this->org, 'status' => 'pending', 'completed' => 'range', 'completed_from' => '2026-10-01']))
+        ->assertOk()->getContent();
+
+    expect($html)->toContain('task-filter-range-hint')
+        ->toContain("so it can't match Status = Pending");
+
+    // Not for Status = Completed, no status, or no range.
+    foreach ([
+        ['status' => 'completed', 'completed' => 'range', 'completed_from' => '2026-10-01'],
+        ['completed' => 'range', 'completed_from' => '2026-10-01'],
+        ['status' => 'pending'],
+    ] as $query) {
+        $html = $this->actingAs($this->management)->get(route('tasks.index', [$this->org] + $query))->assertOk()->getContent();
+        expect($html)->not->toContain('task-filter-range-hint');
+    }
+});

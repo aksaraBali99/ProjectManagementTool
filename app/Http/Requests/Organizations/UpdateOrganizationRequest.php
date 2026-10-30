@@ -4,6 +4,7 @@ namespace App\Http\Requests\Organizations;
 
 use App\Models\Organization;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 
 class UpdateOrganizationRequest extends FormRequest
@@ -28,7 +29,7 @@ class UpdateOrganizationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'completed_window_days.in' => 'The completed tasks window must be 7, 14 or 30 days.',
+            'completed_window_days.in' => 'The completed tasks window must be '.Arr::join(Organization::COMPLETED_WINDOW_OPTIONS, ', ', ' or ').' days.',
         ];
     }
 }

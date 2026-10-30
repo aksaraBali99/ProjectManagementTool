@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Priority;
 use App\Enums\ProjectStatus;
+use App\Http\Controllers\Concerns\AppliesCompletedWindow;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Requests\Projects\StoreProjectRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
@@ -19,7 +20,7 @@ use Illuminate\View\View;
 
 class ProjectManagementController extends Controller
 {
-    use ResolvesCurrentOrganization;
+    use AppliesCompletedWindow, ResolvesCurrentOrganization;
 
     public function index(?Organization $organization = null): View
     {
@@ -47,8 +48,8 @@ class ProjectManagementController extends Controller
         // this visit. The Tasks column reads "shown / total": shown is what
         // the drilldown lists, total every visible task — both counted in
         // the same query.
-        $showAllCompleted = request()->query('completed') === 'all';
-        $since = $showAllCompleted ? null : $organization->completedWindowStart();
+        $showAllCompleted = $this->showsAllCompleted();
+        $since = $this->completedWindowStartFor($organization);
         $shownTasks = fn ($query) => $query->visibleTo($user, $organization->id)
             ->when($since, fn ($q) => $q->openOrCompletedWithin($since));
 

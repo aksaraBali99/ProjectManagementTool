@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
+use App\Http\Controllers\Concerns\AppliesCompletedWindow;
 use App\Http\Controllers\Concerns\BuildsAssigneeOptions;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\Organization;
@@ -18,7 +19,7 @@ use Illuminate\View\View;
 
 class KanbanController extends Controller
 {
-    use BuildsAssigneeOptions, ResolvesCurrentOrganization;
+    use AppliesCompletedWindow, BuildsAssigneeOptions, ResolvesCurrentOrganization;
 
     /**
      * task #72 phase 5: cards per column on the board, and per Load more.
@@ -68,7 +69,7 @@ class KanbanController extends Controller
         // within the company's window, unless ?completed=all. Its header
         // counts the window; the rest are "older", by subtraction, so the
         // window costs one extra count.
-        $since = $this->completedWindowStart($organization);
+        $since = $this->completedWindowStartFor($organization);
         $completedTotal = (int) ($totals[TaskStatus::Completed->value] ?? 0);
         $completedOlder = 0;
         if ($since && $completedTotal > 0) {
@@ -155,7 +156,7 @@ class KanbanController extends Controller
 
         $visible = Task::visibleTo($user, $organization->id);
         // Same window as the board, so Load more continues the same list.
-        $since = $this->completedWindowStart($organization);
+        $since = $this->completedWindowStartFor($organization);
         $columnQuery = (clone $visible)->where('status', $status->value);
         if ($since && $status === TaskStatus::Completed) {
             $columnQuery->completedWithin($since);
@@ -213,16 +214,6 @@ class KanbanController extends Controller
             ->offset($offset)
             ->limit(self::COLUMN_BATCH)
             ->get();
-    }
-
-    /**
-     * task #72 phase 7: where the Completed column's window starts for this
-     * request — null when the visit asked for ?completed=all. Never saved:
-     * a new visit starts with the window again.
-     */
-    private function completedWindowStart(Organization $organization): ?DateTimeInterface
-    {
-        return request()->query('completed') === 'all' ? null : $organization->completedWindowStart();
     }
 
     /**

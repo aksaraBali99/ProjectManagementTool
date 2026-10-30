@@ -168,6 +168,11 @@
                         class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                 </div>
             </div>
+            @if ($completedMode === 'range' && ! empty($filters['status']) && $filters['status'] !== \App\Enums\TaskStatus::Completed->value)
+                {{-- A completed date range only matches Completed tasks,
+                     so any other Status can't match anything. --}}
+                <p class="task-filter-range-hint basis-full text-[10px] text-[#A32D2D]">A completed date range only shows Completed tasks, so it can't match Status = {{ \App\Enums\TaskStatus::tryFrom($filters['status'])?->label() ?? $filters['status'] }}. Clear the Status filter to see them.</p>
+            @endif
 
             <div class="flex items-center gap-2">
                 <button type="submit" class="rounded-md bg-brand-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-brand-700">

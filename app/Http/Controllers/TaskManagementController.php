@@ -320,31 +320,6 @@ class TaskManagementController extends Controller
     }
 
     /**
-     * task #72 phase 4: the order the list has always shown (it used to be
-     * sorted in PHP by sortTasks()), now as SQL so the database can return
-     * one page of it:
-     *
-     * - An empty value (no due date, no assignee, an empty name) goes last
-     *   in BOTH directions.
-     * - Ties break on title ascending, case-insensitively, even when the
-     *   column itself is descending; then tasks.id ascending, so a page
-     *   boundary never repeats or skips a task.
-     * - priority/status follow the enum's declared order — see
-     *   Task::scopeOrderByEnum(), shared with Kanban (phase 5).
-     *
-     * Project/department/assignee names come from correlated subqueries,
-     * not joins: projects and departments both have organization_id (and
-     * projects has status and priority), so a join would make the
-     * unqualified columns in Task::scopeVisibleTo() and the filters above
-     * ambiguous. A primary-key lookup per row can't duplicate a task or
-     * change which tasks are visible, and the select stays tasks.*.
-     *
-     * Known differences from the old PHP sort, accepted: PHP's <=> compared
-     * titles made only of digits as numbers ("9" before "10"); SQL compares
-     * them as text. And MySQL's utf8mb4_unicode_ci also ignores accents
-     * and weighs punctuation differently from a byte comparison.
-     */
-    /**
      * task #72 phase 7: the Tasks list's "Completed" filter.
      *
      *   - Date range (completed_from and/or completed_to): only tasks
@@ -381,12 +356,41 @@ class TaskManagementController extends Controller
         $query->openOrCompletedWithin($organization->completedWindowStart());
     }
 
-    /** A Y-m-d date from a filter input, or null for anything else. */
+    /** A real Y-m-d date from a filter input, or null for anything else. */
     private function validDate(string $value): ?string
     {
-        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) && strtotime($value) !== false ? $value : null;
+        // checkdate(), not strtotime(): strtotime rolls 2026-02-31 over to a
+        // real day, and the raw string would then reach whereDate().
+        return preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $parts) && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])
+            ? $value
+            : null;
     }
 
+    /**
+     * task #72 phase 4: the order the list has always shown (it used to be
+     * sorted in PHP by sortTasks()), now as SQL so the database can return
+     * one page of it:
+     *
+     * - An empty value (no due date, no assignee, an empty name) goes last
+     *   in BOTH directions.
+     * - Ties break on title ascending, case-insensitively, even when the
+     *   column itself is descending; then tasks.id ascending, so a page
+     *   boundary never repeats or skips a task.
+     * - priority/status follow the enum's declared order — see
+     *   Task::scopeOrderByEnum(), shared with Kanban (phase 5).
+     *
+     * Project/department/assignee names come from correlated subqueries,
+     * not joins: projects and departments both have organization_id (and
+     * projects has status and priority), so a join would make the
+     * unqualified columns in Task::scopeVisibleTo() and the filters above
+     * ambiguous. A primary-key lookup per row can't duplicate a task or
+     * change which tasks are visible, and the select stays tasks.*.
+     *
+     * Known differences from the old PHP sort, accepted: PHP's <=> compared
+     * titles made only of digits as numbers ("9" before "10"); SQL compares
+     * them as text. And MySQL's utf8mb4_unicode_ci also ignores accents
+     * and weighs punctuation differently from a byte comparison.
+     */
     private function applyListOrder(Builder $query, string $sort, string $direction): void
     {
         $isSqlite = $query->getConnection()->getDriverName() === 'sqlite';

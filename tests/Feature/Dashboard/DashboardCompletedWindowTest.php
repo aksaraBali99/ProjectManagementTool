@@ -93,3 +93,12 @@ test('a client has no My Task section, so no link, and the window still applies'
     expect($response->viewData('myTasksLink'))->toBeNull()
         ->and($response->viewData('priorityGroups')['high']->pluck('id')->sort()->values()->all())->toBe([$this->open->id, $this->recent->id]);
 });
+
+test('a hand-edited ?staff[1]=… still works and links to that person', function () {
+    // The request's own keys used to survive, so the single id sat at key 1
+    // and reading the first id failed with a 500.
+    $response = $this->actingAs($this->owner)->get(route('dashboard', $this->org).'?staff[1]='.$this->staff->id)->assertOk();
+
+    expect($response->viewData('selectedStaffIds'))->toBe([$this->staff->id])
+        ->and($response->viewData('myTasksLink')['url'])->toBe(route('tasks.index', [$this->org, 'assignee_id' => $this->staff->id, 'completed' => 'all']));
+});

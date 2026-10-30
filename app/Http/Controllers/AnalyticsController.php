@@ -69,6 +69,11 @@ class AnalyticsController extends Controller
         // finished), across the same active companies and active tasks as
         // every other number here. ?period= picks the window for this
         // number only; nothing else on the page depends on it.
+        //
+        // Deliberately NOT Task::scopeCompletedWithin(): the working pages
+        // count a completed task with no completed_at as recent so nothing
+        // is hidden without a date, but a task with no date can't be
+        // "completed in the last N days", so it isn't counted here.
         $period = (int) request()->query('period');
         $period = in_array($period, self::COMPLETED_PERIODS, true) ? $period : self::DEFAULT_COMPLETED_PERIOD;
         $completedInPeriod = Task::whereIn('organization_id', $organizationIds)

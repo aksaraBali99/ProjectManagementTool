@@ -104,7 +104,10 @@ class DashboardController extends Controller
                 ->unique('id')
                 ->sortBy('name')
                 ->values();
-            $selectedStaffIds = Collection::make($request->input('staff', []))->map(fn ($id) => (int) $id)->all();
+            // values(): the request's own keys are kept otherwise, so
+            // ?staff[1]=5 would arrive as [1 => 5] (task #72 phase 7's My
+            // Task link reads the first id).
+            $selectedStaffIds = Collection::make($request->input('staff', []))->map(fn ($id) => (int) $id)->values()->all();
 
             $myTasks = empty($selectedStaffIds)
                 ? $tasks->values()

@@ -79,3 +79,9 @@ test('an update without the field keeps the current window', function () {
 
     expect($this->org->fresh())->name->toBe('Renamed')->completed_window_days->toBe(30);
 });
+
+test('the error message lists the allowed choices from the one constant', function () {
+    $this->actingAs($this->owner)
+        ->put(route('organizations.update', $this->org), companyUpdate($this->org, ['completed_window_days' => 15]))
+        ->assertSessionHasErrors(['completed_window_days' => 'The completed tasks window must be 7, 14 or 30 days.']);
+});

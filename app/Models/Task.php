@@ -196,8 +196,8 @@ class Task extends Model
      * Completed task with no completed_at counts as recent, so nothing is
      * hidden without a date (phase 6's backfill should leave none).
      *
-     * The three scopes share completedWithinCondition(), so the rule lives
-     * in one place. EXPLAIN on the 2,000-task perf data: the IS NULL OR >=
+     * Both scopes share completedWithinCondition(), so the rule lives in
+     * one place. EXPLAIN on the 2,000-task perf data: the IS NULL OR >=
      * form still reads a range of tasks_org_status_completed_at_index.
      */
     public function scopeOpenOrCompletedWithin(Builder $query, DateTimeInterface $since): Builder
@@ -207,17 +207,13 @@ class Task extends Model
             ->orWhere(fn (Builder $completed) => $this->completedWithinCondition($completed, $since)));
     }
 
-    /** Completed tasks inside the window (the Kanban Completed column). */
+    /**
+     * Completed tasks inside the window (the Kanban Completed column and
+     * its header count; the "N older" count is all completed minus this).
+     */
     public function scopeCompletedWithin(Builder $query, DateTimeInterface $since): Builder
     {
         return $query->where(fn (Builder $q) => $this->completedWithinCondition($q, $since));
-    }
-
-    /** Completed tasks the window hides (the Kanban "N older" count). */
-    public function scopeCompletedBefore(Builder $query, DateTimeInterface $since): Builder
-    {
-        return $query->where('tasks.status', TaskStatus::Completed->value)
-            ->where('tasks.completed_at', '<', $since);
     }
 
     private function completedWithinCondition(Builder $query, DateTimeInterface $since): Builder
