@@ -88,7 +88,7 @@ class TaskManagementController extends Controller
             $query->withTrashed();
         }
 
-        $filters = request()->only(['q', 'project_id', 'department_id', 'assignee_id', 'priority', 'status', 'due_from', 'due_to']);
+        $filters = request()->only(['q', 'project_id', 'department_id', 'assignee_id', 'priority', 'status', 'due_from', 'due_to', 'completed', 'completed_from', 'completed_to']);
 
         if ($search = trim((string) ($filters['q'] ?? ''))) {
             $query->where('title', 'like', '%'.$search.'%');
@@ -126,7 +126,9 @@ class TaskManagementController extends Controller
             $query->whereDate('due_date', '<=', $dueTo);
         }
 
-        $sortable = ['title', 'project', 'department', 'assignee', 'priority', 'status', 'due_date', 'active'];
+        $this->applyCompletedFilter($query, $organization, $status);
+
+        $sortable = ['title', 'project', 'department', 'assignee', 'priority', 'status', 'due_date', 'completed', 'active'];
         $sort = request()->string('sort')->toString();
         $sort = in_array($sort, $sortable, true) ? $sort : 'due_date';
         $direction = request()->string('direction')->toString() === 'desc' ? 'desc' : 'asc';
@@ -318,6 +320,53 @@ class TaskManagementController extends Controller
     }
 
     /**
+     * task #72 phase 7: the Tasks list's "Completed" filter.
+     *
+     *   - Date range (completed_from and/or completed_to): only tasks
+     *     completed on those dates, inclusive. Open tasks have no
+     *     completion date, so they drop out.
+     *   - All (completed=all), or an explicit Status = Completed: no window.
+     *   - Recent (the default): open tasks, plus tasks completed within the
+     *     company's window — Task::scopeOpenOrCompletedWithin().
+     *
+     * "Show inactive" is applied before this, so it widens the list first
+     * and the window then applies to inactive tasks too.
+     */
+    private function applyCompletedFilter(Builder $query, Organization $organization, string $status): void
+    {
+        $from = $this->validDate(request()->string('completed_from')->toString());
+        $to = $this->validDate(request()->string('completed_to')->toString());
+
+        if (request()->string('completed')->toString() === 'range' || $from || $to) {
+            $query->where('tasks.status', TaskStatus::Completed->value);
+            if ($from) {
+                $query->whereDate('tasks.completed_at', '>=', $from);
+            }
+            if ($to) {
+                $query->whereDate('tasks.completed_at', '<=', $to);
+            }
+
+            return;
+        }
+
+        if (request()->string('completed')->toString() === 'all' || $status === TaskStatus::Completed->value) {
+            return;
+        }
+
+        $query->openOrCompletedWithin($organization->completedWindowStart());
+    }
+
+    /** A real Y-m-d date from a filter input, or null for anything else. */
+    private function validDate(string $value): ?string
+    {
+        // checkdate(), not strtotime(): strtotime rolls 2026-02-31 over to a
+        // real day, and the raw string would then reach whereDate().
+        return preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $parts) && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])
+            ? $value
+            : null;
+    }
+
+    /**
      * task #72 phase 4: the order the list has always shown (it used to be
      * sorted in PHP by sortTasks()), now as SQL so the database can return
      * one page of it:
@@ -363,6 +412,9 @@ class TaskManagementController extends Controller
             // Ascending puts inactive first, as it always has. Never "empty".
             'active' => $query->orderByRaw('tasks.deleted_at IS NULL '.$direction),
             'due_date' => $query->orderByRaw('tasks.due_date IS NULL')->orderBy('tasks.due_date', $direction),
+            // task #72 phase 7: tasks with no completion date (not
+            // completed) go last in both directions, like due_date.
+            'completed' => $query->orderByRaw('tasks.completed_at IS NULL')->orderBy('tasks.completed_at', $direction),
             // Title is required, so it is never empty.
             default => $query->orderByRaw($caseless('tasks.title').' '.$direction),
         };

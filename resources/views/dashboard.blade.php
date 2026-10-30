@@ -60,6 +60,11 @@
                             <p class="py-4 text-center text-[11px] text-gray-400">No tasks</p>
                         @endforelse
                     </div>
+                    {{-- task #72 phase 7: older completed tasks are hidden
+                         here; the Tasks list shows them all. --}}
+                    <div class="border-t border-gray-100 px-3 py-1.5 text-right">
+                        <a href="{{ route('tasks.index', [$organization, 'priority' => $priority->value, 'completed' => 'all']) }}" class="dashboard-tasks-link text-[10px] text-brand-700 hover:underline">View all in Tasks list</a>
+                    </div>
                 </div>
             @endforeach
         </div>
@@ -119,6 +124,11 @@
                     <p class="px-3 py-4 text-center text-[11px] text-gray-400">No tasks</p>
                 @endforelse
             </div>
+            @if ($myTasksLink)
+                <div class="border-t border-gray-100 px-3 py-1.5 text-right">
+                    <a href="{{ $myTasksLink['url'] }}" class="dashboard-tasks-link text-[10px] text-brand-700 hover:underline">{{ $myTasksLink['label'] }}</a>
+                </div>
+            @endif
         </div>
         @endif
         </x-company-tabs>

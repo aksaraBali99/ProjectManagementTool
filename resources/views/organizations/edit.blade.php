@@ -34,6 +34,21 @@
                 class="mt-1 h-10 w-20 rounded-md border border-gray-300">
         </div>
 
+        <div>
+            <label for="completed_window_days" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Completed tasks window</label>
+            @php $windowValue = (int) old('completed_window_days', $organization->completed_window_days); @endphp
+            <select id="completed_window_days" name="completed_window_days" required
+                class="mt-1 block w-40 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                @foreach (\App\Models\Organization::COMPLETED_WINDOW_OPTIONS as $days)
+                    <option value="{{ $days }}" {{ $windowValue === $days ? 'selected' : '' }}>{{ $days }} days</option>
+                @endforeach
+            </select>
+            <p class="mt-1 text-[10px] text-gray-500">Tasks completed longer ago than this are hidden by default on Kanban, the Tasks list, Dashboard and Projects. Nothing is deleted — each page has a way to show them.</p>
+            @error('completed_window_days')
+                <p class="mt-1 text-[10px] text-[#A32D2D]">{{ $message }}</p>
+            @enderror
+        </div>
+
         <div class="flex items-center gap-3 pt-2">
             <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-brand-700">
                 Save changes

@@ -34,6 +34,7 @@ class DashboardController extends Controller
                 'activeTasks' => collect(),
                 'myTasks' => collect(),
                 'myTaskMode' => 'none',
+                'myTasksLink' => null,
                 'staffOptions' => collect(),
                 'selectedStaffIds' => [],
                 'emptyMessage' => $user->boardAccessDeniedReason('view_dashboard')->message(),
@@ -42,7 +43,11 @@ class DashboardController extends Controller
 
         $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
+        // task #72 phase 7: completed tasks older than the company's window
+        // drop out of every section below (priority groups, Active, My
+        // Task); each section links to the Tasks list to see them.
         $tasks = Task::visibleTo($user, $organization->id)
+            ->openOrCompletedWithin($organization->completedWindowStart())
             ->with(['project', 'department', 'assignee', 'subtasks'])
             ->get();
 
@@ -65,6 +70,7 @@ class DashboardController extends Controller
             'activeTasks' => $activeTasks,
             'myTasks' => $myTasks,
             'myTaskMode' => $myTaskMode,
+            'myTasksLink' => $this->myTasksLink($user, $organization, $myTaskMode, $selectedStaffIds),
             'staffOptions' => $staffOptions,
             'selectedStaffIds' => $selectedStaffIds,
         ]);
@@ -98,7 +104,10 @@ class DashboardController extends Controller
                 ->unique('id')
                 ->sortBy('name')
                 ->values();
-            $selectedStaffIds = Collection::make($request->input('staff', []))->map(fn ($id) => (int) $id)->all();
+            // values(): the request's own keys are kept otherwise, so
+            // ?staff[1]=5 would arrive as [1 => 5] (task #72 phase 7's My
+            // Task link reads the first id).
+            $selectedStaffIds = Collection::make($request->input('staff', []))->map(fn ($id) => (int) $id)->values()->all();
 
             $myTasks = empty($selectedStaffIds)
                 ? $tasks->values()
@@ -149,6 +158,42 @@ class DashboardController extends Controller
         }
 
         return [collect(), 'none', collect(), []];
+    }
+
+    /**
+     * task #72 phase 7: where My Task's "see everything" link goes — the
+     * Tasks list with every completed task included, narrowed to the same
+     * person when a single Tasks-list assignee filter expresses the
+     * section: staff (their own tasks) or an owner with exactly one person
+     * ticked. Management's "any staff member", several people ticked, or
+     * nobody ticked have no single filter, so they open the whole list.
+     *
+     * Staff's section also includes tasks where only a SUBTASK is theirs;
+     * the Tasks list's assignee filter matches the task's own assignee, so
+     * those are the one thing the link won't narrow to.
+     *
+     * @param  array<int, int>  $selectedStaffIds
+     * @return array{url: string, label: string}|null
+     */
+    private function myTasksLink(User $user, Organization $organization, string $myTaskMode, array $selectedStaffIds): ?array
+    {
+        $assigneeId = match (true) {
+            $myTaskMode === 'staff' => $user->id,
+            $myTaskMode === 'admin' && count($selectedStaffIds) === 1 => $selectedStaffIds[0],
+            default => null,
+        };
+
+        return match (true) {
+            $myTaskMode === 'none' => null,
+            $assigneeId !== null => [
+                'url' => route('tasks.index', [$organization, 'assignee_id' => $assigneeId, 'completed' => 'all']),
+                'label' => 'View all in Tasks list',
+            ],
+            default => [
+                'url' => route('tasks.index', [$organization, 'completed' => 'all']),
+                'label' => 'Open in Tasks list',
+            ],
+        };
     }
 
     /**

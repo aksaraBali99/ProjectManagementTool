@@ -7,9 +7,26 @@
     <h1 class="text-[14px] font-medium text-[#1F2937]">Founder Analytics</h1>
     <p class="mt-1 text-[11px] text-gray-500">Cross-company overview. Deactivated tasks and inactive companies are excluded.</p>
 
-    <div class="mt-4 inline-flex flex-col rounded-lg border border-gray-200 bg-white px-4 py-3">
-        <span class="text-[10px] font-normal text-gray-500">Overdue tasks</span>
-        <span class="mt-1 text-[18px] font-medium text-[#A32D2D]">{{ $overdueCount }}</span>
+    <div class="mt-4 flex flex-wrap gap-4">
+        <div class="inline-flex flex-col rounded-lg border border-gray-200 bg-white px-4 py-3">
+            <span class="text-[10px] font-normal text-gray-500">Overdue tasks</span>
+            <span class="mt-1 text-[18px] font-medium text-[#A32D2D]">{{ $overdueCount }}</span>
+        </div>
+
+        {{-- task #72 phase 7: counted by when tasks were completed. --}}
+        <div class="analytics-completed-in-period inline-flex flex-col rounded-lg border border-gray-200 bg-white px-4 py-3">
+            <span class="text-[10px] font-normal text-gray-500">Completed in the last {{ $completedPeriod }} days</span>
+            <span class="mt-1 text-[18px] font-medium text-[#3B6D11]">{{ number_format($completedInPeriod) }}</span>
+            <span class="mt-1 flex gap-2 text-[10px]">
+                @foreach ($completedPeriods as $days)
+                    @if ($days === $completedPeriod)
+                        <span class="font-medium text-gray-700">{{ $days }} days</span>
+                    @else
+                        <a href="{{ route('analytics.index', ['period' => $days]) }}" class="text-brand-700 hover:underline">{{ $days }} days</a>
+                    @endif
+                @endforeach
+            </span>
+        </div>
     </div>
 
     <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
