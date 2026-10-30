@@ -67,17 +67,19 @@ test('My Task links with the matching assignee filter where one exists', functio
         'label' => 'View all in Tasks list',
     ]);
 
-    // Owner with exactly one person ticked: an exact filter, so the count.
+    // Owner with exactly one person ticked: an exact filter. Both tasks
+    // are already shown, so no "View all 2" (DashboardSectionCapTest has
+    // the over-10 label).
     expect(dashboardFor($this, $this->owner, ['staff' => [$this->staff->id]])->viewData('myTasksLink'))->toBe([
         'url' => route('tasks.index', [$this->org, 'assignee_id' => $this->staff->id]),
-        'label' => 'View all 2 in Tasks list',
+        'label' => 'Open in Tasks list',
     ]);
 });
 
-test('an owner with nobody ticked links to the whole Tasks list with the count', function () {
+test('an owner with nobody ticked links to the whole Tasks list', function () {
     expect(dashboardFor($this, $this->owner)->viewData('myTasksLink'))->toBe([
         'url' => route('tasks.index', $this->org),
-        'label' => 'View all 2 in Tasks list',
+        'label' => 'Open in Tasks list',
     ]);
 });
 

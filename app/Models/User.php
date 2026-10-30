@@ -374,10 +374,11 @@ class User extends Authenticatable
      * task #73 (department-null crash fix): the active-department-filtered
      * equivalent of allowedDepartmentIds() above, mirroring
      * hasDepartmentAccess()'s own is_active check exactly — the
-     * department-gating half of Task::scopeVisibleTo(), and what
+     * department-gating half of Task::scopeVisibleTo(), and the rule
      * DashboardController::myTaskSection()'s own stricter MyTask filter
-     * uses too, so both agree with hasDepartmentAccess()/TaskPolicy::view()
-     * on whether a deactivated department still counts (it doesn't).
+     * applies too (as a subquery since task #72 phase 8), so both agree with
+     * hasDepartmentAccess()/TaskPolicy::view() on whether a deactivated
+     * department still counts (it doesn't).
      *
      * @return Collection<int, int>
      */

@@ -200,7 +200,23 @@ test('a section with 10 or fewer tasks shows them all, undated last', function (
 
     expect($response->viewData('priorityGroups')['low']->pluck('id')->all())->toBe([$sooner, $later, $undated])
         ->and($response->viewData('sectionCounts')['low'])->toBe(3)
-        ->and($response->getContent())->toContain('View all 3 in Tasks list');
+        ->and($response->viewData('sectionLinks')['low']['label'])->toBe('Open in Tasks list')
+        ->and($response->getContent())->not->toContain('View all 3');
+});
+
+test('"View all N" appears only once a section holds more than 10', function () {
+    foreach (range(1, DashboardController::SECTION_LIMIT) as $i) {
+        makeWindowTask($this, 'pending', null, ['priority' => 'low']);
+    }
+    expect(capDashboard($this, $this->management)->viewData('sectionLinks')['low']['label'])->toBe('Open in Tasks list');
+
+    makeWindowTask($this, 'pending', null, ['priority' => 'low']);
+    $response = capDashboard($this, $this->management);
+    expect($response->viewData('sectionLinks')['low']['label'])->toBe('View all 11 in Tasks list')
+        ->and($response->getContent())->toContain('View all 11 in Tasks list');
+
+    // My Task follows the same rule (owner, nobody ticked).
+    expect(capDashboard($this, $this->owner)->viewData('myTasksLink')['label'])->toBe('View all 11 in Tasks list');
 });
 
 test('every section matches the pre-phase-8 rules, capped, for each role', function (string $who, array $query) {
@@ -283,10 +299,11 @@ test('each priority group links to the Tasks list showing exactly its count', fu
         $count = $response->viewData('sectionCounts')[$priority->value];
         $link = $response->viewData('sectionLinks')[$priority->value];
 
-        expect($link)->toBe([
-            'url' => route('tasks.index', [$this->org, 'priority' => $priority->value]),
-            'label' => "View all {$count} in Tasks list",
-        ]);
+        expect($count)->toBeGreaterThan(DashboardController::SECTION_LIMIT)
+            ->and($link)->toBe([
+                'url' => route('tasks.index', [$this->org, 'priority' => $priority->value]),
+                'label' => "View all {$count} in Tasks list",
+            ]);
         expect($html)->toContain('href="'.e($link['url']).'"')
             ->and($html)->toContain($link['label']);
 
@@ -312,7 +329,8 @@ test('an owner\'s My Task link with one person ticked opens exactly that many ta
     $response = capDashboard($this, $this->owner, ['staff' => [$this->staff2->id]]);
     $count = $response->viewData('sectionCounts')['my'];
 
-    expect($response->viewData('myTasksLink')['label'])->toBe("View all {$count} in Tasks list")
+    expect($count)->toBeGreaterThan(DashboardController::SECTION_LIMIT)
+        ->and($response->viewData('myTasksLink')['label'])->toBe("View all {$count} in Tasks list")
         ->and(taskListIdsAcrossPages($this->owner, $this->org->id, ['assignee_id' => $this->staff2->id]))->toHaveCount($count);
 });
 
@@ -321,6 +339,6 @@ test('an empty section still shows its link and its empty message', function () 
 
     expect($response->viewData('sectionCounts'))->toMatchArray(['active' => 0, 'high' => 0, 'medium' => 0, 'low' => 0, 'my' => 0]);
     $response->assertSee('No active high-priority tasks')
-        ->assertSee('View all 0 in Tasks list')
-        ->assertSee('Open in Tasks list');
+        ->assertSee('Open in Tasks list')
+        ->assertDontSee('View all 0');
 });

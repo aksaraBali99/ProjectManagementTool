@@ -214,8 +214,16 @@ class DashboardController extends Controller
             // task #72 phase 8: the same rule in SQL. whereHas('subtasks')
             // reads the relation the PHP filter used to eager-load, and a
             // task with no department fails whereIn just as it failed
-            // contains().
-            $visible->whereIn('department_id', $user->allowedActiveDepartmentIds($organizationId))
+            // contains(). The department ids are a subquery, the same one
+            // scopeVisibleTo() runs: allowedActiveDepartmentIds() would
+            // load the access profile's grants in a query of its own.
+            $allowedDepartmentIds = $user->accessPermissions()
+                ->where('organization_id', $organizationId)
+                ->where('allowed', true)
+                ->whereHas('department', fn (Builder $departments) => $departments->where('is_active', true))
+                ->select('department_id');
+
+            $visible->whereIn('department_id', $allowedDepartmentIds)
                 ->where(fn (Builder $query) => $query->where('assignee_id', $user->id)
                     ->orWhereHas('subtasks', fn (Builder $subtasks) => $subtasks->where('assignee_id', $user->id)));
 
@@ -292,8 +300,16 @@ class DashboardController extends Controller
         };
     }
 
+    /**
+     * "View all N" only when the section is hiding some; at SECTION_LIMIT
+     * or fewer, every task is already on the Dashboard.
+     */
     private function viewAllLabel(int $count): string
     {
+        if ($count <= self::SECTION_LIMIT) {
+            return 'Open in Tasks list';
+        }
+
         return 'View all '.number_format($count).' in Tasks list';
     }
 
