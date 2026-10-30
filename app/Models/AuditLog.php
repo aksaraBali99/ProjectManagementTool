@@ -9,6 +9,7 @@ use App\Support\RichText;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 #[Fillable(['organization_id', 'user_id', 'action', 'entity_type', 'entity_id', 'import_batch_id', 'changes'])]
@@ -54,6 +55,12 @@ class AuditLog extends Model
      */
     public function entityLabel(): string
     {
+        // A console command's own run (e.g. tasks.completed_at_backfilled)
+        // is about no single record: name the command instead.
+        if ($this->entity_type === 'command') {
+            return $this->getAttribute('changes')['triggered_from'] ?? 'Console command';
+        }
+
         $record = match ($this->entity_type) {
             'task' => Task::withTrashed()->find($this->entity_id),
             'subtask' => Subtask::find($this->entity_id),
@@ -165,6 +172,11 @@ class AuditLog extends Model
             // task #73 phase 2: document.moved/document.access_level_changed.
             'folder_id' => DocumentFolder::find($value)?->name ?? "Folder #{$value}",
             'access_level' => DocumentAccessLevel::tryFrom($value)?->label() ?? (string) $value,
+            // task #72 phase 6: the new value arrives as "Y-m-d H:i:s",
+            // the old one as ISO-8601 (getOriginal() returns the cast
+            // Carbon, which JSON-encodes that way). Same style as comment
+            // timestamps either way.
+            'completed_at' => rescue(fn () => Carbon::parse($value)->format('M j, Y g:ia'), (string) $value, false),
             // task #73 phase 2: document.deleted's own flat snapshot — an
             // array value would otherwise hit the generic (string) $value
             // cast below and fatal ("Array to string conversion").

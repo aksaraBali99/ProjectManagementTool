@@ -28,6 +28,9 @@ class Task extends Model
         return [
             'due_date' => 'date',
             'start_date' => 'date',
+            // Not fillable: only TaskObserver::saving() and the
+            // tasks:backfill-completed-at command set it.
+            'completed_at' => 'datetime',
             'priority' => Priority::class,
             'status' => TaskStatus::class,
         ];

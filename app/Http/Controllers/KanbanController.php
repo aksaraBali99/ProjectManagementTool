@@ -160,15 +160,28 @@ class KanbanController extends Controller
      * One batch of one column, in the column's order: priority (High,
      * Medium, Low), then due date soonest first with no date last, then
      * task id — so consecutive batches never repeat or skip a card.
+     *
+     * The Completed column instead shows the most recently completed
+     * first (task #72 phase 6): completed_at DESC, then id DESC, which
+     * MySQL reads straight from tasks_org_status_completed_at_index.
+     * MySQL and SQLite both sort NULLs last in DESC, so a task with no
+     * completed_at goes last without an IS NULL term that would defeat
+     * the index.
      */
     private function columnPage(Builder $visible, TaskStatus $status, int $offset): EloquentCollection
     {
-        return (clone $visible)
-            ->where('status', $status->value)
-            ->orderByEnum('priority', Priority::class)
-            ->orderByRaw('tasks.due_date IS NULL')
-            ->orderBy('tasks.due_date')
-            ->orderBy('tasks.id')
+        $query = (clone $visible)->where('status', $status->value);
+
+        if ($status === TaskStatus::Completed) {
+            $query->orderByDesc('tasks.completed_at')->orderByDesc('tasks.id');
+        } else {
+            $query->orderByEnum('priority', Priority::class)
+                ->orderByRaw('tasks.due_date IS NULL')
+                ->orderBy('tasks.due_date')
+                ->orderBy('tasks.id');
+        }
+
+        return $query
             ->offset($offset)
             ->limit(self::COLUMN_BATCH)
             ->get();
