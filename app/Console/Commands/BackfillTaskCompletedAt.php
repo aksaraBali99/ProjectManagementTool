@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\TaskStatus;
+use App\Models\AuditLog;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -25,13 +26,24 @@ use Illuminate\Support\Facades\DB;
  *   - task.created: FLAT {"status": "completed", …}
  *
  * plus the pre-observer rows (entity_type App\Models\Task, actions
- * created/updated), which stored only the new value, flat.
+ * created/updated, before Aug 2026), which stored only the new value,
+ * flat. Those only ever logged a real change, never a no-op.
  *
- * No candidate (no audit rows — TaskObserver logs nothing without a
- * signed-in user — or a later unlogged change) falls back to updated_at.
+ * Falls back to updated_at when there is no candidate: the task has no
+ * audit rows (TaskObserver logs nothing without a signed-in user), or its
+ * logged history ends with it leaving Completed, so it was completed again
+ * without a log. What can NOT be detected: a logged completion followed by
+ * an unlogged reopen and an unlogged re-completion — the history then
+ * still ends on the logged completion, and that date is used. Every status
+ * change in the app runs as a signed-in user, so this needs a console or
+ * raw write. A task with no audit rows and no updated_at or created_at
+ * either is left empty and counted on its own line.
  *
- * Writes go through the query builder: no model events, so no new audit
- * rows or notifications, and updated_at stays as it was.
+ * Writes go through the query builder: no model events, so no per-task
+ * audit rows or notifications, and updated_at stays as it was. A real run
+ * that writes anything adds ONE summary audit row
+ * (tasks.completed_at_backfilled), like solva:bootstrap --reset-owner's
+ * CLI entry: no user, and no company unless --organization was given.
  */
 class BackfillTaskCompletedAt extends Command
 {
@@ -48,6 +60,7 @@ class BackfillTaskCompletedAt extends Command
         'status_changed' => 'task.status_changed',
         'other_status_change' => 'task.reassigned or another action carrying a status change',
         'created' => 'task.created',
+        'legacy_status_change' => 'a pre-observer status change (before Aug 2026)',
         'fallback' => 'the updated_at fallback',
     ];
 
@@ -77,17 +90,26 @@ class BackfillTaskCompletedAt extends Command
         $checked = $completed()->count();
         $skipped = $force ? 0 : $completed()->whereNotNull('completed_at')->count();
         $unchanged = 0;
+        $noDate = 0;
 
         $completed()
             ->when(! $force, fn ($query) => $query->whereNull('completed_at'))
             ->select(['id', 'completed_at', 'updated_at', 'created_at'])
-            ->chunkById(self::CHUNK, function (Collection $tasks) use (&$counts, &$unchanged, $dryRun) {
+            ->chunkById(self::CHUNK, function (Collection $tasks) use (&$counts, &$unchanged, &$noDate, $dryRun) {
                 $history = $this->statusHistory($tasks->pluck('id'));
                 $writes = [];
 
                 foreach ($tasks as $task) {
                     [$completedAt, $source] = self::lastCompletion($history->get($task->id, collect()))
                         ?? [$task->updated_at ?? $task->created_at, 'fallback'];
+
+                    // Nothing to go on: leave it empty rather than report
+                    // it as filled.
+                    if ($completedAt === null) {
+                        $noDate++;
+
+                        continue;
+                    }
 
                     if ($task->completed_at !== null && (string) $task->completed_at === (string) $completedAt) {
                         $unchanged++;
@@ -123,6 +145,7 @@ class BackfillTaskCompletedAt extends Command
         foreach (self::SOURCES as $key => $label) {
             $rows[] = ["{$verb} from {$label}", $counts[$key]];
         }
+        $rows[] = ['Left empty, no date available', $noDate];
         $rows[] = ['Skipped, already set', $skipped];
         if ($force) {
             $rows[] = ['Already correct (--force)', $unchanged];
@@ -130,9 +153,45 @@ class BackfillTaskCompletedAt extends Command
         $rows[] = [$dryRun ? 'Total that would be written' : 'Total written', $written];
 
         $this->table(['', 'Tasks'], $rows);
+
+        if (! $dryRun && $written > 0) {
+            $this->logRun($organizationId, $force, $checked, $counts, $noDate, $skipped, $written);
+        }
         $this->line(sprintf('Took %.2fs.', microtime(true) - $startedAt));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * One audit row per run that wrote something, so the Audit Trail shows
+     * when and how completion dates appeared. Flat keys, so the trail's
+     * describeChanges() reads "Tasks Written: 878; …" rather than JSON.
+     * AuditLog::create directly, not through an observer: no notification.
+     *
+     * @param  array<string, int>  $counts
+     */
+    private function logRun(?int $organizationId, bool $force, int $checked, array $counts, int $noDate, int $skipped, int $written): void
+    {
+        AuditLog::create([
+            'organization_id' => $organizationId,
+            'user_id' => null,
+            'action' => 'tasks.completed_at_backfilled',
+            'entity_type' => 'command',
+            'entity_id' => 0,
+            'changes' => [
+                'source' => 'cli_backfill',
+                'triggered_from' => 'tasks:backfill-completed-at'.($force ? ' --force' : ''),
+                'tasks_checked' => $checked,
+                'tasks_written' => $written,
+                'from_status_changed' => $counts['status_changed'],
+                'from_other_status_change' => $counts['other_status_change'],
+                'from_created' => $counts['created'],
+                'from_legacy_status_change' => $counts['legacy_status_change'],
+                'from_updated_at_fallback' => $counts['fallback'],
+                'left_empty' => $noDate,
+                'skipped_already_set' => $skipped,
+            ],
+        ]);
     }
 
     /**
@@ -177,7 +236,7 @@ class BackfillTaskCompletedAt extends Command
             } else {
                 // Flat: task.created, or a pre-observer created/updated row.
                 $isCompletion = $status === TaskStatus::Completed->value;
-                $source = in_array($row->action, ['task.created', 'created'], true) ? 'created' : 'other_status_change';
+                $source = in_array($row->action, ['task.created', 'created'], true) ? 'created' : 'legacy_status_change';
             }
 
             $last = $isCompletion ? [(string) $row->created_at, $source] : null;

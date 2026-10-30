@@ -121,6 +121,24 @@ test('the task form sets it, and its audit row carries completed_at next to stat
         ->and($entry->changes['completed_at']['new'])->toStartWith('2026-10-12 09:30:00');
 });
 
+test('the audit text shows completed_at as a readable date on completion and on reopen', function () {
+    $task = makeCompletedAtTask($this);
+
+    $this->actingAs($this->management)->patchJson(route('tasks.update-status', $task), ['status' => 'completed'])->assertOk();
+    $this->travelTo(Carbon::parse('2026-10-14 15:05:00'));
+    $this->actingAs($this->management)->patchJson(route('tasks.update-status', $task), ['status' => 'in_progress'])->assertOk();
+
+    [$completion, $reopen] = AuditLog::where('entity_id', $task->id)->where('action', 'task.status_changed')->orderBy('id')->get();
+
+    // The reopen's old value is stored ISO-8601 (from the cast Carbon),
+    // the completion's new value as "Y-m-d H:i:s" — both read the same.
+    expect($reopen->changes['completed_at']['old'])->toContain('T');
+
+    expect($completion->describeChanges())->toBe('Status changed from Pending to Completed; Completed At changed from — to Oct 12, 2026 9:30am')
+        ->and($reopen->describeChanges())->toContain('Completed At changed from Oct 12, 2026 9:30am to —')
+        ->and($reopen->describeChanges())->not->toContain('000000Z');
+});
+
 test('a Kanban status change sets it and clears it', function () {
     $task = makeCompletedAtTask($this);
 

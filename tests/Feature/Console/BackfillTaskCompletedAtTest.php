@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\Project;
@@ -154,7 +155,9 @@ test('the pre-observer App\Models\Task shape (flat new value) is read too', func
     $run = runBackfill();
     expect($run['exit'])->toBe(0);
     expect($run['rows']['Filled from task.created'] ?? null)->toBe(1);
-    expect($run['rows']['Filled from task.reassigned or another action carrying a status change'] ?? null)->toBe(1);
+    // Its own line, not lumped in with task.reassigned.
+    expect($run['rows']['Filled from a pre-observer status change (before Aug 2026)'] ?? null)->toBe(1);
+    expect($run['rows']['Filled from task.reassigned or another action carrying a status change'] ?? null)->toBe(0);
 
     expect(completedAtOf($task))->toBe('2026-08-20 13:00:00')
         ->and(completedAtOf($created))->toBe('2026-08-19 09:00:00');
@@ -277,17 +280,19 @@ test('a second run changes nothing', function () {
     expect($run['rows']['Total written'] ?? null)->toBe(0);
 });
 
-test('it creates no audit rows, sends nothing and leaves updated_at alone', function () {
+test('it writes no per-task audit rows, sends nothing and leaves updated_at alone', function () {
     $task = makeLegacyTask($this, 'completed', '2026-09-30 18:20:00');
     addTaskAudit($this, $task, 'task.status_changed', ['status' => ['old' => 'pending', 'new' => 'completed']], '2026-09-05 10:15:00');
-    $auditRows = DB::table('audit_log')->count();
+    $taskAuditRows = DB::table('audit_log')->where('entity_type', 'task')->count();
 
     // Signed in, so a model event WOULD write an audit row.
     $this->actingAs($this->owner);
     $run = runBackfill();
     expect($run['exit'])->toBe(0);
 
-    expect(DB::table('audit_log')->count())->toBe($auditRows)
+    // Only the run's own summary row is new.
+    expect(DB::table('audit_log')->where('entity_type', 'task')->count())->toBe($taskAuditRows)
+        ->and(DB::table('audit_log')->where('action', 'tasks.completed_at_backfilled')->count())->toBe(1)
         ->and(DB::table('notifications')->count())->toBe(0)
         ->and(DB::table('tasks')->where('id', $task->id)->value('updated_at'))->toBe('2026-09-30 18:20:00')
         ->and(completedAtOf($task))->toBe('2026-09-05 10:15:00');
@@ -301,4 +306,66 @@ test('it works across chunk boundaries', function () {
     expect($run['rows']['Total written'] ?? null)->toBe(501);
 
     expect(DB::table('tasks')->whereIn('id', $tasks->pluck('id'))->whereNull('completed_at')->count())->toBe(0);
+});
+
+test('a real run writes one summary audit row with no user, readable in the Audit Trail', function () {
+    $completed = makeLegacyTask($this, 'completed');
+    addTaskAudit($this, $completed, 'task.status_changed', ['status' => ['old' => 'pending', 'new' => 'completed']], '2026-09-05 10:15:00');
+    makeLegacyTask($this, 'completed');
+
+    runBackfill(['--organization' => $this->org->id]);
+
+    $entry = AuditLog::where('action', 'tasks.completed_at_backfilled')->sole();
+    expect($entry->user_id)->toBeNull()
+        ->and($entry->organization_id)->toBe($this->org->id)
+        ->and($entry->entity_type)->toBe('command')
+        ->and($entry->changes)->toMatchArray([
+            'source' => 'cli_backfill',
+            'triggered_from' => 'tasks:backfill-completed-at',
+            'tasks_checked' => 2,
+            'tasks_written' => 2,
+            'from_status_changed' => 1,
+            'from_updated_at_fallback' => 1,
+            'left_empty' => 0,
+        ])
+        ->and($entry->entityLabel())->toBe('tasks:backfill-completed-at')
+        ->and($entry->describeChanges())->toContain('Tasks Written: 2');
+
+    $this->actingAs($this->owner)->get(route('audit-trail.index'))->assertOk()
+        ->assertSee('Tasks Completed At Backfilled')
+        ->assertSee('tasks:backfill-completed-at')
+        ->assertSee('Tasks Written: 2');
+});
+
+test('--force is recorded in the summary row', function () {
+    makeLegacyTask($this, 'completed');
+
+    runBackfill(['--force' => true]);
+
+    expect(AuditLog::where('action', 'tasks.completed_at_backfilled')->sole()->changes['triggered_from'])
+        ->toBe('tasks:backfill-completed-at --force');
+});
+
+test('no summary audit row for a dry run, or for a run that writes nothing', function () {
+    makeLegacyTask($this, 'completed');
+
+    runBackfill(['--dry-run' => true]);
+    expect(AuditLog::where('action', 'tasks.completed_at_backfilled')->count())->toBe(0);
+
+    runBackfill();
+    runBackfill();
+    expect(AuditLog::where('action', 'tasks.completed_at_backfilled')->count())->toBe(1);
+});
+
+test('a task with no history and no timestamps is left empty, not reported as filled', function () {
+    $task = makeLegacyTask($this, 'completed');
+    DB::table('tasks')->where('id', $task->id)->update(['updated_at' => null, 'created_at' => null]);
+
+    $run = runBackfill();
+
+    expect($run['rows']['Left empty, no date available'] ?? null)->toBe(1)
+        ->and($run['rows']['Filled from the updated_at fallback'] ?? null)->toBe(0)
+        ->and($run['rows']['Total written'] ?? null)->toBe(0)
+        ->and(completedAtOf($task))->toBeNull()
+        ->and(AuditLog::where('action', 'tasks.completed_at_backfilled')->count())->toBe(0);
 });
