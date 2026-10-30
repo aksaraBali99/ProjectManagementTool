@@ -42,6 +42,16 @@ class ProjectManagementController extends Controller
 
         $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
+        // task #72 phase 7: each project's task drilldown hides tasks
+        // completed before the company's window, unless ?completed=all for
+        // this visit. The Tasks column reads "shown / total": shown is what
+        // the drilldown lists, total every visible task — both counted in
+        // the same query.
+        $showAllCompleted = request()->query('completed') === 'all';
+        $since = $showAllCompleted ? null : $organization->completedWindowStart();
+        $shownTasks = fn ($query) => $query->visibleTo($user, $organization->id)
+            ->when($since, fn ($q) => $q->openOrCompletedWithin($since));
+
         // Visibility (who can see which projects at all) is a policy check,
         // not a query scope, so the whole company's projects are loaded
         // once and policy-filtered here — everything downstream (the
@@ -54,10 +64,13 @@ class ProjectManagementController extends Controller
         // "Tasks: 5" count or a drilldown row for a task outside their
         // granted departments.
         $visibleProjects = Project::where('organization_id', $organization->id)
-            ->withCount(['tasks' => fn ($query) => $query->visibleTo($user, $organization->id)])
+            ->withCount([
+                'tasks' => fn ($query) => $query->visibleTo($user, $organization->id),
+                'tasks as shown_tasks_count' => $shownTasks,
+            ])
             ->with([
                 'clients',
-                'tasks' => fn ($query) => $query->visibleTo($user, $organization->id)
+                'tasks' => fn ($query) => $shownTasks($query)
                     ->with(['department', 'assignee'])
                     ->orderBy('due_date')
                     ->orderBy('title'),
@@ -106,6 +119,7 @@ class ProjectManagementController extends Controller
             'organization' => $organization,
             'projects' => $projects,
             'filters' => $filters,
+            'showAllCompleted' => $showAllCompleted,
             'sort' => $sort,
             'direction' => $direction,
             'filterClients' => $filterClients,

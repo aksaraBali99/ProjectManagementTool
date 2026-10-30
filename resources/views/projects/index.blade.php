@@ -36,11 +36,12 @@
             ], fn ($value) => $value !== null && $value !== '');
             $tabQuery = http_build_query($tabQueryParts);
 
-            $sortLink = function (string $column) use ($organization, $filters, $sort, $direction) {
+            $sortLink = function (string $column) use ($organization, $filters, $sort, $direction, $showAllCompleted) {
                 $nextDirection = ($sort === $column && $direction === 'asc') ? 'desc' : 'asc';
                 $parts = array_filter(array_merge($filters, [
                     'sort' => $column,
                     'direction' => $nextDirection,
+                    'completed' => $showAllCompleted ? 'all' : null,
                 ]), fn ($value) => $value !== null && $value !== '');
 
                 return [
@@ -53,6 +54,9 @@
         <form method="GET" action="{{ route('projects.index', $organization) }}" class="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-3">
             <input type="hidden" name="sort" value="{{ $sort }}">
             <input type="hidden" name="direction" value="{{ $direction }}">
+            @if ($showAllCompleted)
+                <input type="hidden" name="completed" value="all">
+            @endif
 
             <div>
                 <label for="project-filter-q" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Name</label>
@@ -100,6 +104,25 @@
                 @endif
             </div>
         </form>
+
+        {{-- task #72 phase 7: this visit's completed-tasks mode, for every
+             project's drilldown below. --}}
+        @php
+            $completedToggleQuery = array_filter(array_merge($filters, [
+                'sort' => $sort !== 'name' ? $sort : null,
+                'direction' => $direction !== 'asc' ? $direction : null,
+                'completed' => $showAllCompleted ? null : 'all',
+            ]), fn ($value) => $value !== null && $value !== '');
+        @endphp
+        <p class="projects-completed-window mt-3 text-[11px] text-gray-500">
+            @if ($showAllCompleted)
+                Showing all completed tasks.
+                <a href="{{ route('projects.index', $organization).($completedToggleQuery ? '?'.http_build_query($completedToggleQuery) : '') }}" class="text-brand-700 hover:underline">Show recent only</a>
+            @else
+                Tasks completed more than {{ $organization->completed_window_days }} days ago are hidden.
+                <a href="{{ route('projects.index', $organization).'?'.http_build_query($completedToggleQuery) }}" class="text-brand-700 hover:underline">Show all</a>
+            @endif
+        </p>
 
         <x-company-tabs :organizations="$organizations" :active="$organization" route="projects.index" :query="$tabQuery">
         <div class="overflow-hidden rounded-lg border border-gray-200">
@@ -153,7 +176,7 @@
                             </td>
                             <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Tasks</span>
-                                {{ $project->tasks_count }}
+                                <span title="Shown / total tasks{{ $showAllCompleted ? '' : ' — completed more than '.$organization->completed_window_days.' days ago are hidden' }}">{{ $project->shown_tasks_count }} / {{ $project->tasks_count }}</span>
                             </td>
                             <td class="flex items-center justify-end gap-2 py-1 text-[11px] md:table-cell md:px-3 md:py-2.5 md:text-right">
                                 @can('update', $project)
@@ -168,7 +191,9 @@
                             <td class="hidden md:table-cell"></td>
                             <td colspan="6" class="block bg-gray-50 px-3 py-3 md:table-cell">
                                 <div class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Tasks</div>
-                                @if ($project->tasks->isEmpty())
+                                @if ($project->tasks->isEmpty() && $project->tasks_count > 0)
+                                    <p class="mt-1 text-[12px] text-gray-500">No recent tasks — every task on this project was completed more than {{ $organization->completed_window_days }} days ago. Use “Show all” above to see them.</p>
+                                @elseif ($project->tasks->isEmpty())
                                     <p class="mt-1 text-[12px] text-gray-500">No tasks on this project yet.</p>
                                 @else
                                     <div class="mt-2 overflow-hidden rounded-md border border-gray-200 bg-white">
