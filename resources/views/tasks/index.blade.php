@@ -37,6 +37,9 @@
                 'status' => $filters['status'] ?? null,
                 'due_from' => $filters['due_from'] ?? null,
                 'due_to' => $filters['due_to'] ?? null,
+                'completed' => $filters['completed'] ?? null,
+                'completed_from' => $filters['completed_from'] ?? null,
+                'completed_to' => $filters['completed_to'] ?? null,
             ], fn ($value) => $value !== null && $value !== '');
             $tabQuery = http_build_query($tabQueryParts);
 
@@ -134,6 +137,38 @@
                     class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
             </div>
 
+            {{-- task #72 phase 7: completed tasks older than the company's
+                 window are hidden unless "All" or a date range is chosen.
+                 The range inputs only show for "Date range". --}}
+            @php
+                $completedMode = ! empty($filters['completed_from']) || ! empty($filters['completed_to'])
+                    ? 'range'
+                    : (in_array($filters['completed'] ?? '', ['all', 'range'], true) ? $filters['completed'] : '');
+            @endphp
+            <div>
+                <label for="task-filter-completed" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Completed</label>
+                <select id="task-filter-completed" name="completed" class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
+                    title="Recent: completed in the last {{ $organization->completed_window_days }} days"
+                    onchange="const range = document.getElementById('task-filter-completed-range'); range.hidden = this.value !== 'range'; if (range.hidden) { range.querySelectorAll('input').forEach(function (input) { input.value = ''; }); }">
+                    <option value="" {{ $completedMode === '' ? 'selected' : '' }}>Recent ({{ $organization->completed_window_days }} days)</option>
+                    <option value="all" {{ $completedMode === 'all' ? 'selected' : '' }}>All</option>
+                    <option value="range" {{ $completedMode === 'range' ? 'selected' : '' }}>Date range</option>
+                </select>
+            </div>
+
+            <div id="task-filter-completed-range" class="flex items-end gap-3" {{ $completedMode === 'range' ? '' : 'hidden' }}>
+                <div>
+                    <label for="task-filter-completed-from" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Completed from</label>
+                    <input id="task-filter-completed-from" name="completed_from" type="date" value="{{ $filters['completed_from'] ?? '' }}"
+                        class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                </div>
+                <div>
+                    <label for="task-filter-completed-to" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Completed to</label>
+                    <input id="task-filter-completed-to" name="completed_to" type="date" value="{{ $filters['completed_to'] ?? '' }}"
+                        class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                </div>
+            </div>
+
             <div class="flex items-center gap-2">
                 <button type="submit" class="rounded-md bg-brand-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-brand-700">
                     Filter
@@ -169,6 +204,7 @@
                         'priority' => 'Priority',
                         'status' => 'Status',
                         'due_date' => 'Due',
+                        'completed' => 'Completed',
                     ] as $column => $label)
                         @php
                             $link = $sortLink($column);
@@ -238,6 +274,10 @@
                                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Due</span>
                                 {{ $task->due_date?->format('M j') ?? '—' }}
                             </td>
+                            <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2.5">
+                                <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Completed</span>
+                                {{ $task->completed_at?->format('M j') ?? '—' }}
+                            </td>
                             @if ($showInactive)
                                 <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                                     <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Active</span>
@@ -265,7 +305,7 @@
                         </tr>
                         <tr class="drilldown-row block border-t border-gray-100 md:table-row" data-drilldown="{{ $task->id }}" style="display: none;">
                             <td class="hidden md:table-cell"></td>
-                            <td colspan="{{ $showInactive ? 8 : 7 }}" class="block bg-gray-50 px-3 py-3 md:table-cell">
+                            <td colspan="{{ $showInactive ? 9 : 8 }}" class="block bg-gray-50 px-3 py-3 md:table-cell">
                                 {{-- task #72 phase 2: empty until the row is first
                                      opened, then filled from tasks.preview. Rendering
                                      the description and the full _subtasks/_comments
@@ -279,7 +319,7 @@
                             </td>
                         </tr>
                     @empty
-                        <x-empty-table-row :colspan="$showInactive ? 9 : 8">
+                        <x-empty-table-row :colspan="$showInactive ? 10 : 9">
                             {{ array_filter($filters) ? 'No tasks match these filters.' : 'No tasks yet.' }}
                         </x-empty-table-row>
                     @endforelse
