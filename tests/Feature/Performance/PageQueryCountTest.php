@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Priority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\KanbanController;
 use App\Models\AccessPermission;
@@ -92,24 +93,36 @@ const PAGE_QUERY_TARGET = 30;
 const GROWTH_TOLERANCE = 2;
 
 // --- Measured ceilings at 20 tasks, as management ------------------------
+// +2 since phase 8 (task #72): on the database cache store each page reads
+// the badge colours once per enum (TaskStatus, Priority). Calendar renders
+// no badge here (these tasks have no due date), so it is unchanged.
 // All four now assert the REAL target (flat AND <= PAGE_QUERY_TARGET).
 // The ceilings are kept alongside it as the ratchet: <= 30 is the
 // contract, <= 19 is what stops it drifting back up to 29.
-const DASHBOARD_MAX_QUERIES_20_TASKS = 14;
-const PROJECTS_MAX_QUERIES_20_TASKS = 15;
+const DASHBOARD_MAX_QUERIES_20_TASKS = 16;
+const PROJECTS_MAX_QUERIES_20_TASKS = 17;
 const CALENDAR_MAX_QUERIES_20_TASKS = 10;
-const KANBAN_MAX_QUERIES_20_TASKS = 20;
+const KANBAN_MAX_QUERIES_20_TASKS = 22;
 // Tasks list: +1 since phase 4 (task #72), the page's own count(*) for the
 // paginator. It shows one page now, so this stays put however many tasks.
-const TASKS_LIST_MAX_QUERIES_20_TASKS = 20;
+const TASKS_LIST_MAX_QUERIES_20_TASKS = 22;
 
 // --- Measured ceilings at 20 tasks, as staff -----------------------------
 // Staff visibility runs through department access instead of the
 // management-tier shortcut, so it is a genuinely different query path.
-const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 23;
-const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 21;
+const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 25;
+const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 23;
 
 beforeEach(function () {
+    // The database cache store, as on dev and production: phpunit.xml's
+    // array store made a cache read free here, which is how a cache read
+    // per badge (thousands per page) went unseen until task #72 phase 8.
+    config(['cache.default' => 'database']);
+    // Badge colours already in the store, as on any server past its first
+    // page load; each measured request still reads them once per enum.
+    TaskStatus::Pending->badgeText();
+    Priority::Medium->badgeText();
+
     $this->owner = createOwner();
 
     $this->org = Organization::create(['name' => 'Perf Org', 'slug' => 'perf-org', 'accent_color' => '#1D9E75']);
@@ -137,6 +150,21 @@ beforeEach(function () {
     ]);
     $this->project->staff()->attach($this->staff->id);
 });
+
+/**
+ * countQueries() for one request, starting it as a new request would.
+ *
+ * One application serves every request in a test, so Cache::memo()'s badge
+ * colours would otherwise carry over and the measured request would skip
+ * reads a real request pays for. This also drops AccessProfileCache, which
+ * FlushAccessProfileCache empties at the start of every request anyway.
+ */
+function countRequestQueries(callable $request): int
+{
+    app()->forgetScopedInstances();
+
+    return countQueries($request);
+}
 
 /**
  * Tasks with the shape that actually costs something on these pages: 2
@@ -185,12 +213,12 @@ function makeMeasuredTasks(object $context, int $count): void
 function measurePageGrowth(object $context, User $user, string $url): array
 {
     makeMeasuredTasks($context, 5);
-    $small = countQueries(function () use ($context, $user, $url) {
+    $small = countRequestQueries(function () use ($context, $user, $url) {
         $context->actingAs($user)->get($url)->assertOk();
     });
 
     makeMeasuredTasks($context, 15);
-    $large = countQueries(function () use ($context, $user, $url) {
+    $large = countRequestQueries(function () use ($context, $user, $url) {
         $context->actingAs($user)->get($url)->assertOk();
     });
 
@@ -276,7 +304,7 @@ test('Tasks list: a 60-task company renders exactly one page of 25 rows', functi
         ]);
     }
 
-    $queries = countQueries(function () use (&$html) {
+    $queries = countRequestQueries(function () use (&$html) {
         $html = $this->actingAs($this->management)->get(route('tasks.index', $this->org, false))->assertOk()->getContent();
     });
 
@@ -311,7 +339,7 @@ test('Kanban: with every column over 30, the board shows 30 cards per column wit
 
     foreach ([$this->management, $this->staff] as $user) {
         $html = null;
-        $queries = countQueries(function () use ($user, &$html) {
+        $queries = countRequestQueries(function () use ($user, &$html) {
             $html = $this->actingAs($user)->get(route('kanban', $this->org, false))->assertOk()->getContent();
         });
 
@@ -324,7 +352,7 @@ test('Kanban Load more: the same number of queries whether the column holds 30 o
     $url = route('kanban.column', [$this->org, 'pending'], false).'?offset=0';
 
     $measure = function () use ($url) {
-        return countQueries(function () use ($url) {
+        return countRequestQueries(function () use ($url) {
             $this->actingAs($this->management)->getJson($url)->assertOk();
         });
     };
