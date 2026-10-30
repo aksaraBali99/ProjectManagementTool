@@ -1,8 +1,14 @@
 <?php
 
 use App\Enums\TaskStatus;
+use App\Models\AccessPermission;
+use App\Models\Department;
 use App\Models\ImportBatch;
+use App\Models\Organization;
+use App\Models\OrgMember;
+use App\Models\Project;
 use App\Models\Role;
+use App\Models\Task;
 use App\Models\User;
 use App\Services\Import\ImportSheetSchema;
 use App\Services\Import\ImportValidator;
@@ -389,4 +395,67 @@ function kanbanColumnIdsAcrossBatches(User $user, int $organizationId, TaskStatu
     }
 
     return $ids;
+}
+
+/**
+ * task #72 phase 7: the shared fixture for the completed-tasks window
+ * tests — one company (default 14-day window) with a department and a
+ * project, a management user, a staff member granted that department and
+ * on the project, and a client of the project. Sets them on $context.
+ */
+function setUpCompletedWindowCompany(object $context): void
+{
+    $context->owner = createOwner();
+
+    $context->org = Organization::create(['name' => 'Window Co', 'slug' => 'window-co', 'accent_color' => '#1D9E75']);
+    $context->dept = Department::create(['organization_id' => $context->org->id, 'name' => 'Marketing', 'color' => '#000000']);
+    $context->project = Project::create(['organization_id' => $context->org->id, 'name' => 'Project A', 'description' => 'd']);
+
+    $member = function (string $role) use ($context): User {
+        $user = User::factory()->create();
+        OrgMember::create([
+            'organization_id' => $context->org->id,
+            'user_id' => $user->id,
+            'role_id' => Role::where('slug', $role)->firstOrFail()->id,
+        ]);
+
+        return $user;
+    };
+
+    $context->management = $member('management');
+    $context->staff = $member('staff');
+    AccessPermission::create([
+        'user_id' => $context->staff->id,
+        'organization_id' => $context->org->id,
+        'department_id' => $context->dept->id,
+        'allowed' => true,
+    ]);
+    $context->project->staff()->attach($context->staff->id);
+    $context->client = $member('client');
+    $context->project->clients()->attach($context->client->id);
+}
+
+/**
+ * A task in the window fixture's company. For a completed task,
+ * $completedAt overrides the date the observer set ('none' leaves it
+ * null, as a task with no recorded date).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function makeWindowTask(object $context, string $status = 'pending', ?string $completedAt = null, array $attributes = []): Task
+{
+    $task = Task::create(array_merge([
+        'organization_id' => $context->org->id,
+        'project_id' => $context->project->id,
+        'department_id' => $context->dept->id,
+        'title' => 'Task '.uniqid(),
+        'priority' => 'medium',
+        'status' => $status,
+    ], $attributes));
+
+    if ($completedAt !== null) {
+        DB::table('tasks')->where('id', $task->id)->update(['completed_at' => $completedAt === 'none' ? null : $completedAt]);
+    }
+
+    return $task->refresh();
 }
