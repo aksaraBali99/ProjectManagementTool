@@ -108,7 +108,15 @@
 
         // A short line at the foot of a card: "Saving…" while your own
         // change is on its way, or the reason it failed.
-        function setCardMessage(card, text, isError) {
+        //
+        // With clearAfter (ms) the message removes itself after that long —
+        // but only if it is still the message this call set. Each message
+        // gets a new id, so a newer "Saving…" or error (same element, new
+        // id) or a card the poll replaced (old element detached) is left
+        // alone; nothing needs cancelling.
+        let messageSeq = 0;
+
+        function setCardMessage(card, text, isError, clearAfter) {
             if (! card) return;
             let message = card.querySelector('.kanban-card-message');
             if (! text) {
@@ -121,7 +129,18 @@
             }
             message.className = 'kanban-card-message mt-1 text-[10px] ' + (isError ? 'text-[#A32D2D]' : 'text-gray-500');
             message.textContent = text;
+            message.dataset.messageId = String(++messageSeq);
+
+            if (clearAfter) {
+                const mine = message.dataset.messageId;
+                setTimeout(function () {
+                    if (message.isConnected && message.dataset.messageId === mine) message.remove();
+                }, clearAfter);
+            }
         }
+
+        // How long an ordinary save error stays on its card.
+        const ERROR_MESSAGE_MS = 8000;
 
         // task #72 phase 10: your own status and assignee changes no longer
         // reload the page. While the request runs the card is busy (the
@@ -147,6 +166,15 @@
                 body: JSON.stringify(payload),
             })
                 .then(function (response) {
+                    // Signed out: CSRF token expired (419), 401 for a JSON
+                    // request, or redirected to the login page. Checked
+                    // before response.ok, since a followed redirect ends on
+                    // a 200 login page that must not count as a save.
+                    if (response.redirected || response.status === 401 || response.status === 419) {
+                        const expired = new Error('Your session expired. Reload the page.');
+                        expired.sessionExpired = true;
+                        throw expired;
+                    }
                     if (response.ok) return;
                     // Surfaces the backend's actual message (an
                     // authorization failure, or the assignee rule's field
@@ -177,7 +205,17 @@
                         select.value = savedValue(select);
                         select.blur();
                     }
-                    setCardMessage(cardEl(id), error.message, true);
+                    if (error.sessionExpired) {
+                        // Nothing else works until a reload: the message
+                        // stays, the board stops polling and shows its
+                        // "Reload to see updates" note, and held-back
+                        // updates aren't applied (they would replace the
+                        // card and wipe the message).
+                        setCardMessage(cardEl(id), error.message, true);
+                        stop();
+                        return;
+                    }
+                    setCardMessage(cardEl(id), error.message, true, ERROR_MESSAGE_MS);
                     flushPending();
                 });
         }
@@ -497,7 +535,10 @@
                     return response.json();
                 })
                 .then(function (data) {
-                    if (! data) return;
+                    // Stopped while this poll was in flight (e.g. a save
+                    // found the session expired): apply nothing, so the
+                    // card keeps its session-expired message.
+                    if (! data || stopped) return;
                     if (data.stale) {
                         stop();
                         return;
