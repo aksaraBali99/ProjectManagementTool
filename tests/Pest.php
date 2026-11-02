@@ -18,6 +18,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -395,6 +396,28 @@ function kanbanColumnIdsAcrossBatches(User $user, int $organizationId, TaskStatu
     }
 
     return $ids;
+}
+
+/**
+ * task #72 phase 9: a project's drilldown, as the Projects page fetches it
+ * when its row is first opened ($query: completed, return_to, ...).
+ *
+ * @param  array<string, mixed>  $query
+ */
+function projectDrilldown(User $user, Project $project, array $query = []): TestResponse
+{
+    return test()->actingAs($user)->get(route('projects.tasks', ['project' => $project] + $query))->assertOk();
+}
+
+/**
+ * The drilldown's task ids, in the order shown.
+ *
+ * @param  array<string, mixed>  $query
+ * @return array<int, int>
+ */
+function projectDrilldownIds(User $user, Project $project, array $query = []): array
+{
+    return projectDrilldown($user, $project, $query)->viewData('tasks')->pluck('id')->all();
 }
 
 /**

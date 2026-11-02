@@ -25,7 +25,7 @@ beforeEach(function () {
     $this->owner = createOwner();
     $this->org = Organization::create(['name' => 'Colour Org', 'slug' => 'colour-org', 'accent_color' => '#1D9E75']);
     $department = Department::create(['organization_id' => $this->org->id, 'name' => 'Marketing', 'color' => '#000000']);
-    $project = Project::create(['organization_id' => $this->org->id, 'name' => 'Project A', 'description' => 'd']);
+    $project = $this->project = Project::create(['organization_id' => $this->org->id, 'name' => 'Project A', 'description' => 'd']);
 
     foreach (range(1, 24) as $i) {
         Task::create([
@@ -74,8 +74,10 @@ function colourReadsDuring(callable $request): array
     return $counts;
 }
 
-test('a page full of badges reads the colours from the store at most once per enum', function (string $routeName) {
-    $url = route($routeName, $this->org);
+test('a page full of badges reads the colours from the store at most once per enum', function (string $routeName, int $enums) {
+    // The Projects page shows only project priority badges since task #72
+    // phase 9; its task rows (status badges too) are the drilldown.
+    $url = $routeName === 'projects.tasks' ? route($routeName, $this->project) : route($routeName, $this->org);
 
     // Cold store (after a deploy or a colour save): each enum misses once
     // and loads its colour table once. Writing it back clears that key's
@@ -86,9 +88,15 @@ test('a page full of badges reads the colours from the store at most once per en
 
     // Warm store: one read per enum, and the colour tables aren't touched.
     $warm = colourReadsDuring(fn () => $this->actingAs($this->owner)->get($url)->assertOk());
-    expect($warm['cache'])->toBe(2)
+    expect($warm['cache'])->toBe($enums)
         ->and($warm['colors'])->toBe(0);
-})->with(['dashboard', 'kanban', 'tasks.index', 'projects.index']);
+})->with([
+    'dashboard' => ['dashboard', 2],
+    'kanban' => ['kanban', 2],
+    'tasks.index' => ['tasks.index', 2],
+    'projects.index' => ['projects.index', 1],
+    'projects.tasks' => ['projects.tasks', 2],
+]);
 
 test('the next request after saving on the Status & Priority Colors page shows the new colour', function () {
     $this->actingAs($this->owner)->get(route('kanban', $this->org))->assertOk()->assertDontSee('#123456', false);

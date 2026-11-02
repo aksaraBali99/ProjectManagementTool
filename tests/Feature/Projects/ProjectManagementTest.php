@@ -514,6 +514,9 @@ test('task #73 (visibility consolidation): a staff user with view_tasks revoked 
     $response->assertDontSee('Should be hidden');
     $visibleProject = $response->viewData('projects')->firstWhere('id', $project->id);
     expect($visibleProject->tasks_count)->toBe(0);
+
+    // The drilldown, fetched on first open since task #72 phase 9.
+    projectDrilldown($this->staffInA, $project)->assertDontSee('Should be hidden')->assertSee('No tasks on this project yet.');
 });
 
 test('task #73 (visibility consolidation): a staff user with access to a now-deactivated department no longer sees that task in the Projects page\'s count/drilldown', function () {
@@ -533,6 +536,9 @@ test('task #73 (visibility consolidation): a staff user with access to a now-dea
     $response->assertDontSee('Should be hidden');
     $visibleProject = $response->viewData('projects')->firstWhere('id', $project->id);
     expect($visibleProject->tasks_count)->toBe(0);
+
+    // The drilldown, fetched on first open since task #72 phase 9.
+    projectDrilldown($this->staffInA, $project)->assertDontSee('Should be hidden')->assertSee('No tasks on this project yet.');
 });
 
 test('a task assigned to a staff user in a now-deactivated department does not crash the Projects page\'s drilldown', function () {
@@ -553,10 +559,10 @@ test('a task assigned to a staff user in a now-deactivated department does not c
 
     $dept->update(['is_active' => false]);
 
-    $response = $this->actingAs($this->staffInA)->get("/projects/{$this->orgA->id}");
+    $this->actingAs($this->staffInA)->get("/projects/{$this->orgA->id}")->assertOk();
 
-    $response->assertOk();
-    $response->assertSee('Mine, in a department that gets deactivated');
+    // The drilldown itself, fetched on first open since task #72 phase 9.
+    projectDrilldown($this->staffInA, $project)->assertSee('Mine, in a department that gets deactivated');
 });
 
 test('the projects table sits inside a pale wash of the active company\'s own color', function () {

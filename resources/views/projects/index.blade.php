@@ -191,54 +191,14 @@
                             <td class="hidden md:table-cell"></td>
                             <td colspan="6" class="block bg-gray-50 px-3 py-3 md:table-cell">
                                 <div class="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Tasks</div>
-                                @if ($project->tasks->isEmpty() && $project->tasks_count > 0)
-                                    <p class="mt-1 text-[12px] text-gray-500">No recent tasks — every task on this project was completed more than {{ $organization->completed_window_days }} days ago. Use “Show all” above to see them.</p>
-                                @elseif ($project->tasks->isEmpty())
-                                    <p class="mt-1 text-[12px] text-gray-500">No tasks on this project yet.</p>
-                                @else
-                                    <div class="mt-2 overflow-hidden rounded-md border border-gray-200 bg-white">
-                                        <table class="w-full">
-                                            <x-table-header bg="gray-100">
-                                                <x-th>Title</x-th>
-                                                <x-th>Department</x-th>
-                                                <x-th>Assignee</x-th>
-                                                <x-th>Priority</x-th>
-                                                <x-th>Status</x-th>
-                                                <x-th>Due</x-th>
-                                            </x-table-header>
-                                            <tbody class="block divide-y divide-gray-100 md:table-row-group">
-                                                @foreach ($project->tasks as $task)
-                                                    <tr class="block px-3 py-2 md:table-row md:px-0 md:py-0">
-                                                        <td class="flex items-center justify-between gap-2 py-1 text-[11px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2">
-                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Title</span>
-                                                            <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Projects']) }}" class="hover:underline">{{ $task->title }}</a>
-                                                        </td>
-                                                        <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2">
-                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Department</span>
-                                                            <x-badge :background="$task->department->badgeBackground()" :text="$task->department->badgeText()">{{ $task->department->name }}</x-badge>
-                                                        </td>
-                                                        <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2">
-                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Assignee</span>
-                                                            {{ $task->assignee->name ?? 'Unassigned' }}
-                                                        </td>
-                                                        <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2">
-                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Priority</span>
-                                                            <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
-                                                        </td>
-                                                        <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2">
-                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Status</span>
-                                                            <x-badge :background="$task->status->badgeBackground()" :text="$task->status->badgeText()">{{ $task->status->label() }}</x-badge>
-                                                        </td>
-                                                        <td class="flex items-center justify-between gap-2 py-1 text-[11px] text-gray-500 md:table-cell md:px-3 md:py-2">
-                                                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Due</span>
-                                                            {{ $task->due_date?->format('M j') ?? '—' }}
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @endif
+                                {{-- task #72 phase 9: empty until the row is first opened,
+                                     then filled from projects.tasks (projects/_tasks.blade.php).
+                                     Rendering every project's tasks here, opened or not, was
+                                     most of this page's size. --}}
+                                <div class="project-tasks"
+                                    data-tasks-url="{{ route('projects.tasks', array_filter(['project' => $project, 'completed' => $showAllCompleted ? 'all' : null, 'return_to' => url()->full(), 'return_label' => 'Projects'])) }}">
+                                    <p class="project-tasks-loading mt-1 text-[12px] text-gray-500">Loading…</p>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -255,22 +215,88 @@
 
 <script>
     (function () {
-        // Each row renders two .drilldown-btn copies (one for the desktop
-        // table layout, one inline in the mobile card layout) so only one
-        // is ever visible at a given breakpoint — sync both on click so
-        // neither shows stale +/− state if the viewport is later resized
-        // across md without a page reload.
-        document.querySelectorAll('.drilldown-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const target = document.querySelector('[data-drilldown="' + btn.dataset.target + '"]');
-                if (! target) return;
-                const isHidden = target.style.display === 'none';
-                target.style.display = isHidden ? '' : 'none';
-                document.querySelectorAll('.drilldown-btn[data-target="' + btn.dataset.target + '"]').forEach(function (twin) {
-                    twin.textContent = isHidden ? '−' : '+';
-                });
+        // One delegated listener for every row's .drilldown-btn. Each row
+        // renders two copies (one for the desktop table layout, one inline
+        // in the mobile card layout) so only one is ever visible at a given
+        // breakpoint — sync both on click so neither shows stale +/− state
+        // if the viewport is later resized across md without a page reload.
+        document.addEventListener('click', function (event) {
+            const retry = event.target.closest('.project-tasks-retry');
+            if (retry) {
+                loadProjectTasks(retry.closest('.project-tasks'));
+
+                return;
+            }
+
+            const btn = event.target.closest('.drilldown-btn');
+            if (! btn) return;
+
+            const target = document.querySelector('[data-drilldown="' + btn.dataset.target + '"]');
+            if (! target) return;
+            const isHidden = target.style.display === 'none';
+            target.style.display = isHidden ? '' : 'none';
+            document.querySelectorAll('.drilldown-btn[data-target="' + btn.dataset.target + '"]').forEach(function (twin) {
+                twin.textContent = isHidden ? '−' : '+';
             });
+
+            if (isHidden) {
+                loadProjectTasks(target.querySelector('.project-tasks'));
+            }
         });
+
+        // task #72 phase 9: a project's tasks arrive from projects.tasks on
+        // FIRST open only (same pattern as the Tasks list's row preview).
+        // Reopening shows what is already in the DOM.
+        function loadProjectTasks(container) {
+            if (! container || container.dataset.loaded === '1' || container.dataset.loading === '1') {
+                // Already have it, or a request is still in flight — double
+                // clicks must not fire a second fetch.
+                return;
+            }
+
+            container.dataset.loading = '1';
+            // Re-shown on a retry too, so the click visibly does something.
+            const loading = document.createElement('p');
+            loading.className = 'project-tasks-loading mt-1 text-[12px] text-gray-500';
+            loading.textContent = 'Loading…';
+            container.replaceChildren(loading);
+
+            fetch(container.dataset.tasksUrl, {
+                credentials: 'same-origin',
+                headers: { 'Accept': 'text/html' },
+            })
+                .then(function (response) {
+                    // An expired session redirects to /login and fetch
+                    // follows it with response.ok true — without this check
+                    // the login form would be injected into the row.
+                    if (response.redirected) throw new Error('redirected to ' + response.url);
+                    if (! response.ok) throw new Error('HTTP ' + response.status);
+
+                    return response.text();
+                })
+                .then(function (html) {
+                    container.innerHTML = html;
+                    container.dataset.loaded = '1';
+                })
+                .catch(function () {
+                    // Left un-loaded on purpose: "Try again", or closing and
+                    // reopening the row, fetches again.
+                    const message = document.createElement('p');
+                    message.className = 'project-tasks-error mt-1 text-[12px] text-gray-500';
+                    message.append("Couldn't load these tasks. ");
+
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'project-tasks-retry font-medium text-brand-600 hover:underline';
+                    button.textContent = 'Try again';
+                    message.append(button);
+
+                    container.replaceChildren(message);
+                })
+                .finally(function () {
+                    delete container.dataset.loading;
+                });
+        }
     })();
 </script>
 @endsection

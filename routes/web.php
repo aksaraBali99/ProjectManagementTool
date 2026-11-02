@@ -106,6 +106,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/projects/{project}/edit', [ProjectManagementController::class, 'edit'])->name('projects.edit');
     Route::put('/projects/{project}', [ProjectManagementController::class, 'update'])->name('projects.update');
     Route::get('/projects/{project}/template', [ProjectManagementController::class, 'template'])->name('projects.template');
+    // task #72 phase 9: a project row's drilldown, fetched on first open.
+    Route::get('/projects/{project}/tasks', [ProjectManagementController::class, 'tasks'])->name('projects.tasks');
     Route::get('/projects/{organization?}', [ProjectManagementController::class, 'index'])->name('projects.index');
 
     Route::get('/tasks/create/{project?}', [TaskManagementController::class, 'create'])->name('tasks.create');
