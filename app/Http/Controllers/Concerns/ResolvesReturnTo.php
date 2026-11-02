@@ -20,7 +20,9 @@ trait ResolvesReturnTo
      * ABSOLUTE url() carrying whatever filters/scroll-state it had) and
      * return_label (a name from the fixed list below) as plain route()
      * query params - see tasks/index.blade.php, kanban.blade.php,
-     * calendar.blade.php, dashboard.blade.php, projects/index.blade.php.
+     * calendar.blade.php, dashboard.blade.php, projects/_tasks.blade.php
+     * (the Projects page passes its URL to the drilldown endpoint, which
+     * runs it through here before building the task links).
      * return_to is validated same-origin (isSafeReturnUrl()) before use,
      * since it arrives via the query string and this is otherwise a
      * textbook open-redirect: a crafted link could point return_to at an

@@ -249,6 +249,18 @@ test('an off-site or missing return URL falls back to the Projects page', functi
     'missing' => [[]],
 ]);
 
+/**
+ * The URL the page's script fetches for the first row: the row's own
+ * data-tasks-url plus the table's shared data-tasks-query.
+ */
+function drilldownRequestUrl(string $html): string
+{
+    preg_match('/data-tasks-url="([^"]+)"/', $html, $url);
+    preg_match('/data-tasks-query="([^"]*)"/', $html, $query);
+
+    return html_entity_decode($url[1]).'?'.html_entity_decode($query[1]);
+}
+
 test('the Projects page hands each row its own URL and mode for the drilldown', function () {
     makeWindowTask($this, 'pending', null, ['title' => 'Not on the page']);
     $query = ['q' => 'Proj', 'sort' => 'tasks', 'direction' => 'desc', 'completed' => 'all'];
@@ -257,10 +269,12 @@ test('the Projects page hands each row its own URL and mode for the drilldown', 
     $html = $response->getContent();
 
     expect($html)->not->toContain('Not on the page')
-        ->and($response->viewData('projects')->first()->relationLoaded('tasks'))->toBeFalse();
+        ->and($response->viewData('projects')->first()->relationLoaded('tasks'))->toBeFalse()
+        // The shared query is rendered once, not repeated in every row.
+        ->and($html)->not->toMatch('/data-tasks-url="[^"]*\?/')
+        ->and(substr_count($html, 'data-tasks-query='))->toBe(1);
 
-    preg_match('/data-tasks-url="([^"]+)"/', $html, $match);
-    $url = html_entity_decode($match[1]);
+    $url = drilldownRequestUrl($html);
     parse_str((string) parse_url($url, PHP_URL_QUERY), $params);
 
     expect(parse_url($url, PHP_URL_PATH))->toBe(parse_url(route('projects.tasks', $this->project), PHP_URL_PATH))
@@ -276,8 +290,7 @@ test('the Projects page hands each row its own URL and mode for the drilldown', 
 test('in the default mode the page does not pass completed to the drilldown', function () {
     $html = $this->actingAs($this->management)->get(route('projects.index', $this->org))->assertOk()->getContent();
 
-    preg_match('/data-tasks-url="([^"]+)"/', $html, $match);
-    parse_str((string) parse_url(html_entity_decode($match[1]), PHP_URL_QUERY), $params);
+    parse_str((string) parse_url(drilldownRequestUrl($html), PHP_URL_QUERY), $params);
 
     expect($params)->not->toHaveKey('completed')
         ->and($params['return_to'])->toBe(route('projects.index', $this->org));

@@ -126,7 +126,11 @@
 
         <x-company-tabs :organizations="$organizations" :active="$organization" route="projects.index" :query="$tabQuery">
         <div class="overflow-hidden rounded-lg border border-gray-200">
-            <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
+            {{-- task #72 phase 9: the drilldown query (mode and this page's own
+                 URL to come back to) is the same for every row, so it is
+                 rendered once here; each row carries only its own URL. --}}
+            <table class="w-full md:min-w-full md:divide-y md:divide-gray-200"
+                data-tasks-query="{{ \Illuminate\Support\Arr::query(array_filter(['completed' => $showAllCompleted ? 'all' : null, 'return_to' => url()->full(), 'return_label' => 'Projects'])) }}">
                 <x-table-header>
                     <th class="w-8 px-3 py-2"></th>
                     @foreach ([
@@ -196,7 +200,7 @@
                                      Rendering every project's tasks here, opened or not, was
                                      most of this page's size. --}}
                                 <div class="project-tasks"
-                                    data-tasks-url="{{ route('projects.tasks', array_filter(['project' => $project, 'completed' => $showAllCompleted ? 'all' : null, 'return_to' => url()->full(), 'return_label' => 'Projects'])) }}">
+                                    data-tasks-url="{{ route('projects.tasks', $project) }}">
                                     <p class="project-tasks-loading mt-1 text-[12px] text-gray-500">Loading…</p>
                                 </div>
                             </td>
@@ -261,7 +265,8 @@
             loading.textContent = 'Loading…';
             container.replaceChildren(loading);
 
-            fetch(container.dataset.tasksUrl, {
+            const query = container.closest('[data-tasks-query]').dataset.tasksQuery;
+            fetch(container.dataset.tasksUrl + (query ? '?' + query : ''), {
                 credentials: 'same-origin',
                 headers: { 'Accept': 'text/html' },
             })

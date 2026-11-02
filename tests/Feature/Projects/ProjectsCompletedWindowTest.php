@@ -56,7 +56,7 @@ test('"Show all" lists every task, the count reads total / total, and offers "Sh
         ->toContain('<input type="hidden" name="completed" value="all">')
         ->toMatch('/href="[^"]*sort=tasks[^"]*completed=all[^"]*"/')
         // ...and so does each row's drilldown request.
-        ->toContain(e(route('projects.tasks', ['project' => $this->project, 'completed' => 'all'])));
+        ->toContain('data-tasks-query="completed=all&amp;');
 });
 
 test('sorting by Tasks uses the total, not the shown count', function () {

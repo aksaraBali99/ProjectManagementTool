@@ -15,6 +15,8 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\Access\AccessProfileCache;
+use DateTimeInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -56,8 +58,7 @@ class ProjectManagementController extends Controller
         // tasks() when a row is first opened (task #72 phase 9).
         $showAllCompleted = $this->showsAllCompleted();
         $since = $this->completedWindowStartFor($organization);
-        $shownTasks = fn ($query) => $query->visibleTo($user, $organization->id)
-            ->when($since, fn ($q) => $q->openOrCompletedWithin($since));
+        $shownTasks = fn ($query) => $this->shownTasks($query->visibleTo($user, $organization->id), $since);
 
         // Visibility (who can see which projects at all) is a policy check,
         // not a query scope, so the whole company's projects are loaded
@@ -146,7 +147,7 @@ class ProjectManagementController extends Controller
         $since = $this->completedWindowStartFor($organization);
 
         $visible = fn () => Task::visibleTo($user, $organization->id)->where('project_id', $project->id);
-        $shown = fn () => $visible()->when($since, fn ($query) => $query->openOrCompletedWithin($since));
+        $shown = fn () => $this->shownTasks($visible(), $since);
 
         $shownCount = $shown()->count();
         // Only matters when nothing is shown: "No recent tasks" (all old
@@ -166,6 +167,16 @@ class ProjectManagementController extends Controller
             'tasksLink' => $this->drilldownTasksLink($project, $shownCount, $hasOlderTasks, $showAllCompleted),
             'returnTo' => $this->resolveReturnTo(route('projects.index', $organization), 'Projects'),
         ]);
+    }
+
+    /**
+     * The completed window on already-visible tasks: what a row's "shown"
+     * count counts and its drilldown lists. One place, so the two can't
+     * drift apart. A null $since (Show all) keeps every task.
+     */
+    private function shownTasks(Builder $query, ?DateTimeInterface $since): Builder
+    {
+        return $query->when($since, fn ($q) => $q->openOrCompletedWithin($since));
     }
 
     /**
