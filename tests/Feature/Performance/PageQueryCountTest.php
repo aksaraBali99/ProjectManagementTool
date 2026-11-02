@@ -124,6 +124,12 @@ const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 25;
 const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 23;
 const PROJECTS_MAX_QUERIES_20_TASKS_STAFF = 16;
 const PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS_STAFF = 14;
+// task #72 phase 10: the Kanban poll, idle (nothing changed) and with
+// changed cards to render (the same for 1 card or 50).
+const KANBAN_CHANGES_MAX_QUERIES_IDLE = 7;
+const KANBAN_CHANGES_MAX_QUERIES_CARDS = 18;
+const KANBAN_CHANGES_MAX_QUERIES_IDLE_STAFF = 8;
+const KANBAN_CHANGES_MAX_QUERIES_CARDS_STAFF = 19;
 
 beforeEach(function () {
     // The database cache store, as on dev and production: phpunit.xml's
@@ -415,6 +421,55 @@ test('Kanban Load more: the same number of queries whether the column holds 30 o
     expect($large)->toBe($small);
     expect($large)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
 });
+
+test('Kanban changes: flat in company size, flat from 1 to 50 changed cards, and within the target', function (string $who, int $idleCeiling, int $cardsCeiling) {
+    // task #72 phase 10: the board's 15-second poll. Measured with nothing
+    // changed in a 30- and a 300-task company, then with 1 and with 50
+    // changed cards.
+    $user = $this->{$who};
+    $poll = function () use ($user) {
+        $since = now()->getTimestamp();
+        $this->travel(5)->seconds();
+
+        return fn () => countRequestQueries(function () use ($user, $since) {
+            $json = $this->actingAs($user)
+                ->getJson(route('kanban.changes', [$this->org, 'since' => $since], false))
+                ->assertOk()
+                ->json();
+            expect($json)->not->toHaveKey('stale');
+        });
+    };
+    $later = fn () => $this->travel(1)->minutes();
+
+    makePlainKanbanTasks($this, 30, 'pending');
+    $later();
+    $measure = $poll();
+    // Warm-up request: the first request in a test pays one-off cache
+    // misses the measured ones don't.
+    $measure();
+    $idleSmall = $measure();
+
+    makePlainKanbanTasks($this, 270, 'pending');
+    $later();
+    $idleLarge = $poll()();
+
+    $measure = $poll();
+    Task::query()->orderBy('id')->limit(1)->get()->each->touch();
+    $oneChanged = $measure();
+
+    $measure = $poll();
+    Task::query()->orderBy('id')->limit(50)->update(['updated_at' => now()]);
+    $fiftyChanged = $measure();
+
+    expect($idleLarge)->toBe($idleSmall)
+        ->and($fiftyChanged)->toBe($oneChanged)
+        ->and($idleSmall)->toBeLessThanOrEqual($idleCeiling)
+        ->and($oneChanged)->toBeLessThanOrEqual($cardsCeiling)
+        ->and($oneChanged)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+})->with([
+    'management' => ['management', KANBAN_CHANGES_MAX_QUERIES_IDLE, KANBAN_CHANGES_MAX_QUERIES_CARDS],
+    'staff' => ['staff', KANBAN_CHANGES_MAX_QUERIES_IDLE_STAFF, KANBAN_CHANGES_MAX_QUERIES_CARDS_STAFF],
+]);
 
 test('Dashboard: with every section over 10, each shows 10 within the target, for every role', function () {
     // task #72 phase 8: the Dashboard used to load and render every task.

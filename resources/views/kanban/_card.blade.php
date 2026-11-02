@@ -7,6 +7,10 @@
     endpoint.
 
     Expects: $task, $canEdit, $canReassign, $eligibleAssignees, $returnTo.
+
+    task #72 phase 10: data-sort-key is the card's place in its column
+    (Task::kanbanSortKey()); the board's poll uses it to slot a changed
+    card in among the ones already shown.
 --}}
 @php
     // task #71: shown on the closed <select> itself in addition to the
@@ -17,7 +21,7 @@
 @endphp
 <div class="kanban-card rounded-md border border-gray-200 p-2 {{ $canEdit ? 'cursor-move' : '' }}"
      style="background-color: {{ $task->priority->badgeBackground() }}"
-     draggable="{{ $canEdit ? 'true' : 'false' }}" data-task-id="{{ $task->id }}">
+     draggable="{{ $canEdit ? 'true' : 'false' }}" data-task-id="{{ $task->id }}" data-sort-key="{{ $task->kanbanSortKey() }}">
     {{-- task #71: the avatar moved up into this title row (was a
          card-level sibling spanning the card's full height) — this row
          and the priority/assignee/status row below it are now both

@@ -50,6 +50,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/kanban/{organization?}', KanbanController::class)->name('kanban');
     // task #72 phase 5: a column's Load more.
     Route::get('/kanban/{organization}/columns/{status}', [KanbanController::class, 'column'])->name('kanban.column');
+    // task #72 phase 10: the board's 15-second poll.
+    Route::get('/kanban/{organization}/changes', [KanbanController::class, 'changes'])->name('kanban.changes');
     Route::get('/calendar/{organization?}', CalendarController::class)->name('calendar');
     Route::get('/settings', SettingsController::class)->name('settings.index');
     Route::get('/audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail.index');

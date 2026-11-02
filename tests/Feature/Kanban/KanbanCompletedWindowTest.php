@@ -51,7 +51,7 @@ test('the "older" line only shows when something is hidden, and says "task" for 
     makeWindowTask($this, 'completed', '2026-10-28 09:00:00');
 
     [, $html] = completedColumn($this);
-    expect($html)->not->toContain('older completed')->not->toContain('kanban-completed-window');
+    expect(withoutScripts($html))->not->toContain('older completed')->not->toContain('kanban-completed-window');
 
     makeWindowTask($this, 'completed', '2026-09-01 09:00:00');
 
@@ -69,7 +69,7 @@ test('?completed=all shows every completed task, newest first, and offers "Show 
     expect($column['tasks']->pluck('task.id')->all())->toBe([$recent->id, $older->id, $oldest->id])
         ->and($column['total'])->toBe(3)
         ->and($html)->toContain('Show recent only')
-        ->and($html)->not->toContain('older completed');
+        ->and(withoutScripts($html))->not->toContain('older completed');
 });
 
 test('Load more follows the mode: window by default, everything with completed=all', function () {
