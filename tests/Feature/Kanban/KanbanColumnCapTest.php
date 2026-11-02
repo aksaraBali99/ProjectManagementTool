@@ -144,8 +144,10 @@ test('each column header shows its total, whether over 30, under 30 or empty', f
         ->and($html)->toMatch('/'.preg_quote(TaskStatus::InReview->label(), '/').'<\/span>\s*<span[^>]*>7<\/span>/')
         ->and($html)->toMatch('/'.preg_quote(TaskStatus::Completed->label(), '/').'<\/span>\s*<span[^>]*>0<\/span>/');
 
-    // Load more only where there is more: one button, for Pending.
-    expect(substr_count($html, 'class="kanban-load-more '))->toBe(1);
+    // Load more only where there is more: one shown, for Pending. (Since
+    // task #72 phase 10 every column has the box, hidden when there is
+    // nothing to load, so the live update can show it.)
+    expect(visibleKanbanLoadMoreCount($html))->toBe(1);
     $response->assertSee('15 more');
     $response->assertSee(route('kanban.column', [$this->org, 'pending']), false);
 
@@ -161,8 +163,8 @@ test('a column that fits entirely shows no "more" line and no button', function 
     $html = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk()->getContent();
 
     expect(kanbanCardIds($html))->toHaveCount(30)
-        ->and($html)->not->toContain('class="kanban-load-more ')
-        ->and($html)->not->toMatch('/>\s*Load more\s*<\/button>/')
+        ->and(visibleKanbanLoadMoreCount($html))->toBe(0)
+        ->and($html)->toMatch('/<div class="kanban-load-more [^>]*\shidden\b/')
         ->and($html)->not->toContain(' more</p>');
 });
 

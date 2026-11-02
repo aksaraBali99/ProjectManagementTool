@@ -7,6 +7,10 @@
     endpoint.
 
     Expects: $task, $canEdit, $canReassign, $eligibleAssignees, $returnTo.
+
+    task #72 phase 10: data-sort-key is the card's place in its column
+    (Task::kanbanSortKey()); the board's poll uses it to slot a changed
+    card in among the ones already shown.
 --}}
 @php
     // task #71: shown on the closed <select> itself in addition to the
@@ -17,7 +21,7 @@
 @endphp
 <div class="kanban-card rounded-md border border-gray-200 p-2 {{ $canEdit ? 'cursor-move' : '' }}"
      style="background-color: {{ $task->priority->badgeBackground() }}"
-     draggable="{{ $canEdit ? 'true' : 'false' }}" data-task-id="{{ $task->id }}">
+     draggable="{{ $canEdit ? 'true' : 'false' }}" data-task-id="{{ $task->id }}" data-sort-key="{{ $task->kanbanSortKey() }}">
     {{-- task #71: the avatar moved up into this title row (was a
          card-level sibling spanning the card's full height) — this row
          and the priority/assignee/status row below it are now both
@@ -49,12 +53,20 @@
          and this select's own title="" attribute both still show the
          full name on hover, the same reliance on a tooltip Calendar's
          own task-label truncation (Phase 8) already established. --}}
-    <div class="mt-1.5 flex items-center justify-between gap-2">
+    {{-- task #72 phase 10 bugfix: on narrow columns (smaller windows) this
+         row used to overflow the card. Now the assignee select shrinks first
+         (to 40px; it truncates and has a tooltip), then the selects wrap
+         under the badge, right-aligned (the group never sits on the badge's
+         line narrower than 142px = assignee 40 + gap 6 + status 96), and
+         only then does the status select shrink. With room to spare
+         nothing changes: the group grows to fill the row and stays
+         right-aligned, so Status still lines up with the avatar. --}}
+    <div class="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge>
 
-        <div class="flex items-center gap-1.5">
+        <div class="flex min-w-0 flex-1 basis-[142px] items-center justify-end gap-1.5">
             @php $kanbanAssigneeOptions = $eligibleAssignees[$task->project_id][$task->department_id] ?? []; @endphp
-            <select class="kanban-assignee-select w-20 truncate rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
+            <select class="kanban-assignee-select w-20 truncate rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 min-w-10 shrink-[100]"
                     data-task-id="{{ $task->id }}" title="{{ $assigneeName }}" {{ $canReassign ? '' : 'disabled' }}>
                 <option value="">Unassigned</option>
                 @foreach ($kanbanAssigneeOptions as $option)
@@ -69,7 +81,7 @@
                 @endif
             </select>
 
-            <select class="kanban-status-select rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
+            <select class="kanban-status-select min-w-0 truncate rounded-md border border-gray-300 px-1.5 py-0.5 text-[10px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"
                     data-task-id="{{ $task->id }}" {{ $canEdit ? '' : 'disabled' }}>
                 @foreach (\App\Enums\TaskStatus::cases() as $statusOption)
                     <option value="{{ $statusOption->value }}" {{ $task->status === $statusOption ? 'selected' : '' }}>{{ $statusOption->label() }}</option>

@@ -185,6 +185,37 @@ class Task extends Model
     }
 
     /**
+     * task #72 phase 10: this task's place in its Kanban column as a string
+     * that sorts (as plain text, ascending) exactly like the column's SQL
+     * order in KanbanController::columnPage(), so the board can place a
+     * changed card among the cards it already has.
+     *
+     *  - Open columns: priority rank (High 0, Medium 1, Low 2), then due
+     *    date with no date last ("0Y-m-d" before "1"), then id.
+     *  - Completed: completed_at DESC with no date last, then id DESC —
+     *    both counted down from 9999999999 so ascending text reads newest
+     *    first.
+     *
+     * Ids and times are zero-padded to 10 digits so text order is numeric
+     * order. The id ends every key, so no two cards share one.
+     */
+    public function kanbanSortKey(): string
+    {
+        $pad = fn (int $number) => str_pad((string) $number, 10, '0', STR_PAD_LEFT);
+
+        if ($this->status === TaskStatus::Completed) {
+            $completed = $this->completed_at ? '0'.$pad(9999999999 - $this->completed_at->getTimestamp()) : '1';
+
+            return $completed.'|'.$pad(9999999999 - $this->id);
+        }
+
+        $rank = array_search($this->priority, Priority::cases(), true);
+        $due = $this->due_date ? '0'.$this->due_date->format('Y-m-d') : '1';
+
+        return $rank.'|'.$due.'|'.$pad($this->id);
+    }
+
+    /**
      * Soonest due first, no due date last, then title (case-insensitive),
      * then id. The Tasks list's due date sort (its default) and the
      * Dashboard sections both use this, so a section and the list it links

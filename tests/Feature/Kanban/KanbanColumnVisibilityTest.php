@@ -171,22 +171,6 @@ test('an unknown status or company is a 404', function () {
     $this->actingAs($this->management)->getJson('/kanban/999999/columns/pending')->assertNotFound();
 });
 
-/** One card's markup, normalised through the same DOM parser for both sources. */
-function kanbanCardMarkup(string $html, int $taskId): string
-{
-    $document = new DOMDocument;
-    libxml_use_internal_errors(true);
-    $document->loadHTML('<?xml encoding="utf-8" ?><body>'.$html.'</body>');
-    libxml_clear_errors();
-
-    $node = (new DOMXPath($document))
-        ->query('//div[contains(concat(" ", @class, " "), " kanban-card ") and @data-task-id="'.$taskId.'"]')
-        ->item(0);
-    expect($node)->not->toBeNull("card {$taskId} not found");
-
-    return $document->saveHTML($node);
-}
-
 test('a card from Load more is identical to the same card on the board: permissions and assignee options', function (string $viewer) {
     $user = $this->{$viewer};
 

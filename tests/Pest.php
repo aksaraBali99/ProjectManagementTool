@@ -365,6 +365,45 @@ function kanbanCardIds(string $html): array
 }
 
 /**
+ * One Kanban card's markup, normalised through the same DOM parser for
+ * every source (the board, Load more, the live-update poll).
+ */
+function kanbanCardMarkup(string $html, int $taskId): string
+{
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?><body>'.$html.'</body>');
+    libxml_clear_errors();
+
+    $node = (new DOMXPath($document))
+        ->query('//div[contains(concat(" ", @class, " "), " kanban-card ") and @data-task-id="'.$taskId.'"]')
+        ->item(0);
+    expect($node)->not->toBeNull("card {$taskId} not found");
+
+    return $document->saveHTML($node);
+}
+
+/**
+ * task #72 phase 10: the page without its <script> blocks — what the board
+ * renders, not the text the live-update script can write into it later.
+ */
+function withoutScripts(string $html): string
+{
+    return preg_replace('#<script\b.*?</script>#s', '', $html);
+}
+
+/**
+ * task #72 phase 10: Load more boxes are always rendered, hidden when the
+ * column has nothing left to load. How many are shown?
+ */
+function visibleKanbanLoadMoreCount(string $html): int
+{
+    preg_match_all('/<div class="kanban-load-more [^>]*>/', $html, $matches);
+
+    return count(array_filter($matches[0], fn (string $tag) => ! preg_match('/\shidden\b/', $tag)));
+}
+
+/**
  * task #72 phase 5: every card one Kanban column shows for $user — the
  * board's first batch, then Load more from offset 30, 60, ... until
  * `remaining` reaches 0 — in order. Asserts each Load more's `remaining`
