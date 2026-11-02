@@ -37,11 +37,14 @@ class KanbanController extends Controller
     public const CHANGES_LIMIT = 100;
 
     /**
-     * task #72 phase 10: how far back each poll re-reads. updated_at has
-     * one-second resolution, so a save in the same second as the previous
-     * poll's cursor is read again rather than missed.
+     * task #72 phase 10: how far back before the previous cursor each poll
+     * re-reads. updated_at is stamped when a save starts but only seen once
+     * its transaction commits, and has one-second resolution — so a save
+     * that was stamped before the last poll but committed after it (or
+     * landed in the same second) is read again rather than missed. A card
+     * read twice is simply replaced with itself.
      */
-    public const CHANGES_OVERLAP_SECONDS = 2;
+    public const CHANGES_OVERLAP_SECONDS = 10;
 
     public function __invoke(?Organization $organization = null): View
     {

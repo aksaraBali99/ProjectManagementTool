@@ -157,6 +157,10 @@
                     });
                 })
                 .then(function () {
+                    // A poll already running started before this save, so
+                    // it may carry the card's old state: polls up to this
+                    // one are ignored for this card (see applyChanges()).
+                    savedAfterPoll.set(id, pollSeq);
                     busy.delete(id);
                     if (select) select.blur();
                     return poll().then(function () {
@@ -313,9 +317,17 @@
         let draggingId = null;
         // Task ids with your own request in flight.
         const busy = new Set();
-        // Updates held back for a busy card: id -> card data, or
-        // { removed: true }. Applied when the card is free again.
+        // Updates held back for a busy card: id -> { change, seq } (change
+        // null when the card was removed), seq being the poll it came from.
+        // Applied when the card is free again.
         const pending = new Map();
+        // Polls are numbered as they start. When your own change saves,
+        // the card remembers the number of the latest poll started by
+        // then: that poll, and any before it, may hold the card's state from
+        // before the save, so they are ignored for it. The poll the save
+        // triggers is numbered higher and brings the new state.
+        let pollSeq = 0;
+        const savedAfterPoll = new Map();
 
         // Never move a card under the user: one being dragged, one whose
         // status or assignee dropdown has focus, or one being saved.
@@ -385,13 +397,18 @@
         // card it is appended only if the column shows everything —
         // otherwise it belongs further down and will come with Load more,
         // and only "N more" changes.
-        function applyChanges(cards, removed) {
+        function applyChanges(cards, removed, seq) {
             const ready = [];
+            // From a poll that started before your own save of this card.
+            const predatesSave = function (id) {
+                return savedAfterPoll.has(id) && seq <= savedAfterPoll.get(id);
+            };
 
             removed.forEach(function (taskId) {
                 const id = String(taskId);
+                if (predatesSave(id)) return;
                 if (isBusy(id)) {
-                    pending.set(id, { removed: true });
+                    pending.set(id, { change: null, seq: seq });
                     return;
                 }
                 pending.delete(id);
@@ -401,8 +418,9 @@
 
             cards.forEach(function (change) {
                 const id = String(change.id);
+                if (predatesSave(id)) return;
                 if (isBusy(id)) {
-                    pending.set(id, change);
+                    pending.set(id, { change: change, seq: seq });
                     return;
                 }
                 pending.delete(id);
@@ -438,17 +456,15 @@
 
         // Updates held back for cards that are free now.
         function flushPending() {
-            const cards = [];
-            const removed = [];
-            pending.forEach(function (change, id) {
+            pending.forEach(function (entry, id) {
                 if (isBusy(id)) return;
-                if (change.removed) {
-                    removed.push(id);
+                pending.delete(id);
+                if (entry.change) {
+                    applyChanges([entry.change], [], entry.seq);
                 } else {
-                    cards.push(change);
+                    applyChanges([], [id], entry.seq);
                 }
             });
-            if (cards.length || removed.length) applyChanges(cards, removed);
         }
 
         function stop() {
@@ -459,6 +475,7 @@
         }
 
         function pollOnce() {
+            const seq = ++pollSeq;
             const url = new URL(changesUrl, window.location.origin);
             url.searchParams.set('since', cursor);
 
@@ -495,7 +512,7 @@
                         }
                     });
                     setOlder(data.older);
-                    applyChanges(data.cards, data.removed);
+                    applyChanges(data.cards, data.removed, seq);
                     flushPending();
                 })
                 .catch(function () {

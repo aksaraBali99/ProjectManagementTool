@@ -2,6 +2,7 @@
 
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
+use App\Http\Controllers\KanbanController;
 use App\Models\AccessPermission;
 use App\Models\AuditLog;
 use App\Models\Department;
@@ -152,21 +153,24 @@ test('a changed task comes back as exactly the card the board renders; an unchan
     'client' => ['client'],
 ]);
 
-test('a save in the same second as the cursor, or one second before it, is still returned', function () {
+test('a save stamped up to 10 seconds before the cursor (committed late, or in the same second) is still returned', function () {
     $since = now()->getTimestamp();
 
     $this->tasks['a2']->update(['title' => 'Same second']);
 
+    // Stamped before the previous poll's cursor but, say, committed after
+    // it: the next poll still reads it.
+    $this->travel(-10)->seconds();
+    $this->tasks['b1']->update(['title' => 'Ten seconds before']);
+
     $this->travel(-1)->seconds();
-    $this->tasks['b1']->update(['title' => 'A second before']);
+    $this->tasks['b2']->update(['title' => 'Eleven seconds before']);
 
-    $this->travel(-2)->seconds();
-    $this->tasks['b2']->update(['title' => 'Three seconds before']);
-
-    $this->travel(3)->seconds();
+    $this->travel(11)->seconds();
     $ids = collect(kanbanChanges($this, $this->management, $since)['cards'])->pluck('id');
 
-    expect($ids)->toContain($this->tasks['a2']->id)
+    expect(KanbanController::CHANGES_OVERLAP_SECONDS)->toBe(10)
+        ->and($ids)->toContain($this->tasks['a2']->id)
         ->toContain($this->tasks['b1']->id)
         ->not->toContain($this->tasks['b2']->id);
 });
