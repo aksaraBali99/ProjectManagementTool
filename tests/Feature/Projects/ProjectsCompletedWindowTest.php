@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\DB;
  * task #72 phase 7: the Projects page's task drilldown hides tasks
  * completed before the company's window, the Tasks column reads
  * "shown / total" (sorting stays on the total), and "Show all" switches to
- * ?completed=all for the visit.
+ * ?completed=all for the visit. Since phase 9 the drilldown is fetched
+ * from projects.tasks, which the page passes its mode to.
  */
 beforeEach(function () {
     $this->travelTo(Carbon::parse('2026-10-30 12:00:00'));
@@ -31,7 +32,7 @@ function projectRow(object $context, array $query = [], ?object $user = null): P
 test('the drilldown hides old completed tasks and the count reads shown / total', function () {
     $project = projectRow($this);
 
-    expect($project->tasks->pluck('id')->sort()->values()->all())->toBe([$this->open->id, $this->recent->id])
+    expect(collect(projectDrilldownIds($this->management, $this->project))->sort()->values()->all())->toBe([$this->open->id, $this->recent->id])
         ->and($project->shown_tasks_count)->toBe(2)
         ->and($project->tasks_count)->toBe(4);
 
@@ -44,7 +45,7 @@ test('the drilldown hides old completed tasks and the count reads shown / total'
 test('"Show all" lists every task, the count reads total / total, and offers "Show recent only"', function () {
     $project = projectRow($this, ['completed' => 'all']);
 
-    expect($project->tasks)->toHaveCount(4)
+    expect(projectDrilldownIds($this->management, $this->project, ['completed' => 'all']))->toHaveCount(4)
         ->and($project->shown_tasks_count)->toBe(4)
         ->and($project->tasks_count)->toBe(4);
 
@@ -53,7 +54,9 @@ test('"Show all" lists every task, the count reads total / total, and offers "Sh
         ->toContain('Show recent only')
         // The filter form and the sort links keep the mode for this visit.
         ->toContain('<input type="hidden" name="completed" value="all">')
-        ->toMatch('/href="[^"]*sort=tasks[^"]*completed=all[^"]*"/');
+        ->toMatch('/href="[^"]*sort=tasks[^"]*completed=all[^"]*"/')
+        // ...and so does each row's drilldown request.
+        ->toContain('data-tasks-query="completed=all&amp;');
 });
 
 test('sorting by Tasks uses the total, not the shown count', function () {
@@ -75,7 +78,7 @@ test('a project whose tasks are all old completed says so instead of "No tasks"'
     $this->recent->update(['status' => 'completed']);
     DB::table('tasks')->where('id', $this->recent->id)->update(['completed_at' => '2026-01-01 00:00:00']);
 
-    $html = $this->actingAs($this->management)->get(route('projects.index', $this->org))->getContent();
+    $html = projectDrilldown($this->management, $this->project)->getContent();
 
     expect($html)->toContain('No recent tasks')->not->toContain('No tasks on this project yet.');
 });
@@ -83,6 +86,6 @@ test('a project whose tasks are all old completed says so instead of "No tasks"'
 test('staff and clients get the same window, on top of their own visibility', function (string $who) {
     $project = projectRow($this, [], $this->{$who});
 
-    expect($project->tasks->pluck('id')->sort()->values()->all())->toBe([$this->open->id, $this->recent->id])
+    expect(collect(projectDrilldownIds($this->{$who}, $this->project))->sort()->values()->all())->toBe([$this->open->id, $this->recent->id])
         ->and($project->tasks_count)->toBe(4);
 })->with(['staff', 'client']);

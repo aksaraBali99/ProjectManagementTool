@@ -6,13 +6,17 @@ use App\Enums\Priority;
 use App\Enums\ProjectStatus;
 use App\Http\Controllers\Concerns\AppliesCompletedWindow;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
+use App\Http\Controllers\Concerns\ResolvesReturnTo;
 use App\Http\Requests\Projects\StoreProjectRequest;
 use App\Http\Requests\Projects\UpdateProjectRequest;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Role;
+use App\Models\Task;
 use App\Models\User;
 use App\Support\Access\AccessProfileCache;
+use DateTimeInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -20,7 +24,10 @@ use Illuminate\View\View;
 
 class ProjectManagementController extends Controller
 {
-    use AppliesCompletedWindow, ResolvesCurrentOrganization;
+    use AppliesCompletedWindow, ResolvesCurrentOrganization, ResolvesReturnTo;
+
+    /** How many tasks a project's drilldown shows (task #72 phase 9). */
+    public const DRILLDOWN_LIMIT = 25;
 
     public function index(?Organization $organization = null): View
     {
@@ -47,11 +54,11 @@ class ProjectManagementController extends Controller
         // completed before the company's window, unless ?completed=all for
         // this visit. The Tasks column reads "shown / total": shown is what
         // the drilldown lists, total every visible task — both counted in
-        // the same query.
+        // the same query. The drilldown's tasks themselves are fetched from
+        // tasks() when a row is first opened (task #72 phase 9).
         $showAllCompleted = $this->showsAllCompleted();
         $since = $this->completedWindowStartFor($organization);
-        $shownTasks = fn ($query) => $query->visibleTo($user, $organization->id)
-            ->when($since, fn ($q) => $q->openOrCompletedWithin($since));
+        $shownTasks = fn ($query) => $this->shownTasks($query->visibleTo($user, $organization->id), $since);
 
         // Visibility (who can see which projects at all) is a policy check,
         // not a query scope, so the whole company's projects are loaded
@@ -59,23 +66,16 @@ class ProjectManagementController extends Controller
         // filter option lists, the filters themselves, sorting) works off
         // this already-visible set rather than re-querying per filter.
         //
-        // Both the count and the eager-loaded tasks (for the row drilldown)
-        // are scoped through Task::visibleTo() — the same visibility rule
-        // the Tasks list page itself uses — so a staff member never sees a
-        // "Tasks: 5" count or a drilldown row for a task outside their
-        // granted departments.
+        // Both counts are scoped through Task::visibleTo() — the same
+        // visibility rule the Tasks list page and the drilldown use — so a
+        // staff member never sees a "Tasks: 5" count for a task outside
+        // their granted departments.
         $visibleProjects = Project::where('organization_id', $organization->id)
             ->withCount([
                 'tasks' => fn ($query) => $query->visibleTo($user, $organization->id),
                 'tasks as shown_tasks_count' => $shownTasks,
             ])
-            ->with([
-                'clients',
-                'tasks' => fn ($query) => $shownTasks($query)
-                    ->with(['department', 'assignee'])
-                    ->orderBy('due_date')
-                    ->orderBy('title'),
-            ])
+            ->with('clients')
             ->get()
             ->filter(fn (Project $project) => $user->can('view', $project))
             ->values();
@@ -125,6 +125,87 @@ class ProjectManagementController extends Controller
             'direction' => $direction,
             'filterClients' => $filterClients,
         ]);
+    }
+
+    /**
+     * task #72 phase 9: one project's drilldown on the Projects page, fetched
+     * when its row is first opened. Same rules as the page: the company must
+     * be one the page would show (the route binding's organization scope
+     * already 404s a company outside visibleOrganizationIds(); owners see
+     * inactive ones there, the page never does), the project must pass
+     * view, and the tasks are Task::visibleTo() plus the completed window
+     * unless ?completed=all.
+     */
+    public function tasks(Project $project): View
+    {
+        $organization = $project->organization;
+        abort_unless($organization->is_active, 404);
+        Gate::authorize('view', $project);
+
+        $user = auth()->user();
+        $showAllCompleted = $this->showsAllCompleted();
+        $since = $this->completedWindowStartFor($organization);
+
+        $visible = fn () => Task::visibleTo($user, $organization->id)->where('project_id', $project->id);
+        $shown = fn () => $this->shownTasks($visible(), $since);
+
+        $shownCount = $shown()->count();
+        // Only matters when nothing is shown: "No recent tasks" (all old
+        // completed) versus "No tasks on this project yet".
+        $hasOlderTasks = $shownCount === 0 && $since && $visible()->exists();
+
+        $tasks = $shown()
+            ->with(['department', 'assignee'])
+            ->orderByDueSoonest()
+            ->limit(self::DRILLDOWN_LIMIT)
+            ->get();
+
+        return view('projects._tasks', [
+            'organization' => $organization,
+            'tasks' => $tasks,
+            'hasOlderTasks' => $hasOlderTasks,
+            'tasksLink' => $this->drilldownTasksLink($project, $shownCount, $hasOlderTasks, $showAllCompleted),
+            'returnTo' => $this->resolveReturnTo(route('projects.index', $organization), 'Projects'),
+        ]);
+    }
+
+    /**
+     * The completed window on already-visible tasks: what a row's "shown"
+     * count counts and its drilldown lists. One place, so the two can't
+     * drift apart. A null $since (Show all) keeps every task.
+     */
+    private function shownTasks(Builder $query, ?DateTimeInterface $since): Builder
+    {
+        return $query->when($since, fn ($q) => $q->openOrCompletedWithin($since));
+    }
+
+    /**
+     * The link under a drilldown. "View all N" only when the drilldown is
+     * hiding some (same rule as the Dashboard sections); N is the shown
+     * count, which is what the Tasks list's default Recent mode lists for
+     * this project (or every task, with completed=all). A project with
+     * only old completed tasks links to them with completed=all; one with
+     * no visible tasks at all gets no link, as it would open an empty list.
+     *
+     * @return array{url: string, label: string}|null
+     */
+    private function drilldownTasksLink(Project $project, int $shownCount, bool $hasOlderTasks, bool $showAllCompleted): ?array
+    {
+        if ($shownCount === 0 && ! $hasOlderTasks) {
+            return null;
+        }
+
+        $query = ['project_id' => $project->id];
+        if ($showAllCompleted || $hasOlderTasks) {
+            $query['completed'] = 'all';
+        }
+
+        return [
+            'url' => route('tasks.index', [$project->organization_id] + $query),
+            'label' => $shownCount > self::DRILLDOWN_LIMIT
+                ? 'View all '.number_format($shownCount).' in Tasks list'
+                : 'Open in Tasks list',
+        ];
     }
 
     /**

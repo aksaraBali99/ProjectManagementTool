@@ -4,6 +4,7 @@ use App\Enums\Priority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KanbanController;
+use App\Http\Controllers\ProjectManagementController;
 use App\Models\AccessPermission;
 use App\Models\Comment;
 use App\Models\Department;
@@ -41,6 +42,7 @@ use App\Models\User;
  *   Page                  phase 0      phase 1     phase 2     target met?
  *   Dashboard             68 /   66    16 /  14    16 /  14    yes - flat, <= 30
  *   Projects              91 /   89    17 /  15    17 /  15    yes - flat, <= 30
+ *                         (13 since phase 9: drilldowns fetched on open)
  *   Calendar              60 /   60    10 /  10    10 /  10    yes - flat, <= 30
  *   Kanban                153 /  331   21 /  19    21 /  19    yes - flat, <= 30
  *   Kanban (staff)        135 /  223   22 /  20    22 /  20    yes - flat, <= 30
@@ -103,7 +105,12 @@ const GROWTH_TOLERANCE = 2;
 // Dashboard: +5 in phase 8. Per section, a limited query instead of one
 // load of every task: grouped count, five lists of 10, My Task's count.
 const DASHBOARD_MAX_QUERIES_20_TASKS = 21;
-const PROJECTS_MAX_QUERIES_20_TASKS = 17;
+// Projects: -4 in phase 9. The page no longer loads every project's tasks
+// (and their departments and assignees) for the hidden drilldown rows.
+const PROJECTS_MAX_QUERIES_20_TASKS = 13;
+// A project's drilldown (projects.tasks, phase 9): shown count, the first
+// 25 tasks, their departments and assignees.
+const PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS = 12;
 const CALENDAR_MAX_QUERIES_20_TASKS = 10;
 const KANBAN_MAX_QUERIES_20_TASKS = 22;
 // Tasks list: +1 since phase 4 (task #72), the page's own count(*) for the
@@ -115,6 +122,8 @@ const TASKS_LIST_MAX_QUERIES_20_TASKS = 22;
 // management-tier shortcut, so it is a genuinely different query path.
 const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 25;
 const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 23;
+const PROJECTS_MAX_QUERIES_20_TASKS_STAFF = 16;
+const PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS_STAFF = 14;
 
 beforeEach(function () {
     // The database cache store, as on dev and production: phpunit.xml's
@@ -242,6 +251,40 @@ test('Projects: flat in task count and within the target', function () {
     expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
     expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
     expect($counts['large'])->toBeLessThanOrEqual(PROJECTS_MAX_QUERIES_20_TASKS);
+});
+
+test('Projects (staff): flat in task count and within the target', function () {
+    $counts = measurePageGrowth($this, $this->staff, route('projects.index', $this->org, false));
+
+    expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
+    expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+    expect($counts['large'])->toBeLessThanOrEqual(PROJECTS_MAX_QUERIES_20_TASKS_STAFF);
+});
+
+test('a project drilldown: flat in task count and within the target, for management and staff', function (string $who, int $ceiling) {
+    $counts = measurePageGrowth($this, $this->{$who}, route('projects.tasks', $this->project, false));
+
+    expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
+    expect($counts['large'])->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+    expect($counts['large'])->toBeLessThanOrEqual($ceiling);
+})->with([
+    'management' => ['management', PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS],
+    'staff' => ['staff', PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS_STAFF],
+]);
+
+test('Projects: the page renders no drilldown tasks, and a drilldown over 25 tasks shows 25 within the target', function () {
+    makeMeasuredTasks($this, 40);
+
+    $html = $this->actingAs($this->management)->get(route('projects.index', $this->org))->assertOk()->getContent();
+    expect($html)->not->toContain('Measured task')
+        ->and(substr_count($html, 'data-tasks-url='))->toBe(1);
+
+    $queries = countRequestQueries(function () {
+        $response = $this->actingAs($this->management)->get(route('projects.tasks', $this->project))->assertOk();
+        expect($response->viewData('tasks'))->toHaveCount(ProjectManagementController::DRILLDOWN_LIMIT)
+            ->and(substr_count($response->getContent(), 'Measured task'))->toBe(ProjectManagementController::DRILLDOWN_LIMIT);
+    });
+    expect($queries)->toBeLessThanOrEqual(PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS);
 });
 
 test('Calendar: flat in task count and within the target', function () {

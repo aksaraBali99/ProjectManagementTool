@@ -59,9 +59,11 @@ test('the window never adds a task the user could not already see', function (st
         // Tasks list, every page.
         expect(array_diff(taskListIdsAcrossPages($user, $this->org->id, $query), $visible))->toBe([]);
 
-        // Projects drilldowns.
+        // Projects drilldowns (fetched per project since phase 9).
         $projects = $this->actingAs($user)->get(route('projects.index', [$this->org] + $query))->assertOk()->viewData('projects');
-        expect($projects->flatMap(fn ($project) => $project->tasks->pluck('id'))->diff($visible)->all())->toBe([]);
+        expect($projects)->not->toBeEmpty();
+        $drilldownIds = $projects->flatMap(fn ($project) => projectDrilldownIds($user, $project, $query));
+        expect($drilldownIds->diff($visible)->all())->toBe([]);
     }
 
     // Dashboard (no completed=all there; it links to the Tasks list).
