@@ -45,10 +45,11 @@ class Organization extends Model
     }
 
     /**
-     * task #118: a company created without a code (the company form and
-     * the Excel import don't ask for one yet) gets the default rule's
-     * suggestion: first three letters, next free if taken. The company
-     * page will ask for the code itself, with this as its suggestion.
+     * task #118: a company created without a code gets
+     * CompanyCode::suggest()'s code (from its name, next free if taken).
+     * The Add Company form requires the code (phase 2); this covers the
+     * Excel import and any other code path that creates a company
+     * without one.
      */
     protected static function booted(): void
     {
@@ -60,6 +61,18 @@ class Organization extends Model
                 );
             }
         });
+    }
+
+    /**
+     * task #118 phase 2: has this company ever given out a task number?
+     * Then its code is locked: those codes (BGS-0012) live on in emails
+     * and the audit trail. Read from the counter, which only ever goes
+     * up, rather than a task count, so a company whose tasks were all
+     * deactivated or moved to another company stays locked.
+     */
+    public function hasIssuedTaskNumbers(): bool
+    {
+        return $this->next_task_number > 1;
     }
 
     /**

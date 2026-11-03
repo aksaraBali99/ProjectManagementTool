@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "routes/web.php": {
-    "mtime": 1793632518.26855,
-    "ast_hash": "2426cfb84d671a7bc7e2243894dd2b01",
+    "mtime": 1793693059.39909,
+    "ast_hash": "d49f2f4ea30acdb64520f0f6fc254342",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "app/Models/Organization.php": {
-    "mtime": 1793689871.7164793,
-    "ast_hash": "63a0b7cd451ea78f287ef96728ff242f",
+    "mtime": 1793694929.1929328,
+    "ast_hash": "a243147ca2f4ec1451fa24f34ed23955",
     "semantic_hash": ""
   },
   "app/Models/Project.php": {
@@ -280,7 +280,7 @@
     "semantic_hash": ""
   },
   "app/Models/Task.php": {
-    "mtime": 1793687844.645705,
+    "mtime": 1793692261.8870199,
     "ast_hash": "b13ccdcf75b50399b93583b5e51e8820",
     "semantic_hash": ""
   },
@@ -455,8 +455,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/OrganizationManagementController.php": {
-    "mtime": 1793345654.3323393,
-    "ast_hash": "1147aa2b4a0210532dbbed64e461b328",
+    "mtime": 1793695206.850859,
+    "ast_hash": "8ceea084796b156a077350b3270ef2e4",
     "semantic_hash": ""
   },
   "app/Http/Controllers/RoleManagementController.php": {
@@ -485,13 +485,13 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Organizations/StoreOrganizationRequest.php": {
-    "mtime": 1787233491.642984,
-    "ast_hash": "d21e97be4bbf087a575ddba75fbe20fd",
+    "mtime": 1793693027.9728208,
+    "ast_hash": "683fde9d15bcc43b0242f76e7c37fedd",
     "semantic_hash": ""
   },
   "app/Http/Requests/Organizations/UpdateOrganizationRequest.php": {
-    "mtime": 1793345654.3340824,
-    "ast_hash": "c111bc20a64e5789046e28e53ff38f8f",
+    "mtime": 1793693039.1615126,
+    "ast_hash": "ce9b005e1ce164c42a4d8badd4cd7b76",
     "semantic_hash": ""
   },
   "app/Http/Requests/Roles/UpdateRoleRequest.php": {
@@ -560,18 +560,18 @@
     "semantic_hash": ""
   },
   "resources/views/organizations/create.blade.php": {
-    "mtime": 1789029046.556579,
-    "ast_hash": "db69b943665e8055257d2f15b405b90a",
+    "mtime": 1793693098.0197928,
+    "ast_hash": "cc543374ccfef14b4e8b0e5eb766b975",
     "semantic_hash": ""
   },
   "resources/views/organizations/edit.blade.php": {
-    "mtime": 1793345654.3876777,
-    "ast_hash": "cbb5b3289901159d15d5aa7353b77718",
+    "mtime": 1793694928.6312695,
+    "ast_hash": "ba339a376edb41ac02e24dd6c8d7b369",
     "semantic_hash": ""
   },
   "resources/views/organizations/index.blade.php": {
-    "mtime": 1787710145.1367297,
-    "ast_hash": "792fd52bad2f942e39b7cbafe9bd328d",
+    "mtime": 1793693107.2013867,
+    "ast_hash": "4df0d4477a75c1d387f6cc9dcde3d2a2",
     "semantic_hash": ""
   },
   "resources/views/roles/edit.blade.php": {
@@ -620,8 +620,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Organizations/OrganizationManagementTest.php": {
-    "mtime": 1787314752.0920749,
-    "ast_hash": "c29ac7b78ac3b83f0ddfe6ed6b64500a",
+    "mtime": 1793693117.863806,
+    "ast_hash": "c65b58987dd9a551f880ca363f3db37c",
     "semantic_hash": ""
   },
   "tests/Feature/Roles/RoleManagementTest.php": {
@@ -980,7 +980,7 @@
     "semantic_hash": ""
   },
   "app/Observers/TaskObserver.php": {
-    "mtime": 1793689878.0520685,
+    "mtime": 1793692261.8885386,
     "ast_hash": "38d784dcd61f02f85356623982a7c796",
     "semantic_hash": ""
   },
@@ -2155,7 +2155,7 @@
     "semantic_hash": ""
   },
   "database/seeders/PerformanceSeeder.php": {
-    "mtime": 1793687383.6776466,
+    "mtime": 1793692261.896837,
     "ast_hash": "c606be7e05be9ca1f7788ce989fae280",
     "semantic_hash": ""
   },
@@ -2330,8 +2330,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Organizations/CompletedWindowSettingTest.php": {
-    "mtime": 1793345654.4034493,
-    "ast_hash": "ad49dfac2e76159d9de2432a42b59ad7",
+    "mtime": 1793693125.7769525,
+    "ast_hash": "7e64aa387a268eab4de7e2ea31abd068",
     "semantic_hash": ""
   },
   "tests/Feature/Projects/ProjectsCompletedWindowTest.php": {
@@ -2390,28 +2390,43 @@
     "semantic_hash": ""
   },
   "app/Support/CompanyCode.php": {
-    "mtime": 1793687270.996731,
-    "ast_hash": "3b0cf6c6e34d30f1c865f873df7132bd",
+    "mtime": 1793694929.0353465,
+    "ast_hash": "cb5a36b68dd09ba68e2e5b6fb79c4d69",
     "semantic_hash": ""
   },
   "database/migrations/2026_11_03_000000_add_task_codes.php": {
-    "mtime": 1793689929.3599577,
+    "mtime": 1793692261.8915474,
     "ast_hash": "a62066f0c96229d1566473c471766715",
     "semantic_hash": ""
   },
   "tests/Feature/Database/TaskCodesMigrationTest.php": {
-    "mtime": 1793689902.740376,
-    "ast_hash": "5754f9b81e781782818ff543dc72a542",
+    "mtime": 1793693182.5998695,
+    "ast_hash": "3f659b865f3cb2f11d98624babb03d98",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskCodeTest.php": {
-    "mtime": 1793689887.4414475,
-    "ast_hash": "fa536b6b080de20ce8de253f71d8ed10",
+    "mtime": 1793693182.5923188,
+    "ast_hash": "f9169ceb05455464076be734c490c217",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/fixtures/task-number-worker.php": {
-    "mtime": 1793687850.2533896,
+    "mtime": 1793692261.95081,
     "ast_hash": "0e63feb8bc6b9f2288caf03c6b4dc81d",
+    "semantic_hash": ""
+  },
+  "app/Http/Requests/Organizations/Concerns/ValidatesTaskCode.php": {
+    "mtime": 1793694895.9814565,
+    "ast_hash": "c465c53c487a064d14a4e124deb299f4",
+    "semantic_hash": ""
+  },
+  "resources/views/organizations/_code-field.blade.php": {
+    "mtime": 1793694928.9124186,
+    "ast_hash": "a6e82bea648611cdace81c5e3dd319b4",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Organizations/CompanyCodeFormTest.php": {
+    "mtime": 1793695176.5586824,
+    "ast_hash": "c3071ddbd492f6b5747133138e77e48e",
     "semantic_hash": ""
   }
 }

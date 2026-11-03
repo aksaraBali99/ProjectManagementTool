@@ -78,6 +78,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
 
     Route::get('/organizations', [OrganizationManagementController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/create', [OrganizationManagementController::class, 'create'])->name('organizations.create');
+    // task #118 phase 2: the Add/Edit Company form's suggested task code.
+    Route::get('/organizations/code-suggestion', [OrganizationManagementController::class, 'codeSuggestion'])->name('organizations.code-suggestion');
     Route::post('/organizations', [OrganizationManagementController::class, 'store'])->name('organizations.store');
     Route::get('/organizations/{organization}/edit', [OrganizationManagementController::class, 'edit'])->name('organizations.edit');
     Route::put('/organizations/{organization}', [OrganizationManagementController::class, 'update'])->name('organizations.update');

@@ -157,20 +157,20 @@ test('two companies with the same mapped name would share a code, which stops th
     expect(Schema::hasColumn('organizations', 'code'))->toBeFalse();
 });
 
-test('outside production, unmapped companies get the first three letters of their name, or the next free code', function () {
+test('outside production, unmapped companies get the suggested code, or the next free one', function () {
     ($this->company)('Bali Virtual Academy');
     ($this->company)('Bali Hire');
     ($this->company)('DiagOrg');
     ($this->company)('DiagOrg');
     ($this->company)('DiagOrg2');
-    // Its first three letters are ENH, the map's code for English Hub:
-    // reserved even though English Hub isn't here, so it gets the next
-    // free one.
-    ($this->company)('Enhance Co');
+    // Its suggestion is ENH, the map's code for English Hub: reserved
+    // even though English Hub isn't here, so it gets the next free one.
+    ($this->company)('English Heritage');
 
     $this->migration->up();
 
-    expect(DB::table('organizations')->orderBy('id')->pluck('code')->all())->toBe(['BVA', 'BAL', 'DIA', 'DIG', 'DIO', 'ENA']);
+    // task #118 phase 2's suggestion rule (CompanyCode::suggest()).
+    expect(DB::table('organizations')->orderBy('id')->pluck('code')->all())->toBe(['BVA', 'BAH', 'DGR', 'DIA', 'DIG', 'ENG']);
 });
 
 test('down() removes the columns and indexes and keeps the tasks and their children', function () {

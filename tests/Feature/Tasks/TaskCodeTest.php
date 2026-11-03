@@ -177,28 +177,64 @@ test('tasks created by the Excel import get consecutive numbers after the compan
         ->and($this->bgs->fresh()->next_task_number)->toBe(6);
 });
 
-test('a company created without a code gets the default rule: first three letters, next free if taken', function () {
+test('a company created without a code (the Excel import) gets the suggestion, the next free code if taken', function () {
     $hire = Organization::create(['name' => 'Bali Hire', 'slug' => 'bali-hire', 'accent_color' => '#000000']);
-    $another = Organization::create(['name' => 'Balinese Crafts', 'slug' => 'balinese', 'accent_color' => '#000000']);
+    $holdings = Organization::create(['name' => 'Bali Holdings', 'slug' => 'bali-holdings', 'accent_color' => '#000000']);
     $given = Organization::create(['name' => 'Anything', 'slug' => 'anything', 'code' => 'ZZZ', 'accent_color' => '#000000']);
 
-    expect($hire->code)->toBe('BAL')
-        ->and($another->code)->toBe('BAI')
+    expect($hire->code)->toBe('BAH')
+        // BAH is taken, so the name's first three letters.
+        ->and($holdings->code)->toBe('BAL')
         ->and($given->code)->toBe('ZZZ')
         ->and($hire->fresh()->next_task_number)->toBe(1);
 });
 
-test('CompanyCode::suggest() tries the name\'s letters in order, then the alphabet', function () {
-    expect(CompanyCode::suggest('Bali Hire', []))->toBe('BAL')
-        ->and(CompanyCode::suggest('DiagOrg', ['DIA']))->toBe('DIG')
-        ->and(CompanyCode::suggest('DiagOrg', ['DIA', 'DIG', 'DIO', 'DIR']))->toBe('DIB')
+test('CompanyCode::suggest() reproduces every production code from its name', function (string $name, string $code) {
+    expect(CompanyCode::suggest($name, []))->toBe($code);
+})->with([
+    ['Aksara Virtual Agency', 'AVA'],
+    ['Bali Goods Sourcing', 'BGS'],
+    ['Bali Virtual Academy', 'BVA'],
+    ['English Hub', 'ENH'],
+    ['Solava', 'SLV'],
+]);
+
+test('CompanyCode::suggest(): word initials, two letters plus one, or a letter and two consonants', function () {
+    expect(CompanyCode::suggest('Bali Hire', []))->toBe('BAH')
+        ->and(CompanyCode::suggest('Perf Test Co', []))->toBe('PTC')
+        // Three or more words: the first three initials only.
+        ->and(CompanyCode::suggest('One Two Three Four', []))->toBe('OTT')
+        // One word with too few consonants: topped up from its other
+        // letters, then X.
+        ->and(CompanyCode::suggest('Aiea', []))->toBe('AIE')
+        ->and(CompanyCode::suggest('Io', []))->toBe('IOX')
+        ->and(CompanyCode::suggest('bali', []))->toBe('BLA')
+        // A one-letter first word: topped up from the name's other letters.
+        ->and(CompanyCode::suggest('A Hub', []))->toBe('AHU')
+        // Accents folded, digits and symbols ignored.
         ->and(CompanyCode::suggest('Él Café', []))->toBe('ELC')
         ->and(CompanyCode::suggest('A1', []))->toBe('AXX')
-        ->and(CompanyCode::suggest('bali', ['bal']))->toBe('BAI')
-        ->and(CompanyCode::isValid('BGS'))->toBeTrue()
+        ->and(CompanyCode::suggest('  bva  ', []))->toBe('BVA')
+        // No letters at all.
+        ->and(CompanyCode::suggest('', []))->toBe('XXX')
+        ->and(CompanyCode::suggest('!!!', ['XXX']))->toBe('XXA');
+});
+
+test('CompanyCode::suggest() falls back when the first choice is taken: first three letters, then later letters, then the alphabet', function () {
+    expect(CompanyCode::suggest('Solava', ['SLV']))->toBe('SOL')
+        ->and(CompanyCode::suggest('DiagOrg', ['DGR']))->toBe('DIA')
+        ->and(CompanyCode::suggest('DiagOrg', ['DGR', 'DIA']))->toBe('DIG')
+        ->and(CompanyCode::suggest('DiagOrg', ['DGR', 'DIA', 'DIG', 'DIO', 'DIR']))->toBe('DIB')
+        // Taken codes are compared case-insensitively.
+        ->and(CompanyCode::suggest('bali', ['bla']))->toBe('BAL');
+});
+
+test('CompanyCode::isValid() accepts exactly three uppercase letters', function () {
+    expect(CompanyCode::isValid('BGS'))->toBeTrue()
         ->and(CompanyCode::isValid('bgs'))->toBeFalse()
         ->and(CompanyCode::isValid('BG1'))->toBeFalse()
-        ->and(CompanyCode::isValid('BGSX'))->toBeFalse();
+        ->and(CompanyCode::isValid('BGSX'))->toBeFalse()
+        ->and(CompanyCode::isValid('BG'))->toBeFalse();
 });
 
 test('a company with no row cannot number a task', function () {
