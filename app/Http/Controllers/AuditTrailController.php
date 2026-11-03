@@ -48,6 +48,10 @@ class AuditTrailController extends Controller
         }
 
         $entries = $query->paginate(25)->withQueryString();
+        // task #118 phase 4: the page's tasks (with their company codes),
+        // subtasks, comments and assignees in a fixed number of queries,
+        // not one lookup per row.
+        AuditLog::primeEntityLabels($entries->getCollection());
 
         $loggedUserIds = AuditLog::query()->distinct()->pluck('user_id');
 

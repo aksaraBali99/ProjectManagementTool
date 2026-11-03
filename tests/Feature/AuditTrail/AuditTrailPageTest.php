@@ -115,7 +115,10 @@ test('the Audit Trail page filters by entity type, company, action, user, and da
 
     $byEntity = $this->actingAs($this->owner)->get('/audit-trail?entity_type=subtask');
     $byEntity->assertSee('Filter target subtask');
-    $byEntity->assertDontSee('Filter target task');
+    // task #118 phase 4: a subtask's label now starts with its parent's
+    // code and title ("… Filter target task › Filter target subtask"), so
+    // the task's own entry is told apart by its change text instead.
+    $byEntity->assertDontSee('Title: Filter target task');
 
     $byAction = $this->actingAs($this->owner)->get('/audit-trail?action=subtask.status_changed');
     $byAction->assertSee('Filter target subtask');

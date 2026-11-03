@@ -93,7 +93,8 @@ test('the mention notification links to the task edit page and names the task', 
     Notification::assertSentTo($mentioned, function (MentionedInCommentNotification $notification) {
         $data = $notification->toDatabase($notification);
 
-        return $data['message'] === 'You are mentioned in task "Ship the launch page".'
+        // task #118 phase 4: the task's code before the quoted title.
+        return $data['message'] === 'You are mentioned in task '.$this->task->fresh()->code.' "Ship the launch page".'
             && $data['link'] === route('tasks.edit', $this->task->id);
     });
 });

@@ -70,7 +70,7 @@
 
             <div>
                 <label for="task-filter-q" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</label>
-                <input id="task-filter-q" name="q" type="text" value="{{ $filters['q'] ?? '' }}" placeholder="Search title…"
+                <input id="task-filter-q" name="q" type="text" value="{{ $filters['q'] ?? '' }}" placeholder="Search title or code…"
                     class="mt-1 rounded-md border border-gray-300 px-2 py-1.5 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
             </div>
 
@@ -191,6 +191,13 @@
         </form>
 
         <x-company-tabs :organizations="$organizations" :active="$organization" route="tasks.index" :query="$tabQuery">
+        {{-- task #118 phase 4: a searched code from another company the
+             user can see. That task isn't listed here; this points there. --}}
+        @if (! empty($codeElsewhere))
+            <p class="mb-3 rounded-md bg-brand-50 px-3 py-2 text-[12px] text-brand-800">
+                <a href="{{ $codeElsewhere['url'] }}" class="font-medium hover:underline">{{ $codeElsewhere['code'] }} is in {{ $codeElsewhere['organization']->name }}.</a>
+            </p>
+        @endif
         {{-- Below md, the table becomes a stack of row-cards: each <tr>
              is a bordered block instead of a table row, and every <td>
              carries its own inline label (md:hidden) since the column
