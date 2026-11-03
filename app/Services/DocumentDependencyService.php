@@ -30,7 +30,7 @@ class DocumentDependencyService
     /**
      * @return array{
      *     linked_task_count: int,
-     *     viewable_tasks: list<array{id: int, title: string}>,
+     *     viewable_tasks: list<array{id: int, title: string, code: string|null}>,
      *     hidden_linked_task_count: int,
      *     client_project_count: int,
      * }
@@ -50,7 +50,7 @@ class DocumentDependencyService
         // Task::viewableIdsFor() — not one Gate::allows('view', $task)
         // call per linked task — see its own docblock/parity test.
         $viewableTaskIds = Task::viewableIdsFor($viewer, $linkedTaskIds)->all();
-        $viewableTasks = Task::whereIn('id', $viewableTaskIds)->orderBy('title')->get(['id', 'title']);
+        $viewableTasks = Task::whereIn('id', $viewableTaskIds)->orderBy('title')->with('organization:id,code')->get(['id', 'title', 'organization_id', 'task_number']);
 
         // "Visible to the clients of N linked projects" — N counts
         // DISTINCT PROJECTS among ALL linked tasks that have a client,
@@ -64,7 +64,7 @@ class DocumentDependencyService
 
         return [
             'linked_task_count' => count($linkedTaskIds),
-            'viewable_tasks' => $viewableTasks->map(fn (Task $task) => ['id' => $task->id, 'title' => $task->title])->values()->all(),
+            'viewable_tasks' => $viewableTasks->map(fn (Task $task) => ['id' => $task->id, 'title' => $task->title, 'code' => $task->code])->values()->all(),
             'hidden_linked_task_count' => count($linkedTaskIds) - $viewableTasks->count(),
             'client_project_count' => $clientProjectCount,
         ];
@@ -77,7 +77,7 @@ class DocumentDependencyService
      * response ("Same response shape and wording as delete", per the
      * task's own instruction).
      *
-     * @return array{message: string, linked_tasks: list<array{id: int, title: string}>, hidden_linked_task_count: int}
+     * @return array{message: string, linked_tasks: list<array{id: int, title: string, code: string|null}>, hidden_linked_task_count: int}
      */
     public function blockedResponse(array $summary): array
     {
@@ -107,7 +107,7 @@ class DocumentDependencyService
      * this when that one didn't already stop the request, so the two
      * never disagree about which is more restrictive.
      *
-     * @return array{linked_task_count:int, viewable_tasks:list<array{id:int,title:string}>, hidden_linked_task_count:int, folder_names:list<string>}|null null when nothing is affected
+     * @return array{linked_task_count:int, viewable_tasks:list<array{id:int,title:string,code:string|null}>, hidden_linked_task_count:int, folder_names:list<string>}|null null when nothing is affected
      */
     public function folderDerivedSummary(User $viewer, ?int $oldFolderId, ?int $newFolderId): ?array
     {
@@ -133,13 +133,13 @@ class DocumentDependencyService
         }
 
         $viewableTaskIds = Task::viewableIdsFor($viewer, $taskIds)->all();
-        $viewableTasks = Task::whereIn('id', $viewableTaskIds)->orderBy('title')->get(['id', 'title']);
+        $viewableTasks = Task::whereIn('id', $viewableTaskIds)->orderBy('title')->with('organization:id,code')->get(['id', 'title', 'organization_id', 'task_number']);
 
         $folderNames = DocumentFolder::whereIn('id', $folderIds)->orderBy('name')->pluck('name')->all();
 
         return [
             'linked_task_count' => count($taskIds),
-            'viewable_tasks' => $viewableTasks->map(fn (Task $task) => ['id' => $task->id, 'title' => $task->title])->values()->all(),
+            'viewable_tasks' => $viewableTasks->map(fn (Task $task) => ['id' => $task->id, 'title' => $task->title, 'code' => $task->code])->values()->all(),
             'hidden_linked_task_count' => count($taskIds) - $viewableTasks->count(),
             'folder_names' => $folderNames,
         ];
@@ -152,7 +152,7 @@ class DocumentDependencyService
      * warn-and-confirm, never a hard block: blocking would force unlinking
      * an entire folder just to remove or move one file inside it.
      *
-     * @param  array{linked_task_count:int, viewable_tasks:list<array{id:int,title:string}>, hidden_linked_task_count:int, folder_names:list<string>}  $summary
+     * @param  array{linked_task_count:int, viewable_tasks:list<array{id:int,title:string,code:string|null}>, hidden_linked_task_count:int, folder_names:list<string>}  $summary
      */
     public function folderWarningResponse(array $summary): array
     {

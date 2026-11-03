@@ -1,6 +1,6 @@
 @extends('layouts.authenticated')
 
-@section('title', 'Edit task — Solava')
+@section('title', $task->display_title.' — Solava')
 
 @section('content')
 <div class="mx-auto max-w-2xl">
@@ -18,7 +18,8 @@
     </div>
 
     <div class="mt-2 flex items-center justify-between">
-        <h1 class="text-[14px] font-medium text-[#1F2937]">Edit task</h1>
+        {{-- task #118 phase 3: "BGS-0012 · Edit task". --}}
+        <h1 class="text-[14px] font-medium text-[#1F2937]">@if ($task->code !== null)<x-task-code :task="$task" class="!font-medium" />&middot; @endif Edit task</h1>
         @if ($task->trashed())
             <span class="rounded-sm bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">Inactive</span>
         @endif
@@ -64,8 +65,20 @@
 
             <div>
                 <label for="title" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</label>
-                <input id="title" name="title" type="text" value="{{ old('title', $task->title) }}" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                {{-- task #118 phase 3: the code is a fixed prefix beside the
+                     input, never part of its value: the field still holds
+                     (and saves) the title only. --}}
+                @if ($task->code !== null)
+                    <div class="mt-1 flex">
+                        <span class="inline-flex select-none items-center whitespace-nowrap rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-[12px] tabular-nums text-gray-500" aria-hidden="true">{{ $task->code }}</span>
+                        <input id="title" name="title" type="text" value="{{ old('title', $task->title) }}" required aria-describedby="title-code"
+                            class="block w-full min-w-0 rounded-r-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    </div>
+                    <p id="title-code" class="sr-only">Task code {{ $task->code }}</p>
+                @else
+                    <input id="title" name="title" type="text" value="{{ old('title', $task->title) }}" required
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                @endif
             </div>
 
             <div>
@@ -211,7 +224,7 @@
         </script>
     @else
         <div class="mt-6 space-y-3 rounded-lg border border-gray-200 p-4 text-[12px]">
-            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Title</span><p class="mt-0.5 font-medium text-[#1F2937]">{{ $task->title }}</p></div>
+            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Title</span><p class="mt-0.5 font-medium text-[#1F2937]"><x-task-code :task="$task" />{{ $task->title }}</p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Description</span><x-rich-text :value="$task->description" empty="—" class="mt-0.5 text-gray-700" /></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Priority</span><p class="mt-1"><x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge></p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Status</span><p class="mt-1"><x-badge :background="$task->status->badgeBackground()" :text="$task->status->badgeText()">{{ $task->status->label() }}</x-badge></p></div>

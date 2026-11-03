@@ -59,7 +59,7 @@ test('the endpoint returns viewable task titles and URLs for a document the view
 
     $response->assertOk();
     expect($response->json('tasks'))->toBe([
-        ['id' => $task->id, 'title' => 'Write the report', 'url' => route('tasks.edit', $task->id)],
+        ['id' => $task->id, 'title' => 'Write the report', 'code' => $task->fresh()->code, 'url' => route('tasks.edit', $task->id)],
     ]);
     expect($response->json('viewable_total'))->toBe(1);
     expect($response->json('hidden_count'))->toBe(0);
@@ -82,7 +82,7 @@ test('a viewer who cannot see some linked tasks gets only a count for those, wit
 
     $response->assertOk();
     expect($response->json('tasks'))->toBe([
-        ['id' => $visibleTask->id, 'title' => 'Visible task', 'url' => route('tasks.edit', $visibleTask->id)],
+        ['id' => $visibleTask->id, 'title' => 'Visible task', 'code' => $visibleTask->fresh()->code, 'url' => route('tasks.edit', $visibleTask->id)],
     ]);
     expect($response->json('viewable_total'))->toBe(1);
     expect($response->json('hidden_count'))->toBe(1);
@@ -170,7 +170,7 @@ test('a deleted (soft-deleted) task never appears, and does not count toward eit
 
     $response->assertOk();
     expect($response->json('tasks'))->toBe([
-        ['id' => $activeTask->id, 'title' => 'Active task', 'url' => route('tasks.edit', $activeTask->id)],
+        ['id' => $activeTask->id, 'title' => 'Active task', 'code' => $activeTask->fresh()->code, 'url' => route('tasks.edit', $activeTask->id)],
     ]);
     expect($response->json('viewable_total'))->toBe(1);
     expect($response->json('hidden_count'))->toBe(0);
