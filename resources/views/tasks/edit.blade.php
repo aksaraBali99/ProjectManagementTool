@@ -67,17 +67,23 @@
                 <label for="title" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</label>
                 {{-- task #118 phase 3: the code is a fixed prefix beside the
                      input, never part of its value: the field still holds
-                     (and saves) the title only. --}}
-                @if ($task->code !== null)
-                    <div class="mt-1 flex">
-                        <span class="inline-flex select-none items-center whitespace-nowrap rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-[12px] tabular-nums text-gray-500" aria-hidden="true">{{ $task->code }}</span>
-                        <input id="title" name="title" type="text" value="{{ old('title', $task->title) }}" required aria-describedby="title-code"
-                            class="block w-full min-w-0 rounded-r-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                    </div>
+                     (and saves) the title only. One input, with or without
+                     the prefix. --}}
+                @php $hasCode = $task->code !== null; @endphp
+                <div class="mt-1 flex">
+                    @if ($hasCode)
+                        <span class="inline-flex select-none items-center whitespace-nowrap rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-[12px] tabular-nums text-gray-500" id="title-code-prefix" aria-hidden="true">{{ $task->code }}</span>
+                    @endif
+                    <input id="title" name="title" type="text" value="{{ old('title', $task->title) }}" required @if ($hasCode) aria-describedby="title-code" @endif
+                        class="block w-full min-w-0 {{ $hasCode ? 'rounded-r-md' : 'rounded-md' }} border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                </div>
+                @if ($hasCode)
                     <p id="title-code" class="sr-only">Task code {{ $task->code }}</p>
-                @else
-                    <input id="title" name="title" type="text" value="{{ old('title', $task->title) }}" required
-                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    {{-- Shown when the picked project belongs to another
+                         company: saving gives the task that company's next
+                         number, so the code above won't stay. --}}
+                    <p id="title-code-move" class="mt-1 text-[10px] text-gray-500" hidden
+                        data-current-organization="{{ $task->organization_id }}" data-current-code="{{ $task->code }}"></p>
                 @endif
             </div>
 
@@ -153,6 +159,7 @@
         <script>
             (function () {
                 const projectOrganizations = @json($projectOrganizations);
+                const organizationCodes = @json($organizationCodes);
                 const departmentsByOrg = @json($departmentsByOrganization);
                 const eligibleAssignees = @json($eligibleAssignees);
                 const oldDepartment = @json(old('department_id', $task->department_id));
@@ -215,6 +222,28 @@
                     });
 
                     refreshAssigneeOptions();
+                    refreshCodeNote(orgId);
+                }
+
+                // task #118: a project in another company means a new code
+                // on save (TaskObserver::updating() takes that company's
+                // next number). Say so, and show the new company's code in
+                // the prefix, so nobody saves expecting to keep the old one.
+                const codePrefix = document.getElementById('title-code-prefix');
+                const codeNote = document.getElementById('title-code-move');
+                function refreshCodeNote(orgId) {
+                    if (! codePrefix || ! codeNote) return;
+                    const current = codeNote.dataset.currentCode;
+                    const moving = String(orgId) !== codeNote.dataset.currentOrganization;
+                    const newCompanyCode = organizationCodes[orgId];
+
+                    codeNote.hidden = ! moving;
+                    codePrefix.textContent = moving && newCompanyCode ? newCompanyCode + '-…' : current;
+                    codeNote.textContent = moving
+                        ? 'This project is in another company: saving gives the task '
+                            + (newCompanyCode ? newCompanyCode + "'s" : "that company's")
+                            + ' next number, and ' + current + ' is not reused.'
+                        : '';
                 }
 
                 projectSelect.addEventListener('change', refreshDependents);

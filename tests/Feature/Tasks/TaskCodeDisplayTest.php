@@ -130,6 +130,36 @@ test('Task page (edit): tab title, header, and the code as a fixed prefix outsid
         ->toMatch('/<span class="inline-flex select-none[^"]*bg-gray-50[^"]*"[^>]*>BGS-0001<\/span>\s*<input id="title" name="title" type="text" value="Fix invoice PDF layout"/');
 });
 
+test('Task page (edit): one Title input, with or without the code prefix', function () {
+    $html = $this->actingAs($this->management)->get(route('tasks.edit', $this->task))->assertOk()->getContent();
+    expect(substr_count($html, 'name="title"'))->toBe(1)
+        ->and($html)->toContain('id="title-code-prefix"');
+
+    // No code (SQLite keeps the column nullable): the same single input,
+    // with no prefix and no move note.
+    DB::table('tasks')->where('id', $this->task->id)->update(['task_number' => null]);
+    $html = $this->actingAs($this->management)->get(route('tasks.edit', $this->task))->assertOk()->getContent();
+    expect(substr_count($html, 'name="title"'))->toBe(1)
+        ->and($html)->not->toContain('id="title-code-prefix"')
+        ->not->toContain('id="title-code-move"')
+        ->toMatch('/<input id="title" name="title" type="text" value="Fix invoice PDF layout" required\s+class="block w-full min-w-0 rounded-md /');
+});
+
+test('Task page (edit): the form knows each company\'s code, to warn that a project in another company means a new code', function () {
+    $other = Organization::create(['name' => 'Solava', 'slug' => 'slv', 'code' => 'SLV', 'accent_color' => '#000000']);
+    Project::create(['organization_id' => $other->id, 'name' => 'Platform', 'description' => 'd']);
+    OrgMember::create(['organization_id' => $other->id, 'user_id' => $this->management->id, 'role_id' => Role::where('slug', 'management')->firstOrFail()->id]);
+
+    $html = $this->actingAs($this->management)->get(route('tasks.edit', $this->task))->assertOk()->getContent();
+
+    // The note starts hidden, carrying the task's current company and code;
+    // the script shows it when the picked project's company differs.
+    expect($html)->toMatch('/<p id="title-code-move" class="[^"]*" hidden\s+data-current-organization="'.$this->org->id.'" data-current-code="BGS-0001"><\/p>/')
+        ->toContain('const organizationCodes = {"'.$this->org->id.'":"BGS","'.$other->id.'":"SLV"};')
+        ->toContain('This project is in another company: saving gives the task ')
+        ->toContain('refreshCodeNote(orgId);');
+});
+
 test('Task page (read-only view): the code before the title', function () {
     // A client on the project sees the task read-only.
     $client = User::factory()->create();

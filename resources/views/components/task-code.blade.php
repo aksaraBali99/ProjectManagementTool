@@ -5,8 +5,9 @@
     trailing space is inside the no-wrap span, so the code never sits on
     a line of its own and the title follows after one space.
 
-    The task's organization should be eager-loaded ('organization:id,code')
-    wherever tasks are listed.
+    Wherever tasks are listed, give them their company first:
+    Task::useOrganization() when the page already has it, else eager-load
+    'organization:id,code'.
 --}}
 @props(['task'])
 @if ($task->code !== null)<span {{ $attributes->class('task-code whitespace-nowrap font-normal tabular-nums text-gray-500') }}>{{ $task->code }} </span>@endif

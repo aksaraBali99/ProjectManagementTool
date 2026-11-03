@@ -94,7 +94,9 @@ class KanbanController extends Controller
         // Loading mutates the models in place, so each column's own
         // collection sees the relations too.
         $rendered = new EloquentCollection($tasksByStatus->flatten(1)->all());
-        $rendered->load(['project', 'department', 'assignee', 'organization:id,code']);
+        $rendered->load(['project', 'department', 'assignee']);
+        // task #118: their codes from the company this board already has.
+        Task::useOrganization($rendered, $organization);
 
         $showAllCompleted = $since === null;
         $columns = collect(TaskStatus::cases())->map(function (TaskStatus $status) use ($tasksByStatus, $totals, $completedOlder, $showAllCompleted) {
@@ -192,7 +194,7 @@ class KanbanController extends Controller
             $tasks = (clone $visible)
                 ->whereIn('tasks.id', $changedIds)
                 ->when($window, fn (Builder $query) => $query->openOrCompletedWithin($window))
-                ->with(['project', 'department', 'assignee', 'organization:id,code'])
+                ->with(['project', 'department', 'assignee'])
                 ->get();
 
             $cards = $this->renderCards($tasks, $organization)
@@ -255,7 +257,7 @@ class KanbanController extends Controller
         $total = $columnQuery->count();
 
         $tasks = $this->columnPage($visible, $status, $offset, $since);
-        $tasks->load(['project', 'department', 'assignee', 'organization:id,code']);
+        $tasks->load(['project', 'department', 'assignee']);
 
         $html = $this->renderCards($tasks, $organization)->pluck('html')->implode('');
 
@@ -303,6 +305,8 @@ class KanbanController extends Controller
      */
     private function renderCards(EloquentCollection $tasks, Organization $organization): Collection
     {
+        // task #118: the cards' codes from the board's own company, no query.
+        Task::useOrganization($tasks, $organization);
         $eligibleAssignees = $this->eligibleAssigneesByTask($tasks);
         $returnTo = route('kanban', $organization);
 

@@ -57,12 +57,34 @@ class Task extends Model
      * HTML places use <x-task-code> before the title instead. Never
      * stored: tasks.title stays the title only.
      *
-     * Wherever tasks are listed, eager-load 'organization:id,code', or
-     * each task loads its company separately.
+     * Wherever tasks are listed, give them their company first —
+     * Task::useOrganization() when the page already has it, else eager-load
+     * 'organization:id,code' — or each task loads its company separately.
      */
     protected function displayTitle(): Attribute
     {
         return Attribute::get(fn () => $this->code === null ? $this->title : $this->code.' '.$this->title);
+    }
+
+    /**
+     * task #118 phase 3: gives every task in $tasks the company the page
+     * already has, so their codes cost no query at all. For pages that
+     * list one company's tasks (Kanban, the Tasks list, Dashboard,
+     * Calendar, a project's drilldown); elsewhere eager-load
+     * 'organization:id,code'. Every task must belong to $organization.
+     *
+     * @template T of iterable<Task>
+     *
+     * @param  T  $tasks
+     * @return T
+     */
+    public static function useOrganization(iterable $tasks, Organization $organization): iterable
+    {
+        foreach ($tasks as $task) {
+            $task->setRelation('organization', $organization);
+        }
+
+        return $tasks;
     }
 
     /**

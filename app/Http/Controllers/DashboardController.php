@@ -114,7 +114,9 @@ class DashboardController extends Controller
         (new EloquentCollection($priorityGroups->flatten(1)->all()))
             ->concat($activeTasks)
             ->concat($myTasks)
-            ->load(['project', 'department', 'assignee', 'organization:id,code']);
+            ->load(['project', 'department', 'assignee'])
+            // task #118: their codes from the company tab already loaded.
+            ->each->setRelation('organization', $organization);
 
         if ($myTaskMode === 'staff') {
             // ONLY this user's subtasks, not all of them: the one reader is

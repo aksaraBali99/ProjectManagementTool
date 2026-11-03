@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DashboardController.php": {
-    "mtime": 1793699505.0316818,
-    "ast_hash": "7d277d80f196beb0176cbbdbf21b7403",
+    "mtime": 1793702025.9211679,
+    "ast_hash": "1693a51ba502f3a2cc74a23c81184c57",
     "semantic_hash": ""
   },
   "app/Http/Middleware/EnsureBelongsToOrganization.php": {
@@ -280,8 +280,8 @@
     "semantic_hash": ""
   },
   "app/Models/Task.php": {
-    "mtime": 1793699505.0465038,
-    "ast_hash": "6fe98c15feaa3fb39056add52fc3d35b",
+    "mtime": 1793702119.12108,
+    "ast_hash": "3daab6b737228ccf8f1ead042fda23e9",
     "semantic_hash": ""
   },
   "app/Policies/CommentPolicy.php": {
@@ -405,7 +405,7 @@
     "semantic_hash": ""
   },
   "resources/views/dashboard.blade.php": {
-    "mtime": 1793699505.0561,
+    "mtime": 1793700435.97526,
     "ast_hash": "596881dc705957be7e4cf365224fbcda",
     "semantic_hash": ""
   },
@@ -655,8 +655,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/ProjectManagementController.php": {
-    "mtime": 1793699505.034195,
-    "ast_hash": "59a5e9504b20d33d165c69d1b9b3b8a3",
+    "mtime": 1793702025.9241962,
+    "ast_hash": "25041e4eb6d850a5ee83c5a3245ea941",
     "semantic_hash": ""
   },
   "app/Http/Requests/Projects/StoreProjectRequest.php": {
@@ -705,7 +705,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
-    "mtime": 1793699505.034195,
+    "mtime": 1793700435.8897939,
     "ast_hash": "7019b8b5d4471eb91ed58c3e89cb6069",
     "semantic_hash": ""
   },
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1793699505.0402985,
-    "ast_hash": "23cb85072a8a47e5867ad021bd7d0717",
+    "mtime": 1793702025.9186592,
+    "ast_hash": "9868358921f36d1280e81f174d72719f",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -800,12 +800,12 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1793699505.0682726,
-    "ast_hash": "cfb6d5307d6ad734d1439ba5a4845bd1",
+    "mtime": 1793701974.649402,
+    "ast_hash": "334931411bee77957c9109aa71786a2b",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
-    "mtime": 1793699505.0702844,
+    "mtime": 1793700435.9897313,
     "ast_hash": "c02adf46066df930d587826223a611c0",
     "semantic_hash": ""
   },
@@ -885,8 +885,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/KanbanController.php": {
-    "mtime": 1793699505.034195,
-    "ast_hash": "85ac2946285494b5e5a02f4fd0b2a920",
+    "mtime": 1793702025.9166603,
+    "ast_hash": "07aeeabbff4087260ad9e3cb4c7a404c",
     "semantic_hash": ""
   },
   "resources/views/kanban.blade.php": {
@@ -915,7 +915,7 @@
     "semantic_hash": ""
   },
   "resources/views/documents/index.blade.php": {
-    "mtime": 1793699505.06115,
+    "mtime": 1793700435.9783392,
     "ast_hash": "d4744262f32e66fac828f935eb0b7670",
     "semantic_hash": ""
   },
@@ -1070,8 +1070,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/CalendarController.php": {
-    "mtime": 1793699505.0296667,
-    "ast_hash": "d3a9a281f27a592ded3c0cd93adf2450",
+    "mtime": 1793702025.922181,
+    "ast_hash": "d9ae26c083253bf55cdf4203e56ea6d7",
     "semantic_hash": ""
   },
   "resources/views/analytics.blade.php": {
@@ -1080,7 +1080,7 @@
     "semantic_hash": ""
   },
   "resources/views/calendar.blade.php": {
-    "mtime": 1793699505.0540502,
+    "mtime": 1793700435.9689834,
     "ast_hash": "453375499f4b7e8e9856cc2e677baa4f",
     "semantic_hash": ""
   },
@@ -1895,7 +1895,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Kanban/KanbanCardLayoutTest.php": {
-    "mtime": 1793699505.0874515,
+    "mtime": 1793700435.9972572,
     "ast_hash": "ca43c4b01c8f1bdc04cb5f73343cf565",
     "semantic_hash": ""
   },
@@ -1965,17 +1965,17 @@
     "semantic_hash": ""
   },
   "app/Services/DocumentDependencyService.php": {
-    "mtime": 1793699505.0500264,
+    "mtime": 1793700435.8992069,
     "ast_hash": "7feedd3e36be1e5eb57b2448a35ee777",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentDeleteTest.php": {
-    "mtime": 1793699505.0738084,
+    "mtime": 1793700435.991732,
     "ast_hash": "d4b8727fb16ddefc0b7bf675e28b420e",
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentEditTest.php": {
-    "mtime": 1793699505.0817568,
+    "mtime": 1793700435.99324,
     "ast_hash": "3f6df01918865285f86985aa39212a6e",
     "semantic_hash": ""
   },
@@ -2005,7 +2005,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Documents/DocumentLinkedTasksPopoverTest.php": {
-    "mtime": 1793699505.0848453,
+    "mtime": 1793700435.995258,
     "ast_hash": "cdf30ec12b96c68ab51306f1d12ea33b",
     "semantic_hash": ""
   },
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Performance/PageQueryCountTest.php": {
-    "mtime": 1793699505.0900326,
-    "ast_hash": "4fca7a39cfa8e22e99defe44fcd6cad7",
+    "mtime": 1793702049.4810224,
+    "ast_hash": "519ece152662573991ff81141ae3b68b",
     "semantic_hash": ""
   },
   "tests/Feature/Performance/PerformanceBaselineCommandTest.php": {
@@ -2270,7 +2270,7 @@
     "semantic_hash": ""
   },
   "resources/views/kanban/_card.blade.php": {
-    "mtime": 1793699505.0642078,
+    "mtime": 1793700435.9827127,
     "ast_hash": "32f7c6324e12e011550c9565c370536d",
     "semantic_hash": ""
   },
@@ -2375,7 +2375,7 @@
     "semantic_hash": ""
   },
   "resources/views/projects/_tasks.blade.php": {
-    "mtime": 1793699505.0662594,
+    "mtime": 1793700435.9848275,
     "ast_hash": "9e17840bec65da5bcca64219a28af561",
     "semantic_hash": ""
   },
@@ -2430,13 +2430,13 @@
     "semantic_hash": ""
   },
   "resources/views/components/task-code.blade.php": {
-    "mtime": 1793698372.156953,
-    "ast_hash": "f90cac58fb42ff3aece8960b2f89d5e3",
+    "mtime": 1793702119.12108,
+    "ast_hash": "61b7ef4593909c3602d313f2ef30898a",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskCodeDisplayTest.php": {
-    "mtime": 1793699153.7906408,
-    "ast_hash": "9f91fa9c9229199f5479f4e5cbb33f60",
+    "mtime": 1793702222.340466,
+    "ast_hash": "eb33ffc43880ad2e70b3f918c44b6087",
     "semantic_hash": ""
   }
 }
