@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Enums\TaskStatus;
 use App\Models\AuditLog;
+use App\Models\Organization;
 use App\Models\Task;
 use App\Observers\Concerns\TagsImportBatch;
 use App\Services\AuditEventNotifier;
@@ -63,6 +64,30 @@ class TaskObserver
         }
     }
 
+    /**
+     * task #118: every new task takes its company's next task number
+     * (Organization::takeNextTaskNumber()), whatever creates it: the Add
+     * Task form, the Excel import, or code.
+     */
+    public function creating(Task $task): void
+    {
+        if ($task->task_number === null) {
+            $task->task_number = Organization::takeNextTaskNumber($task->organization_id);
+        }
+    }
+
+    /**
+     * task #118: a task moved to another company's project gets that
+     * company's next number (its code changes, e.g. BGS-0012 to
+     * SLV-0034). Its old number stays used in the old company.
+     */
+    public function updating(Task $task): void
+    {
+        if ($task->isDirty('organization_id')) {
+            $task->task_number = Organization::takeNextTaskNumber($task->organization_id);
+        }
+    }
+
     public function created(Task $task): void
     {
         $this->log($task, 'task.created', collect($task->getAttributes())->only([
@@ -108,6 +133,17 @@ class TaskObserver
         };
 
         $this->log($task, $action, $diff);
+
+        // task #118: a company move changes the task's code, so the trail
+        // gets its own "code changed" row, old code to new.
+        if (array_key_exists('organization_id', $changes)) {
+            $codes = Organization::withoutGlobalScopes()->whereIn('id', [$original['organization_id'], $task->organization_id])->pluck('code', 'id');
+
+            $this->log($task, 'task.code_changed', ['code' => [
+                'old' => Task::formatCode($codes[$original['organization_id']] ?? null, $original['task_number'] ?? null),
+                'new' => Task::formatCode($codes[$task->organization_id] ?? null, $task->task_number),
+            ]]);
+        }
     }
 
     public function deleted(Task $task): void

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\CompanyCode;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -236,6 +237,9 @@ class PerformanceSeeder extends Seeder
         $id = DB::table('organizations')->insertGetId([
             'name' => self::COMPANY_NAME,
             'slug' => self::COMPANY_SLUG,
+            // task #118: raw inserts skip Organization::creating(), so the
+            // code is set here with the same default rule.
+            'code' => CompanyCode::suggest(self::COMPANY_NAME, DB::table('organizations')->pluck('code')),
             'accent_color' => '#1D9E75',
             'is_active' => true,
             'created_at' => now(),
@@ -476,6 +480,10 @@ class PerformanceSeeder extends Seeder
 
             $rows[] = [
                 'organization_id' => $organization->id,
+                // task #118: raw inserts skip TaskObserver::creating(), so
+                // the company's numbers are given here, 1..N in insert
+                // order (= id order), and its counter set after.
+                'task_number' => $i + 1,
                 'project_id' => $project['id'],
                 'department_id' => $department['id'],
                 'assignee_id' => $assigneeId,
@@ -506,6 +514,7 @@ class PerformanceSeeder extends Seeder
 
         $firstId = $this->insertChunkedWithIds('tasks', $rows);
         $this->counts['tasks'] = count($rows);
+        DB::table('organizations')->where('id', $organization->id)->update(['next_task_number' => count($rows) + 1]);
 
         $tasks = [];
         foreach ($meta as $offset => $entry) {

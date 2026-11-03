@@ -10,6 +10,7 @@ use DateTimeInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -34,7 +35,33 @@ class Task extends Model
             'completed_at' => 'datetime',
             'priority' => Priority::class,
             'status' => TaskStatus::class,
+            'task_number' => 'integer',
         ];
+    }
+
+    /**
+     * task #118: the task's code, e.g. BGS-0012: its company's 3-letter
+     * code and its number within that company (TaskObserver::creating()).
+     * Null only for a task with no company or number, which the database
+     * doesn't allow.
+     */
+    protected function code(): Attribute
+    {
+        return Attribute::get(fn () => self::formatCode($this->organization?->code, $this->task_number));
+    }
+
+    /**
+     * The one place the task code's format lives: the company code, a
+     * hyphen, and the number padded to four digits. Never truncated —
+     * 10000 is SLV-10000.
+     */
+    public static function formatCode(?string $organizationCode, ?int $taskNumber): ?string
+    {
+        if ($organizationCode === null || $taskNumber === null) {
+            return null;
+        }
+
+        return sprintf('%s-%04d', $organizationCode, $taskNumber);
     }
 
     public function project(): BelongsTo
