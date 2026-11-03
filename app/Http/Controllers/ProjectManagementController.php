@@ -154,11 +154,11 @@ class ProjectManagementController extends Controller
         // completed) versus "No tasks on this project yet".
         $hasOlderTasks = $shownCount === 0 && $since && $visible()->exists();
 
-        $tasks = $shown()
-            ->with(['department', 'assignee', 'organization:id,code'])
+        $tasks = Task::useOrganization($shown()
+            ->with(['department', 'assignee'])
             ->orderByDueSoonest()
             ->limit(self::DRILLDOWN_LIMIT)
-            ->get();
+            ->get(), $organization); // task #118: codes from the project's company, no query
 
         return view('projects._tasks', [
             'organization' => $organization,

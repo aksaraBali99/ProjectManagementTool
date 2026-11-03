@@ -83,7 +83,7 @@ class TaskManagementController extends Controller
         // row, which rendered for every task whether it was ever opened or
         // not; the drilldown now fetches tasks.preview on first open, so
         // nothing on this page reads them.
-        $query = $visibleScope()->with(['project', 'department', 'assignee', 'organization:id,code']);
+        $query = $visibleScope()->with(['project', 'department', 'assignee']);
 
         if ($showInactive) {
             $query->withTrashed();
@@ -149,7 +149,9 @@ class TaskManagementController extends Controller
         $this->applyListOrder($query, $sort, $direction);
 
         $tasks = (new LengthAwarePaginator(
-            $query->forPage($page, $perPage)->get(),
+            // task #118: the rows' codes from the company tab already
+            // loaded, no query.
+            Task::useOrganization($query->forPage($page, $perPage)->get(), $organization),
             $total,
             $perPage,
             $page,
@@ -906,6 +908,9 @@ class TaskManagementController extends Controller
 
         return [
             'projectOrganizations' => $projects->pluck('organization_id', 'id')->all(),
+            // task #118: each offered company's task code, so the edit form
+            // can say which company's number a project switch will give.
+            'organizationCodes' => Organization::whereIn('id', $organizationIds)->pluck('code', 'id')->all(),
             'departmentsByOrganization' => $departmentsByOrganization,
             'eligibleAssignees' => $this->eligibleAssigneesByProjectAndDepartment($projects, $departmentsByOrganization),
         ];
