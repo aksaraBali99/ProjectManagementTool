@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "app/Models/Organization.php": {
-    "mtime": 1793687731.2259996,
-    "ast_hash": "71abc4a296e4f42262dcc879a7b3ec83",
+    "mtime": 1793689871.7164793,
+    "ast_hash": "63a0b7cd451ea78f287ef96728ff242f",
     "semantic_hash": ""
   },
   "app/Models/Project.php": {
@@ -980,8 +980,8 @@
     "semantic_hash": ""
   },
   "app/Observers/TaskObserver.php": {
-    "mtime": 1793687352.5840259,
-    "ast_hash": "7430e1395447786bc424f8d9bfd794e9",
+    "mtime": 1793689878.0520685,
+    "ast_hash": "38d784dcd61f02f85356623982a7c796",
     "semantic_hash": ""
   },
   "app/Policies/AuditLogPolicy.php": {
@@ -2395,18 +2395,18 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_11_03_000000_add_task_codes.php": {
-    "mtime": 1793687304.1786196,
-    "ast_hash": "ea928fefc88352030a70b3f4382dddf2",
+    "mtime": 1793689929.3599577,
+    "ast_hash": "a62066f0c96229d1566473c471766715",
     "semantic_hash": ""
   },
   "tests/Feature/Database/TaskCodesMigrationTest.php": {
-    "mtime": 1793687847.6707618,
-    "ast_hash": "ec9fa90f43287befc2f3fc34fe9068a5",
+    "mtime": 1793689902.740376,
+    "ast_hash": "5754f9b81e781782818ff543dc72a542",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskCodeTest.php": {
-    "mtime": 1793687850.4223127,
-    "ast_hash": "d101555675c46e1d0c57aa8553d53074",
+    "mtime": 1793689887.4414475,
+    "ast_hash": "fa536b6b080de20ce8de253f71d8ed10",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/fixtures/task-number-worker.php": {

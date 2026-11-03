@@ -44,24 +44,40 @@ return new class extends Migration
         'Solava' => 'SLV',
     ];
 
+    /**
+     * Safe to run again after a failure part-way: MySQL commits each
+     * schema change on its own, so a step that fails (a lock timeout on
+     * the NOT NULL change, say) would otherwise leave the earlier columns
+     * behind and the next `migrate` dying on "Duplicate column". Every
+     * step checks whether it has already happened, and the codes and
+     * numbers are recomputed in full, the same way each time.
+     */
     public function up(): void
     {
         // Every check runs before the first schema change, so a failure
         // leaves the database untouched.
         $codes = $this->resolveCodes();
 
-        Schema::table('organizations', function (Blueprint $table) {
-            $table->char('code', 3)->nullable()->after('slug');
-            $table->unsignedInteger('next_task_number')->default(1)->after('completed_window_days');
-        });
+        if (! Schema::hasColumn('organizations', 'code')) {
+            Schema::table('organizations', function (Blueprint $table) {
+                $table->char('code', 3)->nullable()->after('slug');
+            });
+        }
+        if (! Schema::hasColumn('organizations', 'next_task_number')) {
+            Schema::table('organizations', function (Blueprint $table) {
+                $table->unsignedInteger('next_task_number')->default(1)->after('completed_window_days');
+            });
+        }
 
         foreach ($codes as $organizationId => $code) {
             DB::table('organizations')->where('id', $organizationId)->update(['code' => $code]);
         }
 
-        Schema::table('tasks', function (Blueprint $table) {
-            $table->unsignedInteger('task_number')->nullable()->after('organization_id');
-        });
+        if (! Schema::hasColumn('tasks', 'task_number')) {
+            Schema::table('tasks', function (Blueprint $table) {
+                $table->unsignedInteger('task_number')->nullable()->after('organization_id');
+            });
+        }
 
         $this->numberTasks();
 
@@ -74,12 +90,16 @@ return new class extends Migration
             });
         }
 
-        Schema::table('organizations', function (Blueprint $table) {
-            $table->unique('code');
-        });
-        Schema::table('tasks', function (Blueprint $table) {
-            $table->unique(['organization_id', 'task_number']);
-        });
+        if (! Schema::hasIndex('organizations', ['code'], 'unique')) {
+            Schema::table('organizations', function (Blueprint $table) {
+                $table->unique('code');
+            });
+        }
+        if (! Schema::hasIndex('tasks', ['organization_id', 'task_number'], 'unique')) {
+            Schema::table('tasks', function (Blueprint $table) {
+                $table->unique(['organization_id', 'task_number']);
+            });
+        }
     }
 
     public function down(): void
@@ -154,8 +174,9 @@ return new class extends Migration
 
     /**
      * Each company's tasks numbered 1..N in id order, soft-deleted ones
-     * included, in chunks in PHP (no window functions), then each
-     * counter set to max + 1 (1 for a company with no tasks).
+     * included, in chunks of 500 in PHP (no window functions), one
+     * UPDATE per chunk, then each counter set to max + 1 (1 for a
+     * company with no tasks).
      */
     private function numberTasks(): void
     {
@@ -166,9 +187,17 @@ return new class extends Migration
                 ->where('organization_id', $organizationId)
                 ->select('id')
                 ->chunkById(500, function ($tasks) use (&$number) {
+                    // CASE id WHEN 41 THEN 1 WHEN 57 THEN 2 ... END: the ids
+                    // and numbers are integers from this loop, cast again
+                    // before they go into the SQL.
+                    $cases = '';
                     foreach ($tasks as $task) {
-                        DB::table('tasks')->where('id', $task->id)->update(['task_number' => ++$number]);
+                        $cases .= ' WHEN '.(int) $task->id.' THEN '.++$number;
                     }
+
+                    DB::table('tasks')
+                        ->whereIn('id', $tasks->pluck('id'))
+                        ->update(['task_number' => DB::raw("CASE id{$cases} END")]);
                 });
 
             DB::table('organizations')->where('id', $organizationId)->update(['next_task_number' => $number + 1]);

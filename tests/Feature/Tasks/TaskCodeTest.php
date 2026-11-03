@@ -108,6 +108,21 @@ test('moving a task to another company gives it that company\'s next number and 
     expect($entry->changes)->toBe(['code' => ['old' => 'BGS-0003', 'new' => 'SLV-0003']])
         ->and($entry->organization_id)->toBe($this->slv->id)
         ->and($entry->describeChanges())->toContain('BGS-0003')->toContain('SLV-0003');
+
+    // The move's own update entry has the company and project, but not a
+    // bare task number: the code-changed entry tells that.
+    $update = AuditLog::where('entity_id', $task->id)->where('action', 'task.updated')->sole();
+    expect($update->changes)->toHaveKeys(['organization_id', 'project_id'])
+        ->not->toHaveKey('task_number');
+});
+
+test('the "task created" audit entry records the number the task was created with', function () {
+    $this->actingAs($this->owner);
+    makeCodedTask($this, 'bgs');
+    $task = makeCodedTask($this, 'bgs');
+
+    $entry = AuditLog::where('entity_id', $task->id)->where('action', 'task.created')->sole();
+    expect($entry->changes['task_number'])->toBe(2);
 });
 
 test('moving through the Edit Task form takes the new company\'s number too', function () {

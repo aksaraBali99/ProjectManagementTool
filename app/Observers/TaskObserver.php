@@ -90,8 +90,10 @@ class TaskObserver
 
     public function created(Task $task): void
     {
+        // task_number (task #118): so every task's audit history shows the
+        // code it was created with, moved or not.
         $this->log($task, 'task.created', collect($task->getAttributes())->only([
-            'project_id', 'department_id', 'assignee_id', 'title', 'priority', 'status', 'due_date', 'start_date',
+            'task_number', 'project_id', 'department_id', 'assignee_id', 'title', 'priority', 'status', 'due_date', 'start_date',
         ])->all());
     }
 
@@ -121,9 +123,14 @@ class TaskObserver
         }
 
         $original = $task->getOriginal();
-        $diff = collect($changes)->mapWithKeys(fn ($value, $key) => [
-            $key => ['old' => $original[$key] ?? null, 'new' => $value],
-        ])->all();
+        $diff = collect($changes)
+            // task #118: a company move's new number is told by the
+            // "code changed" row below (BGS-0003 to SLV-0003), not as a
+            // bare "Task Number changed from 3 to 3" here.
+            ->except('task_number')
+            ->mapWithKeys(fn ($value, $key) => [
+                $key => ['old' => $original[$key] ?? null, 'new' => $value],
+            ])->all();
 
         $action = match (true) {
             array_key_exists('assignee_id', $changes) => 'task.reassigned',
@@ -132,7 +139,9 @@ class TaskObserver
             default => 'task.updated',
         };
 
-        $this->log($task, $action, $diff);
+        if ($diff) {
+            $this->log($task, $action, $diff);
+        }
 
         // task #118: a company move changes the task's code, so the trail
         // gets its own "code changed" row, old code to new.

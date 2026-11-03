@@ -192,6 +192,59 @@ test('down() removes the columns and indexes and keeps the tasks and their child
     expect(DB::table('tasks')->value('task_number'))->toBe(1);
 });
 
+test('after a failure part-way, running up() again finishes the job instead of dying on "duplicate column"', function () {
+    $bgs = ($this->company)('Bali Goods Sourcing');
+    $slv = ($this->company)('Solava');
+    ($this->task)($bgs);
+    ($this->task)($slv);
+    ($this->task)($bgs);
+
+    // The state a failure after the first steps would leave on MySQL
+    // (each schema change commits on its own): the company columns and
+    // the task column exist, some codes and numbers are set, no indexes.
+    Schema::table('organizations', function ($table) {
+        $table->char('code', 3)->nullable();
+        $table->unsignedInteger('next_task_number')->default(1);
+    });
+    Schema::table('tasks', function ($table) {
+        $table->unsignedInteger('task_number')->nullable();
+    });
+    DB::table('organizations')->where('id', $bgs)->update(['code' => 'BGS']);
+    DB::table('tasks')->where('organization_id', $bgs)->orderBy('id')->limit(1)->update(['task_number' => 1]);
+
+    $this->migration->up();
+
+    expect(DB::table('organizations')->orderBy('id')->pluck('code')->all())->toBe(['BGS', 'SLV'])
+        ->and(DB::table('tasks')->orderBy('id')->pluck('task_number')->all())->toBe([1, 1, 2])
+        ->and((int) DB::table('organizations')->where('id', $bgs)->value('next_task_number'))->toBe(3)
+        ->and(Schema::hasIndex('organizations', ['code'], 'unique'))->toBeTrue()
+        ->and(Schema::hasIndex('tasks', ['organization_id', 'task_number'], 'unique'))->toBeTrue();
+
+    // And once more on a finished database: nothing to do, nothing breaks.
+    $this->migration->up();
+    expect(DB::table('tasks')->orderBy('id')->pluck('task_number')->all())->toBe([1, 1, 2]);
+});
+
+test('numbering works across chunks: 1,203 tasks in one company are 1..1,203 in id order', function () {
+    $bgs = ($this->company)('Bali Goods Sourcing');
+    $slv = ($this->company)('Solava');
+    ($this->task)($slv);
+    $project = DB::table('projects')->insertGetId(['organization_id' => $bgs, 'name' => 'P', 'description' => 'd', 'created_at' => now(), 'updated_at' => now()]);
+    $department = DB::table('departments')->insertGetId(['organization_id' => $bgs, 'name' => 'D', 'color' => '#000000', 'created_at' => now(), 'updated_at' => now()]);
+    foreach (array_chunk(range(1, 1203), 300) as $chunk) {
+        DB::table('tasks')->insert(array_map(fn () => [
+            'organization_id' => $bgs, 'project_id' => $project, 'department_id' => $department,
+            'title' => 'T', 'priority' => 'medium', 'status' => 'pending', 'created_at' => now(), 'updated_at' => now(),
+        ], $chunk));
+    }
+
+    $this->migration->up();
+
+    expect(DB::table('tasks')->where('organization_id', $bgs)->orderBy('id')->pluck('task_number')->all())->toBe(range(1, 1203))
+        ->and(DB::table('tasks')->where('organization_id', $slv)->value('task_number'))->toBe(1)
+        ->and((int) DB::table('organizations')->where('id', $bgs)->value('next_task_number'))->toBe(1204);
+});
+
 test('the unique indexes are in place: no two companies share a code, no two tasks in a company share a number', function () {
     $bgs = ($this->company)('Bali Goods Sourcing');
     ($this->task)($bgs);

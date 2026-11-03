@@ -69,12 +69,14 @@ class Organization extends Model
      * or is later deactivated.
      *
      * The counter is incremented first and read after, in one
-     * transaction: the UPDATE takes the company row's exclusive lock on
-     * MySQL (as SELECT ... FOR UPDATE would) and the write lock on SQLite
-     * straight away, so a concurrent create waits instead of reading the
-     * same value. Locking with a read first would deadlock on SQLite (two
-     * readers can't both upgrade). The unique (organization_id,
-     * task_number) index is the backstop.
+     * transaction. The UPDATE is what makes this safe: it takes the
+     * company row's exclusive lock on MySQL (as SELECT ... FOR UPDATE
+     * would) and the write lock on SQLite straight away, held until the
+     * transaction ends, so a concurrent create waits instead of reading
+     * the same value. The read after it needs no lock of its own.
+     * Locking with a read first would deadlock on SQLite (two readers
+     * can't both upgrade). The unique (organization_id, task_number)
+     * index is the backstop.
      */
     public static function takeNextTaskNumber(int $organizationId): int
     {
@@ -84,7 +86,7 @@ class Organization extends Model
                 throw new RuntimeException("Company {$organizationId} doesn't exist, so a task in it can't be numbered.");
             }
 
-            return (int) DB::table('organizations')->where('id', $organizationId)->lockForUpdate()->value('next_task_number') - 1;
+            return (int) DB::table('organizations')->where('id', $organizationId)->value('next_task_number') - 1;
         });
     }
 
