@@ -37,7 +37,8 @@ final class CompanyCode
      *       (Solava -> SLV), topped up from its remaining letters when
      *       it has fewer;
      *     padded from the name's other letters, then X, if short. This
-     *     reproduces every production code in the task #118 migration;
+     *     reproduces AVA, BGS and BVA in the task #118 migration; English
+     *     Hub's EHU and Solava's SOL were chosen by hand;
      *  2. the name's first three letters;
      *  3. its first two letters plus each later letter of the name;
      *  4. its first two letters plus A..Z, then its first letter plus

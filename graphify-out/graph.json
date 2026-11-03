@@ -264,17 +264,17 @@
       "norm_label": "urlssrfguard"
     },
     {
-      "label": "LinkPreviewController",
+      "label": "ImportController",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/LinkPreviewController.php",
-      "source_location": "L36",
+      "source_file": "app/Http/Controllers/ImportController.php",
+      "source_location": "L20",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_http_controllers_linkpreviewcontroller_linkpreviewcontroller",
+      "id": "app_http_controllers_importcontroller_importcontroller",
       "community": 114,
-      "community_name": "LinkPreviewController.php",
-      "norm_label": "linkpreviewcontroller"
+      "community_name": "ImportController.php",
+      "norm_label": "importcontroller"
     },
     {
       "label": "CommentReactionController",
@@ -420,6 +420,45 @@
       "norm_label": "storedepartmentrequest"
     },
     {
+      "label": "TaskPriorityColor",
+      "file_type": "code",
+      "source_file": "app/Models/TaskPriorityColor.php",
+      "source_location": "L8",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_models_taskprioritycolor_taskprioritycolor",
+      "community": 119,
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "taskprioritycolor"
+    },
+    {
+      "label": "TaskStatusColor",
+      "file_type": "code",
+      "source_file": "app/Models/TaskStatusColor.php",
+      "source_location": "L8",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_models_taskstatuscolor_taskstatuscolor",
+      "community": 119,
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "taskstatuscolor"
+    },
+    {
+      "label": "UserManagementController",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
+      "source_location": "L23",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller",
+      "community": 13,
+      "community_name": "UserManagementController.php",
+      "norm_label": "usermanagementcontroller"
+    },
+    {
       "label": "AuditEventNotifier",
       "file_type": "code",
       "source_file": "app/Services/AuditEventNotifier.php",
@@ -472,19 +511,6 @@
       "norm_label": "notificationsetting"
     },
     {
-      "label": "ImportController",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/ImportController.php",
-      "source_location": "L20",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_importcontroller_importcontroller",
-      "community": 14,
-      "community_name": "ImportController.php",
-      "norm_label": "importcontroller"
-    },
-    {
       "label": "FileStorageService",
       "file_type": "code",
       "source_file": "app/Services/FileStorageService.php",
@@ -511,17 +537,17 @@
       "norm_label": "storedfile"
     },
     {
-      "label": "UpdateTaskPriorityColorsRequest",
+      "label": "LinkPreviewController",
       "file_type": "code",
-      "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
-      "source_location": "L9",
+      "source_file": "app/Http/Controllers/LinkPreviewController.php",
+      "source_location": "L36",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_http_requests_taskcolors_updatetaskprioritycolorsrequest_updatetaskprioritycolorsrequest",
+      "id": "app_http_controllers_linkpreviewcontroller_linkpreviewcontroller",
       "community": 147,
-      "community_name": "UpdateTaskPriorityColorsRequest",
-      "norm_label": "updatetaskprioritycolorsrequest"
+      "community_name": "LinkPreviewController.php",
+      "norm_label": "linkpreviewcontroller"
     },
     {
       "label": "AccessProfile",
@@ -641,43 +667,30 @@
       "norm_label": "updateprojectrequest"
     },
     {
-      "label": "TaskPriorityColor",
+      "label": "StoreProjectRequest",
       "file_type": "code",
-      "source_file": "app/Models/TaskPriorityColor.php",
-      "source_location": "L8",
+      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
+      "source_location": "L12",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_models_taskprioritycolor_taskprioritycolor",
+      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest",
       "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "taskprioritycolor"
+      "community_name": "StoreProjectRequest",
+      "norm_label": "storeprojectrequest"
     },
     {
-      "label": "TaskStatusColor",
+      "label": "UpdateTaskPriorityColorsRequest",
       "file_type": "code",
-      "source_file": "app/Models/TaskStatusColor.php",
-      "source_location": "L8",
+      "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
+      "source_location": "L9",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "id": "app_models_taskstatuscolor_taskstatuscolor",
-      "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "taskstatuscolor"
-    },
-    {
-      "label": "UserManagementController",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L23",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller",
+      "id": "app_http_requests_taskcolors_updatetaskprioritycolorsrequest_updatetaskprioritycolorsrequest",
       "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": "usermanagementcontroller"
+      "community_name": "UpdateTaskPriorityColorsRequest",
+      "norm_label": "updatetaskprioritycolorsrequest"
     },
     {
       "label": "AbandonStaleImportBatches",
@@ -1198,19 +1211,6 @@
       "community": 191,
       "community_name": "Role",
       "norm_label": "permissionseeder"
-    },
-    {
-      "label": "StoreProjectRequest",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
-      "source_location": "L12",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest",
-      "community": 199,
-      "community_name": "StoreProjectRequest",
-      "norm_label": "storeprojectrequest"
     },
     {
       "label": "AppServiceProvider",
@@ -4844,40 +4844,76 @@
       "norm_label": ".scopewithglobalrole()"
     },
     {
-      "label": ".resolve()",
+      "label": ".download()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/LinkPreviewController.php",
-      "source_location": "L38",
+      "source_file": "app/Http/Controllers/DocumentController.php",
+      "source_location": "L802",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_linkpreviewcontroller_linkpreviewcontroller_resolve",
+      "id": "app_http_controllers_documentcontroller_documentcontroller_download",
       "community": 114,
-      "community_name": "LinkPreviewController.php",
-      "norm_label": ".resolve()"
+      "community_name": "ImportController.php",
+      "norm_label": ".download()"
     },
     {
-      "label": ".resolvePending()",
+      "label": ".resolveDocumentByUrl()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/LinkPreviewController.php",
-      "source_location": "L94",
+      "source_file": "app/Http/Controllers/DocumentController.php",
+      "source_location": "L847",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_linkpreviewcontroller_linkpreviewcontroller_resolvepending",
+      "id": "app_http_controllers_documentcontroller_documentcontroller_resolvedocumentbyurl",
       "community": 114,
-      "community_name": "LinkPreviewController.php",
-      "norm_label": ".resolvepending()"
+      "community_name": "ImportController.php",
+      "norm_label": ".resolvedocumentbyurl()"
     },
     {
-      "label": ".respond()",
+      "label": ".commit()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/LinkPreviewController.php",
-      "source_location": "L119",
+      "source_file": "app/Http/Controllers/ImportController.php",
+      "source_location": "L85",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_linkpreviewcontroller_linkpreviewcontroller_respond",
+      "id": "app_http_controllers_importcontroller_importcontroller_commit",
       "community": 114,
-      "community_name": "LinkPreviewController.php",
-      "norm_label": ".respond()"
+      "community_name": "ImportController.php",
+      "norm_label": ".commit()"
+    },
+    {
+      "label": ".downloadTemplate()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/ImportController.php",
+      "source_location": "L100",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_importcontroller_importcontroller_downloadtemplate",
+      "community": 114,
+      "community_name": "ImportController.php",
+      "norm_label": ".downloadtemplate()"
+    },
+    {
+      "label": ".index()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/ImportController.php",
+      "source_location": "L22",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_importcontroller_importcontroller_index",
+      "community": 114,
+      "community_name": "ImportController.php",
+      "norm_label": ".index()"
+    },
+    {
+      "label": ".review()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/ImportController.php",
+      "source_location": "L58",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_importcontroller_importcontroller_review",
+      "community": 114,
+      "community_name": "ImportController.php",
+      "norm_label": ".review()"
     },
     {
       "label": ".store()",
@@ -5564,52 +5600,40 @@
       "norm_label": ".rules()"
     },
     {
-      "label": "values()",
+      "label": "colourReadsDuring()",
       "file_type": "code",
-      "source_file": "app/Enums/Concerns/HasEnumValues.php",
-      "source_location": "L14",
+      "source_file": "tests/Feature/TaskColors/BadgeColorCacheTest.php",
+      "source_location": "L49",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_enums_concerns_hasenumvalues_values",
+      "id": "tests_feature_taskcolors_badgecolorcachetest_colourreadsduring",
       "community": 119,
-      "community_name": "HasEnumValues.php",
-      "norm_label": "values()"
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "colourreadsduring()"
     },
     {
-      "label": "label()",
+      "label": "allPriorityColorsPayload()",
       "file_type": "code",
-      "source_file": "app/Enums/ImportRowAction.php",
-      "source_location": "L24",
+      "source_file": "tests/Feature/TaskColors/TaskPriorityColorTest.php",
+      "source_location": "L37",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_enums_importrowaction_label",
+      "id": "tests_feature_taskcolors_taskprioritycolortest_allprioritycolorspayload",
       "community": 119,
-      "community_name": "HasEnumValues.php",
-      "norm_label": "label()"
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "allprioritycolorspayload()"
     },
     {
-      "label": "label()",
+      "label": "allStatusColorsPayload()",
       "file_type": "code",
-      "source_file": "app/Enums/ImportValidationStatus.php",
-      "source_location": "L15",
+      "source_file": "tests/Feature/TaskColors/TaskStatusColorTest.php",
+      "source_location": "L37",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_enums_importvalidationstatus_label",
+      "id": "tests_feature_taskcolors_taskstatuscolortest_allstatuscolorspayload",
       "community": 119,
-      "community_name": "HasEnumValues.php",
-      "norm_label": "label()"
-    },
-    {
-      "label": "label()",
-      "file_type": "code",
-      "source_file": "app/Enums/NotificationChannel.php",
-      "source_location": "L14",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_enums_notificationchannel_label",
-      "community": 119,
-      "community_name": "HasEnumValues.php",
-      "norm_label": "label()"
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "allstatuscolorspayload()"
     },
     {
       "label": "down()",
@@ -5768,28 +5792,112 @@
       "norm_label": "up()"
     },
     {
-      "label": "changeTaskStatus()",
+      "label": ".create()",
       "file_type": "code",
-      "source_file": "tests/Feature/Notifications/NotificationDeliveryTest.php",
-      "source_location": "L59",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
+      "source_location": "L37",
       "_callable": true,
       "_origin": "ast",
-      "id": "tests_feature_notifications_notificationdeliverytest_changetaskstatus",
+      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_create",
       "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "changetaskstatus()"
+      "community_name": "UserManagementController.php",
+      "norm_label": ".create()"
     },
     {
-      "label": "taskListVisibilityFilterCases()",
+      "label": ".departmentsByOrganization()",
       "file_type": "code",
-      "source_file": "tests/Feature/Tasks/TaskListVisibilityTest.php",
-      "source_location": "L106",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
+      "source_location": "L236",
       "_callable": true,
       "_origin": "ast",
-      "id": "tests_feature_tasks_tasklistvisibilitytest_tasklistvisibilityfiltercases",
+      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_departmentsbyorganization",
       "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "tasklistvisibilityfiltercases()"
+      "community_name": "UserManagementController.php",
+      "norm_label": ".departmentsbyorganization()"
+    },
+    {
+      "label": ".edit()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
+      "source_location": "L82",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_edit",
+      "community": 13,
+      "community_name": "UserManagementController.php",
+      "norm_label": ".edit()"
+    },
+    {
+      "label": ".index()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
+      "source_location": "L25",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_index",
+      "community": 13,
+      "community_name": "UserManagementController.php",
+      "norm_label": ".index()"
+    },
+    {
+      "label": ".store()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
+      "source_location": "L56",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_store",
+      "community": 13,
+      "community_name": "UserManagementController.php",
+      "norm_label": ".store()"
+    },
+    {
+      "label": ".syncCompanyRoles()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
+      "source_location": "L159",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_synccompanyroles",
+      "community": 13,
+      "community_name": "UserManagementController.php",
+      "norm_label": ".synccompanyroles()"
+    },
+    {
+      "label": ".syncDepartmentAccess()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
+      "source_location": "L201",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_syncdepartmentaccess",
+      "community": 13,
+      "community_name": "UserManagementController.php",
+      "norm_label": ".syncdepartmentaccess()"
+    },
+    {
+      "label": ".syncSuperAdminGrant()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
+      "source_location": "L170",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_syncsuperadmingrant",
+      "community": 13,
+      "community_name": "UserManagementController.php",
+      "norm_label": ".syncsuperadmingrant()"
+    },
+    {
+      "label": ".update()",
+      "file_type": "code",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
+      "source_location": "L113",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_update",
+      "community": 13,
+      "community_name": "UserManagementController.php",
+      "norm_label": ".update()"
     },
     {
       "label": ".__construct()",
@@ -5886,6 +5994,54 @@
       "community": 133,
       "community_name": "AuditEventNotifier",
       "norm_label": ".notify()"
+    },
+    {
+      "label": "values()",
+      "file_type": "code",
+      "source_file": "app/Enums/Concerns/HasEnumValues.php",
+      "source_location": "L14",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_enums_concerns_hasenumvalues_values",
+      "community": 134,
+      "community_name": "HasEnumValues.php",
+      "norm_label": "values()"
+    },
+    {
+      "label": "label()",
+      "file_type": "code",
+      "source_file": "app/Enums/ImportRowAction.php",
+      "source_location": "L24",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_enums_importrowaction_label",
+      "community": 134,
+      "community_name": "HasEnumValues.php",
+      "norm_label": "label()"
+    },
+    {
+      "label": "label()",
+      "file_type": "code",
+      "source_file": "app/Enums/ImportValidationStatus.php",
+      "source_location": "L15",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_enums_importvalidationstatus_label",
+      "community": 134,
+      "community_name": "HasEnumValues.php",
+      "norm_label": "label()"
+    },
+    {
+      "label": "label()",
+      "file_type": "code",
+      "source_file": "app/Enums/NotificationChannel.php",
+      "source_location": "L14",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "app_enums_notificationchannel_label",
+      "community": 134,
+      "community_name": "HasEnumValues.php",
+      "norm_label": "label()"
     },
     {
       "label": "down()",
@@ -6332,76 +6488,28 @@
       "norm_label": "givepersonaltaskassignedrule()"
     },
     {
-      "label": ".download()",
+      "label": "changeTaskStatus()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/DocumentController.php",
-      "source_location": "L802",
+      "source_file": "tests/Feature/Notifications/NotificationDeliveryTest.php",
+      "source_location": "L59",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_documentcontroller_documentcontroller_download",
+      "id": "tests_feature_notifications_notificationdeliverytest_changetaskstatus",
       "community": 14,
-      "community_name": "ImportController.php",
-      "norm_label": ".download()"
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "changetaskstatus()"
     },
     {
-      "label": ".resolveDocumentByUrl()",
+      "label": "taskListVisibilityFilterCases()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/DocumentController.php",
-      "source_location": "L847",
+      "source_file": "tests/Feature/Tasks/TaskListVisibilityTest.php",
+      "source_location": "L106",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_documentcontroller_documentcontroller_resolvedocumentbyurl",
+      "id": "tests_feature_tasks_tasklistvisibilitytest_tasklistvisibilityfiltercases",
       "community": 14,
-      "community_name": "ImportController.php",
-      "norm_label": ".resolvedocumentbyurl()"
-    },
-    {
-      "label": ".commit()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/ImportController.php",
-      "source_location": "L85",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_importcontroller_importcontroller_commit",
-      "community": 14,
-      "community_name": "ImportController.php",
-      "norm_label": ".commit()"
-    },
-    {
-      "label": ".downloadTemplate()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/ImportController.php",
-      "source_location": "L100",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_importcontroller_importcontroller_downloadtemplate",
-      "community": 14,
-      "community_name": "ImportController.php",
-      "norm_label": ".downloadtemplate()"
-    },
-    {
-      "label": ".index()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/ImportController.php",
-      "source_location": "L22",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_importcontroller_importcontroller_index",
-      "community": 14,
-      "community_name": "ImportController.php",
-      "norm_label": ".index()"
-    },
-    {
-      "label": ".review()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/ImportController.php",
-      "source_location": "L58",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_importcontroller_importcontroller_review",
-      "community": 14,
-      "community_name": "ImportController.php",
-      "norm_label": ".review()"
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "tasklistvisibilityfiltercases()"
     },
     {
       "label": "mockGoogleUser()",
@@ -6500,16 +6608,64 @@
       "norm_label": "up()"
     },
     {
-      "label": "down()",
+      "label": "addTaskAudit()",
       "file_type": "code",
-      "source_file": "database/migrations/2026_09_28_000001_remove_client_view_documents_permission.php",
-      "source_location": "L28",
+      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
+      "source_location": "L46",
       "_callable": true,
       "_origin": "ast",
-      "id": "database_migrations_2026_09_28_000001_remove_client_view_documents_permission_down",
+      "id": "tests_feature_console_backfilltaskcompletedattest_addtaskaudit",
       "community": 143,
-      "community_name": "2026_09_28_000001_remove_client_view_documents_permission.php",
-      "norm_label": "down()"
+      "community_name": "BackfillTaskCompletedAtTest.php",
+      "norm_label": "addtaskaudit()"
+    },
+    {
+      "label": "completedAtOf()",
+      "file_type": "code",
+      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
+      "source_location": "L74",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_console_backfilltaskcompletedattest_completedatof",
+      "community": 143,
+      "community_name": "BackfillTaskCompletedAtTest.php",
+      "norm_label": "completedatof()"
+    },
+    {
+      "label": "flatCreated()",
+      "file_type": "code",
+      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
+      "source_location": "L79",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_console_backfilltaskcompletedattest_flatcreated",
+      "community": 143,
+      "community_name": "BackfillTaskCompletedAtTest.php",
+      "norm_label": "flatcreated()"
+    },
+    {
+      "label": "makeLegacyTask()",
+      "file_type": "code",
+      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
+      "source_location": "L27",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_console_backfilltaskcompletedattest_makelegacytask",
+      "community": 143,
+      "community_name": "BackfillTaskCompletedAtTest.php",
+      "norm_label": "makelegacytask()"
+    },
+    {
+      "label": "runBackfill()",
+      "file_type": "code",
+      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
+      "source_location": "L65",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "tests_feature_console_backfilltaskcompletedattest_runbackfill",
+      "community": 143,
+      "community_name": "BackfillTaskCompletedAtTest.php",
+      "norm_label": "runbackfill()"
     },
     {
       "label": "down()",
@@ -6728,40 +6884,40 @@
       "norm_label": ".__construct()"
     },
     {
-      "label": ".authorize()",
+      "label": ".resolve()",
       "file_type": "code",
-      "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
-      "source_location": "L11",
+      "source_file": "app/Http/Controllers/LinkPreviewController.php",
+      "source_location": "L38",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_requests_taskcolors_updatetaskprioritycolorsrequest_updatetaskprioritycolorsrequest_authorize",
+      "id": "app_http_controllers_linkpreviewcontroller_linkpreviewcontroller_resolve",
       "community": 147,
-      "community_name": "UpdateTaskPriorityColorsRequest",
-      "norm_label": ".authorize()"
+      "community_name": "LinkPreviewController.php",
+      "norm_label": ".resolve()"
     },
     {
-      "label": ".rules()",
+      "label": ".resolvePending()",
       "file_type": "code",
-      "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
-      "source_location": "L23",
+      "source_file": "app/Http/Controllers/LinkPreviewController.php",
+      "source_location": "L94",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_requests_taskcolors_updatetaskprioritycolorsrequest_updatetaskprioritycolorsrequest_rules",
+      "id": "app_http_controllers_linkpreviewcontroller_linkpreviewcontroller_resolvepending",
       "community": 147,
-      "community_name": "UpdateTaskPriorityColorsRequest",
-      "norm_label": ".rules()"
+      "community_name": "LinkPreviewController.php",
+      "norm_label": ".resolvepending()"
     },
     {
-      "label": ".withValidator()",
+      "label": ".respond()",
       "file_type": "code",
-      "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
-      "source_location": "L34",
+      "source_file": "app/Http/Controllers/LinkPreviewController.php",
+      "source_location": "L119",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_requests_taskcolors_updatetaskprioritycolorsrequest_updatetaskprioritycolorsrequest_withvalidator",
+      "id": "app_http_controllers_linkpreviewcontroller_linkpreviewcontroller_respond",
       "community": 147,
-      "community_name": "UpdateTaskPriorityColorsRequest",
-      "norm_label": ".withvalidator()"
+      "community_name": "LinkPreviewController.php",
+      "norm_label": ".respond()"
     },
     {
       "label": "down()",
@@ -7316,148 +7472,88 @@
       "norm_label": ".rules()"
     },
     {
-      "label": "colourReadsDuring()",
+      "label": ".attributes()",
       "file_type": "code",
-      "source_file": "tests/Feature/TaskColors/BadgeColorCacheTest.php",
-      "source_location": "L49",
+      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
+      "source_location": "L44",
       "_callable": true,
       "_origin": "ast",
-      "id": "tests_feature_taskcolors_badgecolorcachetest_colourreadsduring",
+      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_attributes",
       "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "colourreadsduring()"
+      "community_name": "StoreProjectRequest",
+      "norm_label": ".attributes()"
     },
     {
-      "label": "allPriorityColorsPayload()",
+      "label": ".authorize()",
       "file_type": "code",
-      "source_file": "tests/Feature/TaskColors/TaskPriorityColorTest.php",
-      "source_location": "L37",
+      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
+      "source_location": "L14",
       "_callable": true,
       "_origin": "ast",
-      "id": "tests_feature_taskcolors_taskprioritycolortest_allprioritycolorspayload",
+      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_authorize",
       "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "allprioritycolorspayload()"
+      "community_name": "StoreProjectRequest",
+      "norm_label": ".authorize()"
     },
     {
-      "label": "allStatusColorsPayload()",
+      "label": ".prepareForValidation()",
       "file_type": "code",
-      "source_file": "tests/Feature/TaskColors/TaskStatusColorTest.php",
-      "source_location": "L37",
+      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
+      "source_location": "L19",
       "_callable": true,
       "_origin": "ast",
-      "id": "tests_feature_taskcolors_taskstatuscolortest_allstatuscolorspayload",
+      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_prepareforvalidation",
       "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "allstatuscolorspayload()"
+      "community_name": "StoreProjectRequest",
+      "norm_label": ".prepareforvalidation()"
     },
     {
-      "label": ".create()",
+      "label": ".rules()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L37",
+      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
+      "source_location": "L27",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_create",
-      "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": ".create()"
+      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_rules",
+      "community": 158,
+      "community_name": "StoreProjectRequest",
+      "norm_label": ".rules()"
     },
     {
-      "label": ".departmentsByOrganization()",
+      "label": ".authorize()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L236",
+      "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
+      "source_location": "L11",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_departmentsbyorganization",
+      "id": "app_http_requests_taskcolors_updatetaskprioritycolorsrequest_updatetaskprioritycolorsrequest_authorize",
       "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": ".departmentsbyorganization()"
+      "community_name": "UpdateTaskPriorityColorsRequest",
+      "norm_label": ".authorize()"
     },
     {
-      "label": ".edit()",
+      "label": ".rules()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L82",
+      "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
+      "source_location": "L23",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_edit",
+      "id": "app_http_requests_taskcolors_updatetaskprioritycolorsrequest_updatetaskprioritycolorsrequest_rules",
       "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": ".edit()"
+      "community_name": "UpdateTaskPriorityColorsRequest",
+      "norm_label": ".rules()"
     },
     {
-      "label": ".index()",
+      "label": ".withValidator()",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L25",
+      "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
+      "source_location": "L34",
       "_callable": true,
       "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_index",
+      "id": "app_http_requests_taskcolors_updatetaskprioritycolorsrequest_updatetaskprioritycolorsrequest_withvalidator",
       "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": ".index()"
-    },
-    {
-      "label": ".store()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L56",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_store",
-      "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": ".store()"
-    },
-    {
-      "label": ".syncCompanyRoles()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L159",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_synccompanyroles",
-      "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": ".synccompanyroles()"
-    },
-    {
-      "label": ".syncDepartmentAccess()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L201",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_syncdepartmentaccess",
-      "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": ".syncdepartmentaccess()"
-    },
-    {
-      "label": ".syncSuperAdminGrant()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L170",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_syncsuperadmingrant",
-      "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": ".syncsuperadmingrant()"
-    },
-    {
-      "label": ".update()",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L113",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller_usermanagementcontroller_update",
-      "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": ".update()"
+      "community_name": "UpdateTaskPriorityColorsRequest",
+      "norm_label": ".withvalidator()"
     },
     {
       "label": ".handle()",
@@ -8675,7 +8771,7 @@
       "label": ".candidates()",
       "file_type": "code",
       "source_file": "app/Support/CompanyCode.php",
-      "source_location": "L69",
+      "source_location": "L70",
       "_callable": true,
       "_origin": "ast",
       "id": "app_support_companycode_companycode_candidates",
@@ -8687,7 +8783,7 @@
       "label": ".fromWords()",
       "file_type": "code",
       "source_file": "app/Support/CompanyCode.php",
-      "source_location": "L108",
+      "source_location": "L109",
       "_callable": true,
       "_origin": "ast",
       "id": "app_support_companycode_companycode_fromwords",
@@ -8711,7 +8807,7 @@
       "label": ".suggest()",
       "file_type": "code",
       "source_file": "app/Support/CompanyCode.php",
-      "source_location": "L50",
+      "source_location": "L51",
       "_callable": true,
       "_origin": "ast",
       "id": "app_support_companycode_companycode_suggest",
@@ -9606,6 +9702,18 @@
       "community": 181,
       "community_name": "code-highlight.js",
       "norm_label": "enhancelinkpreviews()"
+    },
+    {
+      "label": "down()",
+      "file_type": "code",
+      "source_file": "database/migrations/2026_09_28_000001_remove_client_view_documents_permission.php",
+      "source_location": "L28",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "database_migrations_2026_09_28_000001_remove_client_view_documents_permission_down",
+      "community": 182,
+      "community_name": "2026_09_28_000001_remove_client_view_documents_permission.php",
+      "norm_label": "down()"
     },
     {
       "label": "down()",
@@ -11000,54 +11108,6 @@
       "norm_label": "up()"
     },
     {
-      "label": ".attributes()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
-      "source_location": "L44",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_attributes",
-      "community": 199,
-      "community_name": "StoreProjectRequest",
-      "norm_label": ".attributes()"
-    },
-    {
-      "label": ".authorize()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
-      "source_location": "L14",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_authorize",
-      "community": 199,
-      "community_name": "StoreProjectRequest",
-      "norm_label": ".authorize()"
-    },
-    {
-      "label": ".prepareForValidation()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
-      "source_location": "L19",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_prepareforvalidation",
-      "community": 199,
-      "community_name": "StoreProjectRequest",
-      "norm_label": ".prepareforvalidation()"
-    },
-    {
-      "label": ".rules()",
-      "file_type": "code",
-      "source_file": "app/Http/Requests/Projects/StoreProjectRequest.php",
-      "source_location": "L27",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "app_http_requests_projects_storeprojectrequest_storeprojectrequest_rules",
-      "community": 199,
-      "community_name": "StoreProjectRequest",
-      "norm_label": ".rules()"
-    },
-    {
       "label": "message()",
       "file_type": "code",
       "source_file": "app/Enums/BoardAccessDeniedReason.php",
@@ -12006,66 +12066,6 @@
       "community": 213,
       "community_name": "AuditLog",
       "norm_label": "asserttaskdocumentattachedauditentry()"
-    },
-    {
-      "label": "addTaskAudit()",
-      "file_type": "code",
-      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
-      "source_location": "L46",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_console_backfilltaskcompletedattest_addtaskaudit",
-      "community": 214,
-      "community_name": "BackfillTaskCompletedAtTest.php",
-      "norm_label": "addtaskaudit()"
-    },
-    {
-      "label": "completedAtOf()",
-      "file_type": "code",
-      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
-      "source_location": "L74",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_console_backfilltaskcompletedattest_completedatof",
-      "community": 214,
-      "community_name": "BackfillTaskCompletedAtTest.php",
-      "norm_label": "completedatof()"
-    },
-    {
-      "label": "flatCreated()",
-      "file_type": "code",
-      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
-      "source_location": "L79",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_console_backfilltaskcompletedattest_flatcreated",
-      "community": 214,
-      "community_name": "BackfillTaskCompletedAtTest.php",
-      "norm_label": "flatcreated()"
-    },
-    {
-      "label": "makeLegacyTask()",
-      "file_type": "code",
-      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
-      "source_location": "L27",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_console_backfilltaskcompletedattest_makelegacytask",
-      "community": 214,
-      "community_name": "BackfillTaskCompletedAtTest.php",
-      "norm_label": "makelegacytask()"
-    },
-    {
-      "label": "runBackfill()",
-      "file_type": "code",
-      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
-      "source_location": "L65",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "tests_feature_console_backfilltaskcompletedattest_runbackfill",
-      "community": 214,
-      "community_name": "BackfillTaskCompletedAtTest.php",
-      "norm_label": "runbackfill()"
     },
     {
       "label": "label()",
@@ -17716,26 +17716,37 @@
       "norm_label": "illuminate\\database\\eloquent\\builder"
     },
     {
-      "label": "LinkPreviewController.php",
+      "label": "ImportController.php",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/LinkPreviewController.php",
+      "source_file": "app/Http/Controllers/ImportController.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_http_controllers_linkpreviewcontroller",
+      "id": "app_http_controllers_importcontroller",
       "community": 114,
-      "community_name": "LinkPreviewController.php",
-      "norm_label": "linkpreviewcontroller.php"
+      "community_name": "ImportController.php",
+      "norm_label": "importcontroller.php"
     },
     {
-      "label": "LinkPreviewService.php",
+      "label": "Illuminate\\Http\\Response",
       "file_type": "code",
-      "source_file": "app/Services/LinkPreviewService.php",
-      "source_location": "L1",
+      "source_file": "",
+      "source_location": "",
       "_origin": "ast",
-      "id": "app_services_linkpreviewservice",
+      "id": "illuminate_http_response",
       "community": 114,
-      "community_name": "LinkPreviewController.php",
-      "norm_label": "linkpreviewservice.php"
+      "community_name": "ImportController.php",
+      "norm_label": "illuminate\\http\\response"
+    },
+    {
+      "label": "Symfony\\Component\\HttpFoundation\\StreamedResponse",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "symfony_component_httpfoundation_streamedresponse",
+      "community": 114,
+      "community_name": "ImportController.php",
+      "norm_label": "symfony\\component\\httpfoundation\\streamedresponse"
     },
     {
       "label": "CommentController.php",
@@ -17859,59 +17870,70 @@
       "norm_label": "storedepartmentrequest.php"
     },
     {
-      "label": "HasEnumValues.php",
+      "label": "TaskPriorityColor.php",
       "file_type": "code",
-      "source_file": "app/Enums/Concerns/HasEnumValues.php",
+      "source_file": "app/Models/TaskPriorityColor.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_enums_concerns_hasenumvalues",
+      "id": "app_models_taskprioritycolor",
       "community": 119,
-      "community_name": "HasEnumValues.php",
-      "norm_label": "hasenumvalues.php"
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "taskprioritycolor.php"
     },
     {
-      "label": "ImportRowAction.php",
+      "label": "TaskStatusColor.php",
       "file_type": "code",
-      "source_file": "app/Enums/ImportRowAction.php",
+      "source_file": "app/Models/TaskStatusColor.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_enums_importrowaction",
+      "id": "app_models_taskstatuscolor",
       "community": 119,
-      "community_name": "HasEnumValues.php",
-      "norm_label": "importrowaction.php"
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "taskstatuscolor.php"
     },
     {
-      "label": "ImportValidationStatus.php",
+      "label": "Illuminate\\Database\\Eloquent\\Model",
       "file_type": "code",
-      "source_file": "app/Enums/ImportValidationStatus.php",
-      "source_location": "L1",
+      "source_file": "",
+      "source_location": "",
       "_origin": "ast",
-      "id": "app_enums_importvalidationstatus",
+      "id": "illuminate_database_eloquent_model",
       "community": 119,
-      "community_name": "HasEnumValues.php",
-      "norm_label": "importvalidationstatus.php"
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "illuminate\\database\\eloquent\\model"
     },
     {
-      "label": "NotificationChannel.php",
+      "label": "BadgeColorCacheTest.php",
       "file_type": "code",
-      "source_file": "app/Enums/NotificationChannel.php",
+      "source_file": "tests/Feature/TaskColors/BadgeColorCacheTest.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_enums_notificationchannel",
+      "id": "tests_feature_taskcolors_badgecolorcachetest",
       "community": 119,
-      "community_name": "HasEnumValues.php",
-      "norm_label": "notificationchannel.php"
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "badgecolorcachetest.php"
     },
     {
-      "label": "AuditEventNotifier.php",
+      "label": "TaskPriorityColorTest.php",
       "file_type": "code",
-      "source_file": "app/Services/AuditEventNotifier.php",
+      "source_file": "tests/Feature/TaskColors/TaskPriorityColorTest.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_services_auditeventnotifier",
+      "id": "tests_feature_taskcolors_taskprioritycolortest",
       "community": 119,
-      "community_name": "HasEnumValues.php",
-      "norm_label": "auditeventnotifier.php"
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "taskprioritycolortest.php"
+    },
+    {
+      "label": "TaskStatusColorTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/TaskColors/TaskStatusColorTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_taskcolors_taskstatuscolortest",
+      "community": 119,
+      "community_name": "Illuminate\\Database\\Eloquent\\Model",
+      "norm_label": "taskstatuscolortest.php"
     },
     {
       "label": "LARAVEL_README.md",
@@ -18222,103 +18244,15 @@
       "norm_label": "2026_08_22_140120_add_start_date_to_tasks_and_subtasks_tables.php"
     },
     {
-      "label": "NotificationSetting.php",
+      "label": "UserManagementController.php",
       "file_type": "code",
-      "source_file": "app/Models/NotificationSetting.php",
+      "source_file": "app/Http/Controllers/UserManagementController.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_models_notificationsetting",
+      "id": "app_http_controllers_usermanagementcontroller",
       "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "notificationsetting.php"
-    },
-    {
-      "label": "Subtask.php",
-      "file_type": "code",
-      "source_file": "app/Models/Subtask.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_models_subtask",
-      "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "subtask.php"
-    },
-    {
-      "label": "AuditEventDatabaseNotification.php",
-      "file_type": "code",
-      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_notifications_auditeventdatabasenotification",
-      "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "auditeventdatabasenotification.php"
-    },
-    {
-      "label": "Illuminate\\Support\\Facades\\Notification",
-      "file_type": "code",
-      "source_file": "",
-      "source_location": "",
-      "_origin": "ast",
-      "id": "illuminate_support_facades_notification",
-      "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "illuminate\\support\\facades\\notification"
-    },
-    {
-      "label": "TaskCodeMessagesTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/AuditTrail/TaskCodeMessagesTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_audittrail_taskcodemessagestest",
-      "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "taskcodemessagestest.php"
-    },
-    {
-      "label": "DeleteConfirmationTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/DeleteConfirmationTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_deleteconfirmationtest",
-      "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "deleteconfirmationtest.php"
-    },
-    {
-      "label": "KanbanChangesTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/Kanban/KanbanChangesTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_kanban_kanbanchangestest",
-      "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "kanbanchangestest.php"
-    },
-    {
-      "label": "NotificationDeliveryTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/Notifications/NotificationDeliveryTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_notifications_notificationdeliverytest",
-      "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "notificationdeliverytest.php"
-    },
-    {
-      "label": "TaskListVisibilityTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/Tasks/TaskListVisibilityTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_tasks_tasklistvisibilitytest",
-      "community": 13,
-      "community_name": "KanbanChangesTest.php",
-      "norm_label": "tasklistvisibilitytest.php"
+      "community_name": "UserManagementController.php",
+      "norm_label": "usermanagementcontroller.php"
     },
     {
       "label": "avatar.blade.php",
@@ -18376,48 +18310,59 @@
       "norm_label": "notificationeventtype"
     },
     {
-      "label": "post-create-project-cmd",
+      "label": "HasEnumValues.php",
       "file_type": "code",
-      "source_file": "composer.json",
-      "source_location": "L68",
+      "source_file": "app/Enums/Concerns/HasEnumValues.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "composer_scripts_post_create_project_cmd",
+      "id": "app_enums_concerns_hasenumvalues",
       "community": 134,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "post-create-project-cmd"
+      "community_name": "HasEnumValues.php",
+      "norm_label": "hasenumvalues.php"
     },
     {
-      "label": "@php artisan key:generate --ansi",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
+      "label": "ImportRowAction.php",
+      "file_type": "code",
+      "source_file": "app/Enums/ImportRowAction.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "ref_php_artisan_key_generate_ansi",
+      "id": "app_enums_importrowaction",
       "community": 134,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "@php artisan key:generate --ansi"
+      "community_name": "HasEnumValues.php",
+      "norm_label": "importrowaction.php"
     },
     {
-      "label": "@php artisan migrate --graceful --ansi",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
+      "label": "ImportValidationStatus.php",
+      "file_type": "code",
+      "source_file": "app/Enums/ImportValidationStatus.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "ref_php_artisan_migrate_graceful_ansi",
+      "id": "app_enums_importvalidationstatus",
       "community": 134,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "@php artisan migrate --graceful --ansi"
+      "community_name": "HasEnumValues.php",
+      "norm_label": "importvalidationstatus.php"
     },
     {
-      "label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\",
-      "file_type": "concept",
-      "source_file": "composer.json",
-      "source_location": "L68",
+      "label": "NotificationChannel.php",
+      "file_type": "code",
+      "source_file": "app/Enums/NotificationChannel.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "ref_php_r_file_exists_database_database_sqlite_touch_database_database_sqlite",
+      "id": "app_enums_notificationchannel",
       "community": 134,
-      "community_name": "post-create-project-cmd",
-      "norm_label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\"
+      "community_name": "HasEnumValues.php",
+      "norm_label": "notificationchannel.php"
+    },
+    {
+      "label": "AuditEventNotifier.php",
+      "file_type": "code",
+      "source_file": "app/Services/AuditEventNotifier.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_services_auditeventnotifier",
+      "community": 134,
+      "community_name": "HasEnumValues.php",
+      "norm_label": "auditeventnotifier.php"
     },
     {
       "label": "2026_08_25_010000_create_import_batches_table.php",
@@ -18497,37 +18442,103 @@
       "norm_label": "illuminate\\http\\redirectresponse"
     },
     {
-      "label": "ImportController.php",
+      "label": "NotificationSetting.php",
       "file_type": "code",
-      "source_file": "app/Http/Controllers/ImportController.php",
+      "source_file": "app/Models/NotificationSetting.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_http_controllers_importcontroller",
+      "id": "app_models_notificationsetting",
       "community": 14,
-      "community_name": "ImportController.php",
-      "norm_label": "importcontroller.php"
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "notificationsetting.php"
     },
     {
-      "label": "Illuminate\\Http\\Response",
+      "label": "Subtask.php",
+      "file_type": "code",
+      "source_file": "app/Models/Subtask.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_models_subtask",
+      "community": 14,
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "subtask.php"
+    },
+    {
+      "label": "AuditEventDatabaseNotification.php",
+      "file_type": "code",
+      "source_file": "app/Notifications/AuditEventDatabaseNotification.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_notifications_auditeventdatabasenotification",
+      "community": 14,
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "auditeventdatabasenotification.php"
+    },
+    {
+      "label": "Illuminate\\Support\\Facades\\Notification",
       "file_type": "code",
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "id": "illuminate_http_response",
+      "id": "illuminate_support_facades_notification",
       "community": 14,
-      "community_name": "ImportController.php",
-      "norm_label": "illuminate\\http\\response"
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "illuminate\\support\\facades\\notification"
     },
     {
-      "label": "Symfony\\Component\\HttpFoundation\\StreamedResponse",
+      "label": "TaskCodeMessagesTest.php",
       "file_type": "code",
-      "source_file": "",
-      "source_location": "",
+      "source_file": "tests/Feature/AuditTrail/TaskCodeMessagesTest.php",
+      "source_location": "L1",
       "_origin": "ast",
-      "id": "symfony_component_httpfoundation_streamedresponse",
+      "id": "tests_feature_audittrail_taskcodemessagestest",
       "community": 14,
-      "community_name": "ImportController.php",
-      "norm_label": "symfony\\component\\httpfoundation\\streamedresponse"
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "taskcodemessagestest.php"
+    },
+    {
+      "label": "DeleteConfirmationTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/DeleteConfirmationTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_deleteconfirmationtest",
+      "community": 14,
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "deleteconfirmationtest.php"
+    },
+    {
+      "label": "KanbanChangesTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/Kanban/KanbanChangesTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_kanban_kanbanchangestest",
+      "community": 14,
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "kanbanchangestest.php"
+    },
+    {
+      "label": "NotificationDeliveryTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/Notifications/NotificationDeliveryTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_notifications_notificationdeliverytest",
+      "community": 14,
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "notificationdeliverytest.php"
+    },
+    {
+      "label": "TaskListVisibilityTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/Tasks/TaskListVisibilityTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_tasks_tasklistvisibilitytest",
+      "community": 14,
+      "community_name": "KanbanChangesTest.php",
+      "norm_label": "tasklistvisibilitytest.php"
     },
     {
       "label": "require",
@@ -19179,15 +19190,37 @@
       "norm_label": "2026_09_07_133522_add_description_to_subtasks_table.php"
     },
     {
-      "label": "2026_09_28_000001_remove_client_view_documents_permission.php",
+      "label": "artisan",
       "file_type": "code",
-      "source_file": "database/migrations/2026_09_28_000001_remove_client_view_documents_permission.php",
+      "source_file": "artisan",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "database_migrations_2026_09_28_000001_remove_client_view_documents_permission",
+      "id": "artisan",
       "community": 143,
-      "community_name": "2026_09_28_000001_remove_client_view_documents_permission.php",
-      "norm_label": "2026_09_28_000001_remove_client_view_documents_permission.php"
+      "community_name": "BackfillTaskCompletedAtTest.php",
+      "norm_label": "artisan"
+    },
+    {
+      "label": "console.php",
+      "file_type": "code",
+      "source_file": "routes/console.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "routes_console",
+      "community": 143,
+      "community_name": "BackfillTaskCompletedAtTest.php",
+      "norm_label": "console.php"
+    },
+    {
+      "label": "BackfillTaskCompletedAtTest.php",
+      "file_type": "code",
+      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "tests_feature_console_backfilltaskcompletedattest",
+      "community": 143,
+      "community_name": "BackfillTaskCompletedAtTest.php",
+      "norm_label": "backfilltaskcompletedattest.php"
     },
     {
       "label": "2026_08_27_010000_make_audit_log_user_and_organization_nullable.php",
@@ -19267,15 +19300,26 @@
       "norm_label": "database\\\\seeders\\\\"
     },
     {
-      "label": "UpdateTaskPriorityColorsRequest.php",
+      "label": "LinkPreviewController.php",
       "file_type": "code",
-      "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
+      "source_file": "app/Http/Controllers/LinkPreviewController.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_http_requests_taskcolors_updatetaskprioritycolorsrequest",
+      "id": "app_http_controllers_linkpreviewcontroller",
       "community": 147,
-      "community_name": "UpdateTaskPriorityColorsRequest",
-      "norm_label": "updatetaskprioritycolorsrequest.php"
+      "community_name": "LinkPreviewController.php",
+      "norm_label": "linkpreviewcontroller.php"
+    },
+    {
+      "label": "LinkPreviewService.php",
+      "file_type": "code",
+      "source_file": "app/Services/LinkPreviewService.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "app_services_linkpreviewservice",
+      "community": 147,
+      "community_name": "LinkPreviewController.php",
+      "norm_label": "linkpreviewservice.php"
     },
     {
       "label": "2026_08_27_010100_add_must_change_password_to_users_table.php",
@@ -19542,81 +19586,15 @@
       "norm_label": "illuminate\\foundation\\http\\formrequest"
     },
     {
-      "label": "TaskPriorityColor.php",
+      "label": "UpdateTaskPriorityColorsRequest.php",
       "file_type": "code",
-      "source_file": "app/Models/TaskPriorityColor.php",
+      "source_file": "app/Http/Requests/TaskColors/UpdateTaskPriorityColorsRequest.php",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "app_models_taskprioritycolor",
-      "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "taskprioritycolor.php"
-    },
-    {
-      "label": "TaskStatusColor.php",
-      "file_type": "code",
-      "source_file": "app/Models/TaskStatusColor.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_models_taskstatuscolor",
-      "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "taskstatuscolor.php"
-    },
-    {
-      "label": "Illuminate\\Database\\Eloquent\\Model",
-      "file_type": "code",
-      "source_file": "",
-      "source_location": "",
-      "_origin": "ast",
-      "id": "illuminate_database_eloquent_model",
-      "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "illuminate\\database\\eloquent\\model"
-    },
-    {
-      "label": "BadgeColorCacheTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/TaskColors/BadgeColorCacheTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_taskcolors_badgecolorcachetest",
-      "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "badgecolorcachetest.php"
-    },
-    {
-      "label": "TaskPriorityColorTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/TaskColors/TaskPriorityColorTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_taskcolors_taskprioritycolortest",
-      "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "taskprioritycolortest.php"
-    },
-    {
-      "label": "TaskStatusColorTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/TaskColors/TaskStatusColorTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_taskcolors_taskstatuscolortest",
-      "community": 158,
-      "community_name": "Illuminate\\Database\\Eloquent\\Model",
-      "norm_label": "taskstatuscolortest.php"
-    },
-    {
-      "label": "UserManagementController.php",
-      "file_type": "code",
-      "source_file": "app/Http/Controllers/UserManagementController.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "app_http_controllers_usermanagementcontroller",
+      "id": "app_http_requests_taskcolors_updatetaskprioritycolorsrequest",
       "community": 159,
-      "community_name": "UserManagementController.php",
-      "norm_label": "usermanagementcontroller.php"
+      "community_name": "UpdateTaskPriorityColorsRequest",
+      "norm_label": "updatetaskprioritycolorsrequest.php"
     },
     {
       "label": "users/edit.blade.php",
@@ -19894,15 +19872,48 @@
       "norm_label": "laravel"
     },
     {
-      "label": "chart.js",
+      "label": "post-create-project-cmd",
       "file_type": "code",
-      "source_file": "chart.js",
-      "confidence": "EXTRACTED",
+      "source_file": "composer.json",
+      "source_location": "L68",
       "_origin": "ast",
-      "id": "chart_js_chart_js",
+      "id": "composer_scripts_post_create_project_cmd",
       "community": 166,
-      "community_name": "chart.js",
-      "norm_label": "chart.js"
+      "community_name": "post-create-project-cmd",
+      "norm_label": "post-create-project-cmd"
+    },
+    {
+      "label": "@php artisan key:generate --ansi",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_artisan_key_generate_ansi",
+      "community": 166,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "@php artisan key:generate --ansi"
+    },
+    {
+      "label": "@php artisan migrate --graceful --ansi",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_artisan_migrate_graceful_ansi",
+      "community": 166,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "@php artisan migrate --graceful --ansi"
+    },
+    {
+      "label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\",
+      "file_type": "concept",
+      "source_file": "composer.json",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "ref_php_r_file_exists_database_database_sqlite_touch_database_database_sqlite",
+      "community": 166,
+      "community_name": "post-create-project-cmd",
+      "norm_label": "@php -r \\\"file_exists('database/database.sqlite') || touch('database/database.sqlite');\\"
     },
     {
       "label": "2026_09_25_000000_add_parent_comment_id_to_comments_table.php",
@@ -20312,6 +20323,17 @@
       "norm_label": "link-preview-thumbnail.js"
     },
     {
+      "label": "2026_09_28_000001_remove_client_view_documents_permission.php",
+      "file_type": "code",
+      "source_file": "database/migrations/2026_09_28_000001_remove_client_view_documents_permission.php",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "database_migrations_2026_09_28_000001_remove_client_view_documents_permission",
+      "community": 182,
+      "community_name": "2026_09_28_000001_remove_client_view_documents_permission.php",
+      "norm_label": "2026_09_28_000001_remove_client_view_documents_permission.php"
+    },
+    {
       "label": "2026_09_24_145813_create_link_previews_table.php",
       "file_type": "code",
       "source_file": "database/migrations/2026_09_24_145813_create_link_previews_table.php",
@@ -20321,6 +20343,17 @@
       "community": 183,
       "community_name": "2026_09_24_145813_create_link_previews_table.php",
       "norm_label": "2026_09_24_145813_create_link_previews_table.php"
+    },
+    {
+      "label": "chart.js",
+      "file_type": "code",
+      "source_file": "chart.js",
+      "confidence": "EXTRACTED",
+      "_origin": "ast",
+      "id": "chart_js_chart_js",
+      "community": 184,
+      "community_name": "chart.js",
+      "norm_label": "chart.js"
     },
     {
       "label": "2026_10_22_000000_add_tasks_per_page_to_users_table.php",
@@ -20970,39 +21003,6 @@
       "community": 213,
       "community_name": "AuditLog",
       "norm_label": "illuminate\\notifications\\notification"
-    },
-    {
-      "label": "artisan",
-      "file_type": "code",
-      "source_file": "artisan",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "artisan",
-      "community": 214,
-      "community_name": "BackfillTaskCompletedAtTest.php",
-      "norm_label": "artisan"
-    },
-    {
-      "label": "console.php",
-      "file_type": "code",
-      "source_file": "routes/console.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "routes_console",
-      "community": 214,
-      "community_name": "BackfillTaskCompletedAtTest.php",
-      "norm_label": "console.php"
-    },
-    {
-      "label": "BackfillTaskCompletedAtTest.php",
-      "file_type": "code",
-      "source_file": "tests/Feature/Console/BackfillTaskCompletedAtTest.php",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tests_feature_console_backfilltaskcompletedattest",
-      "community": 214,
-      "community_name": "BackfillTaskCompletedAtTest.php",
-      "norm_label": "backfilltaskcompletedattest.php"
     },
     {
       "label": "FileCategory.php",
@@ -88334,7 +88334,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/Support/CompanyCode.php",
-      "source_location": "L108",
+      "source_location": "L109",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_support_companycode_companycode",
@@ -88356,7 +88356,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/Support/CompanyCode.php",
-      "source_location": "L50",
+      "source_location": "L51",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_support_companycode_companycode",
@@ -88367,7 +88367,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "app/Support/CompanyCode.php",
-      "source_location": "L69",
+      "source_location": "L70",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_support_companycode_companycode",
@@ -94697,5 +94697,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "02d025f8d4e582a75830c9f18c20f70dc695aa2b"
+  "built_at_commit": "ceea7716c21f23c548240d86695bfad7b4be2b36"
 }

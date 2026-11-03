@@ -76,7 +76,7 @@ test('production: each mapped company gets its code, and its tasks are numbered 
 
     $organizations = DB::table('organizations')->get()->keyBy('name');
     expect($organizations->map->code->all())->toBe([
-        'Bali Goods Sourcing' => 'BGS', 'Solava' => 'SLV', 'Bali Virtual Academy' => 'BVA', 'Aksara Virtual Agency' => 'AVA', 'English Hub' => 'ENH',
+        'Bali Goods Sourcing' => 'BGS', 'Solava' => 'SOL', 'Bali Virtual Academy' => 'BVA', 'Aksara Virtual Agency' => 'AVA', 'English Hub' => 'EHU',
     ])
         ->and((int) $organizations['Bali Goods Sourcing']->next_task_number)->toBe(4)
         ->and((int) $organizations['Solava']->next_task_number)->toBe(3)
@@ -153,7 +153,7 @@ test('two companies with the same mapped name would share a code, which stops th
     ($this->company)('Solava');
     ($this->company)('Solava');
 
-    expect(fn () => $this->migration->up())->toThrow(RuntimeException::class, "these codes would be shared by more than one company: SLV ('Solava', 'Solava')");
+    expect(fn () => $this->migration->up())->toThrow(RuntimeException::class, "these codes would be shared by more than one company: SOL ('Solava', 'Solava')");
     expect(Schema::hasColumn('organizations', 'code'))->toBeFalse();
 });
 
@@ -163,14 +163,14 @@ test('outside production, unmapped companies get the suggested code, or the next
     ($this->company)('DiagOrg');
     ($this->company)('DiagOrg');
     ($this->company)('DiagOrg2');
-    // Its suggestion is ENH, the map's code for English Hub: reserved
-    // even though English Hub isn't here, so it gets the next free one.
-    ($this->company)('English Heritage');
+    // Its suggestion is SOL, the map's code for Solava: reserved
+    // even though Solava isn't here, so it gets the next free one.
+    ($this->company)('Solid Oak Lumber');
 
     $this->migration->up();
 
     // task #118 phase 2's suggestion rule (CompanyCode::suggest()).
-    expect(DB::table('organizations')->orderBy('id')->pluck('code')->all())->toBe(['BVA', 'BAH', 'DGR', 'DIA', 'DIG', 'ENG']);
+    expect(DB::table('organizations')->orderBy('id')->pluck('code')->all())->toBe(['BVA', 'BAH', 'DGR', 'DIA', 'DIG', 'SOI']);
 });
 
 test('down() removes the columns and indexes and keeps the tasks and their children', function () {
@@ -214,7 +214,7 @@ test('after a failure part-way, running up() again finishes the job instead of d
 
     $this->migration->up();
 
-    expect(DB::table('organizations')->orderBy('id')->pluck('code')->all())->toBe(['BGS', 'SLV'])
+    expect(DB::table('organizations')->orderBy('id')->pluck('code')->all())->toBe(['BGS', 'SOL'])
         ->and(DB::table('tasks')->orderBy('id')->pluck('task_number')->all())->toBe([1, 1, 2])
         ->and((int) DB::table('organizations')->where('id', $bgs)->value('next_task_number'))->toBe(3)
         ->and(Schema::hasIndex('organizations', ['code'], 'unique'))->toBeTrue()

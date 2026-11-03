@@ -2390,23 +2390,23 @@
     "semantic_hash": ""
   },
   "app/Support/CompanyCode.php": {
-    "mtime": 1793698086.6187837,
-    "ast_hash": "cb5a36b68dd09ba68e2e5b6fb79c4d69",
+    "mtime": 1793713967.65917,
+    "ast_hash": "1ce56fe4d7908cd6ec24213422c85fea",
     "semantic_hash": ""
   },
   "database/migrations/2026_11_03_000000_add_task_codes.php": {
-    "mtime": 1793692261.8915474,
-    "ast_hash": "a62066f0c96229d1566473c471766715",
+    "mtime": 1793713932.6147835,
+    "ast_hash": "ab449f696f9af0b39bb70f1da661d840",
     "semantic_hash": ""
   },
   "tests/Feature/Database/TaskCodesMigrationTest.php": {
-    "mtime": 1793698086.6787517,
-    "ast_hash": "3f659b865f3cb2f11d98624babb03d98",
+    "mtime": 1793714034.425236,
+    "ast_hash": "a3140b385a701d8cd5d528cd3be0a41e",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskCodeTest.php": {
-    "mtime": 1793698086.6878202,
-    "ast_hash": "f9169ceb05455464076be734c490c217",
+    "mtime": 1793714050.7025516,
+    "ast_hash": "36588f0005dcd4ae691c35f61ac3ac27",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/fixtures/task-number-worker.php": {
