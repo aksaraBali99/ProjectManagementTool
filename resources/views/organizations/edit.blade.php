@@ -35,6 +35,11 @@
                 <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Task code</span>
                 <p class="mt-1"><span class="rounded-sm bg-gray-100 px-2 py-0.5 font-mono text-[12px] font-medium tracking-[0.1em] text-gray-700">{{ $organization->code }}</span></p>
                 <p class="mt-1 text-[10px] text-gray-500">Locked: this company has issued task numbers up to {{ \App\Models\Task::formatCode($organization->code, $organization->next_task_number - 1) }}, so the code can't change.</p>
+                {{-- e.g. the company issued its first task number while this
+                     form was open with a new code in it. --}}
+                @error('code')
+                    <p class="mt-1 text-[10px] text-[#A32D2D]">{{ $message }}</p>
+                @enderror
             </div>
         @else
             @include('organizations._code-field', ['value' => old('code', $organization->code), 'except' => $organization->id, 'suggestOnBlur' => false, 'suggestButton' => true])

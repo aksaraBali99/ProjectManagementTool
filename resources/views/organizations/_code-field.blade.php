@@ -57,7 +57,14 @@
             renderPreview();
         });
 
-        function suggest() {
+        // fromBlur: only fill a field the user hasn't typed their own code
+        // into, checked again when the answer arrives (they may have typed
+        // one while it was on its way). The button always fills.
+        function canFill(fromBlur) {
+            return ! fromBlur || field.value === '' || field.value === lastSuggestion;
+        }
+
+        function suggest(fromBlur) {
             const url = new URL(field.dataset.suggestUrl, window.location.origin);
             url.searchParams.set('name', name.value);
             if (field.dataset.except) url.searchParams.set('except', field.dataset.except);
@@ -65,7 +72,7 @@
             fetch(url.toString(), { credentials: 'same-origin', headers: { Accept: 'application/json' } })
                 .then(function (response) { return response.ok ? response.json() : null; })
                 .then(function (data) {
-                    if (! data || ! data.code) return;
+                    if (! data || ! data.code || ! canFill(fromBlur)) return;
                     field.value = data.code;
                     lastSuggestion = data.code;
                     renderPreview();
@@ -78,10 +85,10 @@
         if ('suggestOnBlur' in field.dataset) {
             name.addEventListener('blur', function () {
                 if (name.value.trim() === '') return;
-                if (field.value === '' || field.value === lastSuggestion) suggest();
+                if (canFill(true)) suggest(true);
             });
         }
-        if (button) button.addEventListener('click', suggest);
+        if (button) button.addEventListener('click', function () { suggest(false); });
 
         renderPreview();
     })();

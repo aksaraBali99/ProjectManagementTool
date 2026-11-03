@@ -10,6 +10,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -83,11 +84,25 @@ class OrganizationManagementController extends Controller
         // So is the task code once the company has issued task numbers
         // (task #118 phase 2): renaming a company never changes its code.
         $attributes = $request->only('name', 'accent_color', 'completed_window_days');
-        if (! $organization->hasIssuedTaskNumbers()) {
-            $attributes['code'] = $request->validated('code');
-        }
+        $code = $organization->hasIssuedTaskNumbers() ? null : $request->validated('code');
 
-        $this->savingCode($attributes['code'] ?? null, $organization, fn () => $organization->update($attributes));
+        DB::transaction(function () use ($organization, $attributes, $code) {
+            if ($code !== null && $code !== $organization->code) {
+                // Written only where the company still hasn't issued a
+                // task number, in the same statement: the lock was checked
+                // when this request began, and a first task created since
+                // (BGS-0001) must not be renamed by this save.
+                $changed = $this->savingCode($code, $organization, fn () => Organization::whereKey($organization->id)
+                    ->where('next_task_number', 1)
+                    ->update(['code' => $code, 'updated_at' => now()]));
+
+                if ($changed === 0) {
+                    throw ValidationException::withMessages(['code' => UpdateOrganizationRequest::TASK_CODE_LOCKED_MESSAGE]);
+                }
+            }
+
+            $organization->update($attributes);
+        });
 
         return redirect()->route('organizations.index')->with('status', 'Company updated.');
     }
@@ -103,17 +118,15 @@ class OrganizationManagementController extends Controller
         try {
             return $save();
         } catch (UniqueConstraintViolationException $e) {
-            $takenBy = $code === null ? null : Organization::where('code', $code)
-                ->when($organization, fn ($query) => $query->whereKeyNot($organization->id))
-                ->first();
+            $message = $code === null ? null : StoreOrganizationRequest::taskCodeTakenMessage($code, $organization);
 
-            if ($takenBy === null) {
+            // Not the code after all (no other company holds it): let the
+            // real error through.
+            if ($message === null) {
                 throw $e;
             }
 
-            throw ValidationException::withMessages([
-                'code' => StoreOrganizationRequest::taskCodeTakenMessage($code, $organization),
-            ]);
+            throw ValidationException::withMessages(['code' => $message]);
         }
     }
 

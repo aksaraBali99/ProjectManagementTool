@@ -14,11 +14,15 @@ trait ValidatesTaskCode
 {
     public const TASK_CODE_FORMAT_MESSAGE = 'The task code must be exactly 3 letters (A to Z).';
 
-    /** " bva " is saved as BVA; an empty field counts as not sent. */
+    /**
+     * " bva " is saved as BVA; an empty field counts as not sent. Only
+     * text is tidied: anything else (a crafted code[]=ABC) is left for
+     * the 'string' rule to reject, rather than failing here.
+     */
     protected function prepareForValidation(): void
     {
-        if ($this->has('code')) {
-            $code = strtoupper(trim((string) $this->input('code')));
+        if (is_string($this->input('code'))) {
+            $code = strtoupper(trim($this->input('code')));
             $this->merge(['code' => $code === '' ? null : $code]);
         }
     }
@@ -45,7 +49,8 @@ trait ValidatesTaskCode
         return [
             'code.required' => 'The task code is required.',
             'code.regex' => self::TASK_CODE_FORMAT_MESSAGE,
-            'code.unique' => self::taskCodeTakenMessage((string) $this->input('code'), $ignore),
+            'code.unique' => self::taskCodeTakenMessage(is_string($this->input('code')) ? $this->input('code') : '', $ignore)
+                ?? 'This task code is already used by another company.',
         ];
     }
 
@@ -55,17 +60,17 @@ trait ValidatesTaskCode
     }
 
     /**
-     * "BVA is already used by Bali Virtual Academy." Also used when the
-     * unique index catches two companies saved at the same moment.
+     * "BVA is already used by Bali Virtual Academy.", or null when no
+     * other company holds $code. The one lookup of who holds a code:
+     * the unique rule's message, and the controller when the unique
+     * index catches two companies saved at the same moment.
      */
-    public static function taskCodeTakenMessage(string $code, ?Organization $ignore = null): string
+    public static function taskCodeTakenMessage(string $code, ?Organization $ignore = null): ?string
     {
         $owner = Organization::where('code', $code)
             ->when($ignore, fn ($query) => $query->whereKeyNot($ignore->id))
             ->value('name');
 
-        return $owner === null
-            ? "{$code} is already used by another company."
-            : "{$code} is already used by {$owner}.";
+        return $owner === null ? null : "{$code} is already used by {$owner}.";
     }
 }

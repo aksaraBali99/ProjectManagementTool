@@ -10,13 +10,14 @@ use RuntimeException;
  * task codes (BGS-0012). Exactly three uppercase letters, unique across
  * companies.
  *
- * suggest() is the default rule for a company that has no code yet: the
- * first three letters of its name, or the next free combination if those
- * are taken. Used by the task #118 migration outside production (where
- * the fixed name map doesn't cover dev/test companies) and by
- * Organization::creating() until the company page asks for the code
- * itself. It is only ever a suggestion — production's codes come from
- * the migration's fixed map.
+ * suggest() is the suggested code for a company: one built from its
+ * name's words (Bali Virtual Academy -> BVA, English Hub -> ENH, Solava
+ * -> SLV), or the next free combination if that is taken. It is offered
+ * on the Add/Edit Company forms (organizations.code-suggestion), given to
+ * a company created without a code (Organization::creating(): the Excel
+ * import), and used by the task #118 migration outside production, where
+ * the fixed name map doesn't cover dev/test companies. Production's
+ * codes come from that map.
  */
 final class CompanyCode
 {

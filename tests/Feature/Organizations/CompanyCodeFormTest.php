@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Requests\Organizations\UpdateOrganizationRequest;
 use App\Models\Department;
 use App\Models\Organization;
 use App\Models\OrgMember;
@@ -217,6 +218,50 @@ test('a locked code cannot change, but the same code, no code, and name or accen
         ->and($company->fresh()->accent_color)->toBe('#534AB7')
         ->and($company->fresh()->code)->toBe('BVA');
 })->with('locked companies');
+
+test('a first task issued while an Edit with a new code is being saved keeps the code, and the lock error shows under the code', function () {
+    $company = makeCompany('Bali Goods Sourcing', 'BGS');
+
+    // The company was unlocked when this request was validated; its first
+    // task is created by someone else right after, before the save.
+    app()->afterResolving(UpdateOrganizationRequest::class, function () use ($company) {
+        giveCompanyATask($company);
+    });
+
+    $this->actingAs($this->owner)
+        ->from(route('organizations.edit', $company))
+        ->put(route('organizations.update', $company), companyForm(['name' => 'Bali Goods Sourcing Co', 'code' => 'BGX']))
+        ->assertRedirect(route('organizations.edit', $company))
+        ->assertSessionHasErrors(['code' => "The task code can't change once the company has tasks."]);
+
+    $company->refresh();
+    expect($company->code)->toBe('BGS')
+        // Nothing else from the refused save went through either.
+        ->and($company->name)->toBe('Bali Goods Sourcing')
+        ->and(Task::where('organization_id', $company->id)->sole()->code)->toBe('BGS-0001');
+
+    // The page the save returns to is now locked, and shows the error
+    // under the code. (Trying again, following the redirect.)
+    $this->actingAs($this->owner)
+        ->from(route('organizations.edit', $company))
+        ->followingRedirects()
+        ->put(route('organizations.update', $company), companyForm(['name' => 'Bali Goods Sourcing', 'code' => 'BGX']))
+        ->assertOk()
+        ->assertDontSee('name="code"', false)
+        ->assertSee('Locked: this company has issued task numbers up to BGS-0001', false)
+        // Escaped: the message is printed with {{ }}.
+        ->assertSee("The task code can't change once the company has tasks.");
+});
+
+test('a code sent as a list is a validation error, not a 500', function () {
+    $this->actingAs($this->owner)->post(route('organizations.store'), companyForm(['code' => ['BVA']]))
+        ->assertSessionHasErrors('code');
+
+    $company = makeCompany('Bali Hire', 'BAH');
+    $this->actingAs($this->owner)->put(route('organizations.update', $company), companyForm(['name' => 'Bali Hire', 'code' => ['BAX']]))
+        ->assertSessionHasErrors('code');
+    expect($company->fresh()->code)->toBe('BAH');
+});
 
 test('a brand-new company is not locked', function () {
     expect(makeCompany('Bali Hire', 'BAH')->fresh()->hasIssuedTaskNumbers())->toBeFalse();

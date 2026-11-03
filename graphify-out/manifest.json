@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "app/Models/Organization.php": {
-    "mtime": 1793693005.8355563,
-    "ast_hash": "eced9b7cfd5454cad72057c97fb6180c",
+    "mtime": 1793694929.1929328,
+    "ast_hash": "a243147ca2f4ec1451fa24f34ed23955",
     "semantic_hash": ""
   },
   "app/Models/Project.php": {
@@ -455,8 +455,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/OrganizationManagementController.php": {
-    "mtime": 1793693059.2570572,
-    "ast_hash": "7d346a49843db413be862eacf443c58f",
+    "mtime": 1793695206.850859,
+    "ast_hash": "8ceea084796b156a077350b3270ef2e4",
     "semantic_hash": ""
   },
   "app/Http/Controllers/RoleManagementController.php": {
@@ -565,8 +565,8 @@
     "semantic_hash": ""
   },
   "resources/views/organizations/edit.blade.php": {
-    "mtime": 1793693098.1803627,
-    "ast_hash": "ea09b6c5425c8469b719d518c18d8ca4",
+    "mtime": 1793694928.6312695,
+    "ast_hash": "ba339a376edb41ac02e24dd6c8d7b369",
     "semantic_hash": ""
   },
   "resources/views/organizations/index.blade.php": {
@@ -2390,8 +2390,8 @@
     "semantic_hash": ""
   },
   "app/Support/CompanyCode.php": {
-    "mtime": 1793692997.2724738,
-    "ast_hash": "39b856607f47ed1cd899f091c8d255c8",
+    "mtime": 1793694929.0353465,
+    "ast_hash": "cb5a36b68dd09ba68e2e5b6fb79c4d69",
     "semantic_hash": ""
   },
   "database/migrations/2026_11_03_000000_add_task_codes.php": {
@@ -2415,18 +2415,18 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Organizations/Concerns/ValidatesTaskCode.php": {
-    "mtime": 1793693027.7773688,
-    "ast_hash": "5fd7d42d781b2b82f06f1b5b29ba70a2",
+    "mtime": 1793694895.9814565,
+    "ast_hash": "c465c53c487a064d14a4e124deb299f4",
     "semantic_hash": ""
   },
   "resources/views/organizations/_code-field.blade.php": {
-    "mtime": 1793693097.5776381,
-    "ast_hash": "9d0a3a4e1d93a6ad69ce3a2e053f0bd0",
+    "mtime": 1793694928.9124186,
+    "ast_hash": "a6e82bea648611cdace81c5e3dd319b4",
     "semantic_hash": ""
   },
   "tests/Feature/Organizations/CompanyCodeFormTest.php": {
-    "mtime": 1793693299.561769,
-    "ast_hash": "480ade991547f5713deb32260ce14d0f",
+    "mtime": 1793695176.5586824,
+    "ast_hash": "c3071ddbd492f6b5747133138e77e48e",
     "semantic_hash": ""
   }
 }
