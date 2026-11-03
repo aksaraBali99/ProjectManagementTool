@@ -148,7 +148,11 @@ class DocumentController extends Controller
         // per document.
         $originTaskIds = $documents->pluck('origin_task_id')->filter()->unique()->values()->all();
         $viewableOriginTaskIds = Task::viewableIdsFor($user, $originTaskIds);
-        $originTasks = Task::whereIn('id', $viewableOriginTaskIds->all())->get(['id', 'title'])->keyBy('id');
+        // task #118 phase 3: the company and number too, for the task's code.
+        $originTasks = Task::whereIn('id', $viewableOriginTaskIds->all())
+            ->with('organization:id,code')
+            ->get(['id', 'title', 'organization_id', 'task_number'])
+            ->keyBy('id');
 
         // Edit/delete rights, computed ONCE for the whole company: the
         // per-row comparison in the view is then just
@@ -481,11 +485,16 @@ class DocumentController extends Controller
         $orderedViewableIds = collect($linkedTaskIds)->filter(fn (int $id) => $viewableTaskIds->contains($id))->values();
 
         $cappedIds = $orderedViewableIds->take(10);
-        $titlesById = Task::whereIn('id', $cappedIds->all())->get(['id', 'title'])->keyBy('id');
+        $titlesById = Task::whereIn('id', $cappedIds->all())
+            ->with('organization:id,code')
+            ->get(['id', 'title', 'organization_id', 'task_number'])
+            ->keyBy('id');
 
         $tasks = $cappedIds->map(fn (int $id) => [
             'id' => $id,
             'title' => $titlesById[$id]->title,
+            // task #118 phase 3: shown before the title (null without one).
+            'code' => $titlesById[$id]->code,
             'url' => route('tasks.edit', $id),
         ])->values();
 

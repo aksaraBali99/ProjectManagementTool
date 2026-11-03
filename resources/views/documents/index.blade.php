@@ -201,7 +201,7 @@
                                 @if ($document->origin_task_id === null)
                                     <span>Documents page</span>
                                 @elseif ($originTasks->has($document->origin_task_id))
-                                    <a href="{{ route('tasks.edit', $document->origin_task_id) }}" class="text-brand-600 hover:underline">{{ $originTasks[$document->origin_task_id]->title }}</a>
+                                    <a href="{{ route('tasks.edit', $document->origin_task_id) }}" class="text-brand-600 hover:underline"><x-task-code :task="$originTasks[$document->origin_task_id]" />{{ $originTasks[$document->origin_task_id]->title }}</a>
                                 @else
                                     <span class="text-gray-400">From a task</span>
                                 @endif
@@ -313,6 +313,12 @@
         const organizationId = container.dataset.organizationId;
         const currentFolderId = container.dataset.folderId || '';
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+        // task #118 phase 3: "BGS-0012 Fix invoice PDF layout", or the
+        // title alone for a task without a code. Always set as textContent.
+        function taskLabel(task) {
+            return (task.code ? task.code + ' ' : '') + task.title;
+        }
 
         function requestOrThrow(url, method, body, fallback) {
             return fetch(url, {
@@ -529,7 +535,7 @@
                 link.target = '_blank';
                 link.rel = 'noopener';
                 link.className = 'text-brand-600 hover:underline';
-                link.textContent = task.title;
+                link.textContent = taskLabel(task);
                 item.appendChild(link);
 
                 if (! onCancel) {
@@ -564,7 +570,7 @@
                     const unlinkBtn = document.createElement('button');
                     unlinkBtn.type = 'button';
                     unlinkBtn.className = 'rounded-md border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50';
-                    unlinkBtn.textContent = (data.linked_tasks.length > 1) ? 'Unlink "' + task.title + '"' : 'Unlink';
+                    unlinkBtn.textContent = (data.linked_tasks.length > 1) ? 'Unlink "' + taskLabel(task) + '"' : 'Unlink';
                     unlinkBtn.addEventListener('click', function () {
                         requestOrThrowSimple('/tasks/' + task.id + '/documents/' + documentId, 'DELETE', undefined, 'Failed to unlink.')
                             .then(onUnlinked)
@@ -870,8 +876,8 @@
                 link.href = task.url;
                 link.target = '_blank';
                 link.rel = 'noopener noreferrer';
-                link.title = task.title;
-                link.textContent = task.title;
+                link.title = taskLabel(task);
+                link.textContent = taskLabel(task);
                 link.className = 'block truncate text-brand-600 hover:underline';
                 list.appendChild(link);
             });

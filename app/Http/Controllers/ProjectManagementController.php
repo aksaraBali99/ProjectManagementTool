@@ -155,7 +155,7 @@ class ProjectManagementController extends Controller
         $hasOlderTasks = $shownCount === 0 && $since && $visible()->exists();
 
         $tasks = $shown()
-            ->with(['department', 'assignee'])
+            ->with(['department', 'assignee', 'organization:id,code'])
             ->orderByDueSoonest()
             ->limit(self::DRILLDOWN_LIMIT)
             ->get();

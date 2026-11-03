@@ -31,14 +31,12 @@
          x-position without any special-case alignment CSS. --}}
     <div class="flex items-start justify-between gap-2">
         <div class="min-w-0 flex-1">
-            <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => $returnTo, 'return_label' => 'Kanban']) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline">{{ $task->title }}</a>
-            {{-- task #71: the task's own permanent database id, "#<id>" —
-                 unrelated to the Import feature's file-scoped "Task Ref"
-                 numbering. Folded into the existing muted metadata line
-                 rather than a whole new line, so it doesn't compete with
-                 the title. --}}
+            {{-- task #118 phase 3: the task's code (BGS-0012) before its
+                 title. It replaces task #71's "#<id>", which used to lead
+                 the muted line below. --}}
+            <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => $returnTo, 'return_label' => 'Kanban']) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline"><x-task-code :task="$task" />{{ $task->title }}</a>
             <p class="mt-1 text-[10px] text-gray-500">
-                #{{ $task->id }} &middot; {{ $task->project->name }}
+                {{ $task->project->name }}
                 @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
             </p>
         </div>

@@ -51,7 +51,7 @@ class CalendarController extends Controller
         $tasksByDate = Task::visibleTo($user, $organization->id)
             ->whereNotNull('due_date')
             ->whereBetween('due_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
-            ->with(['project', 'department', 'assignee'])
+            ->with(['project', 'department', 'assignee', 'organization:id,code'])
             ->orderBy('title')
             ->get()
             ->groupBy(fn (Task $task) => $task->due_date->toDateString());

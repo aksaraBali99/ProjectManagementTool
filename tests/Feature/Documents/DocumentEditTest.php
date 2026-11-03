@@ -169,7 +169,7 @@ test('changing access level to private is blocked while the document is directly
 
     $response->assertStatus(422);
     expect($response->json('message'))->toBe('This document is still attached to 2 tasks. Remove it from them first.');
-    expect($response->json('linked_tasks'))->toBe([['id' => $viewableTask->id, 'title' => 'Visible task']]);
+    expect($response->json('linked_tasks'))->toBe([['id' => $viewableTask->id, 'title' => 'Visible task', 'code' => $viewableTask->fresh()->code]]);
     expect($response->json('hidden_linked_task_count'))->toBe(1);
     expect($document->fresh()->access_level->value)->toBe('internal');
 });

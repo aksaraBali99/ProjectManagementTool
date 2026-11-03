@@ -94,7 +94,7 @@ class KanbanController extends Controller
         // Loading mutates the models in place, so each column's own
         // collection sees the relations too.
         $rendered = new EloquentCollection($tasksByStatus->flatten(1)->all());
-        $rendered->load(['project', 'department', 'assignee']);
+        $rendered->load(['project', 'department', 'assignee', 'organization:id,code']);
 
         $showAllCompleted = $since === null;
         $columns = collect(TaskStatus::cases())->map(function (TaskStatus $status) use ($tasksByStatus, $totals, $completedOlder, $showAllCompleted) {
@@ -192,7 +192,7 @@ class KanbanController extends Controller
             $tasks = (clone $visible)
                 ->whereIn('tasks.id', $changedIds)
                 ->when($window, fn (Builder $query) => $query->openOrCompletedWithin($window))
-                ->with(['project', 'department', 'assignee'])
+                ->with(['project', 'department', 'assignee', 'organization:id,code'])
                 ->get();
 
             $cards = $this->renderCards($tasks, $organization)
@@ -255,7 +255,7 @@ class KanbanController extends Controller
         $total = $columnQuery->count();
 
         $tasks = $this->columnPage($visible, $status, $offset, $since);
-        $tasks->load(['project', 'department', 'assignee']);
+        $tasks->load(['project', 'department', 'assignee', 'organization:id,code']);
 
         $html = $this->renderCards($tasks, $organization)->pluck('html')->implode('');
 

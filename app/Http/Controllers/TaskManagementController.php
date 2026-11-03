@@ -83,7 +83,7 @@ class TaskManagementController extends Controller
         // row, which rendered for every task whether it was ever opened or
         // not; the drilldown now fetches tasks.preview on first open, so
         // nothing on this page reads them.
-        $query = $visibleScope()->with(['project', 'department', 'assignee']);
+        $query = $visibleScope()->with(['project', 'department', 'assignee', 'organization:id,code']);
 
         if ($showInactive) {
             $query->withTrashed();
@@ -685,7 +685,7 @@ class TaskManagementController extends Controller
 
         $returnTo = $this->resolveReturnTo(route('tasks.index', $task->organization_id));
 
-        $task->load('subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
+        $task->load('organization:id,code', 'subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
 
         // Both computed once, not per document row — see the
         // 'canDetachAnyDocument' entry below for why that matters.

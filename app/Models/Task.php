@@ -51,6 +51,21 @@ class Task extends Model
     }
 
     /**
+     * task #118 phase 3: the title as it's shown in plain text, code first
+     * ("BGS-0012 Fix invoice PDF layout"), or the title alone without a
+     * code: browser tab titles, title="" tooltips, JSON for scripts. The
+     * HTML places use <x-task-code> before the title instead. Never
+     * stored: tasks.title stays the title only.
+     *
+     * Wherever tasks are listed, eager-load 'organization:id,code', or
+     * each task loads its company separately.
+     */
+    protected function displayTitle(): Attribute
+    {
+        return Attribute::get(fn () => $this->code === null ? $this->title : $this->code.' '.$this->title);
+    }
+
+    /**
      * The one place the task code's format lives: the company code, a
      * hyphen, and the number padded to four digits. Never truncated —
      * 10000 is SLV-10000.

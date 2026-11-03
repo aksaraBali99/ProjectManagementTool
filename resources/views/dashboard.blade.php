@@ -19,7 +19,7 @@
                 @forelse ($activeTasks as $task)
                     <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Dashboard']) }}" class="flex items-center justify-between px-3 py-2 hover:bg-[#FEE2E2]">
                         <div>
-                            <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
+                            <p class="text-[12px] font-medium text-[#1F2937]"><x-task-code :task="$task" />{{ $task->title }}</p>
                             <p class="mt-0.5 text-[10px] text-gray-500">
                                 {{ $task->project->name }}
                                 @if ($task->assignee) &middot; <x-avatar :user="$task->assignee" size="16px" class="align-middle" /> {{ $task->assignee->name }} @endif
@@ -56,7 +56,7 @@
                             <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Dashboard']) }}"
                                class="block rounded-md border-l-4 px-4 py-2 hover:opacity-90"
                                style="border-left-color: {{ $priority->badgeText() }}; background-color: {{ $priority->badgeBackground() }};">
-                                <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
+                                <p class="text-[12px] font-medium text-[#1F2937]"><x-task-code :task="$task" />{{ $task->title }}</p>
                                 <p class="mt-0.5 flex items-center justify-between text-[10px]">
                                     <span style="color: {{ $task->department->badgeText() }}">{{ $task->department->name }}</span>
                                     <span style="color: {{ $task->status->badgeText() }}">{{ $task->status->label() }}</span>
@@ -114,7 +114,7 @@
                             : null;
                     @endphp
                     <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Dashboard']) }}" class="block px-3 py-2 hover:bg-gray-50">
-                        <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
+                        <p class="text-[12px] font-medium text-[#1F2937]"><x-task-code :task="$task" />{{ $task->title }}</p>
                         <p class="mt-0.5 text-[10px] text-gray-500">
                             {{ $task->project->name }}
                             @if ($task->assignee) &middot; <x-avatar :user="$task->assignee" size="16px" class="align-middle" /> {{ $task->assignee->name }} @endif

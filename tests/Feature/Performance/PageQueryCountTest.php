@@ -104,32 +104,47 @@ const GROWTH_TOLERANCE = 2;
 // contract, <= 19 is what stops it drifting back up to 29.
 // Dashboard: +5 in phase 8. Per section, a limited query instead of one
 // load of every task: grouped count, five lists of 10, My Task's count.
-const DASHBOARD_MAX_QUERIES_20_TASKS = 21;
+// task #118 phase 3: +1, one query for the listed tasks' company codes
+// ('organization:id,code', for the code shown before each title), the
+// same whatever the number of tasks.
+const DASHBOARD_MAX_QUERIES_20_TASKS = 22;
 // Projects: -4 in phase 9. The page no longer loads every project's tasks
 // (and their departments and assignees) for the hidden drilldown rows.
 const PROJECTS_MAX_QUERIES_20_TASKS = 13;
 // A project's drilldown (projects.tasks, phase 9): shown count, the first
 // 25 tasks, their departments and assignees.
-const PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS = 12;
+// task #118 phase 3: +1, one query for the listed tasks' company codes
+// ('organization:id,code', for the code shown before each title), the
+// same whatever the number of tasks.
+const PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS = 13;
 const CALENDAR_MAX_QUERIES_20_TASKS = 10;
-const KANBAN_MAX_QUERIES_20_TASKS = 22;
+// task #118 phase 3: +1, one query for the listed tasks' company codes
+// ('organization:id,code', for the code shown before each title), the
+// same whatever the number of tasks.
+const KANBAN_MAX_QUERIES_20_TASKS = 23;
 // Tasks list: +1 since phase 4 (task #72), the page's own count(*) for the
 // paginator. It shows one page now, so this stays put however many tasks.
-const TASKS_LIST_MAX_QUERIES_20_TASKS = 22;
+// task #118 phase 3: +1, one query for the listed tasks' company codes
+// ('organization:id,code', for the code shown before each title), the
+// same whatever the number of tasks.
+const TASKS_LIST_MAX_QUERIES_20_TASKS = 23;
 
 // --- Measured ceilings at 20 tasks, as staff -----------------------------
 // Staff visibility runs through department access instead of the
 // management-tier shortcut, so it is a genuinely different query path.
-const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 25;
-const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 23;
+// task #118 phase 3: Tasks list, Kanban and the drilldown each +1, the
+// listed tasks' company codes in one query (see the management ceilings).
+const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 26;
+const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 24;
 const PROJECTS_MAX_QUERIES_20_TASKS_STAFF = 16;
-const PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS_STAFF = 14;
+const PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS_STAFF = 15;
 // task #72 phase 10: the Kanban poll, idle (nothing changed) and with
-// changed cards to render (the same for 1 card or 50).
+// changed cards to render (the same for 1 card or 50). task #118 phase 3:
+// with cards +1, their company codes in one query; idle polls unchanged.
 const KANBAN_CHANGES_MAX_QUERIES_IDLE = 7;
-const KANBAN_CHANGES_MAX_QUERIES_CARDS = 18;
+const KANBAN_CHANGES_MAX_QUERIES_CARDS = 19;
 const KANBAN_CHANGES_MAX_QUERIES_IDLE_STAFF = 8;
-const KANBAN_CHANGES_MAX_QUERIES_CARDS_STAFF = 19;
+const KANBAN_CHANGES_MAX_QUERIES_CARDS_STAFF = 20;
 
 beforeEach(function () {
     // The database cache store, as on dev and production: phpunit.xml's
