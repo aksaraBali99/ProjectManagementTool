@@ -94,10 +94,12 @@ class TaskManagementController extends Controller
 
         // task #118 phase 4: the box also finds a task by its code
         // (BGS-0012, bgs-12, 0012, #12 ...). A code in this company matches
-        // its number exactly, through the (organization_id, task_number)
-        // index, OR the title as before, so "12" still finds "Q12 report".
-        // A code from another company the user can see gets a notice
-        // pointing there instead; its task is never listed here.
+        // its number exactly (task_number = ?, no LIKE on a CONCAT) OR the
+        // title as before, so "12" still finds "Q12 report". The title's
+        // LIKE '%...%' still scans the company's tasks, as the title-only
+        // search always did, so this costs no more than it. A code from
+        // another company the user can see gets a notice pointing there
+        // instead; its task is never listed here.
         $codeNumber = null;
         $codeElsewhere = null;
         if ($search = trim((string) ($filters['q'] ?? ''))) {
@@ -112,7 +114,7 @@ class TaskManagementController extends Controller
                 $query->where('title', 'like', '%'.$search.'%');
 
                 if ($parsed !== null) {
-                    $codeElsewhere = $this->taskCodeElsewhere($parsed, $organizations, $organization, $user, $showInactive, $search);
+                    $codeElsewhere = $this->taskCodeElsewhere($parsed, $organizations, $user, $showInactive, $search);
                 }
             }
         }
@@ -346,34 +348,22 @@ class TaskManagementController extends Controller
     }
 
     /**
-     * task #72 phase 7: the Tasks list's "Completed" filter.
-     *
-     *   - Date range (completed_from and/or completed_to): only tasks
-     *     completed on those dates, inclusive. Open tasks have no
-     *     completion date, so they drop out.
-     *   - All (completed=all), or an explicit Status = Completed: no window.
-     *   - Recent (the default): open tasks, plus tasks completed within the
-     *     company's window — Task::scopeOpenOrCompletedWithin().
-     *
-     * "Show inactive" is applied before this, so it widens the list first
-     * and the window then applies to inactive tasks too.
-     */
-    /**
      * task #118 phase 4: a searched code that belongs to another company:
      * "SLV-0003 is in Solava.", with a link to that company's Tasks list
      * and the same search. Only when the user can see that company (it's
      * one of their tabs) and that task in it (the same visibleTo() scope,
      * and inactive tasks only with show_inactive), so the notice never
-     * reveals a task they couldn't open.
+     * reveals a task they couldn't open. Only called for a code other than
+     * the current company's.
      *
      * @param  array{code: string|null, number: int}  $parsed
      * @return array{code: string, organization: Organization, url: string}|null
      */
-    private function taskCodeElsewhere(array $parsed, Collection $organizations, Organization $current, User $user, bool $showInactive, string $search): ?array
+    private function taskCodeElsewhere(array $parsed, Collection $organizations, User $user, bool $showInactive, string $search): ?array
     {
         $other = $organizations->first(fn (Organization $organization) => $organization->code === $parsed['code']);
 
-        if ($other === null || $other->is($current)) {
+        if ($other === null) {
             return null;
         }
 
@@ -390,8 +380,20 @@ class TaskManagementController extends Controller
     }
 
     /**
+     * task #72 phase 7: the Tasks list's "Completed" filter.
+     *
+     *   - Date range (completed_from and/or completed_to): only tasks
+     *     completed on those dates, inclusive. Open tasks have no
+     *     completion date, so they drop out.
+     *   - All (completed=all), or an explicit Status = Completed: no window.
+     *   - Recent (the default): open tasks, plus tasks completed within the
+     *     company's window — Task::scopeOpenOrCompletedWithin().
+     *
+     * "Show inactive" is applied before this, so it widens the list first
+     * and the window then applies to inactive tasks too.
+     *
      * task #118 phase 4: $codeNumber is a task number the search box asked
-     * for by code. That one task is shown even when the completed window
+     * for by code. That one task is shown even when the Recent window
      * would hide it (searching a code means "find this task"); title
      * matches keep the window.
      */

@@ -3,6 +3,7 @@
 use App\Models\AuditLog;
 use App\Models\Comment;
 use App\Models\Department;
+use App\Models\DocumentFolder;
 use App\Models\Organization;
 use App\Models\OrgMember;
 use App\Models\Project;
@@ -79,6 +80,65 @@ test('a subtask whose parent is gone is named by its own title alone', function 
     $entry->primedRecord = $subtask;
 
     expect($entry->entityLabel())->toBe('Write tests');
+});
+
+test('a comment is named by its task and an excerpt, and keeps the old text once deleted', function () {
+    $comment = Comment::create(['task_id' => $this->task->id, 'user_id' => $this->owner->id, 'body' => '<p>Looks <strong>good</strong> to me</p>']);
+    $entry = latestEntry('comment.created');
+
+    expect($entry->entityLabel())->toBe('BGS-0001 Fix invoice PDF layout › Looks good to me');
+
+    // Primed on the Audit Trail page: the same label.
+    AuditLog::primeEntityLabels([$entry = $entry->fresh()]);
+    expect($entry->entityLabel())->toBe('BGS-0001 Fix invoice PDF layout › Looks good to me');
+
+    $comment->delete();
+    expect($entry->fresh()->entityLabel())->toBe("Comment #{$comment->id} (deleted)");
+});
+
+test('the "comment added" email and in-app notification name the task', function () {
+    Comment::create(['task_id' => $this->task->id, 'user_id' => $this->owner->id, 'body' => '<p>Looks good to me</p>']);
+    $entry = latestEntry('comment.created');
+
+    expect((new AuditEventMailNotification($entry, 'Comment added'))->toMail($this->staff)->subject)
+        ->toBe('Comment added: BGS-0001 Fix invoice PDF layout › Looks good to me')
+        ->and((new AuditEventDatabaseNotification($entry, 'Comment added'))->toDatabase($this->staff)['entity_label'])
+        ->toBe('BGS-0001 Fix invoice PDF layout › Looks good to me');
+});
+
+test('an imported change, tagged source=import, reads as old to new instead of crashing the Audit Trail', function () {
+    $other = User::factory()->create(['name' => 'Other Person']);
+    $entry = AuditLog::create([
+        'organization_id' => $this->org->id, 'user_id' => $this->owner->id, 'action' => 'task.reassigned',
+        'entity_type' => 'task', 'entity_id' => $this->task->id,
+        'changes' => [
+            'assignee_id' => ['old' => $this->staff->id, 'new' => $other->id],
+            'status' => ['old' => 'pending', 'new' => 'in_progress'],
+            'source' => 'import',
+        ],
+    ]);
+
+    $expected = "Assignee Id changed from {$this->staff->name} to Other Person; Status changed from Pending to Active; Source: import";
+    expect($entry->describeChanges())->toBe($expected);
+
+    // Primed, as on the page, and the page itself.
+    AuditLog::primeEntityLabels([$entry = $entry->fresh()]);
+    expect($entry->describeChanges())->toBe($expected);
+    $this->actingAs($this->owner)->get('/audit-trail')->assertOk()->assertSee('Source: import');
+});
+
+test('a document move names its folders, also when primed', function () {
+    $from = DocumentFolder::create(['organization_id' => $this->org->id, 'name' => 'Contracts', 'created_by' => $this->owner->id]);
+    $to = DocumentFolder::create(['organization_id' => $this->org->id, 'name' => 'Archive', 'created_by' => $this->owner->id]);
+    $entry = AuditLog::create([
+        'organization_id' => $this->org->id, 'user_id' => $this->owner->id, 'action' => 'document.moved',
+        'entity_type' => 'document', 'entity_id' => 1,
+        'changes' => ['folder_id' => ['old' => $from->id, 'new' => $to->id]],
+    ]);
+
+    expect($entry->describeChanges())->toBe('Folder Id changed from Contracts to Archive');
+    AuditLog::primeEntityLabels([$entry = $entry->fresh()]);
+    expect($entry->describeChanges())->toBe('Folder Id changed from Contracts to Archive');
 });
 
 // --- Notifications ----------------------------------------------------------

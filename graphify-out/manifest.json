@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "app/Models/AuditLog.php": {
-    "mtime": 1793704710.7229278,
-    "ast_hash": "58014329fc43755136ebd623fd89ef1b",
+    "mtime": 1793705483.7589936,
+    "ast_hash": "f0a449b0c06de064fd77e86681f48e89",
     "semantic_hash": ""
   },
   "app/Models/Comment.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1793704406.4501603,
-    "ast_hash": "db9522e4ce22b2e6befa85fe98bd9d46",
+    "mtime": 1793705435.1826987,
+    "ast_hash": "8e64ed99bf9420ad0f19d88aed6e972c",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -1575,8 +1575,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/CommentRichTextTest.php": {
-    "mtime": 1792588836.8576407,
-    "ast_hash": "187643e9b27bc86d7943e8cbc14841e5",
+    "mtime": 1793705501.1789608,
+    "ast_hash": "a33266aa71309e13769f4bd675a2a41e",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/LongtextMigrationTest.php": {
@@ -2445,8 +2445,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/AuditTrail/TaskCodeMessagesTest.php": {
-    "mtime": 1793704711.7679975,
-    "ast_hash": "76eb4e0067e24e4234754833bdc1d37e",
+    "mtime": 1793705512.3599617,
+    "ast_hash": "8ac45d46cfb3c28441eb2ed3dc6fc395",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskCodeSearchTest.php": {

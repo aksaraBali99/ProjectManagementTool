@@ -35,6 +35,22 @@ class AuditLog extends Model
      */
     public ?array $primedUserNames = null;
 
+    /**
+     * task #118 phase 4: folder names for describeChanges(), keyed by
+     * folder id, set by primeEntityLabels(); null when not primed.
+     *
+     * @var array<int, string>|null
+     */
+    public ?array $primedFolderNames = null;
+
+    /**
+     * Bookkeeping keys stored alongside a change rather than describing a
+     * field (an import adds 'source' => 'import' to every row it writes,
+     * TagsImportBatch). Left out when deciding whether `changes` is an
+     * old/new diff, and listed after it.
+     */
+    private const CHANGE_TAGS = ['source'];
+
     protected function casts(): array
     {
         return [
@@ -70,11 +86,12 @@ class AuditLog extends Model
      * (Task only soft-deletes, so it's always still findable).
      *
      * task #118 phase 4: a task is named by code and title (its
-     * display_title, "BGS-0012 Fix invoice PDF layout"); a subtask by its
-     * parent's and its own ("BGS-0012 Fix invoice PDF layout › Write
-     * tests"), or its own title alone if the parent is gone. The one place
-     * every message about a task gets its name: the Audit Trail, the
-     * in-app notification and the email's subject and body.
+     * display_title, "BGS-0012 Fix invoice PDF layout"); a subtask or a
+     * comment by its task's and its own ("BGS-0012 Fix invoice PDF layout
+     * › Write tests", "BGS-0012 Fix invoice PDF layout › Looks good to
+     * me"), or its own alone if the task is gone. The one place every
+     * message about a task gets its name: the Audit Trail, the in-app
+     * notification and the email's subject and body.
      */
     public function entityLabel(): string
     {
@@ -97,31 +114,33 @@ class AuditLog extends Model
             return ucfirst($this->entity_type)." #{$this->entity_id} (deleted)";
         }
 
-        return match ($this->entity_type) {
+        $own = match ($this->entity_type) {
             'task' => $record->display_title,
-            'subtask' => ($parent = $this->subtaskParent($record)) === null
-                ? $record->title
-                : $parent->display_title.' › '.$record->title,
+            'subtask' => $record->title,
             'comment' => Str::limit(RichText::plainText($record->body), 40),
             default => "{$this->entity_type} #{$this->entity_id}",
         };
+
+        $parent = in_array($this->entity_type, ['subtask', 'comment'], true) ? $this->parentTask($record) : null;
+
+        return $parent === null ? $own : $parent->display_title.' › '.$own;
     }
 
-    /** The subtask's parent task, deactivated ones included. */
-    private function subtaskParent(Subtask $subtask): ?Task
+    /** A subtask's or comment's task, deactivated ones included. */
+    private function parentTask(Subtask|Comment $record): ?Task
     {
-        return $subtask->relationLoaded('task')
-            ? $subtask->task
-            : Task::withTrashed()->with('organization:id,code')->find($subtask->task_id);
+        return $record->relationLoaded('task')
+            ? $record->task
+            : Task::withTrashed()->with('organization:id,code')->find($record->task_id);
     }
 
     /**
      * task #118 phase 4: everything a page of Audit Trail entries needs
      * for entityLabel() and describeChanges(), in a fixed number of
      * queries however many entries there are: their tasks (deactivated
-     * ones included) with their company codes, their subtasks with their
-     * parent tasks, their comments, and the assignees their changes
-     * name. Without it each entry looks these up on its own.
+     * ones included) with their company codes, their subtasks and
+     * comments with their tasks, and the assignees and folders their
+     * changes name. Without it each entry looks these up on its own.
      *
      * @param  iterable<AuditLog>  $entries
      */
@@ -138,15 +157,15 @@ class AuditLog extends Model
                 ? Subtask::with(['task' => fn ($query) => $query->withTrashed()->with('organization:id,code')])->whereIn('id', $ids)->get()->keyBy('id')
                 : collect(),
             'comment' => ($ids = $idsOf('comment'))
-                ? Comment::whereIn('id', $ids)->get()->keyBy('id')
+                ? Comment::with(['task' => fn ($query) => $query->withTrashed()->with('organization:id,code')])->whereIn('id', $ids)->get()->keyBy('id')
                 : collect(),
         ];
 
-        // assignee_id appears as a flat value (task.created) or as an
-        // old/new pair (task.reassigned).
-        $assigneeIds = $entries
-            ->flatMap(function (AuditLog $entry) {
-                $value = ($entry->getAttribute('changes') ?? [])['assignee_id'] ?? null;
+        // An id field appears as a flat value (task.created) or as an
+        // old/new pair (task.reassigned, document.moved).
+        $idsIn = fn (string $field) => $entries
+            ->flatMap(function (AuditLog $entry) use ($field) {
+                $value = ($entry->getAttribute('changes') ?? [])[$field] ?? null;
 
                 return is_array($value) ? [$value['old'] ?? null, $value['new'] ?? null] : [$value];
             })
@@ -154,13 +173,16 @@ class AuditLog extends Model
             ->unique()
             ->values()
             ->all();
-        $userNames = $assigneeIds ? User::whereIn('id', $assigneeIds)->pluck('name', 'id')->all() : [];
+
+        $userNames = ($ids = $idsIn('assignee_id')) ? User::whereIn('id', $ids)->pluck('name', 'id')->all() : [];
+        $folderNames = ($ids = $idsIn('folder_id')) ? DocumentFolder::whereIn('id', $ids)->pluck('name', 'id')->all() : [];
 
         foreach ($entries as $entry) {
             if (array_key_exists($entry->entity_type, $records)) {
                 $entry->primedRecord = $records[$entry->entity_type]->get($entry->entity_id) ?? false;
             }
             $entry->primedUserNames = $userNames;
+            $entry->primedFolderNames = $folderNames;
         }
     }
 
@@ -220,15 +242,22 @@ class AuditLog extends Model
             };
         }
 
-        $isDiff = collect($changes)->every(
+        // An import's 'source' tag rides along with its diffs: without
+        // setting it aside, an imported update would read as a snapshot and
+        // each old/new pair would be formatted as one value.
+        $tags = array_intersect_key($changes, array_flip(self::CHANGE_TAGS));
+        $fields = array_diff_key($changes, $tags);
+
+        $isDiff = $fields !== [] && collect($fields)->every(
             fn ($value) => is_array($value) && array_key_exists('old', $value) && array_key_exists('new', $value)
         );
 
         if ($isDiff) {
-            return collect($changes)
+            return collect($fields)
                 ->map(fn ($diff, $field) => $this->fieldLabel($field).' changed from '
                     .$this->formatFieldValue($field, $diff['old']).' to '
                     .$this->formatFieldValue($field, $diff['new']))
+                ->merge(collect($tags)->map(fn ($value, $field) => $this->fieldLabel($field).': '.$this->formatFieldValue($field, $value)))
                 ->implode('; ');
         }
 
@@ -275,7 +304,9 @@ class AuditLog extends Model
             'task_number' => Task::formatCode($this->organization?->code, (int) $value) ?? (string) $value,
             'is_done' => $value ? 'Done' : 'Not done',
             // task #73 phase 2: document.moved/document.access_level_changed.
-            'folder_id' => DocumentFolder::find($value)?->name ?? "Folder #{$value}",
+            'folder_id' => ($this->primedFolderNames !== null
+                ? ($this->primedFolderNames[$value] ?? null)
+                : DocumentFolder::find($value)?->name) ?? "Folder #{$value}",
             'access_level' => DocumentAccessLevel::tryFrom($value)?->label() ?? (string) $value,
             // task #72 phase 6: the new value arrives as "Y-m-d H:i:s",
             // the old one as ISO-8601 (getOriginal() returns the cast
