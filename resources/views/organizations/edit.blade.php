@@ -28,6 +28,18 @@
                 class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
         </div>
 
+        {{-- task #118 phase 2: the task code is editable until the company
+             has issued a task number, then shown as read-only text. --}}
+        @if ($organization->hasIssuedTaskNumbers())
+            <div>
+                <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Task code</span>
+                <p class="mt-1"><span class="rounded-sm bg-gray-100 px-2 py-0.5 font-mono text-[12px] font-medium tracking-[0.1em] text-gray-700">{{ $organization->code }}</span></p>
+                <p class="mt-1 text-[10px] text-gray-500">Locked: this company has issued task numbers up to {{ \App\Models\Task::formatCode($organization->code, $organization->next_task_number - 1) }}, so the code can't change.</p>
+            </div>
+        @else
+            @include('organizations._code-field', ['value' => old('code', $organization->code), 'except' => $organization->id, 'suggestOnBlur' => false, 'suggestButton' => true])
+        @endif
+
         <div>
             <label for="accent_color" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Accent color</label>
             <input id="accent_color" name="accent_color" type="color" value="{{ old('accent_color', $organization->accent_color) }}" required

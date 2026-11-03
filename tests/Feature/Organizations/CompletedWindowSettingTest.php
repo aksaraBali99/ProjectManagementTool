@@ -19,7 +19,7 @@ beforeEach(function () {
 
 function companyUpdate(Organization $organization, array $overrides = []): array
 {
-    return array_merge(['name' => $organization->name, 'accent_color' => $organization->accent_color], $overrides);
+    return array_merge(['name' => $organization->name, 'code' => $organization->code, 'accent_color' => $organization->accent_color], $overrides);
 }
 
 test('a new company defaults to 14 days, through Eloquent and through a raw insert', function () {
@@ -31,7 +31,7 @@ test('a new company defaults to 14 days, through Eloquent and through a raw inse
 });
 
 test('a company created from the Add Company form gets 14', function () {
-    $this->actingAs($this->owner)->post(route('organizations.store'), ['name' => 'Form Co', 'accent_color' => '#123456'])->assertRedirect();
+    $this->actingAs($this->owner)->post(route('organizations.store'), ['name' => 'Form Co', 'code' => 'FOR', 'accent_color' => '#123456'])->assertRedirect();
 
     expect(Organization::where('name', 'Form Co')->sole()->completed_window_days)->toBe(14);
 });

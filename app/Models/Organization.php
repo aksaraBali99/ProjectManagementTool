@@ -63,6 +63,18 @@ class Organization extends Model
     }
 
     /**
+     * task #118 phase 2: has this company ever given out a task number?
+     * Then its code is locked: those codes (BGS-0012) live on in emails
+     * and the audit trail. Read from the counter, which only ever goes
+     * up, rather than a task count, so a company whose tasks were all
+     * deactivated or moved to another company stays locked.
+     */
+    public function hasIssuedTaskNumbers(): bool
+    {
+        return $this->next_task_number > 1;
+    }
+
+    /**
      * task #118: takes this company's next task number and moves the
      * counter on, so two tasks can never get the same one. Numbers are
      * never handed back, even if the task that took one is never saved

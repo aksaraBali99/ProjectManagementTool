@@ -28,6 +28,7 @@ test('a non-owner/non-super-admin cannot access organization management', functi
 test('an owner can create a company, and the slug is auto-generated from the name', function () {
     $response = $this->actingAs($this->owner)->post('/organizations', [
         'name' => 'New Co',
+        'code' => 'NEW',
         'accent_color' => '#1D9E75',
     ]);
 
@@ -38,10 +39,12 @@ test('an owner can create a company, and the slug is auto-generated from the nam
 test('creating two companies whose names produce the same slug get unique suffixed slugs', function () {
     $this->actingAs($this->owner)->post('/organizations', [
         'name' => 'Acme Co',
+        'code' => 'ACM',
         'accent_color' => '#1D9E75',
     ]);
     $this->actingAs($this->owner)->post('/organizations', [
         'name' => 'Acme Co',
+        'code' => 'ACO',
         'accent_color' => '#534AB7',
     ]);
 
@@ -63,6 +66,7 @@ test('the slug field is not present on the create or edit company forms', functi
 test('creating a company requires a valid hex accent color', function () {
     $response = $this->actingAs($this->owner)->post('/organizations', [
         'name' => 'New Co',
+        'code' => 'NEW',
         'accent_color' => 'not-a-color',
     ]);
 
@@ -75,6 +79,7 @@ test('an owner can update a company, and the slug stays fixed even when the name
 
     $response = $this->actingAs($this->owner)->put("/organizations/{$organization->id}", [
         'name' => 'Org A Renamed',
+        'code' => $organization->code,
         'accent_color' => '#534AB7',
     ]);
 
