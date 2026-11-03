@@ -22,6 +22,7 @@ use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use App\Services\LinkPreviewService;
 use App\Services\TaskDocumentLinker;
+use App\Support\TaskCodeQuery;
 use DOMDocument;
 use DOMXPath;
 use Illuminate\Database\Eloquent\Builder;
@@ -91,8 +92,31 @@ class TaskManagementController extends Controller
 
         $filters = request()->only(['q', 'project_id', 'department_id', 'assignee_id', 'priority', 'status', 'due_from', 'due_to', 'completed', 'completed_from', 'completed_to']);
 
+        // task #118 phase 4: the box also finds a task by its code
+        // (BGS-0012, bgs-12, 0012, #12 ...). A code in this company matches
+        // its number exactly (task_number = ?, no LIKE on a CONCAT) OR the
+        // title as before, so "12" still finds "Q12 report". The title's
+        // LIKE '%...%' still scans the company's tasks, as the title-only
+        // search always did, so this costs no more than it. A code from
+        // another company the user can see gets a notice pointing there
+        // instead; its task is never listed here.
+        $codeNumber = null;
+        $codeElsewhere = null;
         if ($search = trim((string) ($filters['q'] ?? ''))) {
-            $query->where('title', 'like', '%'.$search.'%');
+            $parsed = TaskCodeQuery::parse($search);
+
+            if ($parsed !== null && ($parsed['code'] === null || $parsed['code'] === $organization->code)) {
+                $codeNumber = $parsed['number'];
+                $query->where(fn (Builder $match) => $match
+                    ->where('tasks.task_number', $codeNumber)
+                    ->orWhere('tasks.title', 'like', '%'.$search.'%'));
+            } else {
+                $query->where('title', 'like', '%'.$search.'%');
+
+                if ($parsed !== null) {
+                    $codeElsewhere = $this->taskCodeElsewhere($parsed, $organizations, $user, $showInactive, $search);
+                }
+            }
         }
 
         if ($projectId = request()->integer('project_id')) {
@@ -127,7 +151,7 @@ class TaskManagementController extends Controller
             $query->whereDate('due_date', '<=', $dueTo);
         }
 
-        $this->applyCompletedFilter($query, $organization, $status);
+        $this->applyCompletedFilter($query, $organization, $status, $codeNumber);
 
         $sortable = ['title', 'project', 'department', 'assignee', 'priority', 'status', 'due_date', 'completed', 'active'];
         $sort = request()->string('sort')->toString();
@@ -183,6 +207,7 @@ class TaskManagementController extends Controller
             // stays — it lives in the shared BuildsAssigneeOptions trait
             // and KanbanController still uses it.
             'filters' => $filters,
+            'codeElsewhere' => $codeElsewhere,
             'sort' => $sort,
             'direction' => $direction,
             'perPage' => $perPage,
@@ -323,6 +348,38 @@ class TaskManagementController extends Controller
     }
 
     /**
+     * task #118 phase 4: a searched code that belongs to another company:
+     * "SLV-0003 is in Solava.", with a link to that company's Tasks list
+     * and the same search. Only when the user can see that company (it's
+     * one of their tabs) and that task in it (the same visibleTo() scope,
+     * and inactive tasks only with show_inactive), so the notice never
+     * reveals a task they couldn't open. Only called for a code other than
+     * the current company's.
+     *
+     * @param  array{code: string|null, number: int}  $parsed
+     * @return array{code: string, organization: Organization, url: string}|null
+     */
+    private function taskCodeElsewhere(array $parsed, Collection $organizations, User $user, bool $showInactive, string $search): ?array
+    {
+        $other = $organizations->first(fn (Organization $organization) => $organization->code === $parsed['code']);
+
+        if ($other === null) {
+            return null;
+        }
+
+        $found = Task::visibleTo($user, $other->id)
+            ->when($showInactive, fn (Builder $query) => $query->withTrashed())
+            ->where('tasks.task_number', $parsed['number'])
+            ->exists();
+
+        return $found ? [
+            'code' => Task::formatCode($other->code, $parsed['number']),
+            'organization' => $other,
+            'url' => route('tasks.index', [$other, 'q' => $search] + ($showInactive ? ['show_inactive' => 1] : [])),
+        ] : null;
+    }
+
+    /**
      * task #72 phase 7: the Tasks list's "Completed" filter.
      *
      *   - Date range (completed_from and/or completed_to): only tasks
@@ -334,8 +391,13 @@ class TaskManagementController extends Controller
      *
      * "Show inactive" is applied before this, so it widens the list first
      * and the window then applies to inactive tasks too.
+     *
+     * task #118 phase 4: $codeNumber is a task number the search box asked
+     * for by code. That one task is shown even when the Recent window
+     * would hide it (searching a code means "find this task"); title
+     * matches keep the window.
      */
-    private function applyCompletedFilter(Builder $query, Organization $organization, string $status): void
+    private function applyCompletedFilter(Builder $query, Organization $organization, string $status, ?int $codeNumber = null): void
     {
         $from = $this->validDate(request()->string('completed_from')->toString());
         $to = $this->validDate(request()->string('completed_to')->toString());
@@ -356,7 +418,17 @@ class TaskManagementController extends Controller
             return;
         }
 
-        $query->openOrCompletedWithin($organization->completedWindowStart());
+        $window = $organization->completedWindowStart();
+
+        if ($codeNumber === null) {
+            $query->openOrCompletedWithin($window);
+
+            return;
+        }
+
+        $query->where(fn (Builder $shown) => $shown
+            ->where('tasks.task_number', $codeNumber)
+            ->orWhere(fn (Builder $recent) => $recent->openOrCompletedWithin($window)));
     }
 
     /** A real Y-m-d date from a filter input, or null for anything else. */

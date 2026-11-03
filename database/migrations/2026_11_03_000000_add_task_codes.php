@@ -40,8 +40,8 @@ return new class extends Migration
         'Aksara Virtual Agency' => 'AVA',
         'Bali Goods Sourcing' => 'BGS',
         'Bali Virtual Academy' => 'BVA',
-        'English Hub' => 'ENH',
-        'Solava' => 'SLV',
+        'English Hub' => 'EHU',
+        'Solava' => 'SOL',
     ];
 
     /**

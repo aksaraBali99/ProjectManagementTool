@@ -245,5 +245,6 @@ test('the audit trail shows the words of a formatted comment, not its tags', fun
     $audit = AuditLog::where('action', 'comment.created')->firstOrFail();
 
     expect($audit->describeChanges())->toContain('Ship tonight')->not->toContain('<strong>');
-    expect($audit->entityLabel())->toBe('Ship tonight');
+    // task #118 phase 4: a comment is named after its task too.
+    expect($audit->entityLabel())->toBe($this->task->fresh()->display_title.' › Ship tonight');
 });

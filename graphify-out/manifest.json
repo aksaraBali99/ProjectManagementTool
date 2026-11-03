@@ -200,7 +200,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/DashboardController.php": {
-    "mtime": 1793702025.9211679,
+    "mtime": 1793703952.9278395,
     "ast_hash": "1693a51ba502f3a2cc74a23c81184c57",
     "semantic_hash": ""
   },
@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "app/Models/AuditLog.php": {
-    "mtime": 1793340315.2213178,
-    "ast_hash": "a61148b956e12ff97e3aa2a8cbd046ce",
+    "mtime": 1793705483.7589936,
+    "ast_hash": "f0a449b0c06de064fd77e86681f48e89",
     "semantic_hash": ""
   },
   "app/Models/Comment.php": {
@@ -280,7 +280,7 @@
     "semantic_hash": ""
   },
   "app/Models/Task.php": {
-    "mtime": 1793702119.12108,
+    "mtime": 1793703952.9364667,
     "ast_hash": "3daab6b737228ccf8f1ead042fda23e9",
     "semantic_hash": ""
   },
@@ -655,7 +655,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/ProjectManagementController.php": {
-    "mtime": 1793702025.9241962,
+    "mtime": 1793703952.931944,
     "ast_hash": "25041e4eb6d850a5ee83c5a3245ea941",
     "semantic_hash": ""
   },
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1793702025.9186592,
-    "ast_hash": "9868358921f36d1280e81f174d72719f",
+    "mtime": 1793705435.1826987,
+    "ast_hash": "8e64ed99bf9420ad0f19d88aed6e972c",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -800,13 +800,13 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1793701974.649402,
+    "mtime": 1793703952.986429,
     "ast_hash": "334931411bee77957c9109aa71786a2b",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
-    "mtime": 1793700435.9897313,
-    "ast_hash": "c02adf46066df930d587826223a611c0",
+    "mtime": 1793704418.8856645,
+    "ast_hash": "38880e223028a075da098ad47848966f",
     "semantic_hash": ""
   },
   "resources/views/users/_inline-validation.blade.php": {
@@ -885,7 +885,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/KanbanController.php": {
-    "mtime": 1793702025.9166603,
+    "mtime": 1793703952.9293504,
     "ast_hash": "07aeeabbff4087260ad9e3cb4c7a404c",
     "semantic_hash": ""
   },
@@ -945,8 +945,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/AuditTrailController.php": {
-    "mtime": 1787654125.9895494,
-    "ast_hash": "a95071dc502e91c6e7d75e4cf5509786",
+    "mtime": 1793704743.049678,
+    "ast_hash": "8188d03399cf32458fa1df2c6194d1e9",
     "semantic_hash": ""
   },
   "app/Http/Controllers/NotificationController.php": {
@@ -960,13 +960,13 @@
     "semantic_hash": ""
   },
   "app/Notifications/AuditEventDatabaseNotification.php": {
-    "mtime": 1787297716.3962603,
-    "ast_hash": "903f01dcf04117fe132c58bc7f63cde6",
+    "mtime": 1793704485.229398,
+    "ast_hash": "445512b6a5d9e842709968de38444bc8",
     "semantic_hash": ""
   },
   "app/Notifications/AuditEventMailNotification.php": {
-    "mtime": 1787297716.397771,
-    "ast_hash": "20d66f6434ccbd653f589918636a4159",
+    "mtime": 1793704470.8157344,
+    "ast_hash": "873ce2a7500f7c2143032dca597e2e52",
     "semantic_hash": ""
   },
   "app/Observers/CommentObserver.php": {
@@ -1025,8 +1025,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/AuditTrail/AuditTrailPageTest.php": {
-    "mtime": 1787710145.2217298,
-    "ast_hash": "ded9efa1a7c376e47dd2eee954179367",
+    "mtime": 1793704607.4652967,
+    "ast_hash": "a346938ab1f580e5513452a31bcde28d",
     "semantic_hash": ""
   },
   "tests/Feature/Notifications/NotificationDeliveryTest.php": {
@@ -1070,7 +1070,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/CalendarController.php": {
-    "mtime": 1793702025.922181,
+    "mtime": 1793703952.924478,
     "ast_hash": "d9ae26c083253bf55cdf4203e56ea6d7",
     "semantic_hash": ""
   },
@@ -1125,8 +1125,8 @@
     "semantic_hash": ""
   },
   "app/Notifications/MentionedInCommentNotification.php": {
-    "mtime": 1787562531.6175807,
-    "ast_hash": "1ded74bf2f2514d7316657d5aec8cde3",
+    "mtime": 1793704485.5897326,
+    "ast_hash": "84329bc9d03bd4307bd9be098e242281",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_24_010000_create_comment_mentions_table.php": {
@@ -1135,8 +1135,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/Comments/CommentMentionTest.php": {
-    "mtime": 1790335846.4594646,
-    "ast_hash": "9d26053acf7544f0222c3fbac2509618",
+    "mtime": 1793704607.8433523,
+    "ast_hash": "af510116f9622b7e382905062f33edf6",
     "semantic_hash": ""
   },
   "resources/views/users/_form.blade.php": {
@@ -1575,8 +1575,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/CommentRichTextTest.php": {
-    "mtime": 1792588836.8576407,
-    "ast_hash": "187643e9b27bc86d7943e8cbc14841e5",
+    "mtime": 1793705501.1789608,
+    "ast_hash": "a33266aa71309e13769f4bd675a2a41e",
     "semantic_hash": ""
   },
   "tests/Feature/RichText/LongtextMigrationTest.php": {
@@ -2170,7 +2170,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Performance/PageQueryCountTest.php": {
-    "mtime": 1793702049.4810224,
+    "mtime": 1793703952.989439,
     "ast_hash": "519ece152662573991ff81141ae3b68b",
     "semantic_hash": ""
   },
@@ -2390,23 +2390,23 @@
     "semantic_hash": ""
   },
   "app/Support/CompanyCode.php": {
-    "mtime": 1793698086.6187837,
-    "ast_hash": "cb5a36b68dd09ba68e2e5b6fb79c4d69",
+    "mtime": 1793713967.65917,
+    "ast_hash": "1ce56fe4d7908cd6ec24213422c85fea",
     "semantic_hash": ""
   },
   "database/migrations/2026_11_03_000000_add_task_codes.php": {
-    "mtime": 1793692261.8915474,
-    "ast_hash": "a62066f0c96229d1566473c471766715",
+    "mtime": 1793713932.6147835,
+    "ast_hash": "ab449f696f9af0b39bb70f1da661d840",
     "semantic_hash": ""
   },
   "tests/Feature/Database/TaskCodesMigrationTest.php": {
-    "mtime": 1793698086.6787517,
-    "ast_hash": "3f659b865f3cb2f11d98624babb03d98",
+    "mtime": 1793714034.425236,
+    "ast_hash": "a3140b385a701d8cd5d528cd3be0a41e",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskCodeTest.php": {
-    "mtime": 1793698086.6878202,
-    "ast_hash": "f9169ceb05455464076be734c490c217",
+    "mtime": 1793714050.7025516,
+    "ast_hash": "36588f0005dcd4ae691c35f61ac3ac27",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/fixtures/task-number-worker.php": {
@@ -2430,13 +2430,28 @@
     "semantic_hash": ""
   },
   "resources/views/components/task-code.blade.php": {
-    "mtime": 1793702119.12108,
+    "mtime": 1793703952.9844105,
     "ast_hash": "61b7ef4593909c3602d313f2ef30898a",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskCodeDisplayTest.php": {
-    "mtime": 1793702222.340466,
+    "mtime": 1793703952.9914396,
     "ast_hash": "eb33ffc43880ad2e70b3f918c44b6087",
+    "semantic_hash": ""
+  },
+  "app/Support/TaskCodeQuery.php": {
+    "mtime": 1793704371.784415,
+    "ast_hash": "46b317947ed0699224caf992ec4beaaf",
+    "semantic_hash": ""
+  },
+  "tests/Feature/AuditTrail/TaskCodeMessagesTest.php": {
+    "mtime": 1793705512.3599617,
+    "ast_hash": "8ac45d46cfb3c28441eb2ed3dc6fc395",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Tasks/TaskCodeSearchTest.php": {
+    "mtime": 1793704649.599881,
+    "ast_hash": "96c8d5e82ab06bce210ac959d736c2d6",
     "semantic_hash": ""
   }
 }

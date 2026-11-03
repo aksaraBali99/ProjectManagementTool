@@ -189,14 +189,13 @@ test('a company created without a code (the Excel import) gets the suggestion, t
         ->and($hire->fresh()->next_task_number)->toBe(1);
 });
 
-test('CompanyCode::suggest() reproduces every production code from its name', function (string $name, string $code) {
+// English Hub's EHU and Solava's SOL were chosen by hand, not by the rule.
+test('CompanyCode::suggest() reproduces the production codes built from the name', function (string $name, string $code) {
     expect(CompanyCode::suggest($name, []))->toBe($code);
 })->with([
     ['Aksara Virtual Agency', 'AVA'],
     ['Bali Goods Sourcing', 'BGS'],
     ['Bali Virtual Academy', 'BVA'],
-    ['English Hub', 'ENH'],
-    ['Solava', 'SLV'],
 ]);
 
 test('CompanyCode::suggest(): word initials, two letters plus one, or a letter and two consonants', function () {

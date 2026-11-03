@@ -26,13 +26,17 @@ class AuditEventDatabaseNotification extends Notification
 
     public function toDatabase($notifiable): array
     {
+        // Looked up once for both keys; it names a task by code and title
+        // (task #118 phase 4).
+        $entityLabel = $this->auditLog->entityLabel();
+
         return [
             'audit_log_id' => $this->auditLog->id,
             'event_label' => $this->eventLabel,
             'entity_type' => $this->auditLog->entity_type,
             'entity_id' => $this->auditLog->entity_id,
-            'entity_label' => $this->auditLog->entityLabel(),
-            'message' => $this->eventLabel.': '.$this->auditLog->entityLabel().' — '.$this->auditLog->describeChanges(),
+            'entity_label' => $entityLabel,
+            'message' => $this->eventLabel.': '.$entityLabel.' — '.$this->auditLog->describeChanges(),
             'link' => $this->auditLog->linkUrl(),
         ];
     }
