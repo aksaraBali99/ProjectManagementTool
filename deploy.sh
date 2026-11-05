@@ -12,8 +12,8 @@
 #   --branch       the branch this server runs (main on DEV, production on PROD)
 #   --expect-sha   the commit to deploy; origin/<branch> must be exactly it
 #   --expect-env   this server's APP_ENV, so a deploy can't hit the wrong server
-#   --maintenance  site down (php artisan down) from the pull until the caches are rebuilt
-#   --backup       php artisan solva:db-backup before anything changes
+#   --maintenance  site down (php artisan down) from before the backup until the caches are rebuilt
+#   --backup       php artisan solva:db-backup before the pull (after "down" with --maintenance)
 #   --dry-run      print what would be deployed, change nothing
 #
 # By hand, for the commit at the tip of the branch:
@@ -93,9 +93,15 @@ ${actual_env}"
     old_sha=$(git rev-parse HEAD)
 
     if [[ "$remote_sha" != "$expect_sha"* ]]; then
-        echo "origin/${branch} is at ${remote_sha}, not ${expect_sha}."
-        echo "Newer commit on ${branch}, skipping; the later run deploys it."
-        return "$skipped"
+        # Skip only when the branch moved on past the expected commit.
+        # Anything else (moved backwards, rewritten, a commit that isn't on
+        # the branch at all) is an error, not a quiet green skip.
+        if git merge-base --is-ancestor "$expect_sha" "origin/${branch}" 2>/dev/null; then
+            echo "origin/${branch} is at ${remote_sha}, not ${expect_sha}."
+            echo "Newer commit on ${branch}, skipping; the later run deploys it."
+            return "$skipped"
+        fi
+        preflight_fail "origin/${branch} is at ${remote_sha}, which doesn't contain ${expect_sha}: ${branch} was rewritten or moved backwards, or that commit isn't on ${branch}. Nothing deployed."
     fi
     if ! git merge-base --is-ancestor HEAD "origin/${branch}"; then
         preflight_fail "this checkout (${old_sha}) isn't behind origin/${branch}: it has commits of its own, or ${branch} was rewritten. A fast-forward isn't possible, and this script never makes a merge commit on a server."
@@ -123,20 +129,27 @@ ${actual_env}"
         if ! grep -q '^solva:db-backup ' <<<"$commands"; then
             preflight_fail "--backup asked for, but this checkout has no 'solva:db-backup' command yet (the first release after task #119). See 'First release' in docs/release-process.md."
         fi
-        echo "==> Backing up the database"
-        php artisan solva:db-backup --no-interaction </dev/null \
-            || preflight_fail "the database backup failed (see above)."
     fi
 
     # --- Deploy: from here on, a failure prints how to recover -----------
 
     local maintenance_on=0
 
+    # Maintenance mode first, then the backup: with the site down, nothing
+    # is written between the backup and the migrations, so restoring it
+    # loses nothing.
     if ((maintenance)); then
         echo "==> Maintenance mode on"
         php artisan down --retry=60 --no-interaction </dev/null \
             || preflight_fail "'php artisan down' failed."
         maintenance_on=1
+    fi
+
+    if ((backup)); then
+        echo "==> Backing up the database"
+        if ! php artisan solva:db-backup --no-interaction </dev/null; then
+            backup_failed
+        fi
     fi
 
     run_step "Fast-forward to ${remote_sha}" git merge --ff-only --quiet "origin/${branch}"
@@ -176,11 +189,26 @@ app_env() {
     sed -n 's/.*environment is \[\(.*\)\].*/\1/p' <<<"$output"
 }
 
-# A failure before anything changed.
+# A failure before the code or database changed.
 preflight_fail() {
     echo "" >&2
     echo "DEPLOY STOPPED before changing anything: $1" >&2
     exit 1
+}
+
+# The backup failed: nothing was pulled or migrated yet, so the site
+# comes back up as it was. Uses main's maintenance_on.
+backup_failed() {
+    if ((maintenance_on)); then
+        echo "==> Maintenance mode off (the backup failed; nothing was pulled or migrated)"
+        if ! php artisan up --no-interaction </dev/null; then
+            echo "" >&2
+            echo "!!! The database backup failed, and 'php artisan up' failed too: THE SITE IS STILL DOWN." >&2
+            echo "!!! Nothing was pulled or migrated. Run 'php artisan up' on the server." >&2
+            exit 1
+        fi
+    fi
+    preflight_fail "the database backup failed (see above). Nothing was pulled or migrated, and the site is up."
 }
 
 run_step() {
@@ -215,6 +243,8 @@ deploy_fail() {
         echo "  php artisan config:cache && php artisan route:cache"
         echo "Or go back to the code that was live (${old_sha}):"
         echo "  git reset --hard ${old_sha} && composer install --no-dev --optimize-autoloader"
+        echo "  php artisan view:clear && php artisan config:clear && php artisan route:clear"
+        echo "  php artisan config:cache && php artisan route:cache"
         echo "  (migrations that already ran stay; restore the backup if the data needs to go back too)"
         if ((maintenance_on)); then
             echo "Only when the site works again:"

@@ -13,8 +13,8 @@ The moving parts:
 | `.github/workflows/ci.yml` | Tests, Pint, shellcheck and the script tests. Runs on every PR into main or production (the required `test` check), and inside Deploy. |
 | `.github/workflows/deploy.yml` | On a push to main or production: CI, then deploy over SSH, smoke test, and (PROD) tag + Release. Also *Run workflow* by hand. |
 | `.github/workflows/release-check.yml` | On PRs into production: the required `release-check` check (source branch, checklist, drift), plus the job summary to paste into the PR. Also labels release and back-merge PRs `release`. |
-| `deploy.sh` | Runs on the server. Pre-flight checks, optional backup and maintenance mode, fast-forward, composer, migrate, caches. |
-| `php artisan solva:db-backup` | The gzipped database dump every PROD deploy takes first, in `storage/app/backups` (5 kept). |
+| `deploy.sh` | Runs on the server. Pre-flight checks, then (PROD) maintenance mode on and a backup, then fast-forward, composer, migrate, caches, and maintenance mode off. |
+| `php artisan solva:db-backup` | The gzipped database dump every PROD deploy takes with the site down, just before the pull, in `storage/app/backups` (5 kept). Each file is read back and checked before older ones are deleted. |
 | `.github/PULL_REQUEST_TEMPLATE/release.md` | The release PR template. |
 | `.github/scripts/*.sh` | Version number, task list and release checks, tested by `tests/scripts/run.sh`. |
 
@@ -174,7 +174,7 @@ From then on every release goes through the workflow alone.
 6. **Merge** with **Create a merge commit**.
 7. **Do the "before" steps**, if any.
 8. **Approve the deploy:** Actions > the Deploy run > *Review deployments* > production > *Approve and deploy*.
-9. **Watch the run.** It backs up the database, takes the site down, deploys and migrates, brings the site up, then smoke-tests `/up`. Maintenance mode lasts from the pull until the caches are rebuilt, usually under a minute.
+9. **Watch the run.** It takes the site down, backs up the database, deploys and migrates, brings the site up, then smoke-tests `/up`. With the site down during the backup, nothing is written between the backup and the migrations. Maintenance mode lasts from before the backup until the caches are rebuilt: the backup's time plus usually under a minute.
 10. **Do the "after" steps**, if any.
 11. **Fill in the version** in the PR. It's in the run's summary and on the Releases page.
 
@@ -211,7 +211,7 @@ Run from the wrong branch (e.g. environment `production` from `main`), the run f
 - **Revert PR:** `git revert` the bad change on a branch from main, merge it into main (it deploys to DEV), then do a normal release.
 - **Hotfix:** for a quick fix on PROD (section 3), if waiting for a release isn't an option.
 
-**Data.** Restore the backup the deploy took just before migrating. It's the newest file in `storage/app/backups` (the deploy log prints its name), or use an hPanel backup.
+**Data.** Restore the backup the deploy took with the site down, just before pulling and migrating. It's the newest file in `storage/app/backups` (the deploy log prints its name), or use an hPanel backup.
 
 > A restore puts the whole database back to the moment of the backup. **Anything written after it is lost**: tasks, comments, uploads' records, logins. Do it only when the data is actually wrong, not just to undo code.
 
@@ -232,12 +232,13 @@ php artisan up
 GitHub emails you, and the run is red. Open the run, then the failed job (*deploy-dev* or *deploy-prod*), then the *Deploy* step.
 
 - **"Missing config for this environment"**: a variable or secret isn't set (section 1d). Nothing ran on the server.
-- **"DEPLOY STOPPED before changing anything"**: a pre-flight check failed. The message says which one: wrong branch, local changes, wrong `APP_ENV`, backup failed, or a checkout that can't fast-forward. The site is untouched and still up. Fix the cause, then re-run (section 4).
+- **"DEPLOY STOPPED before changing anything"**: a pre-flight check failed. The message says which one: wrong branch, local changes, wrong `APP_ENV`, a checkout that can't fast-forward, or a commit that isn't on the branch (the branch was rewritten or moved backwards). The site is untouched and still up. Fix the cause, then re-run (section 4).
+- **"the database backup failed … Nothing was pulled or migrated, and the site is up"**: the backup ran with the site down and failed. The script brought the site back up, unchanged. Check the space left on the server (hPanel > Files) and the backup's error above it, then re-run. If it also says **"'php artisan up' failed too: THE SITE IS STILL DOWN"**, SSH in and run `php artisan up`. Nothing else needs undoing.
 - **"!!! DEPLOY FAILED at step: ..."**: something failed after the code started changing. The log says which step and prints the exact commands to finish the deploy or go back.
   - **PROD (maintenance mode on): the site stays down, on purpose**, so a half-migrated database doesn't take traffic. Visitors see the maintenance page. To bring it back:
     1. SSH in and `cd` to the app folder.
     2. Read `storage/logs/laravel.log` and the job log.
-    3. Either finish the deploy with the printed commands (often just re-running the failed one), or go back to the previous code with the printed `git reset --hard <old-sha>` + `composer install` (and restore the backup if a migration half-ran, section 5).
+    3. Either finish the deploy with the printed commands (often just re-running the failed one), or go back to the previous code with the printed `git reset --hard <old-sha>`, `composer install` and cache commands (and restore the backup if a migration half-ran, section 5).
     4. Only when the site works: `php artisan up`.
   - **DEV:** there's no maintenance mode, so the site may be half-deployed until you fix it the same way, or until the next merge deploys over it.
 - **"Skipped: a newer commit is on ..."**: not a failure. Two merges landed close together, and the later run deploys the newer commit.
@@ -257,7 +258,8 @@ A future Settings > Release notes page in Solava can read these Releases through
 
 | What happens | Result |
 |---|---|
-| Two merges to main within a minute | The second deploy queues behind the first (one deploy per server at a time). The first's pre-flight sees the newer commit and skips; the second deploys it. Nothing untested is deployed. |
+| Two merges to main within a minute | The second deploy queues behind the first (one deploy per server at a time). The first's pre-flight sees the newer commit and skips; the second deploys it. Nothing untested is deployed. If the second's CI fails, neither deploys, and GitHub emails you about that CI failure. |
+| The branch no longer contains the commit being deployed (rewritten or moved backwards) | Pre-flight stops with an error, not a quiet skip. |
 | A migration fails on PROD | Site stays in maintenance, job fails, no tag. Section 6. |
 | The PROD approval is never given | The run waits; GitHub gives up after 30 days. Nothing happens on the server. |
 | `deploy.sh` run by hand on the wrong server or branch | Stopped by the branch and `--expect-env` checks before anything changes. |

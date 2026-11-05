@@ -8,6 +8,7 @@
 set -euo pipefail
 
 scripts="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.github/scripts" && pwd)"
+deploy="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/deploy.sh"
 passed=0
 failed=0
 
@@ -53,7 +54,8 @@ expect_exit "a bad year-month is refused" 2 bash "$scripts/next-version.sh" 2026
 
 echo "release-tasks.sh"
 repo="$(mktemp -d)"
-trap 'rm -rf "$repo"' EXIT
+sandbox="$(mktemp -d)"
+trap 'rm -rf "$repo" "$sandbox"' EXIT
 (
     cd "$repo"
     git init --quiet
@@ -99,6 +101,92 @@ if [[ -e /tmp/release-check-injected ]]; then
     fail "body text is never run (file created)" "no file" "file"
     rm -f /tmp/release-check-injected
 fi
+
+# --- deploy.sh ----------------------------------------------------------
+#
+# A throwaway origin and "server" checkout, with stub php and composer
+# that log every call to $DEPLOY_TEST_LOG instead of running anything.
+
+echo "deploy.sh"
+mkdir -p "$sandbox/bin"
+cat >"$sandbox/bin/php" <<'STUB'
+#!/usr/bin/env bash
+echo "php $*" >>"$DEPLOY_TEST_LOG"
+case "$*" in
+    "artisan env"*) echo "   INFO  The application environment is [staging]." ;;
+    "artisan list"*) echo "solva:db-backup              Back up the database" ;;
+    "artisan solva:db-backup"*) if [[ -n "${FAIL_BACKUP:-}" ]]; then exit 1; fi ;;
+esac
+exit 0
+STUB
+cat >"$sandbox/bin/composer" <<'STUB'
+#!/usr/bin/env bash
+echo "composer $*" >>"$DEPLOY_TEST_LOG"
+STUB
+chmod +x "$sandbox/bin/php" "$sandbox/bin/composer"
+
+(
+    git init --quiet --bare "$sandbox/origin.git"
+    git clone --quiet "$sandbox/origin.git" "$sandbox/work" 2>/dev/null
+    cd "$sandbox/work"
+    git config user.name "Test"
+    git config user.email "test@example.com"
+    git config commit.gpgsign false
+    git checkout --quiet -b main
+    git commit --quiet --allow-empty -m "first"
+    git push --quiet origin main
+    git clone --quiet --branch main "$sandbox/origin.git" "$sandbox/server"
+    git commit --quiet --allow-empty -m "second"
+    git push --quiet origin main
+    git checkout --quiet -b elsewhere HEAD~1
+    git commit --quiet --allow-empty -m "not on main"
+)
+first="$(git -C "$sandbox/work" rev-parse main~1)"
+second="$(git -C "$sandbox/work" rev-parse main)"
+not_on_main="$(git -C "$sandbox/work" rev-parse elsewhere)"
+export DEPLOY_TEST_LOG="$sandbox/calls.log"
+
+# run_deploy <args...>: runs deploy.sh on the "server" from a fresh log;
+# the exit code is in $deploy_code and the output in $deploy_output.
+run_deploy() {
+    : >"$DEPLOY_TEST_LOG"
+    git -C "$sandbox/server" reset --quiet --hard "$first"
+    deploy_code=0
+    deploy_output=$(cd "$sandbox/server" && PATH="$sandbox/bin:$PATH" bash "$deploy" "$@" 2>&1) || deploy_code=$?
+}
+
+# line_of <pattern>: the log line number of the first call matching it.
+line_of() { grep -n -m1 -e "$1" "$DEPLOY_TEST_LOG" | cut -d: -f1; }
+
+run_deploy --branch main --expect-sha "$second" --expect-env staging --maintenance --backup
+expect_equal "a full deploy succeeds" "0" "$deploy_code"
+expect_equal "it deploys the expected commit" "$second" "$(git -C "$sandbox/server" rev-parse HEAD)"
+down=$(line_of "artisan down"); backup=$(line_of "artisan solva:db-backup")
+migrate=$(line_of "artisan migrate"); up=$(line_of "artisan up")
+expect_equal "the backup runs after 'down'" "yes" "$( ((down < backup)) && echo yes || echo no)"
+expect_equal "the backup runs before the migrations" "yes" "$( ((backup < migrate)) && echo yes || echo no)"
+expect_equal "'up' runs last" "yes" "$( ((migrate < up)) && echo yes || echo no)"
+
+FAIL_BACKUP=1 run_deploy --branch main --expect-sha "$second" --expect-env staging --maintenance --backup
+expect_equal "a failed backup fails the deploy" "1" "$deploy_code"
+expect_equal "a failed backup pulls nothing" "$first" "$(git -C "$sandbox/server" rev-parse HEAD)"
+expect_equal "a failed backup migrates nothing" "" "$(line_of "artisan migrate")"
+expect_equal "a failed backup runs no composer" "" "$(line_of "composer")"
+expect_equal "a failed backup brings the site back up, after the backup" "yes" \
+    "$(up=$(line_of "artisan up"); backup=$(line_of "artisan solva:db-backup"); [[ -n "$up" ]] && ((backup < up)) && echo yes || echo no)"
+expect_equal "and says so" "yes" "$([[ "$deploy_output" == *"Nothing was pulled or migrated, and the site is up"* ]] && echo yes || echo no)"
+
+run_deploy --branch main --expect-sha "$first" --expect-env staging
+expect_equal "an older commit than the branch tip is skipped (78)" "78" "$deploy_code"
+expect_equal "a skip changes nothing" "$first" "$(git -C "$sandbox/server" rev-parse HEAD)"
+
+run_deploy --branch main --expect-sha "$not_on_main" --expect-env staging
+expect_equal "a commit not on the branch fails instead of skipping" "1" "$deploy_code"
+expect_equal "and says why" "yes" "$([[ "$deploy_output" == *"doesn't contain ${not_on_main}"* ]] && echo yes || echo no)"
+
+run_deploy --branch main --expect-sha "$second" --expect-env production
+expect_equal "the wrong APP_ENV stops it" "1" "$deploy_code"
+expect_equal "before anything is called but the env check" "php artisan env --no-interaction" "$(cat "$DEPLOY_TEST_LOG")"
 
 echo ""
 echo "${passed} passed, ${failed} failed"

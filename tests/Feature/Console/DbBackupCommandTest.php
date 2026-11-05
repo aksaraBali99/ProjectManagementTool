@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\DbBackupCommand;
 use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -25,6 +26,7 @@ beforeEach(function () {
         'database.connections.mysql.username' => 'solava_user',
         'database.connections.mysql.password' => 'S3cret-Pa55!',
         'database.connections.mysql.unix_socket' => '',
+        'database.connections.mysql.charset' => 'utf8mb4',
     ]);
 
     // No mariadb-dump on this "server" unless a test says so.
@@ -69,7 +71,7 @@ test('it runs mysqldump with the expected arguments, the password only in MYSQL_
 
     Process::assertRan(function (PendingProcess $process) {
         expect($process->command)->toBe([
-            'mysqldump', '--single-transaction', '--quick', '--no-tablespaces',
+            'mysqldump', '--single-transaction', '--quick', '--no-tablespaces', '--default-character-set=utf8mb4',
             '--host=db.internal', '--port=3307', '--user=solava_user', 'solava_prod',
         ])
             ->and($process->environment['MYSQL_PWD'] ?? null)->toBe('S3cret-Pa55!')
@@ -96,6 +98,29 @@ test('a socket connection dumps through the socket', function () {
 
     Process::assertRan(fn (PendingProcess $process) => in_array('--socket=/var/run/mysqld.sock', $process->command, true)
         && ! collect($process->command)->contains(fn ($argument) => str_starts_with($argument, '--host=')));
+});
+
+test('the dump uses the connection\'s charset, utf8mb4 when it has none', function (?string $charset, string $expected) {
+    config(['database.connections.mysql.charset' => $charset]);
+    Process::fake(['*' => Process::result(output: completeDump())]);
+
+    $this->artisan('solva:db-backup')->assertSuccessful();
+
+    Process::assertRan(fn (PendingProcess $process) => in_array("--default-character-set={$expected}", $process->command, true));
+})->with([
+    'from the config' => ['latin1', 'latin1'],
+    'empty' => ['', 'utf8mb4'],
+    'missing' => [null, 'utf8mb4'],
+]);
+
+test('an empty host or port is left out, not passed as "--port="', function () {
+    config(['database.connections.mysql.host' => '', 'database.connections.mysql.port' => null]);
+    Process::fake(['*' => Process::result(output: completeDump())]);
+
+    $this->artisan('solva:db-backup')->assertSuccessful();
+
+    Process::assertRan(fn (PendingProcess $process) => ! collect($process->command)
+        ->contains(fn ($argument) => str_starts_with($argument, '--host') || str_starts_with($argument, '--port')));
 });
 
 test('it writes the dump gzipped under storage/app/backups, and prints its name and size but no credentials', function () {
@@ -205,3 +230,56 @@ test('--keep must be 1 or more', function (string $keep) {
 
     Process::assertNothingRan();
 })->with(['0', '-1', 'abc']);
+
+/**
+ * The command with its gzip writes replaced: $write gets the gzip handle
+ * and one chunk, and returns what gzwrite() would.
+ */
+function useChunkWriter(Closure $write): void
+{
+    app()->bind(DbBackupCommand::class, fn () => new class($write) extends DbBackupCommand
+    {
+        public function __construct(private Closure $write)
+        {
+            parent::__construct();
+        }
+
+        protected function writeChunk($gzip, string $data): int|false
+        {
+            return ($this->write)($gzip, $data);
+        }
+    });
+}
+
+test('a failed write (a full disk) fails the backup, keeps no file and deletes no older backup', function () {
+    File::ensureDirectoryExists($this->backups);
+    File::put("{$this->backups}/db-20261101-010000.sql.gz", 'old');
+    useChunkWriter(fn ($gzip, string $data) => false);
+    Process::fake(['*' => Process::result(output: completeDump())]);
+
+    $this->artisan('solva:db-backup', ['--keep' => 1])
+        ->expectsOutputToContain('writing the backup file failed')
+        ->doesntExpectOutputToContain('Backup written')
+        ->assertFailed();
+
+    expect(backupFiles($this->backups))->toBe(['db-20261101-010000.sql.gz']);
+});
+
+test('a file that doesn\'t read back as the whole dump fails the backup, keeps no file and deletes no older backup', function () {
+    File::ensureDirectoryExists($this->backups);
+    File::put("{$this->backups}/db-20261101-010000.sql.gz", 'old');
+    // Writes only half of each chunk but reports success, the way a lost
+    // write would look: only reading the file back catches it.
+    useChunkWriter(function ($gzip, string $data) {
+        gzwrite($gzip, substr($data, 0, intdiv(strlen($data), 2)));
+
+        return strlen($data);
+    });
+    Process::fake(['*' => Process::result(output: completeDump())]);
+
+    $this->artisan('solva:db-backup', ['--keep' => 1])
+        ->expectsOutputToContain("doesn't match the dump when read back")
+        ->assertFailed();
+
+    expect(backupFiles($this->backups))->toBe(['db-20261101-010000.sql.gz']);
+});

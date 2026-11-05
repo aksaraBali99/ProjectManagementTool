@@ -24,9 +24,12 @@ use Throwable;
  * password goes to the dump through MYSQL_PWD, never as an argument (the
  * process list would show it), and nothing here prints it.
  *
- * Fails, keeping no file, if the dump exits non-zero, writes nothing, or
- * doesn't end with its "-- Dump completed" line (a dump cut short). Then
- * deletes the oldest backups beyond --keep.
+ * Fails, keeping no file, if the dump exits non-zero, writes nothing,
+ * doesn't end with its "-- Dump completed" line (a dump cut short), or a
+ * write fails (a full disk or quota). Before the file is kept it is read
+ * back: it must decompress to every byte the dump produced and end with
+ * that line. Only then are the oldest backups beyond --keep deleted, so a
+ * bad backup never replaces good ones.
  */
 class DbBackupCommand extends Command
 {
@@ -64,7 +67,8 @@ class DbBackupCommand extends Command
         $partial = $path.'.partial';
 
         try {
-            $this->dump($config, $partial);
+            $bytes = $this->dump($config, $partial);
+            $this->verify($partial, $bytes);
         } catch (Throwable $e) {
             File::delete($partial);
             $this->error('Backup failed: '.$e->getMessage());
@@ -82,11 +86,12 @@ class DbBackupCommand extends Command
 
     /**
      * Streams the dump straight into a gzip file, never holding it whole
-     * in memory or writing it uncompressed.
+     * in memory or writing it uncompressed. Returns how many bytes the
+     * dump produced, for verify().
      *
      * @param  array<string, mixed>  $config
      */
-    private function dump(array $config, string $partial): void
+    private function dump(array $config, string $partial): int
     {
         touch($partial);
         @chmod($partial, 0600);
@@ -99,13 +104,18 @@ class DbBackupCommand extends Command
         $bytes = 0;
         $tail = '';
         $errors = '';
+        // Set rather than thrown inside the output callback, so the dump
+        // still runs to its end instead of being left half-read.
+        $writeFailed = false;
 
         try {
             $result = Process::env(['MYSQL_PWD' => (string) ($config['password'] ?? '')])
                 ->timeout(1800)
-                ->start($this->dumpCommand($config), function (string $type, string $output) use ($gzip, &$bytes, &$tail, &$errors) {
+                ->start($this->dumpCommand($config), function (string $type, string $output) use ($gzip, &$bytes, &$tail, &$errors, &$writeFailed) {
                     if ($type === 'out') {
-                        gzwrite($gzip, $output);
+                        if (! $writeFailed && $this->writeChunk($gzip, $output) !== strlen($output)) {
+                            $writeFailed = true;
+                        }
                         $bytes += strlen($output);
                         $tail = substr($tail.$output, -512);
                     } else {
@@ -114,7 +124,7 @@ class DbBackupCommand extends Command
                 })
                 ->wait();
         } finally {
-            gzclose($gzip);
+            $closed = gzclose($gzip);
         }
 
         if (! $result->successful()) {
@@ -124,9 +134,62 @@ class DbBackupCommand extends Command
             throw new RuntimeException('the dump wrote nothing. '.trim($errors));
         }
 
-        $lines = preg_split('/\R/', rtrim($tail));
-        if (! str_starts_with((string) end($lines), self::COMPLETED_MARKER)) {
+        if (! $this->endsCompleted($tail)) {
             throw new RuntimeException('the dump did not finish (its last line is not "'.self::COMPLETED_MARKER.'"). '.trim($errors));
+        }
+        if ($writeFailed || ! $closed) {
+            throw new RuntimeException('writing the backup file failed (is the disk or quota full?).');
+        }
+
+        return $bytes;
+    }
+
+    /** Whether the dump's last line is the "-- Dump completed" one. */
+    private function endsCompleted(string $tail): bool
+    {
+        $lines = preg_split('/\R/', rtrim($tail));
+
+        return str_starts_with((string) end($lines), self::COMPLETED_MARKER);
+    }
+
+    /** One chunk of the dump into the gzip file; the bytes written, or false. */
+    protected function writeChunk($gzip, string $data): int|false
+    {
+        return @gzwrite($gzip, $data);
+    }
+
+    /**
+     * Reads the finished file back: it must decompress to exactly the
+     * $bytes the dump produced and end with the "-- Dump completed" line.
+     */
+    private function verify(string $partial, int $bytes): void
+    {
+        $gzip = @gzopen($partial, 'rb');
+        if ($gzip === false) {
+            throw new RuntimeException("can't read the backup file back.");
+        }
+
+        $read = 0;
+        $tail = '';
+
+        try {
+            while (! gzeof($gzip)) {
+                $chunk = @gzread($gzip, 1024 * 1024);
+                if ($chunk === false) {
+                    throw new RuntimeException('the backup file is corrupt (it does not decompress).');
+                }
+                if ($chunk === '') {
+                    break;
+                }
+                $read += strlen($chunk);
+                $tail = substr($tail.$chunk, -512);
+            }
+        } finally {
+            gzclose($gzip);
+        }
+
+        if ($read !== $bytes || ! $this->endsCompleted($tail)) {
+            throw new RuntimeException("the backup file doesn't match the dump when read back ({$read} of {$bytes} bytes).");
         }
     }
 
@@ -141,13 +204,22 @@ class DbBackupCommand extends Command
             '--single-transaction',
             '--quick',
             '--no-tablespaces',
+            // The connection's own charset, so utf8mb4 text (emoji in a
+            // title or comment) survives the round trip.
+            '--default-character-set='.(filled($config['charset'] ?? null) ? $config['charset'] : 'utf8mb4'),
         ];
 
-        if (! empty($config['unix_socket'])) {
+        // Empty values are left out (the client's defaults apply) rather
+        // than passed as "--port=".
+        if (filled($config['unix_socket'] ?? null)) {
             $command[] = '--socket='.$config['unix_socket'];
         } else {
-            $command[] = '--host='.$config['host'];
-            $command[] = '--port='.$config['port'];
+            if (filled($config['host'] ?? null)) {
+                $command[] = '--host='.$config['host'];
+            }
+            if (filled($config['port'] ?? null)) {
+                $command[] = '--port='.$config['port'];
+            }
         }
 
         $command[] = '--user='.$config['username'];
