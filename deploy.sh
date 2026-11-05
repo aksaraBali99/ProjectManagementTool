@@ -149,8 +149,11 @@ ${actual_env}"
 
     run_step "Install PHP dependencies" composer install --no-dev --optimize-autoloader --no-interaction
     run_step "Run database migrations" php artisan migrate --force --no-interaction
-    run_step "Clear stale caches" clear_caches
-    run_step "Rebuild caches" build_caches
+    run_step "Clear compiled views" php artisan view:clear --no-interaction
+    run_step "Clear the config cache" php artisan config:clear --no-interaction
+    run_step "Clear the route cache" php artisan route:clear --no-interaction
+    run_step "Rebuild the config cache" php artisan config:cache --no-interaction
+    run_step "Rebuild the route cache" php artisan route:cache --no-interaction
 
     if ((maintenance_on)); then
         run_step "Maintenance mode off" php artisan up --no-interaction
@@ -171,19 +174,6 @@ app_env() {
     local output
     output=$(php artisan env --no-interaction </dev/null 2>&1) || { echo "$output"; return 1; }
     sed -n 's/.*environment is \[\(.*\)\].*/\1/p' <<<"$output"
-}
-
-# shellcheck disable=SC2329 # called through run_step
-clear_caches() {
-    php artisan view:clear --no-interaction </dev/null
-    php artisan config:clear --no-interaction </dev/null
-    php artisan route:clear --no-interaction </dev/null
-}
-
-# shellcheck disable=SC2329 # called through run_step
-build_caches() {
-    php artisan config:cache --no-interaction </dev/null
-    php artisan route:cache --no-interaction </dev/null
 }
 
 # A failure before anything changed.
