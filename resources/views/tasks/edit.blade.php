@@ -10,6 +10,7 @@
             <form method="POST" action="{{ route('tasks.toggle-active', $task) }}">
                 @csrf
                 @method('PATCH')
+                @include('tasks._return-to-inputs')
                 <button type="submit" class="text-[13px] text-gray-500 hover:underline">
                     {{ $task->trashed() ? 'Activate' : 'Deactivate' }} task
                 </button>
@@ -43,6 +44,7 @@
         <form method="POST" action="{{ route('tasks.update', $task) }}" class="mt-6 space-y-4" id="edit-task-form">
             @csrf
             @method('PUT')
+            @include('tasks._return-to-inputs')
 
             <div>
                 <label for="project_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project</label>

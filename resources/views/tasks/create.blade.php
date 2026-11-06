@@ -26,6 +26,7 @@
 
         <form method="POST" action="{{ route('tasks.store') }}" class="mt-6 space-y-4" id="create-task-form">
             @csrf
+            @include('tasks._return-to-inputs')
 
             <div>
                 <label for="project_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project</label>

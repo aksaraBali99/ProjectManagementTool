@@ -519,6 +519,7 @@ class TaskManagementController extends Controller
                 'project' => null,
                 'returnToUrl' => $returnTo['url'],
                 'returnToLabel' => $returnTo['label'],
+                'returnToParams' => $returnTo['params'],
             ]);
         }
 
@@ -535,6 +536,7 @@ class TaskManagementController extends Controller
             'project' => $project,
             'returnToUrl' => $returnTo['url'],
             'returnToLabel' => $returnTo['label'],
+            'returnToParams' => $returnTo['params'],
             // Lets a calendar cell's "+ Add task" link pre-fill the Due
             // Date field with that cell's date, so the user doesn't have
             // to re-pick it after clicking through.
@@ -605,7 +607,8 @@ class TaskManagementController extends Controller
             return $task;
         });
 
-        return redirect()->route('tasks.edit', $task)->with('status', 'Task created.');
+        // task #121: back on the edit page with the same back link.
+        return redirect()->route('tasks.edit', ['task' => $task, ...$this->returnToParams()])->with('status', 'Task created.');
     }
 
     /**
@@ -774,6 +777,7 @@ class TaskManagementController extends Controller
             'projects' => $projects,
             'returnToUrl' => $returnTo['url'],
             'returnToLabel' => $returnTo['label'],
+            'returnToParams' => $returnTo['params'],
             'canEdit' => auth()->user()->can('update', $task),
             'canDeactivate' => auth()->user()->can('delete', $task),
             // Deliberately separate from canEdit: creating a new document
@@ -826,6 +830,7 @@ class TaskManagementController extends Controller
         Gate::authorize('update', $task);
 
         $project = Project::findOrFail($request->integer('project_id'));
+        $movedCompany = (int) $project->organization_id !== (int) $task->organization_id;
 
         $task->update([
             'organization_id' => $project->organization_id,
@@ -840,10 +845,21 @@ class TaskManagementController extends Controller
             'start_date' => $request->input('start_date') ?: null,
         ]);
 
-        return redirect()->route('tasks.edit', $task)->with('status', 'Task updated.');
+        // A task moved to another company isn't on the page it came from
+        // (that company's Kanban or list) any more: back to the default,
+        // its new company's Tasks list.
+        $returnTo = $movedCompany ? [] : $this->returnToParams();
+
+        return redirect()->route('tasks.edit', ['task' => $task, ...$returnTo])->with('status', 'Task updated.');
     }
 
-    public function toggleActive(Task $task): RedirectResponse
+    /**
+     * task #121: from the Tasks list (after=list), back to that exact
+     * list URL (search, filters, sort, page); a page left empty by the
+     * deactivation shows the last page instead (index() clamps it).
+     * From the edit page, back there with its back link.
+     */
+    public function toggleActive(Request $request, Task $task): RedirectResponse
     {
         Gate::authorize('delete', $task);
 
@@ -855,7 +871,12 @@ class TaskManagementController extends Controller
             $status = 'Task deactivated.';
         }
 
-        return redirect()->route('tasks.edit', $task)->with('status', $status);
+        $returnTo = $this->returnToParams();
+        if ($request->input('after') === 'list' && isset($returnTo['return_to'])) {
+            return redirect()->to($returnTo['return_to'])->with('status', $status);
+        }
+
+        return redirect()->route('tasks.edit', ['task' => $task, ...$returnTo])->with('status', $status);
     }
 
     /**
