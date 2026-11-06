@@ -96,6 +96,20 @@ test('a validation error on create keeps the back link in the form', function ()
     $page = $this->get(route('tasks.create', $this->project))->getContent();
     expect($page)->toContain('name="return_to" value="'.e($this->kanbanUrl).'"')
         ->toContain('name="return_label" value="Kanban"');
+    // The back link agrees with the inputs.
+    assertBackLink($page, 'Kanban', $this->kanbanUrl);
+});
+
+test('after a validation error, a submitted return_to is checked like any other: an unsafe one never reaches the page', function () {
+    $evil = 'javascript://'.appHost().'/%0Aalert(1)';
+    $this->from(route('tasks.edit', $this->task))
+        ->put("/tasks/{$this->task->id}", taskFields($this, ['title' => '', 'return_to' => $evil, 'return_label' => 'Kanban']))
+        ->assertSessionHasErrors('title');
+
+    $page = $this->get(route('tasks.edit', $this->task))->getContent();
+
+    assertBackLink($page, 'Tasks', route('tasks.index', $this->org->id));
+    expect($page)->not->toContain('href="javascript:')->not->toContain('alert(1)')->not->toContain('name="return_to"');
 });
 
 test('a validation error on edit keeps the back link in the form', function () {
@@ -109,32 +123,96 @@ test('a validation error on edit keeps the back link in the form', function () {
 
 // --- Unsafe values ------------------------------------------------------------
 
+/** This app's own host, as the test requests use it (APP_URL differs between local and CI). */
+function appHost(): string
+{
+    return parse_url(url('/'), PHP_URL_HOST);
+}
+
+/** The scheme the test requests don't use: http when they're https, and the other way round. */
+function otherScheme(): string
+{
+    return parse_url(url('/'), PHP_URL_SCHEME) === 'https' ? 'http' : 'https';
+}
+
 dataset('unsafe return_to', [
     'another host' => ['https://evil.example/x'],
     'protocol-relative' => ['//evil.example'],
     'backslash' => ['/\\evil.example'],
+    // This app's host, but a link that runs script (the review's finding:
+    // the host check alone let it through).
+    'javascript: with this host' => [fn () => 'javascript://'.appHost().'/%0Aalert(document.cookie)'],
+    'javascript: as a path' => ['javascript:/tasks'],
+    // This app's host on the other scheme: an https site never redirects
+    // to http.
+    'this host, other scheme' => [fn () => otherScheme().'://'.appHost().'/tasks'],
 ]);
 
 test('an unsafe return_to is dropped on create, update and toggle, never followed', function (string $unsafe) {
+    // The label goes with it: "← Kanban" never links to the Tasks list.
     $sent = ['return_to' => $unsafe, 'return_label' => 'Kanban'];
 
     $created = $this->post('/tasks', taskFields($this, $sent));
-    $created->assertRedirect(route('tasks.edit', ['task' => newestTask(), 'return_label' => 'Kanban']));
+    $created->assertRedirect(route('tasks.edit', newestTask()));
 
     $updated = $this->put("/tasks/{$this->task->id}", taskFields($this, $sent));
-    $updated->assertRedirect(route('tasks.edit', ['task' => $this->task, 'return_label' => 'Kanban']));
+    $updated->assertRedirect(route('tasks.edit', $this->task));
 
     $toggled = $this->patch("/tasks/{$this->task->id}/toggle-active", $sent);
-    $toggled->assertRedirect(route('tasks.edit', ['task' => $this->task, 'return_label' => 'Kanban']));
+    $toggled->assertRedirect(route('tasks.edit', $this->task));
 
     // From the list too: an unsafe return_to falls back to the edit page.
     $fromList = $this->patch("/tasks/{$this->task->id}/toggle-active", ['after' => 'list', 'return_to' => $unsafe]);
     $fromList->assertRedirect(route('tasks.edit', $this->task));
 
     foreach ([$created, $updated, $toggled, $fromList] as $response) {
-        expect(parse_url($response->headers->get('Location'), PHP_URL_HOST))->toBe(request()->getHost());
+        $location = $response->headers->get('Location');
+        expect(parse_url($location, PHP_URL_HOST))->toBe(appHost())
+            ->and(parse_url($location, PHP_URL_SCHEME))->toBe(parse_url(url('/'), PHP_URL_SCHEME));
     }
 })->with('unsafe return_to');
+
+test('an unsafe return_to in a link never reaches the page\'s back link or its forms', function (string $unsafe) {
+    $page = $this->get(route('tasks.edit', ['task' => $this->task, 'return_to' => $unsafe, 'return_label' => 'Kanban']))
+        ->assertOk()->getContent();
+
+    assertBackLink($page, 'Tasks', route('tasks.index', $this->org->id));
+    // Not the word "javascript:" itself: the unsaved-changes guard's
+    // script mentions it.
+    expect($page)->not->toContain('href="javascript:')
+        ->not->toContain('alert(document.cookie)')
+        ->not->toContain('← Kanban')
+        ->not->toContain('name="return_to"');
+})->with('unsafe return_to');
+
+test('a label sent without return_to is dropped: no "← Kanban" linking to the Tasks list', function () {
+    $page = $this->get(route('tasks.edit', ['task' => $this->task, 'return_label' => 'Kanban']))->getContent();
+    assertBackLink($page, 'Tasks', route('tasks.index', $this->org->id));
+    expect($page)->not->toContain('← Kanban')->not->toContain('name="return_label"');
+
+    $this->put("/tasks/{$this->task->id}", taskFields($this, ['return_label' => 'Kanban']))
+        ->assertRedirect(route('tasks.edit', $this->task));
+    $this->post('/tasks', taskFields($this, ['return_label' => 'Kanban']))
+        ->assertRedirect(route('tasks.edit', newestTask()));
+});
+
+test('saving a task into another company drops the back link: the old company\'s board no longer has it', function () {
+    $other = Organization::create(['name' => 'Org B', 'slug' => 'org-b', 'accent_color' => '#000000']);
+    $otherDept = Department::create(['organization_id' => $other->id, 'name' => 'Ops', 'color' => '#000000']);
+    $otherProject = Project::create(['organization_id' => $other->id, 'name' => 'Project B', 'description' => 'd']);
+
+    $response = $this->put("/tasks/{$this->task->id}", taskFields($this, [
+        'project_id' => $otherProject->id, 'department_id' => $otherDept->id, ...$this->kanban,
+    ]));
+
+    $response->assertRedirect(route('tasks.edit', $this->task));
+    assertBackLink($this->get($response->headers->get('Location'))->getContent(), 'Tasks', route('tasks.index', $other->id));
+
+    // Within the same company the back link stays.
+    $this->put("/tasks/{$this->task->id}", taskFields($this, [
+        'project_id' => $otherProject->id, 'department_id' => $otherDept->id, 'title' => 'Again', ...$this->kanban,
+    ]))->assertRedirect(route('tasks.edit', ['task' => $this->task, ...$this->kanban]));
+});
 
 test('an unknown return_label is dropped, keeping a safe return_to', function () {
     $sent = ['return_to' => $this->kanbanUrl, 'return_label' => 'Elsewhere'];

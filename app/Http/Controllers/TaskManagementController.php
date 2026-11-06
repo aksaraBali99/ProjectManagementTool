@@ -519,7 +519,7 @@ class TaskManagementController extends Controller
                 'project' => null,
                 'returnToUrl' => $returnTo['url'],
                 'returnToLabel' => $returnTo['label'],
-                'returnToParams' => $this->returnToParams(),
+                'returnToParams' => $returnTo['params'],
             ]);
         }
 
@@ -536,7 +536,7 @@ class TaskManagementController extends Controller
             'project' => $project,
             'returnToUrl' => $returnTo['url'],
             'returnToLabel' => $returnTo['label'],
-            'returnToParams' => $this->returnToParams(),
+            'returnToParams' => $returnTo['params'],
             // Lets a calendar cell's "+ Add task" link pre-fill the Due
             // Date field with that cell's date, so the user doesn't have
             // to re-pick it after clicking through.
@@ -777,7 +777,7 @@ class TaskManagementController extends Controller
             'projects' => $projects,
             'returnToUrl' => $returnTo['url'],
             'returnToLabel' => $returnTo['label'],
-            'returnToParams' => $this->returnToParams(),
+            'returnToParams' => $returnTo['params'],
             'canEdit' => auth()->user()->can('update', $task),
             'canDeactivate' => auth()->user()->can('delete', $task),
             // Deliberately separate from canEdit: creating a new document
@@ -830,6 +830,7 @@ class TaskManagementController extends Controller
         Gate::authorize('update', $task);
 
         $project = Project::findOrFail($request->integer('project_id'));
+        $movedCompany = (int) $project->organization_id !== (int) $task->organization_id;
 
         $task->update([
             'organization_id' => $project->organization_id,
@@ -844,7 +845,12 @@ class TaskManagementController extends Controller
             'start_date' => $request->input('start_date') ?: null,
         ]);
 
-        return redirect()->route('tasks.edit', ['task' => $task, ...$this->returnToParams()])->with('status', 'Task updated.');
+        // A task moved to another company isn't on the page it came from
+        // (that company's Kanban or list) any more: back to the default,
+        // its new company's Tasks list.
+        $returnTo = $movedCompany ? [] : $this->returnToParams();
+
+        return redirect()->route('tasks.edit', ['task' => $task, ...$returnTo])->with('status', 'Task updated.');
     }
 
     /**
@@ -865,12 +871,12 @@ class TaskManagementController extends Controller
             $status = 'Task deactivated.';
         }
 
-        $returnTo = $request->input('return_to');
-        if ($request->input('after') === 'list' && is_string($returnTo) && $this->isSafeReturnUrl($returnTo)) {
-            return redirect()->to($returnTo)->with('status', $status);
+        $returnTo = $this->returnToParams();
+        if ($request->input('after') === 'list' && isset($returnTo['return_to'])) {
+            return redirect()->to($returnTo['return_to'])->with('status', $status);
         }
 
-        return redirect()->route('tasks.edit', ['task' => $task, ...$this->returnToParams()])->with('status', $status);
+        return redirect()->route('tasks.edit', ['task' => $task, ...$returnTo])->with('status', $status);
     }
 
     /**

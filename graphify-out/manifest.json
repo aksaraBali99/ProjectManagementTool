@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1793941118.0742817,
-    "ast_hash": "70e581cb15f095350edaf7e92a35d966",
+    "mtime": 1793942753.7105596,
+    "ast_hash": "ef751b663520d3bd70794c8859ecd610",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -2370,8 +2370,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Concerns/ResolvesReturnTo.php": {
-    "mtime": 1793940889.7869208,
-    "ast_hash": "852bdbd0402acbdef81e25d66d9e3e43",
+    "mtime": 1793942889.5938609,
+    "ast_hash": "0634db3ad28f90ac5881c6c55d51fefb",
     "semantic_hash": ""
   },
   "resources/views/projects/_tasks.blade.php": {
@@ -2525,13 +2525,13 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_return-to-inputs.blade.php": {
-    "mtime": 1793940933.2614272,
-    "ast_hash": "8ad45d44f795e306a227c0fcfbed18be",
+    "mtime": 1793942754.0136454,
+    "ast_hash": "bf880fbad13876261b457f8173f77481",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskReturnAfterSaveTest.php": {
-    "mtime": 1793941098.448366,
-    "ast_hash": "ae7652ce95b3d22dd0ea1027efbc26ad",
+    "mtime": 1793942837.7826562,
+    "ast_hash": "3016a9fdf3ec4def1196bbdc85036fde",
     "semantic_hash": ""
   }
 }

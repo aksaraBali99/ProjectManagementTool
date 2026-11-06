@@ -1,18 +1,15 @@
 {{--
     task #121: the page's return_to / return_label as hidden inputs, so a
     save or a Deactivate/Activate lands back on the edit page with the same
-    back link. Only what the page actually received
-    ($returnToParams, from ResolvesReturnTo::returnToParams()): the Tasks
-    fallback is never sent as an explicit value. old() keeps them through a
-    validation error. The controller validates them again on submit.
+    back link. $returnToParams is ResolvesReturnTo::returnToParams(): only
+    what the page received and what passed its checks (after a validation
+    error, the submitted values, checked the same way), so these always
+    match the page's back link. The Tasks fallback is never sent as an
+    explicit value. The controller checks them again on submit.
 --}}
-@php
-    $returnToValue = old('return_to', $returnToParams['return_to'] ?? null);
-    $returnLabelValue = old('return_label', $returnToParams['return_label'] ?? null);
-@endphp
-@if (is_string($returnToValue))
-    <input type="hidden" name="return_to" value="{{ $returnToValue }}">
-@endif
-@if (is_string($returnLabelValue))
-    <input type="hidden" name="return_label" value="{{ $returnLabelValue }}">
-@endif
+@isset($returnToParams['return_to'])
+    <input type="hidden" name="return_to" value="{{ $returnToParams['return_to'] }}">
+@endisset
+@isset($returnToParams['return_label'])
+    <input type="hidden" name="return_label" value="{{ $returnToParams['return_label'] }}">
+@endisset

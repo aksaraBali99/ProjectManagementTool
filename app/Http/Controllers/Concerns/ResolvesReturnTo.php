@@ -33,9 +33,14 @@ trait ResolvesReturnTo
      * site and ride a click of "Cancel"/"← Back" there.
      * return_label is checked against a fixed allow-list for the same
      * reason - a stray or tampered value falls back to $defaultLabel
-     * instead of rendering whatever was passed.
+     * instead of rendering whatever was passed. A label without a kept
+     * return_to is dropped too, so "← Kanban" never links to the Tasks
+     * list.
      *
-     * @return array{url: string, label: string}
+     * 'params' is the kept pair (returnToParams()), for the page's hidden
+     * inputs (tasks/_return-to-inputs).
+     *
+     * @return array{url: string, label: string, params: array{return_to?: string, return_label?: string}}
      */
     private function resolveReturnTo(string $defaultUrl, string $defaultLabel = 'Tasks'): array
     {
@@ -44,29 +49,52 @@ trait ResolvesReturnTo
         return [
             'url' => $params['return_to'] ?? $defaultUrl,
             'label' => $params['return_label'] ?? $defaultLabel,
+            'params' => $params,
         ];
     }
 
     /**
-     * task #121: the valid parts of the return_to / return_label pair
-     * this request carried, as route parameters, so a redirect (after a
-     * save or a Deactivate) keeps the page's back link. Empty when
+     * task #121: the return_to / return_label pair this request carried,
+     * if it passes the checks, as route parameters, so a redirect (after
+     * a save or a Deactivate) keeps the page's back link. Empty when
      * nothing valid was sent, so the URL stays clean: the Tasks fallback
      * is never added as an explicit parameter.
+     *
+     * When the request carries nothing, a page shown after a validation
+     * error falls back to the values submitted with the failed form
+     * (old()), through the same checks: the back link and the hidden
+     * inputs always agree, and nothing unchecked reaches either.
      *
      * @return array{return_to?: string, return_label?: string}
      */
     private function returnToParams(): array
     {
+        $params = $this->checkedReturnTo(request()->input('return_to'), request()->input('return_label'));
+
+        if ($params === [] && request()->isMethod('GET')) {
+            $params = $this->checkedReturnTo(old('return_to'), old('return_label'));
+        }
+
+        return $params;
+    }
+
+    /**
+     * return_to if it's a safe same-origin URL, and return_label only with
+     * it and only from the allow-list.
+     *
+     * @return array{return_to?: string, return_label?: string}
+     */
+    private function checkedReturnTo(mixed $returnTo, mixed $returnLabel): array
+    {
+        if (! is_string($returnTo) || ! $this->isSafeReturnUrl($returnTo)) {
+            return [];
+        }
+
         $allowedLabels = ['Tasks', 'Kanban', 'Calendar', 'Dashboard', 'Projects'];
 
-        $returnTo = request()->input('return_to');
-        $returnLabel = request()->input('return_label');
-
-        return array_filter([
-            'return_to' => is_string($returnTo) && $this->isSafeReturnUrl($returnTo) ? $returnTo : null,
-            'return_label' => in_array($returnLabel, $allowedLabels, true) ? $returnLabel : null,
-        ]);
+        return in_array($returnLabel, $allowedLabels, true)
+            ? ['return_to' => $returnTo, 'return_label' => $returnLabel]
+            : ['return_to' => $returnTo];
     }
 
     /**
@@ -77,6 +105,12 @@ trait ResolvesReturnTo
      * ("/\host/...", which some browsers also treat as protocol-relative)
      * open-redirect tricks that a naive "starts with /" check alone
      * wouldn't catch.
+     *
+     * task #121: an absolute URL must also use this request's own scheme.
+     * The host alone isn't enough: "javascript://<this host>/%0Aalert(1)"
+     * parses with this host, and as a link's href it runs script. Requiring
+     * the request's scheme also stops an https page redirecting to http.
+     * A relative path may not carry a scheme at all.
      */
     private function isSafeReturnUrl(string $url): bool
     {
@@ -90,9 +124,10 @@ trait ResolvesReturnTo
         }
 
         if (! isset($parsed['host'])) {
-            return str_starts_with($url, '/');
+            return str_starts_with($url, '/') && ! isset($parsed['scheme']);
         }
 
-        return $parsed['host'] === request()->getHost();
+        return strtolower($parsed['scheme'] ?? '') === request()->getScheme()
+            && $parsed['host'] === request()->getHost();
     }
 }
