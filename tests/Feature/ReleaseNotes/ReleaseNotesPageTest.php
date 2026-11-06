@@ -62,7 +62,7 @@ function userWithRole(Organization $org, string $slug): User
 
 // --- Who sees it -------------------------------------------------------------
 
-test('the owner and a super_admin see every release, newest first, with tasks grouped by type', function (string $who) {
+test('the owner and a super_admin see every release, newest first, with its sections, tasks and links', function (string $who) {
     writeNotes($this, twoReleases());
     $user = $who === 'owner' ? $this->owner : tap(User::factory()->create(), fn (User $u) => $u->roles()->attach(Role::where('slug', 'super_admin')->firstOrFail()->id));
 
@@ -72,22 +72,98 @@ test('the owner and a super_admin see every release, newest first, with tasks gr
     expect(strpos($html, 'v2026.11.2'))->toBeLessThan(strpos($html, 'v2026.11.1'))
         ->and(substr_count($html, '>Latest</span>'))->toBe(1)
         ->and($html)->toMatch('/data-release="v2026.11.2">.*?>Latest<\/span>.*?data-release="v2026.11.1"/s')
-        // Dates, summaries, tasks, before/after.
+        // Dates, titles, number tags.
         ->toContain('Nov 20, 2026')->toContain('Nov 10, 2026')
-        ->toContain('task #118')->toContain('Company-coded task numbers')
-        ->toContain('Tasks had no code.')->toContain('Every task has a code like BGS-0012.')
-        // Grouped: Enhancement, then Bugfix, then Chore, inside v2026.11.1.
-        ->toMatch('/data-release="v2026.11.1">.*?>Enhancement<\/h3>.*?task #118.*?>Bugfix<\/h3>.*?task #121.*?>Chore<\/h3>.*?task #119/s')
-        // PR and GitHub release links.
-        ->toContain('href="https://github.com/aksaraBali99/ProjectManagementTool/pull/144"')
-        ->toContain('href="https://github.com/aksaraBali99/ProjectManagementTool/pull/145"')
+        ->toContain('>#118</span>')->toContain('Company-coded task numbers')
+        // Sections in order inside v2026.11.1: New and improved, Fixed, then
+        // Behind the scenes, each with its count.
+        ->toMatch('/data-release="v2026.11.1">.*?New and improved\s*<span[^>]*>1<\/span>.*?#118.*?Fixed\s*<span[^>]*>1<\/span>.*?#121.*?Behind the scenes\s*<span[^>]*>1<\/span>.*?#119/s')
+        // A GitHub release link per release.
         ->toContain('href="https://github.com/aksaraBali99/ProjectManagementTool/releases/tag/v2026.11.1"')
+        ->toContain('href="https://github.com/aksaraBali99/ProjectManagementTool/releases/tag/v2026.11.2"')
         // The link may not exist yet (DEV, before the release): it says so.
         ->toContain('title="Exists once v2026.11.1 is released to PROD"')
-        // Line breaks are kept by CSS, the text itself printed as is.
-        ->toContain("A deactivated task is read-only.\nActivate it to change it.")
-        ->toContain('whitespace-pre-line');
+        // Line breaks inside a note are kept.
+        ->toContain('A deactivated task is read-only.<br>');
+    expect(substr_count($html, 'GitHub release ↗'))->toBe(2);
 })->with(['owner', 'super_admin']);
+
+test('a section shows only when it has tasks; Behind the scenes is folded', function () {
+    writeNotes($this, twoReleases());
+    $html = $this->actingAs($this->owner)->get(route('release-notes.index'))->getContent();
+
+    // v2026.11.2 has only a Bugfix: no "New and improved" or "Behind the scenes" in it.
+    preg_match('/data-release="v2026.11.2">(.*?)data-release="v2026.11.1"/s', $html, $newest);
+    expect($newest[1])->toContain('Fixed')
+        ->not->toContain('New and improved')
+        ->not->toContain('Behind the scenes');
+
+    // Behind the scenes is a <details> without "open".
+    expect($html)->toMatch('/<details class="[^"]*" data-section="Chore">\s*<summary/')
+        ->not->toMatch('/<details[^>]*data-section="Chore"[^>]*open/');
+});
+
+test('Before and Now show side by side, Now with the "after" text', function () {
+    writeNotes($this, twoReleases());
+
+    $html = $this->actingAs($this->owner)->get(route('release-notes.index'))->getContent();
+
+    expect($html)->toMatch('/data-task="118">.*?>Before<\/p>.*?Tasks had no code\..*?>Now<\/p>.*?Every task has a code like BGS-0012\./s')
+        ->toContain('md:grid-cols-2')
+        // No "After" label: the page calls it Now.
+        ->not->toContain('>After</p>');
+});
+
+test('"- " lines are one bullet list, other lines stay text, and nothing is HTML', function () {
+    $notes = twoReleases();
+    $notes['releases'][0]['tasks'][0]['after'] = "Three changes:\n- Pages load faster\n- Kanban updates itself\n- <b>Bold?</b>\nThat's all.";
+    writeNotes($this, $notes);
+
+    $html = $this->actingAs($this->owner)->get(route('release-notes.index'))->getContent();
+
+    expect($html)->toMatch('/<p>Three changes:\s*<\/p>\s*<ul[^>]*>\s*<li>Pages load faster<\/li>\s*<li>Kanban updates itself<\/li>\s*<li>&lt;b&gt;Bold\?&lt;\/b&gt;<\/li>\s*<\/ul>\s*<p>That&#039;s all\.\s*<\/p>/')
+        ->not->toContain('<b>Bold?</b>');
+});
+
+test('PR links fold into "N pull requests", or "1 pull request", and there is none without PRs', function () {
+    $notes = twoReleases();
+    $notes['releases'][0]['tasks'][0]['prs'] = [133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143];
+    unset($notes['releases'][0]['tasks'][0]['pr']);
+    $notes['releases'][1]['tasks'][0]['pr'] = 151;      // #121: one PR
+    unset($notes['releases'][1]['tasks'][1]['prs']);   // #118: no PRs
+    writeNotes($this, $notes);
+
+    $html = $this->actingAs($this->owner)->get(route('release-notes.index'))->getContent();
+
+    expect($html)->toMatch('/data-task="123">.*?<details[^>]*>\s*<summary[^>]*>11 pull requests<\/summary>.*?href="https:\/\/github.com\/aksaraBali99\/ProjectManagementTool\/pull\/133".*?pull\/143"/s')
+        ->toMatch('/data-task="121">.*?<summary[^>]*>1 pull request<\/summary>.*?pull\/151"/s');
+    preg_match('/data-task="118">(.*?)<\/article>/s', $html, $task118);
+    expect($task118[1])->not->toContain('pull request');
+});
+
+test('ReleaseNotes::blocks() splits bullets, paragraphs and blank lines', function () {
+    expect(ReleaseNotes::blocks("One\nTwo\n\nThree"))->toBe([
+        ['type' => 'p', 'lines' => ['One', 'Two']],
+        ['type' => 'p', 'lines' => ['Three']],
+    ])
+        ->and(ReleaseNotes::blocks("Intro\n- a\n- b\nOutro"))->toBe([
+            ['type' => 'p', 'lines' => ['Intro']],
+            ['type' => 'ul', 'lines' => ['a', 'b']],
+            ['type' => 'p', 'lines' => ['Outro']],
+        ])
+        // "- " alone is skipped; "-x" is an ordinary line.
+        ->and(ReleaseNotes::blocks("- a\n- \n- b\n-x"))->toBe([
+            ['type' => 'ul', 'lines' => ['a', 'b']],
+            ['type' => 'p', 'lines' => ['-x']],
+        ])
+        // A blank line between bullets starts a new list; Windows line endings work.
+        ->and(ReleaseNotes::blocks("- a\r\n\r\n- b"))->toBe([
+            ['type' => 'ul', 'lines' => ['a']],
+            ['type' => 'ul', 'lines' => ['b']],
+        ])
+        ->and(ReleaseNotes::blocks(null))->toBe([])
+        ->and(ReleaseNotes::blocks(''))->toBe([]);
+});
 
 test('the owner sees "Release notes" in the sidebar and on the Settings page', function () {
     $this->actingAs($this->owner)->get(route('settings.index'))->assertOk()
