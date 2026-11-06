@@ -741,9 +741,10 @@
                 const url = '/tasks/' + taskId + '/documents/attachable?page=' + page
                     + (search ? '&search=' + encodeURIComponent(search) : '');
 
-                fetch(url, { headers: { Accept: 'application/json' } })
+                // task #123: throwOnFailure() so a refusal shows its own
+                // message (e.g. the deactivated-task refusal, task #123).
+                throwOnFailure(fetch(url, { headers: { Accept: 'application/json' } }), 'Failed to load documents.')
                     .then(function (response) {
-                        if (! response.ok) throw new Error('Failed to load documents.');
                         return response.json();
                     })
                     .then(function (data) {
@@ -923,9 +924,10 @@
                 const url = '/tasks/' + taskId + '/folders/attachable?page=' + page
                     + (search ? '&search=' + encodeURIComponent(search) : '');
 
-                fetch(url, { headers: { Accept: 'application/json' } })
+                // task #123: throwOnFailure() so a refusal shows its own
+                // message (e.g. the deactivated-task refusal, task #123).
+                throwOnFailure(fetch(url, { headers: { Accept: 'application/json' } }), 'Failed to load folders.')
                     .then(function (response) {
-                        if (! response.ok) throw new Error('Failed to load folders.');
                         return response.json();
                     })
                     .then(function (data) {

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOrganization;
+use App\Models\Concerns\FlushesAccessProfiles;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['user_id', 'organization_id', 'department_id', 'allowed'])]
 class AccessPermission extends Model
 {
-    use BelongsToOrganization;
+    use BelongsToOrganization, FlushesAccessProfiles;
 
     protected function casts(): array
     {

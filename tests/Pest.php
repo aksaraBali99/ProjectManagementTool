@@ -1,7 +1,14 @@
 <?php
 
+use App\Enums\TaskStatus;
+use App\Models\AccessPermission;
+use App\Models\Department;
 use App\Models\ImportBatch;
+use App\Models\Organization;
+use App\Models\OrgMember;
+use App\Models\Project;
 use App\Models\Role;
+use App\Models\Task;
 use App\Models\User;
 use App\Services\Import\ImportSheetSchema;
 use App\Services\Import\ImportValidator;
@@ -9,7 +16,9 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -59,6 +68,36 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * task #72 phase 0: how many queries $callback runs. The query-count
+ * guards in tests/Feature/Performance use this to hold the line on pages
+ * that currently issue one or more queries PER TASK.
+ *
+ * Stops counting as soon as the callback returns, so a second call in the
+ * same test measures only its own work — the listener itself can't be
+ * detached, but each test gets a fresh application, so none leak across
+ * tests either.
+ */
+function countQueries(callable $callback): int
+{
+    $count = 0;
+    $counting = true;
+
+    DB::listen(function () use (&$count, &$counting) {
+        if ($counting) {
+            $count++;
+        }
+    });
+
+    try {
+        $callback();
+    } finally {
+        $counting = false;
+    }
+
+    return $count;
 }
 
 /**
@@ -287,4 +326,198 @@ function richTextFragment(string $html): DOMDocument
 function touchDiskFile(string $disk, string $path, DateTimeInterface $when): void
 {
     touch(Storage::disk($disk)->path($path), $when->getTimestamp());
+}
+
+/**
+ * task #72 phase 4: every task id the Tasks list shows for $query, in
+ * order, walking page 1 to the last page. Ids come from the rendered rows
+ * (not the view data), so this checks what the user actually sees; the
+ * paginator is read only to know where the last page is.
+ *
+ * @param  array<string, mixed>  $query
+ * @return list<int>
+ */
+function taskListIdsAcrossPages(User $user, int $organizationId, array $query = []): array
+{
+    $ids = [];
+    $page = 1;
+
+    do {
+        $response = test()->actingAs($user)
+            ->get(route('tasks.index', $organizationId).'?'.http_build_query(array_merge($query, ['page' => $page])))
+            ->assertOk();
+
+        preg_match_all('/data-drilldown-toggle="(\d+)"/', $response->getContent(), $matches);
+        array_push($ids, ...array_map('intval', $matches[1]));
+
+        $lastPage = $response->viewData('tasks')->lastPage();
+    } while ($page++ < $lastPage);
+
+    return $ids;
+}
+
+/** Task ids of the Kanban cards in $html, in order (task #72 phase 5). */
+function kanbanCardIds(string $html): array
+{
+    preg_match_all('/<div class="kanban-card [^>]*data-task-id="(\d+)"/', $html, $matches);
+
+    return array_map('intval', $matches[1]);
+}
+
+/**
+ * One Kanban card's markup, normalised through the same DOM parser for
+ * every source (the board, Load more, the live-update poll).
+ */
+function kanbanCardMarkup(string $html, int $taskId): string
+{
+    $document = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="utf-8" ?><body>'.$html.'</body>');
+    libxml_clear_errors();
+
+    $node = (new DOMXPath($document))
+        ->query('//div[contains(concat(" ", @class, " "), " kanban-card ") and @data-task-id="'.$taskId.'"]')
+        ->item(0);
+    expect($node)->not->toBeNull("card {$taskId} not found");
+
+    return $document->saveHTML($node);
+}
+
+/**
+ * task #72 phase 10: the page without its <script> blocks — what the board
+ * renders, not the text the live-update script can write into it later.
+ */
+function withoutScripts(string $html): string
+{
+    return preg_replace('#<script\b.*?</script>#s', '', $html);
+}
+
+/**
+ * task #72 phase 10: Load more boxes are always rendered, hidden when the
+ * column has nothing left to load. How many are shown?
+ */
+function visibleKanbanLoadMoreCount(string $html): int
+{
+    preg_match_all('/<div class="kanban-load-more [^>]*>/', $html, $matches);
+
+    return count(array_filter($matches[0], fn (string $tag) => ! preg_match('/\shidden\b/', $tag)));
+}
+
+/**
+ * task #72 phase 5: every card one Kanban column shows for $user — the
+ * board's first batch, then Load more from offset 30, 60, ... until
+ * `remaining` reaches 0 — in order. Asserts each Load more's `remaining`
+ * counts down exactly, so a stuck or overshooting batch fails here.
+ *
+ * @return list<int>
+ */
+function kanbanColumnIdsAcrossBatches(User $user, int $organizationId, TaskStatus $status): array
+{
+    $column = test()->actingAs($user)->get(route('kanban', $organizationId))->assertOk()
+        ->viewData('columns')->firstWhere('status', $status);
+
+    $ids = $column['tasks']->pluck('task.id')->all();
+    $total = $column['total'];
+    $remaining = $column['remaining'];
+
+    while ($remaining > 0) {
+        $json = test()->actingAs($user)
+            ->getJson(route('kanban.column', [$organizationId, $status->value]).'?offset='.count($ids))
+            ->assertOk()
+            ->json();
+
+        $batch = kanbanCardIds($json['html']);
+        expect($batch)->not->toBeEmpty();
+        array_push($ids, ...$batch);
+
+        expect($json['remaining'])->toBe($total - count($ids));
+        $remaining = $json['remaining'];
+    }
+
+    return $ids;
+}
+
+/**
+ * task #72 phase 9: a project's drilldown, as the Projects page fetches it
+ * when its row is first opened ($query: completed, return_to, ...).
+ *
+ * @param  array<string, mixed>  $query
+ */
+function projectDrilldown(User $user, Project $project, array $query = []): TestResponse
+{
+    return test()->actingAs($user)->get(route('projects.tasks', ['project' => $project] + $query))->assertOk();
+}
+
+/**
+ * The drilldown's task ids, in the order shown.
+ *
+ * @param  array<string, mixed>  $query
+ * @return array<int, int>
+ */
+function projectDrilldownIds(User $user, Project $project, array $query = []): array
+{
+    return projectDrilldown($user, $project, $query)->viewData('tasks')->pluck('id')->all();
+}
+
+/**
+ * task #72 phase 7: the shared fixture for the completed-tasks window
+ * tests — one company (default 14-day window) with a department and a
+ * project, a management user, a staff member granted that department and
+ * on the project, and a client of the project. Sets them on $context.
+ */
+function setUpCompletedWindowCompany(object $context): void
+{
+    $context->owner = createOwner();
+
+    $context->org = Organization::create(['name' => 'Window Co', 'slug' => 'window-co', 'accent_color' => '#1D9E75']);
+    $context->dept = Department::create(['organization_id' => $context->org->id, 'name' => 'Marketing', 'color' => '#000000']);
+    $context->project = Project::create(['organization_id' => $context->org->id, 'name' => 'Project A', 'description' => 'd']);
+
+    $member = function (string $role) use ($context): User {
+        $user = User::factory()->create();
+        OrgMember::create([
+            'organization_id' => $context->org->id,
+            'user_id' => $user->id,
+            'role_id' => Role::where('slug', $role)->firstOrFail()->id,
+        ]);
+
+        return $user;
+    };
+
+    $context->management = $member('management');
+    $context->staff = $member('staff');
+    AccessPermission::create([
+        'user_id' => $context->staff->id,
+        'organization_id' => $context->org->id,
+        'department_id' => $context->dept->id,
+        'allowed' => true,
+    ]);
+    $context->project->staff()->attach($context->staff->id);
+    $context->client = $member('client');
+    $context->project->clients()->attach($context->client->id);
+}
+
+/**
+ * A task in the window fixture's company. For a completed task,
+ * $completedAt overrides the date the observer set ('none' leaves it
+ * null, as a task with no recorded date).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function makeWindowTask(object $context, string $status = 'pending', ?string $completedAt = null, array $attributes = []): Task
+{
+    $task = Task::create(array_merge([
+        'organization_id' => $context->org->id,
+        'project_id' => $context->project->id,
+        'department_id' => $context->dept->id,
+        'title' => 'Task '.uniqid(),
+        'priority' => 'medium',
+        'status' => $status,
+    ], $attributes));
+
+    if ($completedAt !== null) {
+        DB::table('tasks')->where('id', $task->id)->update(['completed_at' => $completedAt === 'none' ? null : $completedAt]);
+    }
+
+    return $task->refresh();
 }

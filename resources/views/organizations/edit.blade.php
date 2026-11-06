@@ -28,10 +28,42 @@
                 class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
         </div>
 
+        {{-- task #118 phase 2: the task code is editable until the company
+             has issued a task number, then shown as read-only text. --}}
+        @if ($organization->hasIssuedTaskNumbers())
+            <div>
+                <span class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Task code</span>
+                <p class="mt-1"><span class="rounded-sm bg-gray-100 px-2 py-0.5 font-mono text-[12px] font-medium tracking-[0.1em] text-gray-700">{{ $organization->code }}</span></p>
+                <p class="mt-1 text-[10px] text-gray-500">Locked: this company has issued task numbers up to {{ \App\Models\Task::formatCode($organization->code, $organization->next_task_number - 1) }}, so the code can't change.</p>
+                {{-- e.g. the company issued its first task number while this
+                     form was open with a new code in it. --}}
+                @error('code')
+                    <p class="mt-1 text-[10px] text-[#A32D2D]">{{ $message }}</p>
+                @enderror
+            </div>
+        @else
+            @include('organizations._code-field', ['value' => old('code', $organization->code), 'except' => $organization->id, 'suggestOnBlur' => false, 'suggestButton' => true])
+        @endif
+
         <div>
             <label for="accent_color" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Accent color</label>
             <input id="accent_color" name="accent_color" type="color" value="{{ old('accent_color', $organization->accent_color) }}" required
                 class="mt-1 h-10 w-20 rounded-md border border-gray-300">
+        </div>
+
+        <div>
+            <label for="completed_window_days" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Completed tasks window</label>
+            @php $windowValue = (int) old('completed_window_days', $organization->completed_window_days); @endphp
+            <select id="completed_window_days" name="completed_window_days" required
+                class="mt-1 block w-40 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                @foreach (\App\Models\Organization::COMPLETED_WINDOW_OPTIONS as $days)
+                    <option value="{{ $days }}" {{ $windowValue === $days ? 'selected' : '' }}>{{ $days }} days</option>
+                @endforeach
+            </select>
+            <p class="mt-1 text-[10px] text-gray-500">Tasks completed longer ago than this are hidden by default on Kanban, the Tasks list, Dashboard and Projects. Nothing is deleted — each page has a way to show them.</p>
+            @error('completed_window_days')
+                <p class="mt-1 text-[10px] text-[#A32D2D]">{{ $message }}</p>
+            @enderror
         </div>
 
         <div class="flex items-center gap-3 pt-2">

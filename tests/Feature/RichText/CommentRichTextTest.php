@@ -11,6 +11,7 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\MentionedInCommentNotification;
+use App\Support\RichText;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
@@ -59,7 +60,10 @@ test('a comment saved through the editor keeps its formatting and renders it in 
         ->toContain('href="https://example.com/runbook"')
         ->toContain('rel="noopener noreferrer nofollow"');
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
+    // task #72 phase 2: the Tasks list no longer renders comments — the row
+    // preview does, and it is the second independent render path this
+    // assertion has always been about.
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
         ->assertSee('<strong>after</strong>', false)
         ->assertSee('<em>review</em>', false)
         ->assertSee('<pre><code class="language-js">run();</code></pre>', false)
@@ -74,7 +78,11 @@ test('an existing plain-text comment renders as escaped text, with its line brea
     $legacy = "Looks good <b>to me</b> & ready\nsecond line";
     Comment::create(['task_id' => $this->task->id, 'user_id' => $this->management->id, 'body' => $legacy]);
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
+    // task #72 phase 2: moved from the Tasks list to the row preview, which
+    // is where a comment's HTML now renders. The assertDontSee matters
+    // specifically here — on the list it would now pass for the wrong
+    // reason, since no comment body reaches that page at all.
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
         ->assertSee('Looks good &lt;b&gt;to me&lt;/b&gt; &amp; ready<br>', false)
         ->assertDontSee('<b>to me</b>', false);
 
@@ -120,7 +128,7 @@ test('the polling hash changes only when the body changes', function () {
 
 test('script, event handlers, javascript links and images are stripped from a comment', function () {
     $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", [
-        'body' => '<p onclick="steal()">hi <a href="javascript:alert(1)">bad</a></p><p><img src="x" onerror="alert(1)"><script>alert(1)</script></p>',
+        'body' => '<p onclick="steal()">KEPT-TEXT-4c81 <a href="javascript:alert(1)">bad</a></p><p><img src="x" onerror="alert(1)"><script>alert(1)</script></p>',
     ])->assertCreated();
 
     $stored = Comment::firstOrFail()->body;
@@ -130,7 +138,17 @@ test('script, event handlers, javascript links and images are stripped from a co
         ->not->toContain('onerror')
         ->not->toContain('<script');
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
+    // task #72 phase 2: the row preview, not the Tasks list. This one HAD to
+    // move rather than stay: the list no longer renders comment bodies, so
+    // the assertion would have passed without rendering the hostile comment
+    // at all — a sanitizer test that proves nothing. The preview really does
+    // render it (one comment, so it is within the latest 3).
+    // A deliberately unique marker, NOT a short word: the first version of
+    // this guard asserted "hi", which is a substring of the "bg-white" class
+    // on every comment card, so it passed even when the body rendered
+    // nothing at all — the exact vacuity it was added to prevent.
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
+        ->assertSee('KEPT-TEXT-4c81')
         ->assertDontSee('<script>alert(1)</script>', false)
         ->assertDontSee('onerror=', false);
 });
@@ -140,10 +158,14 @@ test('hostile markup written straight into the database is still neutralized whe
     Comment::create([
         'task_id' => $this->task->id,
         'user_id' => $this->management->id,
-        'body' => '<p onmouseover="x()">hi</p><p><script>alert(9)</script><img src=x onerror=alert(8)></p>',
+        'body' => '<p onmouseover="x()">KEPT-TEXT-9d20</p><p><script>alert(9)</script><img src=x onerror=alert(8)></p>',
     ]);
 
-    $page = $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk();
+    // task #72 phase 2: moved to the row preview for the same reason as the
+    // test above — on the list these assertions would now be vacuous.
+    $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk();
+    // Unique marker, for the same reason as the test above.
+    $page->assertSee('KEPT-TEXT-9d20');
     $page->assertDontSee('alert(9)', false);
     $page->assertDontSee('onerror=alert(8)', false);
     $page->assertDontSee('onmouseover', false);
@@ -152,18 +174,28 @@ test('hostile markup written straight into the database is still neutralized whe
     expect($json)->not->toContain('<script')->not->toContain('onmouseover')->not->toContain('onerror');
 });
 
-test('the 2000-character limit applies to the visible text, not to the markup around it', function () {
-    // 1900 characters of text wrapped in ~30KB of tags: fine.
-    $formatted = '<p>'.str_repeat('<strong>a</strong>', 1900).'</p>';
-    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $formatted])->assertCreated();
+test('task #122: a comment has no visible-text limit: 2,001 and 50,000 characters save, on post and on edit', function (int $length) {
+    $body = '<p>'.str_repeat('a', $length).'</p>';
 
-    // 2001 characters of visible text: rejected, same as before the editor.
-    $tooLong = '<p>'.str_repeat('a', 2001).'</p>';
-    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $tooLong])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors('body');
+    $created = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $body])->assertCreated();
+    $comment = Comment::findOrFail($created->json('comment.id'));
+    expect($comment->body)->toBe($body);
 
-    expect(Comment::count())->toBe(1);
+    $edited = '<p>'.str_repeat('b', $length).'</p>';
+    $this->actingAs($this->management)->putJson("/comments/{$comment->id}", ['body' => $edited])->assertOk();
+    expect($comment->fresh()->body)->toBe($edited);
+})->with(['just over the old limit' => [2001], 'a long comment' => [50000]]);
+
+test('task #122: heavy formatting saves too, and renders the same after reload', function () {
+    $formatted = str_repeat('<ul><li><p><strong>Bold</strong> and <em>italic</em></p></li></ul>', 2000)
+        .'<table><tbody>'.str_repeat('<tr><td><p>Cell one</p></td><td><p>Cell two</p></td></tr>', 500).'</tbody></table>';
+
+    $created = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $formatted])->assertCreated();
+    $html = $created->json('comment.body_html');
+
+    expect(mb_strlen(RichText::plainText(Comment::firstOrFail()->body)))->toBeGreaterThan(30000)
+        // The polling endpoint (what a reload shows) renders it the same.
+        ->and($this->actingAs($this->management)->getJson("/tasks/{$this->task->id}/comments")->json('comments.0.body_html'))->toBe($html);
 });
 
 test('an empty editor cannot be posted as a comment', function () {
@@ -224,5 +256,6 @@ test('the audit trail shows the words of a formatted comment, not its tags', fun
     $audit = AuditLog::where('action', 'comment.created')->firstOrFail();
 
     expect($audit->describeChanges())->toContain('Ship tonight')->not->toContain('<strong>');
-    expect($audit->entityLabel())->toBe('Ship tonight');
+    // task #118 phase 4: a comment is named after its task too.
+    expect($audit->entityLabel())->toBe($this->task->fresh()->display_title.' › Ship tonight');
 });

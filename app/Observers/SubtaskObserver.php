@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\AuditLog;
 use App\Models\Subtask;
+use App\Models\Task;
 use App\Observers\Concerns\TagsImportBatch;
 use App\Services\AuditEventNotifier;
 
@@ -25,6 +26,10 @@ class SubtaskObserver
 
     public function created(Subtask $subtask): void
     {
+        if ($subtask->assignee_id) {
+            $this->touchParentTask($subtask);
+        }
+
         $this->log($subtask, 'subtask.created', collect($subtask->getAttributes())->only([
             'title', 'assignee_id', 'due_date',
         ])->all());
@@ -37,6 +42,10 @@ class SubtaskObserver
 
         if (empty($changes)) {
             return;
+        }
+
+        if (array_key_exists('assignee_id', $changes)) {
+            $this->touchParentTask($subtask);
         }
 
         $original = $subtask->getOriginal();
@@ -62,9 +71,28 @@ class SubtaskObserver
      */
     public function deleted(Subtask $subtask): void
     {
+        if ($subtask->assignee_id) {
+            $this->touchParentTask($subtask);
+        }
+
         $this->log($subtask, 'subtask.deleted', collect($subtask->getAttributes())->only([
             'title', 'assignee_id', 'due_date', 'is_done',
         ])->all());
+    }
+
+    /**
+     * task #72 phase 10: a subtask's assignee can see its parent task
+     * (Task::visibleTo()), so assigning, reassigning or deleting an
+     * assigned subtask changes who sees the task. Bumping the task's
+     * updated_at lets the Kanban poll (KanbanController::changes()) pick
+     * that up. A query-builder write on purpose: no Task events, so no
+     * audit row and no notification for what isn't a change to the task
+     * itself. withoutGlobalScopes(): the parent may be deactivated, or in a
+     * company the current user's organization scope doesn't cover.
+     */
+    private function touchParentTask(Subtask $subtask): void
+    {
+        Task::withoutGlobalScopes()->whereKey($subtask->task_id)->update(['updated_at' => now()]);
     }
 
     private function log(Subtask $subtask, string $action, array $changes = []): void

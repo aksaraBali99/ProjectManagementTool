@@ -26,7 +26,10 @@ class MentionedInCommentNotification extends Notification
     {
         return [
             'task_id' => $this->task->id,
-            'message' => 'You are mentioned in task "'.$this->task->title.'".',
+            // task #118 phase 4: the code outside the quotes, the title in
+            // them: 'You are mentioned in task BGS-0012 "Fix invoice PDF
+            // layout".' ($task->code loads the company if needed.)
+            'message' => 'You are mentioned in task '.($this->task->code === null ? '' : $this->task->code.' ').'"'.$this->task->title.'".',
             'link' => route('tasks.edit', $this->task->id),
         ];
     }

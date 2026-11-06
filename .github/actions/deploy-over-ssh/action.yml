@@ -1,0 +1,143 @@
+# task #119: the deploy steps shared by deploy-dev and deploy-prod
+# (deploy.yml). Checks the environment's config, sets up SSH, runs the
+# commit's own deploy.sh on the server, then smoke-tests /up.
+#
+# The SSH key is written to $RUNNER_TEMP/deploy_key. The calling job
+# removes it in an `if: always()` step, so it goes even when this fails.
+
+name: Deploy over SSH
+description: Runs deploy.sh on the environment's server for one commit, then smoke-tests it.
+
+inputs:
+  environment:
+    description: The GitHub environment's name (dev or production), for the summary
+    required: true
+  branch:
+    description: main or production
+    required: true
+  sha:
+    description: The commit to deploy
+    required: true
+  dry-run:
+    description: "'true' to only print what would be deployed"
+    required: false
+    default: 'false'
+  deploy-args:
+    description: Extra deploy.sh flags (--maintenance --backup)
+    required: false
+    default: ''
+  ssh-key:
+    required: true
+  ssh-known-hosts:
+    required: true
+
+outputs:
+  result:
+    description: deployed, skipped (a newer commit is on the branch) or dry-run
+    value: ${{ steps.deploy.outputs.result }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check the environment's config
+      shell: bash
+      env:
+        SSH_KEY: ${{ inputs.ssh-key }}
+        SSH_KNOWN_HOSTS: ${{ inputs.ssh-known-hosts }}
+      # Every variable and secret set, and APP_PATH a full path. Tested by
+      # tests/scripts/run.sh.
+      run: bash "$GITHUB_WORKSPACE/.github/scripts/check-deploy-config.sh"
+
+    - name: Set up SSH
+      shell: bash
+      env:
+        SSH_KEY: ${{ inputs.ssh-key }}
+        SSH_KNOWN_HOSTS: ${{ inputs.ssh-known-hosts }}
+      run: |
+        install -m 700 -d ~/.ssh
+        (umask 077 && printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/deploy_key")
+        printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts
+
+    - name: Run deploy.sh on the server
+      id: deploy
+      shell: bash
+      env:
+        BRANCH: ${{ inputs.branch }}
+        SHA: ${{ inputs.sha }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        DEPLOY_ARGS: ${{ inputs.deploy-args }}
+      run: |
+        args=(--branch "$BRANCH" --expect-sha "$SHA" --expect-env "$EXPECTED_APP_ENV")
+        # Word-split on purpose: a fixed list of flags from deploy.yml.
+        read -r -a extra <<<"$DEPLOY_ARGS"
+        args+=("${extra[@]}")
+        if [[ "$DRY_RUN" == "true" ]]; then args+=(--dry-run); fi
+
+        # The commit's own deploy.sh, not the copy in the server's current
+        # checkout (that's the previous release's). A temp file, not
+        # `bash -s`: composer or artisan reading stdin would eat the script.
+        script="\$HOME/.deploy-${SHA}.sh"
+        printf -v remote 'cd %q && git fetch --quiet origin %q && git show %q:deploy.sh > %s && bash %s %s; code=$?; rm -f %s; exit $code' \
+          "$APP_PATH" "$BRANCH" "$SHA" "$script" "$script" "$(printf '%q ' "${args[@]}")" "$script"
+
+        set +e
+        ssh -n -T -p "$SSH_PORT" -i "$RUNNER_TEMP/deploy_key" \
+          -o IdentitiesOnly=yes -o BatchMode=yes \
+          -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+          -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+          "$SSH_USER@$SSH_HOST" "$remote"
+        code=$?
+        set -e
+
+        if ((code == 78)); then
+          echo "::notice::Skipped: a newer commit is on $BRANCH, and its own run deploys it."
+          echo "result=skipped" >> "$GITHUB_OUTPUT"
+        elif ((code != 0)); then
+          echo "::error::deploy.sh failed (exit $code). The log above says which step and how to recover; if maintenance mode was on, the site is still down."
+          exit "$code"
+        elif [[ "$DRY_RUN" == "true" ]]; then
+          echo "result=dry-run" >> "$GITHUB_OUTPUT"
+        else
+          echo "result=deployed" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Smoke test /up
+      id: smoke
+      if: steps.deploy.outputs.result == 'deployed'
+      shell: bash
+      run: |
+        url="${APP_URL%/}/up"
+        for try in 1 2 3 4 5; do
+          if curl -fsS --max-time 20 -o /dev/null "$url"; then
+            echo "Smoke test passed on try $try: $url"
+            echo "result=passed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ((try < 5)); then sleep 10; fi
+        done
+        echo "result=failed" >> "$GITHUB_OUTPUT"
+        echo "::error::$url didn't answer 200 after 5 tries. The deploy ran; check the site and storage/logs/laravel.log on the server."
+        exit 1
+
+    - name: Job summary
+      if: always()
+      shell: bash
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        BRANCH: ${{ inputs.branch }}
+        SHA: ${{ inputs.sha }}
+        RESULT: ${{ steps.deploy.outputs.result || 'failed' }}
+        SMOKE: ${{ steps.smoke.outputs.result || 'not run' }}
+      run: |
+        {
+          echo "### Deploy to $ENVIRONMENT"
+          echo ""
+          echo "| | |"
+          echo "|---|---|"
+          echo "| APP_ENV | ${EXPECTED_APP_ENV:-not set} |"
+          echo "| Branch | \`$BRANCH\` |"
+          echo "| Commit | \`$SHA\` |"
+          echo "| Result | $RESULT |"
+          echo "| Smoke test (/up) | $SMOKE |"
+        } >> "$GITHUB_STEP_SUMMARY"

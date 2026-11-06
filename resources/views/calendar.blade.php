@@ -94,10 +94,10 @@
                                 @endif
                                 <div class="space-y-1">
                                     @foreach ($day['tasks'] as $task)
-                                        <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Calendar']) }}" title="{{ $task->title }}"
+                                        <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Calendar']) }}" title="{{ $task->display_title }}"
                                            class="block truncate rounded px-1.5 py-1 text-[11px] font-medium"
                                            style="background-color: {{ $task->priority->badgeBackground() }}; color: {{ $task->priority->badgeText() }};">
-                                            {{ $task->title }}
+                                            <x-task-code :task="$task" />{{ $task->title }}
                                         </a>
                                     @endforeach
                                 </div>
@@ -128,10 +128,10 @@
                                 </div>
                                 <div class="mt-1 space-y-1">
                                     @foreach ($day['tasks'] as $task)
-                                        <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Calendar']) }}" title="{{ $task->title }}"
+                                        <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Calendar']) }}" title="{{ $task->display_title }}"
                                            class="block truncate rounded px-1.5 py-0.5 text-[10px] font-medium"
                                            style="background-color: {{ $task->priority->badgeBackground() }}; color: {{ $task->priority->badgeText() }};">
-                                            {{ $task->title }}
+                                            <x-task-code :task="$task" />{{ $task->title }}
                                         </a>
                                     @endforeach
                                 </div>

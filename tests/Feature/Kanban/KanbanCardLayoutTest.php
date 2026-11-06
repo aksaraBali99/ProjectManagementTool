@@ -14,7 +14,8 @@ use App\Models\User;
  * Phase 5 — Assignee moved onto the same row as Status (was its own row
  * below), the Assignee select's width fixed (was sizing to fit whichever
  * name was selected), the avatar's right edge aligned with the Status
- * select's right edge, and the task's own database id shown as "#<id>".
+ * select's right edge, and (task #118 phase 3) the task code before the
+ * title, which replaced task #71's "#<id>".
  *
  * Pest has no browser/layout engine, so it can't measure actual rendered
  * pixel positions — what these tests pin down instead is the DOM
@@ -229,7 +230,9 @@ test('the avatar and the Status select both sit at the same right-hand boundary 
     expect($selectsInRow->item($selectsInRow->length - 1)->getAttribute('class'))->toContain('kanban-status-select');
 });
 
-test('every Kanban card shows its task\'s own database id as "#<id>", not the Import feature\'s file-scoped Task Ref numbering', function () {
+test('every Kanban card shows its task code before the title, and no longer the "#<id>" task #71 added', function () {
+    // task #118 phase 3: the code (BGS-0012) replaces "#<id> &middot;" at
+    // the start of the card's muted line.
     $task = Task::create([
         'organization_id' => $this->org->id,
         'project_id' => $this->project->id,
@@ -243,10 +246,12 @@ test('every Kanban card shows its task\'s own database id as "#<id>", not the Im
     $card = findKanbanCard($page, $task->id);
     expect($card)->not->toBeNull();
 
-    expect($card->ownerDocument->saveHTML($card))->toContain('#'.$task->id);
+    $html = $card->ownerDocument->saveHTML($card);
+    expect($html)->toMatch('/<span class="task-code[^"]*">'.preg_quote($task->fresh()->code, '/').' <\/span>Ship it<\/a>/')
+        ->not->toMatch('/#'.$task->id.'\s*(&middot;|·)/');
 });
 
-test('two different tasks show two different ids, each matching that specific task\'s own real database id', function () {
+test('two different tasks show two different codes, each its own', function () {
     $taskOne = Task::create([
         'organization_id' => $this->org->id,
         'project_id' => $this->project->id,
@@ -269,7 +274,7 @@ test('two different tasks show two different ids, each matching that specific ta
     $cardOne = findKanbanCard($page, $taskOne->id);
     $cardTwo = findKanbanCard($page, $taskTwo->id);
 
-    expect($cardOne->ownerDocument->saveHTML($cardOne))->toContain('#'.$taskOne->id);
-    expect($cardTwo->ownerDocument->saveHTML($cardTwo))->toContain('#'.$taskTwo->id);
-    expect($taskOne->id)->not->toBe($taskTwo->id);
+    expect($cardOne->ownerDocument->saveHTML($cardOne))->toContain($taskOne->fresh()->code.' </span>First task');
+    expect($cardTwo->ownerDocument->saveHTML($cardTwo))->toContain($taskTwo->fresh()->code.' </span>Second task');
+    expect($taskOne->fresh()->code)->not->toBe($taskTwo->fresh()->code);
 });

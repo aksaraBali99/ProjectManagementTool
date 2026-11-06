@@ -43,6 +43,14 @@ class RichText
     // <audio ...></audio> / <video ...></video>, ordinary open/close pairs
     // like <pre>, not self-closing tags. They belong here, not in
     // VOID_BLOCK_TAGS.
+    /**
+     * The sanitizer's input limit, in bytes. Above it the library returns
+     * an empty string rather than the input, so every size cap on rich
+     * text (Comment::MAX_BODY_LENGTH, the task description's 200,000)
+     * must fit inside it at up to 4 bytes per character (task #122).
+     */
+    public const MAX_INPUT_BYTES = 5_000_000;
+
     private const BLOCK_TAGS = 'p|h[1-6]|ul|ol|pre|audio|video';
 
     /**
@@ -299,7 +307,7 @@ class RichText
                 // The library's default is 20,000 bytes, and beyond that it
                 // returns an empty string rather than the input — a long
                 // description would silently vanish on save.
-                ->withMaxInputLength(5_000_000)
+                ->withMaxInputLength(self::MAX_INPUT_BYTES)
         );
     }
 }

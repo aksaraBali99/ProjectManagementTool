@@ -22,6 +22,7 @@
         <table class="w-full md:min-w-full md:divide-y md:divide-gray-200">
             <x-table-header>
                 <x-th>Name</x-th>
+                <x-th>Code</x-th>
                 <x-th>Accent</x-th>
                 <x-th>Departments</x-th>
                 <x-th>Projects</x-th>
@@ -32,6 +33,11 @@
                 @foreach ($organizations as $organization)
                     <tr class="block px-3 py-2.5 md:table-row md:px-0 md:py-0">
                         <td class="text-[12px] font-medium text-[#1F2937] md:table-cell md:px-3 md:py-2.5">{{ $organization->name }}</td>
+                        {{-- task #118 phase 2: the task code prefix (BVA-0001). --}}
+                        <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Code</span>
+                            <span class="rounded-sm bg-gray-100 px-2 py-0.5 font-mono text-[10px] font-medium tracking-[0.06em] text-gray-700">{{ $organization->code }}</span>
+                        </td>
                         <td class="flex items-center justify-between gap-2 py-1 md:table-cell md:px-3 md:py-2.5">
                             <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 md:hidden">Accent</span>
                             <span>

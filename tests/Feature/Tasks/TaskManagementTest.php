@@ -1006,6 +1006,20 @@ test('inactive tasks are hidden from the list by default and shown when toggled 
     $withInactive->assertSee('Soon deactivated');
 });
 
+test('the Filter form keeps Show inactive on when it is ticked, and leaves it off when it is not', function () {
+    $hiddenField = '<input type="hidden" name="show_inactive" value="1">';
+
+    // The checkbox itself has no name, so the form only carries the
+    // setting through this hidden field.
+    $this->actingAs($this->management)->get('/tasks/'.$this->orgA->id.'?show_inactive=1')
+        ->assertOk()
+        ->assertSee($hiddenField, false);
+
+    $this->actingAs($this->management)->get('/tasks/'.$this->orgA->id)
+        ->assertOk()
+        ->assertDontSee($hiddenField, false);
+});
+
 test('posting a comment from the drilldown respects CommentPolicy view scoping', function () {
     $otherDept = Department::create(['organization_id' => $this->orgA->id, 'name' => 'Operations', 'color' => '#000000']);
     $task = Task::create([

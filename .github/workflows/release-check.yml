@@ -1,0 +1,119 @@
+# task #119: checks on pull requests into production (the required
+# "release-check" status), and the "release" label that keeps release and
+# back-merge PRs out of the generated release notes (.github/release.yml).
+# See docs/release-process.md.
+
+name: Release check
+
+on:
+  pull_request:
+    branches: [main, production]
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  release-check:
+    name: release-check
+    if: github.base_ref == 'production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # main, production and their history, for the drift check and
+          # the task list.
+          fetch-depth: 0
+
+      # First, so the summary is there even when a check below fails.
+      - name: Job summary (paste into the release PR)
+        run: |
+          previous=$(git describe --tags --abbrev=0 --match 'v[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9]*' origin/production 2>/dev/null || true)
+          migrations=$(git diff --name-only --diff-filter=A origin/production...HEAD -- database/migrations)
+          next=$(git tag --list | bash .github/scripts/next-version.sh "$(TZ=Asia/Makassar date +%Y.%m)")
+          {
+            echo "Next version, if deployed this month: **$next** (PR title: \"Release $next\")"
+            echo ""
+            echo "## Tasks and PRs included"
+            echo ""
+            bash .github/scripts/release-tasks.sh "$previous" HEAD
+            echo ""
+            echo "## Migrations in this release"
+            echo ""
+            if [[ -n "$migrations" ]]; then
+              while IFS= read -r file; do
+                echo "- \`$(basename "$file")\`: safe / data-changing / slow; can it be undone?"
+              done <<<"$migrations"
+            else
+              echo "None"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The description reaches the script through an environment variable,
+      # never written into the script with ${{ }}, so nothing in it can run.
+      - name: Source branch and checklist
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: bash .github/scripts/release-check.sh "$HEAD_BRANCH"
+
+      # A hotfix runs before its back-merge by design, so it's skipped there.
+      - name: Drift check (production has nothing main lacks)
+        if: ${{ !startsWith(github.head_ref, 'Hotfix/') }}
+        run: |
+          drift=$(git rev-list --no-merges origin/main..origin/production)
+          if [[ -n "$drift" ]]; then
+            echo "::error::production has commits that never reached main (a hotfix not merged back, or a release squash-merged by mistake). Open a 'Back-merge' PR from production into main, merge it with a merge commit, then re-run this check."
+            git log --no-merges --oneline origin/main..origin/production
+            exit 1
+          fi
+          echo "No drift: every commit on production is on main."
+
+      # task #124: the newest entry in resources/release-notes.json is this
+      # release's (the version it will get, every task in it). Runs even
+      # when a check above failed, so all problems show at once.
+      - name: Release notes entry
+        if: ${{ !cancelled() }}
+        run: |
+          previous=$(git describe --tags --abbrev=0 --match 'v[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9]*' origin/production 2>/dev/null || true)
+          next=$(git tag --list | bash .github/scripts/next-version.sh "$(TZ=Asia/Makassar date +%Y.%m)")
+          git tag --list > "$RUNNER_TEMP/tags"
+          { bash .github/scripts/release-tasks.sh "$previous" HEAD | grep -oE '[0-9]+' || true; } > "$RUNNER_TEMP/tasks"
+
+          code=0
+          output=$(bash .github/scripts/release-notes-check.sh resources/release-notes.json "$next" "$RUNNER_TEMP/tags" "$RUNNER_TEMP/tasks") || code=$?
+          echo "$output"
+          {
+            echo ""
+            echo "## Release notes"
+            echo ""
+            while IFS= read -r line; do
+              case "$line" in
+                ::error::*) echo "- ❌ ${line#::error::}" ;;
+                ::warning::*) echo "- ⚠️ ${line#::warning::}" ;;
+                OK:*) echo "- ✅ ${line#OK: }" ;;
+              esac
+            done <<<"$output"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
+
+  label:
+    name: Label release and back-merge PRs
+    # Same-repository PRs only: a fork's token can't add labels.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (startsWith(github.event.pull_request.title, 'Release v') || startsWith(github.event.pull_request.title, 'Back-merge'))
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Add the "release" label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh label create release --color 6E7781 --description "Release or back-merge PR; left out of release notes" 2>/dev/null || true
+          gh pr edit "$NUMBER" --add-label release

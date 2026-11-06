@@ -1,15 +1,19 @@
 @extends('layouts.authenticated')
 
-@section('title', 'Edit task — Solava')
+@section('title', $task->display_title.' — Solava')
 
 @section('content')
 <div class="mx-auto max-w-2xl">
     <div class="flex items-center justify-between">
         <a href="{{ $returnToUrl }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← {{ $returnToLabel }}</a>
-        @if ($canEdit && $canDeactivate)
+        {{-- task #123: $canDeactivate alone. A deactivated task can't be
+             edited ($canEdit is false), and Activate is the one action
+             left on it. --}}
+        @if ($canDeactivate)
             <form method="POST" action="{{ route('tasks.toggle-active', $task) }}">
                 @csrf
                 @method('PATCH')
+                @include('tasks._return-to-inputs')
                 <button type="submit" class="text-[13px] text-gray-500 hover:underline">
                     {{ $task->trashed() ? 'Activate' : 'Deactivate' }} task
                 </button>
@@ -18,7 +22,8 @@
     </div>
 
     <div class="mt-2 flex items-center justify-between">
-        <h1 class="text-[14px] font-medium text-[#1F2937]">Edit task</h1>
+        {{-- task #118 phase 3: "BGS-0012 · Edit task". --}}
+        <h1 class="text-[14px] font-medium text-[#1F2937]">@if ($task->code !== null)<x-task-code :task="$task" class="!font-medium" />&middot; @endif Edit task</h1>
         @if ($task->trashed())
             <span class="rounded-sm bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-medium text-[#A32D2D]">Inactive</span>
         @endif
@@ -26,6 +31,13 @@
 
     @if (session('status'))
         <div class="mt-4 rounded-md bg-brand-50 p-3 text-[12px] text-brand-800">{{ session('status') }}</div>
+    @endif
+
+    {{-- task #123: a deactivated task is read-only until it's activated. --}}
+    @if ($isDeactivated)
+        <div class="mt-4 rounded-md bg-[#FCEBEB] p-3 text-[12px] text-[#A32D2D]" data-deactivated-notice>
+            {{ $canDeactivate ? \App\Support\DeactivatedTask::MESSAGE : 'This task is deactivated.' }}
+        </div>
     @endif
 
     @if ($canEdit)
@@ -42,6 +54,7 @@
         <form method="POST" action="{{ route('tasks.update', $task) }}" class="mt-6 space-y-4" id="edit-task-form">
             @csrf
             @method('PUT')
+            @include('tasks._return-to-inputs')
 
             <div>
                 <label for="project_id" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Project</label>
@@ -64,8 +77,26 @@
 
             <div>
                 <label for="title" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Title</label>
-                <input id="title" name="title" type="text" value="{{ old('title', $task->title) }}" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                {{-- task #118 phase 3: the code is a fixed prefix beside the
+                     input, never part of its value: the field still holds
+                     (and saves) the title only. One input, with or without
+                     the prefix. --}}
+                @php $hasCode = $task->code !== null; @endphp
+                <div class="mt-1 flex">
+                    @if ($hasCode)
+                        <span class="inline-flex select-none items-center whitespace-nowrap rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-[12px] tabular-nums text-gray-500" id="title-code-prefix" aria-hidden="true">{{ $task->code }}</span>
+                    @endif
+                    <input id="title" name="title" type="text" value="{{ old('title', $task->title) }}" required @if ($hasCode) aria-describedby="title-code" @endif
+                        class="block w-full min-w-0 {{ $hasCode ? 'rounded-r-md' : 'rounded-md' }} border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                </div>
+                @if ($hasCode)
+                    <p id="title-code" class="sr-only">Task code {{ $task->code }}</p>
+                    {{-- Shown when the picked project belongs to another
+                         company: saving gives the task that company's next
+                         number, so the code above won't stay. --}}
+                    <p id="title-code-move" class="mt-1 text-[10px] text-gray-500" hidden
+                        data-current-organization="{{ $task->organization_id }}" data-current-code="{{ $task->code }}"></p>
+                @endif
             </div>
 
             <div>
@@ -101,6 +132,9 @@
                             <option value="{{ $statusCase->value }}" {{ $statusValue === $statusCase->value ? 'selected' : '' }}>{{ $statusCase->label() }}</option>
                         @endforeach
                     </select>
+                    @if ($task->status === \App\Enums\TaskStatus::Completed && $task->completed_at)
+                        <p class="mt-1 text-[10px] text-gray-500">Completed on {{ $task->completed_at->format('M j, Y') }}</p>
+                    @endif
                 </div>
             </div>
 
@@ -137,6 +171,7 @@
         <script>
             (function () {
                 const projectOrganizations = @json($projectOrganizations);
+                const organizationCodes = @json($organizationCodes);
                 const departmentsByOrg = @json($departmentsByOrganization);
                 const eligibleAssignees = @json($eligibleAssignees);
                 const oldDepartment = @json(old('department_id', $task->department_id));
@@ -199,6 +234,28 @@
                     });
 
                     refreshAssigneeOptions();
+                    refreshCodeNote(orgId);
+                }
+
+                // task #118: a project in another company means a new code
+                // on save (TaskObserver::updating() takes that company's
+                // next number). Say so, and show the new company's code in
+                // the prefix, so nobody saves expecting to keep the old one.
+                const codePrefix = document.getElementById('title-code-prefix');
+                const codeNote = document.getElementById('title-code-move');
+                function refreshCodeNote(orgId) {
+                    if (! codePrefix || ! codeNote) return;
+                    const current = codeNote.dataset.currentCode;
+                    const moving = String(orgId) !== codeNote.dataset.currentOrganization;
+                    const newCompanyCode = organizationCodes[orgId];
+
+                    codeNote.hidden = ! moving;
+                    codePrefix.textContent = moving && newCompanyCode ? newCompanyCode + '-…' : current;
+                    codeNote.textContent = moving
+                        ? 'This project is in another company: saving gives the task '
+                            + (newCompanyCode ? newCompanyCode + "'s" : "that company's")
+                            + ' next number, and ' + current + ' is not reused.'
+                        : '';
                 }
 
                 projectSelect.addEventListener('change', refreshDependents);
@@ -208,14 +265,21 @@
         </script>
     @else
         <div class="mt-6 space-y-3 rounded-lg border border-gray-200 p-4 text-[12px]">
-            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Title</span><p class="mt-0.5 font-medium text-[#1F2937]">{{ $task->title }}</p></div>
+            <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Title</span><p class="mt-0.5 font-medium text-[#1F2937]"><x-task-code :task="$task" />{{ $task->title }}</p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Description</span><x-rich-text :value="$task->description" empty="—" class="mt-0.5 text-gray-700" /></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Priority</span><p class="mt-1"><x-badge :background="$task->priority->badgeBackground()" :text="$task->priority->badgeText()">{{ $task->priority->label() }}</x-badge></p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Status</span><p class="mt-1"><x-badge :background="$task->status->badgeBackground()" :text="$task->status->badgeText()">{{ $task->status->label() }}</x-badge></p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Start date</span><p class="mt-0.5 text-gray-700">{{ $task->start_date?->format('M j, Y') ?? '—' }}</p></div>
             <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Due date</span><p class="mt-0.5 text-gray-700">{{ $task->due_date?->format('M j, Y') ?? '—' }}</p></div>
+            @if ($task->status === \App\Enums\TaskStatus::Completed && $task->completed_at)
+                <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Completed on</span><p class="mt-0.5 text-gray-700">{{ $task->completed_at->format('M j, Y') }}</p></div>
+            @endif
         </div>
-        <p class="mt-3 text-[11px] text-gray-500">You can view this task and toggle its subtasks, but only its assignee or a manager can edit it.</p>
+        {{-- task #123: not on a deactivated task, where nobody can toggle
+             subtasks or edit; the notice above says why. --}}
+        @unless ($isDeactivated)
+            <p class="mt-3 text-[11px] text-gray-500">You can view this task and toggle its subtasks, but only its assignee or a manager can edit it.</p>
+        @endunless
     @endif
 
     <div class="mt-6">
@@ -240,5 +304,8 @@
     </div>
 </div>
 
-@include('users._unsaved-changes-guard', ['formId' => 'edit-task-form'])
+{{-- task #123: only when the form is on the page. --}}
+@if ($canEdit)
+    @include('users._unsaved-changes-guard', ['formId' => 'edit-task-form'])
+@endif
 @endsection

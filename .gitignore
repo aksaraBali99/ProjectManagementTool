@@ -25,4 +25,6 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
-deploy.sh
+
+# task #119: database backups (solva:db-backup) hold all user data
+/storage/app/backups

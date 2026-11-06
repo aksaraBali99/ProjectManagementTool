@@ -113,7 +113,9 @@ test('opening a legacy plain-text task never rewrites the stored value', functio
     $task = makeTaskWithDescription($legacy);
 
     $this->actingAs($this->management)->get("/tasks/{$task->id}/edit")->assertOk();
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk();
+    // task #72 phase 2: the drilldown moved to the row preview endpoint;
+    // the Tasks list no longer renders the stored description/comment.
+    $this->actingAs($this->management)->get("/tasks/{$task->id}/preview")->assertOk();
 
     expect($task->fresh()->description)->toBe($legacy);
 });
@@ -134,7 +136,7 @@ test('a task with no description, or only whitespace, opens with an empty read-o
 test('legacy plain text shows as escaped text in the task list drilldown and the read-only task view', function () {
     $task = makeTaskWithDescription("Plain <i>text</i> & more\nsecond line");
 
-    $list = $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk();
+    $list = $this->actingAs($this->management)->get("/tasks/{$task->id}/preview")->assertOk();
     $list->assertSee('Plain &lt;i&gt;text&lt;/i&gt; &amp; more<br>', false);
     $list->assertDontSee('<i>text</i>', false);
 
@@ -187,7 +189,7 @@ test('a description saved from the editor with bold, a link and a code block per
     expect($fragment->getElementsByTagName('li')->length)->toBe(2);
 
     // And read-only, in the task list drilldown, as real markup (not escaped).
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")
+    $this->actingAs($this->management)->get("/tasks/{$task->id}/preview")
         ->assertSee('<strong>bold</strong>', false)
         ->assertSee('<pre><code class="language-php">echo 42;</code></pre>', false)
         ->assertSee('data-rich-text-content', false);
@@ -217,7 +219,7 @@ test('the edit page for a formatted description is not double-escaped either', f
 test('script, event handlers, javascript links, images and arbitrary classes are stripped from a submitted description', function () {
     $task = makeTaskWithDescription(null);
 
-    $hostile = '<p onclick="steal()">hi <a href="javascript:alert(1)">bad</a> <a href="https://ok.example" onmouseover="x()">ok</a></p>'
+    $hostile = '<p onclick="steal()">KEPT-DESC-7e44 <a href="javascript:alert(1)">bad</a> <a href="https://ok.example" onmouseover="x()">ok</a></p>'
         .'<img src="x" onerror="alert(1)">'
         .'<pre><code class="fixed inset-0 z-50 bg-white">x</code></pre>'
         .'<script>alert(1)</script>';
@@ -227,7 +229,11 @@ test('script, event handlers, javascript links, images and arbitrary classes are
         ->put("/tasks/{$task->id}", taskUpdatePayload($task, ['description' => $hostile]))
         ->assertRedirect();
 
-    $list = $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk();
+    $list = $this->actingAs($this->management)->get("/tasks/{$task->id}/preview")->assertOk();
+    // Positive guard first: without it the three assertDontSee calls below
+    // would go green the day the preview stopped rendering descriptions at
+    // all, proving nothing about the sanitizer.
+    $list->assertSee('KEPT-DESC-7e44');
     $list->assertDontSee('<script>alert(1)</script>', false);
     $list->assertDontSee('<img src="x"', false);
     $list->assertDontSee('onclick="steal()"', false);

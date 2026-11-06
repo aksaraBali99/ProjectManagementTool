@@ -54,6 +54,8 @@ class CalendarController extends Controller
             ->with(['project', 'department', 'assignee'])
             ->orderBy('title')
             ->get()
+            // task #118: their codes from the company tab already loaded.
+            ->each->setRelation('organization', $organization)
             ->groupBy(fn (Task $task) => $task->due_date->toDateString());
 
         $weeks = $this->buildWeeks($rangeStart, $rangeEnd, $view === 'week' ? null : $anchor->month, $tasksByDate);

@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Enums\TaskStatus;
 use App\Models\AuditLog;
+use App\Models\Organization;
 use App\Models\Task;
 use App\Observers\Concerns\TagsImportBatch;
 use App\Services\AuditEventNotifier;
@@ -37,18 +38,62 @@ class TaskObserver
      * every save while a task happens to already be in_progress) and only
      * if start_date is still empty — a manual edit afterward is never
      * clobbered by re-entering in_progress later.
+     *
+     * completed_at (task #72 phase 6) follows status exactly: set on the
+     * transition into completed (including being created as completed),
+     * cleared on the way out, untouched by any save that leaves status
+     * alone — so editing a completed task, or deactivating/reactivating
+     * it, keeps its date. Re-completing a reopened task takes the new
+     * time. Being dirty here, it also lands in updated()'s audit payload,
+     * next to status.
      */
     public function saving(Task $task): void
     {
         if ($task->isDirty('status') && $task->status === TaskStatus::InProgress && ! $task->start_date) {
             $task->start_date = now()->toDateString();
         }
+
+        if ($task->isDirty('status')) {
+            $wasCompleted = $task->exists && $task->getRawOriginal('status') === TaskStatus::Completed->value;
+
+            if ($task->status === TaskStatus::Completed && ! $wasCompleted) {
+                $task->completed_at = now();
+            } elseif ($task->status !== TaskStatus::Completed) {
+                $task->completed_at = null;
+            }
+        }
+    }
+
+    /**
+     * task #118: every new task takes its company's next task number
+     * (Organization::takeNextTaskNumber()), whatever creates it: the Add
+     * Task form, the Excel import, or code.
+     */
+    public function creating(Task $task): void
+    {
+        if ($task->task_number === null) {
+            $task->task_number = Organization::takeNextTaskNumber($task->organization_id);
+        }
+    }
+
+    /**
+     * task #118: a task moved to another company's project gets that
+     * company's next number (its code changes, e.g. BGS-0012 to
+     * SLV-0034). Its old number stays used in the old company.
+     */
+    public function updating(Task $task): void
+    {
+        if ($task->isDirty('organization_id')) {
+            $task->task_number = Organization::takeNextTaskNumber($task->organization_id);
+        }
     }
 
     public function created(Task $task): void
     {
+        // task_number (task #118): so every task's audit history shows the
+        // code it was created with, moved or not.
         $this->log($task, 'task.created', collect($task->getAttributes())->only([
-            'project_id', 'department_id', 'assignee_id', 'title', 'priority', 'status', 'due_date', 'start_date',
+            'task_number', 'project_id', 'department_id', 'assignee_id', 'title', 'priority', 'status', 'due_date', 'start_date',
         ])->all());
     }
 
@@ -78,9 +123,14 @@ class TaskObserver
         }
 
         $original = $task->getOriginal();
-        $diff = collect($changes)->mapWithKeys(fn ($value, $key) => [
-            $key => ['old' => $original[$key] ?? null, 'new' => $value],
-        ])->all();
+        $diff = collect($changes)
+            // task #118: a company move's new number is told by the
+            // "code changed" row below (BGS-0003 to SLV-0003), not as a
+            // bare "Task Number changed from 3 to 3" here.
+            ->except('task_number')
+            ->mapWithKeys(fn ($value, $key) => [
+                $key => ['old' => $original[$key] ?? null, 'new' => $value],
+            ])->all();
 
         $action = match (true) {
             array_key_exists('assignee_id', $changes) => 'task.reassigned',
@@ -89,7 +139,20 @@ class TaskObserver
             default => 'task.updated',
         };
 
-        $this->log($task, $action, $diff);
+        if ($diff) {
+            $this->log($task, $action, $diff);
+        }
+
+        // task #118: a company move changes the task's code, so the trail
+        // gets its own "code changed" row, old code to new.
+        if (array_key_exists('organization_id', $changes)) {
+            $codes = Organization::withoutGlobalScopes()->whereIn('id', [$original['organization_id'], $task->organization_id])->pluck('code', 'id');
+
+            $this->log($task, 'task.code_changed', ['code' => [
+                'old' => Task::formatCode($codes[$original['organization_id']] ?? null, $original['task_number'] ?? null),
+                'new' => Task::formatCode($codes[$task->organization_id] ?? null, $task->task_number),
+            ]]);
+        }
     }
 
     public function deleted(Task $task): void

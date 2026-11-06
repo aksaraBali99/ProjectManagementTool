@@ -103,7 +103,9 @@ test('reloading the Edit Task page after a resize-and-save shows the resized dim
 
     // Not just the editor's own initial-content payload — the read-only
     // task list drilldown renders the same stored value independently.
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
+    // task #72 phase 2: the drilldown moved to the row preview endpoint;
+    // the Tasks list no longer renders the stored description/comment.
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
         ->assertSee('width="250"', false)
         ->assertSee('height="140"', false);
 });
@@ -120,7 +122,7 @@ test('a video embedded before this change (no width/height at all) still display
         ->not->toContain('width=')
         ->not->toContain('height=');
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
         ->assertSee('src="https://cdn.example.com/tasks/1/video/a.webm"', false);
 
     // Untouched by merely being viewed.
@@ -142,7 +144,7 @@ test('a resized video works the same way inside a comment', function () {
         ->assertOk()
         ->assertJsonPath('comments.0.body_html', fn ($html) => str_contains($html, 'width="320"') && str_contains($html, 'height="180"'));
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()
         ->assertSee('width="320"', false)
         ->assertSee('height="180"', false);
 });

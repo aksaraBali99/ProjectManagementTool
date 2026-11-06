@@ -48,7 +48,12 @@ trait HasAdminConfigurableColors
         $modelClass = self::colorModel();
         $column = self::colorColumn();
 
-        return Cache::rememberForever(
+        // memo(): a page renders a badge per task, and with the database (or
+        // file) cache store every rememberForever() was a store read — a few
+        // thousand per page at 2,000 tasks (task #72). The memo is scoped:
+        // one read per enum per request (or queued job), and the store still
+        // holds the colours across requests.
+        return Cache::memo()->rememberForever(
             self::colorCacheKey(),
             fn () => $modelClass::query()
                 ->get([$column, 'background_color', 'text_color'])
@@ -70,6 +75,7 @@ trait HasAdminConfigurableColors
      */
     public static function forgetColorCache(): void
     {
-        Cache::forget(self::colorCacheKey());
+        // Clears this request's memo and the underlying store.
+        Cache::memo()->forget(self::colorCacheKey());
     }
 }

@@ -55,7 +55,7 @@ test('the dependency preview lists viewable linked tasks and a hidden count, for
 
     $response->assertOk();
     expect($response->json('linked_task_count'))->toBe(1);
-    expect($response->json('viewable_tasks'))->toBe([['id' => $viewableTask->id, 'title' => 'Visible task']]);
+    expect($response->json('viewable_tasks'))->toBe([['id' => $viewableTask->id, 'title' => 'Visible task', 'code' => $viewableTask->fresh()->code]]);
     expect($response->json('hidden_linked_task_count'))->toBe(0);
 });
 
@@ -68,7 +68,7 @@ test('deleting a document blocked by a linked task returns the same dialog data 
 
     $response->assertStatus(422);
     expect($response->json('message'))->toBe('This document is still attached to 1 tasks. Remove it from them first.');
-    expect($response->json('linked_tasks'))->toBe([['id' => $viewableTask->id, 'title' => 'Visible task']]);
+    expect($response->json('linked_tasks'))->toBe([['id' => $viewableTask->id, 'title' => 'Visible task', 'code' => $viewableTask->fresh()->code]]);
     $this->assertDatabaseHas('documents', ['id' => $document->id]);
 });
 

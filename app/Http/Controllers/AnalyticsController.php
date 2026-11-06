@@ -22,6 +22,11 @@ use Illuminate\View\View;
  */
 class AnalyticsController extends Controller
 {
+    /** task #72 phase 7: the choices for "Completed in the last N days". */
+    public const COMPLETED_PERIODS = [7, 30, 90];
+
+    public const DEFAULT_COMPLETED_PERIOD = 30;
+
     public function __invoke(): View
     {
         Gate::authorize('analytics.view');
@@ -60,6 +65,22 @@ class AnalyticsController extends Controller
             ->where('due_date', '<', now()->startOfDay())
             ->count();
 
+        // task #72 phase 7: counted by completed_at (when the task was
+        // finished), across the same active companies and active tasks as
+        // every other number here. ?period= picks the window for this
+        // number only; nothing else on the page depends on it.
+        //
+        // Deliberately NOT Task::scopeCompletedWithin(): the working pages
+        // count a completed task with no completed_at as recent so nothing
+        // is hidden without a date, but a task with no date can't be
+        // "completed in the last N days", so it isn't counted here.
+        $period = (int) request()->query('period');
+        $period = in_array($period, self::COMPLETED_PERIODS, true) ? $period : self::DEFAULT_COMPLETED_PERIOD;
+        $completedInPeriod = Task::whereIn('organization_id', $organizationIds)
+            ->where('status', TaskStatus::Completed->value)
+            ->where('completed_at', '>=', now()->subDays($period))
+            ->count();
+
         $staffRoleId = Role::where('slug', Role::STAFF)->value('id');
         $staffIds = User::whereHas(
             'orgMemberships',
@@ -88,6 +109,9 @@ class AnalyticsController extends Controller
             'statusCounts' => $statusCounts,
             'priorityCounts' => $priorityCounts,
             'overdueCount' => $overdueCount,
+            'completedInPeriod' => $completedInPeriod,
+            'completedPeriod' => $period,
+            'completedPeriods' => self::COMPLETED_PERIODS,
             'staffWorkload' => $staffWorkload,
         ]);
     }

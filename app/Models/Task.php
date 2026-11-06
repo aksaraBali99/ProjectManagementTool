@@ -6,9 +6,11 @@ use App\Enums\Priority;
 use App\Enums\TaskStatus;
 use App\Models\Concerns\BelongsToOrganization;
 use App\Observers\TaskObserver;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -28,9 +30,75 @@ class Task extends Model
         return [
             'due_date' => 'date',
             'start_date' => 'date',
+            // Not fillable: only TaskObserver::saving() and the
+            // tasks:backfill-completed-at command set it.
+            'completed_at' => 'datetime',
             'priority' => Priority::class,
             'status' => TaskStatus::class,
+            'task_number' => 'integer',
         ];
+    }
+
+    /**
+     * task #118: the task's code, e.g. BGS-0012: its company's 3-letter
+     * code and its number within that company (TaskObserver::creating()).
+     * Null only for a task with no company or number, which the database
+     * doesn't allow.
+     */
+    protected function code(): Attribute
+    {
+        return Attribute::get(fn () => self::formatCode($this->organization?->code, $this->task_number));
+    }
+
+    /**
+     * task #118 phase 3: the title as it's shown in plain text, code first
+     * ("BGS-0012 Fix invoice PDF layout"), or the title alone without a
+     * code: browser tab titles, title="" tooltips, JSON for scripts. The
+     * HTML places use <x-task-code> before the title instead. Never
+     * stored: tasks.title stays the title only.
+     *
+     * Wherever tasks are listed, give them their company first —
+     * Task::useOrganization() when the page already has it, else eager-load
+     * 'organization:id,code' — or each task loads its company separately.
+     */
+    protected function displayTitle(): Attribute
+    {
+        return Attribute::get(fn () => $this->code === null ? $this->title : $this->code.' '.$this->title);
+    }
+
+    /**
+     * task #118 phase 3: gives every task in $tasks the company the page
+     * already has, so their codes cost no query at all. For pages that
+     * list one company's tasks (Kanban, the Tasks list, Dashboard,
+     * Calendar, a project's drilldown); elsewhere eager-load
+     * 'organization:id,code'. Every task must belong to $organization.
+     *
+     * @template T of iterable<Task>
+     *
+     * @param  T  $tasks
+     * @return T
+     */
+    public static function useOrganization(iterable $tasks, Organization $organization): iterable
+    {
+        foreach ($tasks as $task) {
+            $task->setRelation('organization', $organization);
+        }
+
+        return $tasks;
+    }
+
+    /**
+     * The one place the task code's format lives: the company code, a
+     * hyphen, and the number padded to four digits. Never truncated —
+     * 10000 is SLV-10000.
+     */
+    public static function formatCode(?string $organizationCode, ?int $taskNumber): ?string
+    {
+        if ($organizationCode === null || $taskNumber === null) {
+            return null;
+        }
+
+        return sprintf('%s-%04d', $organizationCode, $taskNumber);
     }
 
     public function project(): BelongsTo
@@ -148,6 +216,125 @@ class Task extends Model
                 ->orWhere('assignee_id', $user->id)
                 ->orWhereHas('subtasks', fn ($sq) => $sq->where('assignee_id', $user->id));
         });
+    }
+
+    /**
+     * Orders by an enum-backed column (priority, status) in the enum's
+     * DECLARED case order — High, Medium, Low; Pending … Completed — not
+     * alphabetically. Shared by the Tasks list sort (task #72 phase 4) and
+     * the Kanban column order (phase 5).
+     *
+     * On MySQL the columns are ENUMs declared from the enum's own values()
+     * in case order, so the bare column already sorts that way and an index
+     * on it stays usable (don't wrap it in FIELD()/CASE there). On SQLite
+     * they are plain strings, so a CASE built from the enum cases stands in.
+     *
+     * @param  class-string<\BackedEnum>  $enum
+     */
+    public function scopeOrderByEnum(Builder $query, string $column, string $enum, string $direction = 'asc'): Builder
+    {
+        $direction = $direction === 'desc' ? 'desc' : 'asc';
+
+        if ($query->getConnection()->getDriverName() !== 'sqlite') {
+            return $query->orderBy('tasks.'.$column, $direction);
+        }
+
+        $cases = $enum::cases();
+        $whens = implode(' ', array_map(fn ($rank) => 'WHEN ? THEN '.$rank, array_keys($cases)));
+
+        return $query->orderByRaw(
+            "CASE tasks.{$column} {$whens} END {$direction}",
+            array_map(fn ($case) => $case->value, $cases),
+        );
+    }
+
+    /**
+     * task #72 phase 10: this task's place in its Kanban column as a string
+     * that sorts (as plain text, ascending) exactly like the column's SQL
+     * order in KanbanController::columnPage(), so the board can place a
+     * changed card among the cards it already has.
+     *
+     *  - Open columns: priority rank (High 0, Medium 1, Low 2), then due
+     *    date with no date last ("0Y-m-d" before "1"), then id.
+     *  - Completed: completed_at DESC with no date last, then id DESC —
+     *    both counted down from 9999999999 so ascending text reads newest
+     *    first.
+     *
+     * Ids and times are zero-padded to 10 digits so text order is numeric
+     * order. The id ends every key, so no two cards share one.
+     */
+    public function kanbanSortKey(): string
+    {
+        $pad = fn (int $number) => str_pad((string) $number, 10, '0', STR_PAD_LEFT);
+
+        if ($this->status === TaskStatus::Completed) {
+            $completed = $this->completed_at ? '0'.$pad(9999999999 - $this->completed_at->getTimestamp()) : '1';
+
+            return $completed.'|'.$pad(9999999999 - $this->id);
+        }
+
+        $rank = array_search($this->priority, Priority::cases(), true);
+        $due = $this->due_date ? '0'.$this->due_date->format('Y-m-d') : '1';
+
+        return $rank.'|'.$due.'|'.$pad($this->id);
+    }
+
+    /**
+     * Soonest due first, no due date last, then title (case-insensitive),
+     * then id. The Tasks list's due date sort (its default) and the
+     * Dashboard sections both use this, so a section and the list it links
+     * to read the same way (task #72 phase 8). With 'desc', no due date
+     * still goes last and the title/id tie-break stays ascending.
+     *
+     * MySQL's columns are utf8mb4_unicode_ci, already case-insensitive;
+     * SQLite needs COLLATE NOCASE.
+     */
+    public function scopeOrderByDueSoonest(Builder $query, string $direction = 'asc'): Builder
+    {
+        $title = $query->getConnection()->getDriverName() === 'sqlite' ? 'tasks.title COLLATE NOCASE' : 'tasks.title';
+
+        return $query->orderByRaw('tasks.due_date IS NULL')
+            ->orderBy('tasks.due_date', $direction)
+            ->orderByRaw($title.' asc')
+            ->orderBy('tasks.id');
+    }
+
+    /**
+     * task #72 phase 7: the completed-tasks window. The working pages
+     * (Kanban, Tasks list, Dashboard, Projects) hide tasks completed
+     * before the company's window start (Organization::completedWindowStart())
+     * unless asked to show all. A display rule only — it removes tasks
+     * from a page, never adds one, so it always sits on top of
+     * scopeVisibleTo(), never in place of it.
+     *
+     * "Recent" means: not Completed, or Completed at or after $since. A
+     * Completed task with no completed_at counts as recent, so nothing is
+     * hidden without a date (phase 6's backfill should leave none).
+     *
+     * Both scopes share completedWithinCondition(), so the rule lives in
+     * one place. EXPLAIN on the 2,000-task perf data: the IS NULL OR >=
+     * form still reads a range of tasks_org_status_completed_at_index.
+     */
+    public function scopeOpenOrCompletedWithin(Builder $query, DateTimeInterface $since): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->where('tasks.status', '!=', TaskStatus::Completed->value)
+            ->orWhere(fn (Builder $completed) => $this->completedWithinCondition($completed, $since)));
+    }
+
+    /**
+     * Completed tasks inside the window (the Kanban Completed column and
+     * its header count; the "N older" count is all completed minus this).
+     */
+    public function scopeCompletedWithin(Builder $query, DateTimeInterface $since): Builder
+    {
+        return $query->where(fn (Builder $q) => $this->completedWithinCondition($q, $since));
+    }
+
+    private function completedWithinCondition(Builder $query, DateTimeInterface $since): Builder
+    {
+        return $query->where('tasks.status', TaskStatus::Completed->value)
+            ->where(fn (Builder $q) => $q->whereNull('tasks.completed_at')->orWhere('tasks.completed_at', '>=', $since));
     }
 
     /**

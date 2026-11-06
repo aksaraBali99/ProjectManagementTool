@@ -70,8 +70,10 @@ test('a description saved with emoji persists byte-for-byte and re-renders in th
     $page = $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->getContent();
     expect(descriptionViewContent($page))->toBe($html);
     expect(descriptionFallbackInputValue($page))->toBe($html);
+    // task #72 phase 2: the drilldown moved to the row preview endpoint;
+    // the Tasks list no longer renders the stored description/comment.
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()->assertSee($html, false);
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()->assertSee($html, false);
 });
 
 test('an emoji saved next to formatting keeps both', function () {
@@ -127,7 +129,7 @@ test('a comment with emoji persists and renders formatted in the task list drill
         ->assertOk()
         ->assertJsonPath('comments.0.body_html', $html);
 
-    $this->actingAs($this->management)->get("/tasks/{$this->org->id}")->assertOk()->assertSee($html, false);
+    $this->actingAs($this->management)->get("/tasks/{$this->task->id}/preview")->assertOk()->assertSee($html, false);
     $this->actingAs($this->management)->get("/tasks/{$this->task->id}/edit")->assertOk()->assertSee($html, false);
 });
 
@@ -141,17 +143,19 @@ test('editing a comment to add an emoji keeps it', function () {
     expect($comment->fresh()->body)->toBe('<p>plain old comment 😀</p>');
 });
 
-test('emoji count as one character each toward the comment length limit', function () {
-    $atLimit = '<p>'.str_repeat('😀', 2000).'</p>';
-    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $atLimit])->assertCreated();
+test('task #122: emoji count as one character each toward the comment size cap', function () {
+    // "<p>" + "</p>" is 7 characters; the rest is emoji (4 bytes each).
+    $atCap = '<p>'.str_repeat('😀', Comment::MAX_BODY_LENGTH - 7).'</p>';
+    expect(mb_strlen($atCap))->toBe(Comment::MAX_BODY_LENGTH);
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $atCap])->assertCreated();
 
-    $overLimit = '<p>'.str_repeat('😀', 2001).'</p>';
-    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $overLimit])
+    $overCap = '<p>'.str_repeat('😀', Comment::MAX_BODY_LENGTH - 6).'</p>';
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $overCap])
         ->assertUnprocessable()
-        ->assertJsonValidationErrors('body');
+        ->assertJsonValidationErrors(['body' => Comment::TOO_LONG_MESSAGE]);
 
     expect(Comment::count())->toBe(1);
-    expect(Comment::firstOrFail()->body)->toBe($atLimit);
+    expect(Comment::firstOrFail()->body)->toBe($atCap);
 });
 
 test('an emoji-only comment counts as content, not as empty', function () {

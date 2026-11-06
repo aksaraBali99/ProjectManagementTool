@@ -466,8 +466,13 @@
     color: #374151;
 }
 
-.reaction-pill:hover {
+.reaction-pill:hover:not(:disabled) {
     background: #F3F4F6;
+}
+
+/* task #123: on a deactivated task the pills only show the counts. */
+.reaction-pill:disabled {
+    cursor: default;
 }
 
 .reaction-pill.is-mine {

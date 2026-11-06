@@ -20,6 +20,7 @@ use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\OrganizationManagementController;
 use App\Http\Controllers\PermissionManagementController;
 use App\Http\Controllers\ProjectManagementController;
+use App\Http\Controllers\ReleaseNotesController;
 use App\Http\Controllers\RichTextAudioController;
 use App\Http\Controllers\RichTextDocumentController;
 use App\Http\Controllers\RichTextImageController;
@@ -48,8 +49,14 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::get('/dashboard/{organization?}', DashboardController::class)->name('dashboard');
     Route::get('/kanban/{organization?}', KanbanController::class)->name('kanban');
+    // task #72 phase 5: a column's Load more.
+    Route::get('/kanban/{organization}/columns/{status}', [KanbanController::class, 'column'])->name('kanban.column');
+    // task #72 phase 10: the board's 15-second poll.
+    Route::get('/kanban/{organization}/changes', [KanbanController::class, 'changes'])->name('kanban.changes');
     Route::get('/calendar/{organization?}', CalendarController::class)->name('calendar');
     Route::get('/settings', SettingsController::class)->name('settings.index');
+    // task #124: the release notes, read from resources/release-notes.json.
+    Route::get('/settings/release-notes', [ReleaseNotesController::class, 'index'])->name('release-notes.index');
     Route::get('/audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail.index');
     Route::get('/analytics', AnalyticsController::class)->name('analytics.index');
     Route::get('/task-colors', [TaskColorController::class, 'edit'])->name('task-colors.edit');
@@ -74,6 +81,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
 
     Route::get('/organizations', [OrganizationManagementController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/create', [OrganizationManagementController::class, 'create'])->name('organizations.create');
+    // task #118 phase 2: the Add/Edit Company form's suggested task code.
+    Route::get('/organizations/code-suggestion', [OrganizationManagementController::class, 'codeSuggestion'])->name('organizations.code-suggestion');
     Route::post('/organizations', [OrganizationManagementController::class, 'store'])->name('organizations.store');
     Route::get('/organizations/{organization}/edit', [OrganizationManagementController::class, 'edit'])->name('organizations.edit');
     Route::put('/organizations/{organization}', [OrganizationManagementController::class, 'update'])->name('organizations.update');
@@ -104,19 +113,27 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/projects/{project}/edit', [ProjectManagementController::class, 'edit'])->name('projects.edit');
     Route::put('/projects/{project}', [ProjectManagementController::class, 'update'])->name('projects.update');
     Route::get('/projects/{project}/template', [ProjectManagementController::class, 'template'])->name('projects.template');
+    // task #72 phase 9: a project row's drilldown, fetched on first open.
+    Route::get('/projects/{project}/tasks', [ProjectManagementController::class, 'tasks'])->name('projects.tasks');
     Route::get('/projects/{organization?}', [ProjectManagementController::class, 'index'])->name('projects.index');
 
     Route::get('/tasks/create/{project?}', [TaskManagementController::class, 'create'])->name('tasks.create');
     Route::post('/tasks', [TaskManagementController::class, 'store'])->name('tasks.store');
+    // task #72 phase 4: the Tasks list's "Per page" box, saved on the user.
+    Route::patch('/tasks/per-page', [TaskManagementController::class, 'updatePerPage'])->name('tasks.per-page');
     Route::get('/tasks/{task}/edit', [TaskManagementController::class, 'edit'])->name('tasks.edit')->withTrashed();
+    // task #72 phase 2: the Tasks list drilldown, fetched on first open.
+    // ->withTrashed() matches tasks.edit above — the list shows
+    // deactivated tasks when "Show inactive" is on, so their rows open too.
+    Route::get('/tasks/{task}/preview', [TaskManagementController::class, 'preview'])->name('tasks.preview')->withTrashed();
     Route::put('/tasks/{task}', [TaskManagementController::class, 'update'])->name('tasks.update')->withTrashed();
     Route::patch('/tasks/{task}/toggle-active', [TaskManagementController::class, 'toggleActive'])->name('tasks.toggle-active')->withTrashed();
-    Route::patch('/tasks/{task}/status', [TaskManagementController::class, 'updateStatus'])->name('tasks.update-status');
-    Route::patch('/tasks/{task}/assignee', [TaskManagementController::class, 'updateAssignee'])->name('tasks.update-assignee');
+    Route::patch('/tasks/{task}/status', [TaskManagementController::class, 'updateStatus'])->name('tasks.update-status')->withTrashed();
+    Route::patch('/tasks/{task}/assignee', [TaskManagementController::class, 'updateAssignee'])->name('tasks.update-assignee')->withTrashed();
 
-    // ->withTrashed(): matches tasks.edit/update above — a deactivated
-    // task's Description is still reachable/editable there, so its image
-    // button must keep working too.
+    // ->withTrashed(): matches tasks.edit/update above, so a deactivated
+    // task's upload reaches the policy (task #123: refused there, with the
+    // "This task is deactivated" message, instead of a 404).
     Route::post('/tasks/{task}/images', [RichTextImageController::class, 'store'])->name('tasks.images.store')->withTrashed();
     // Not nested under /tasks/{task} — the Add Task page has no task yet;
     // see RichTextImageController::storePending().
@@ -145,13 +162,13 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::post('/tasks/{task}/link-previews', [LinkPreviewController::class, 'resolve'])->name('tasks.link-previews.resolve')->withTrashed();
     Route::post('/pending-task-link-previews', [LinkPreviewController::class, 'resolvePending'])->name('tasks.link-previews.resolve-pending');
 
-    Route::post('/tasks/{task}/subtasks', [SubtaskController::class, 'store'])->name('subtasks.store');
+    Route::post('/tasks/{task}/subtasks', [SubtaskController::class, 'store'])->name('subtasks.store')->withTrashed();
     Route::patch('/subtasks/{subtask}/toggle', [SubtaskController::class, 'toggle'])->name('subtasks.toggle');
     Route::put('/subtasks/{subtask}', [SubtaskController::class, 'update'])->name('subtasks.update');
     Route::delete('/subtasks/{subtask}', [SubtaskController::class, 'destroy'])->name('subtasks.destroy');
 
-    Route::get('/tasks/{task}/comments', [CommentController::class, 'index'])->name('comments.index');
-    Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
+    Route::get('/tasks/{task}/comments', [CommentController::class, 'index'])->name('comments.index')->withTrashed();
+    Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store')->withTrashed();
     Route::put('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
     Route::post('/comments/{comment}/reactions', [CommentReactionController::class, 'store'])->name('comments.reactions.store');
@@ -190,9 +207,9 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     // list — a fixed trailing segment, so this never competes with
     // task-documents.attach below (same reasoning as documents.dependencies
     // above).
-    Route::get('/tasks/{task}/documents/attachable', [TaskDocumentController::class, 'index'])->name('task-documents.attachable');
-    Route::post('/tasks/{task}/documents', [TaskDocumentController::class, 'attach'])->name('task-documents.attach');
-    Route::delete('/tasks/{task}/documents/{document}', [TaskDocumentController::class, 'detach'])->name('task-documents.detach');
+    Route::get('/tasks/{task}/documents/attachable', [TaskDocumentController::class, 'index'])->name('task-documents.attachable')->withTrashed();
+    Route::post('/tasks/{task}/documents', [TaskDocumentController::class, 'attach'])->name('task-documents.attach')->withTrashed();
+    Route::delete('/tasks/{task}/documents/{document}', [TaskDocumentController::class, 'detach'])->name('task-documents.detach')->withTrashed();
 
     // task #73 phase 4: the folder-attach picker's sibling routes, same
     // fixed-trailing-segment reasoning as task-documents.attachable above.
@@ -200,10 +217,10 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     // /folders/{folder}/documents or similar) since it's read by ANY task
     // viewer who isn't a Client (see TaskFolderController::expand()'s own
     // docblock), not just someone who can attach/detach folders.
-    Route::get('/tasks/{task}/folders/attachable', [TaskFolderController::class, 'index'])->name('task-folders.attachable');
-    Route::post('/tasks/{task}/folders', [TaskFolderController::class, 'attach'])->name('task-folders.attach');
-    Route::delete('/tasks/{task}/folders/{folder}', [TaskFolderController::class, 'detach'])->name('task-folders.detach');
-    Route::get('/tasks/{task}/folders/{folder}/expand', [TaskFolderController::class, 'expand'])->name('task-folders.expand');
+    Route::get('/tasks/{task}/folders/attachable', [TaskFolderController::class, 'index'])->name('task-folders.attachable')->withTrashed();
+    Route::post('/tasks/{task}/folders', [TaskFolderController::class, 'attach'])->name('task-folders.attach')->withTrashed();
+    Route::delete('/tasks/{task}/folders/{folder}', [TaskFolderController::class, 'detach'])->name('task-folders.detach')->withTrashed();
+    Route::get('/tasks/{task}/folders/{folder}/expand', [TaskFolderController::class, 'expand'])->name('task-folders.expand')->withTrashed();
 
     // task #73 phase 2
     Route::post('/document-folders', [DocumentFolderController::class, 'store'])->name('document-folders.store');

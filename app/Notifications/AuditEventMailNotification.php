@@ -30,10 +30,17 @@ class AuditEventMailNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
+        // Looked up once for the subject and the body. task #118 phase 4:
+        // it names the task by code and title ("BGS-0012 Fix invoice PDF
+        // layout"). This email is queued, so the label is the task's as of
+        // sending, not as of the event: a task moved in between shows its
+        // new code.
+        $entityLabel = $this->auditLog->entityLabel();
+
         $message = (new MailMessage)
-            ->subject($this->eventLabel.': '.$this->auditLog->entityLabel())
+            ->subject($this->eventLabel.': '.$entityLabel)
             ->line($this->eventLabel)
-            ->line($this->auditLog->entityLabel())
+            ->line($entityLabel)
             ->line($this->auditLog->describeChanges());
 
         if ($link = $this->auditLog->linkUrl()) {

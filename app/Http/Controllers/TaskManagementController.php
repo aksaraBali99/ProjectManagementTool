@@ -7,6 +7,7 @@ use App\Enums\Priority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Concerns\BuildsAssigneeOptions;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
+use App\Http\Controllers\Concerns\ResolvesReturnTo;
 use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Http\Requests\Tasks\StoreTaskRequest;
 use App\Http\Requests\Tasks\UpdateTaskRequest;
@@ -21,11 +22,15 @@ use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use App\Services\LinkPreviewService;
 use App\Services\TaskDocumentLinker;
+use App\Support\DeactivatedTask;
+use App\Support\TaskCodeQuery;
 use DOMDocument;
 use DOMXPath;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -37,7 +42,17 @@ use Illuminate\View\View;
 
 class TaskManagementController extends Controller
 {
-    use BuildsAssigneeOptions, ResolvesCurrentOrganization, ValidatesTaskAssignment;
+    use BuildsAssigneeOptions, ResolvesCurrentOrganization, ResolvesReturnTo, ValidatesTaskAssignment;
+
+    /** How many top-level comments the row preview shows (task #72 phase 2). */
+    private const PREVIEW_COMMENT_LIMIT = 3;
+
+    /** Tasks list page size (task #72 phase 4): the default, and the range a user may save. */
+    private const DEFAULT_TASKS_PER_PAGE = 25;
+
+    private const MIN_TASKS_PER_PAGE = 1;
+
+    private const MAX_TASKS_PER_PAGE = 100;
 
     public function index(?Organization $organization = null): View
     {
@@ -65,16 +80,44 @@ class TaskManagementController extends Controller
 
         $visibleScope = fn () => Task::visibleTo($user, $organization->id);
 
-        $query = $visibleScope()->with(['project', 'department', 'assignee', 'subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user']);
+        // task #72 phase 2: project/department/assignee only. The subtask
+        // and comment relations used to be loaded here for the drilldown
+        // row, which rendered for every task whether it was ever opened or
+        // not; the drilldown now fetches tasks.preview on first open, so
+        // nothing on this page reads them.
+        $query = $visibleScope()->with(['project', 'department', 'assignee']);
 
         if ($showInactive) {
             $query->withTrashed();
         }
 
-        $filters = request()->only(['q', 'project_id', 'department_id', 'assignee_id', 'priority', 'status', 'due_from', 'due_to']);
+        $filters = request()->only(['q', 'project_id', 'department_id', 'assignee_id', 'priority', 'status', 'due_from', 'due_to', 'completed', 'completed_from', 'completed_to']);
 
+        // task #118 phase 4: the box also finds a task by its code
+        // (BGS-0012, bgs-12, 0012, #12 ...). A code in this company matches
+        // its number exactly (task_number = ?, no LIKE on a CONCAT) OR the
+        // title as before, so "12" still finds "Q12 report". The title's
+        // LIKE '%...%' still scans the company's tasks, as the title-only
+        // search always did, so this costs no more than it. A code from
+        // another company the user can see gets a notice pointing there
+        // instead; its task is never listed here.
+        $codeNumber = null;
+        $codeElsewhere = null;
         if ($search = trim((string) ($filters['q'] ?? ''))) {
-            $query->where('title', 'like', '%'.$search.'%');
+            $parsed = TaskCodeQuery::parse($search);
+
+            if ($parsed !== null && ($parsed['code'] === null || $parsed['code'] === $organization->code)) {
+                $codeNumber = $parsed['number'];
+                $query->where(fn (Builder $match) => $match
+                    ->where('tasks.task_number', $codeNumber)
+                    ->orWhere('tasks.title', 'like', '%'.$search.'%'));
+            } else {
+                $query->where('title', 'like', '%'.$search.'%');
+
+                if ($parsed !== null) {
+                    $codeElsewhere = $this->taskCodeElsewhere($parsed, $organizations, $user, $showInactive, $search);
+                }
+            }
         }
 
         if ($projectId = request()->integer('project_id')) {
@@ -109,12 +152,36 @@ class TaskManagementController extends Controller
             $query->whereDate('due_date', '<=', $dueTo);
         }
 
-        $sortable = ['title', 'project', 'department', 'assignee', 'priority', 'status', 'due_date', 'active'];
+        $this->applyCompletedFilter($query, $organization, $status, $codeNumber);
+
+        $sortable = ['title', 'project', 'department', 'assignee', 'priority', 'status', 'due_date', 'completed', 'active'];
         $sort = request()->string('sort')->toString();
         $sort = in_array($sort, $sortable, true) ? $sort : 'due_date';
         $direction = request()->string('direction')->toString() === 'desc' ? 'desc' : 'asc';
 
-        $tasks = $this->sortTasks($query->get(), $sort, $direction);
+        // task #72 phase 4: one page at a time, sorted in SQL. Counted
+        // BEFORE the ORDER BY goes on, so the count stays a plain
+        // count(*) over the filtered visibility scope with none of the
+        // name-sort subqueries in it.
+        $perPage = $this->tasksPerPage($user);
+        $total = (clone $query)->count();
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        // Clamped here rather than left to paginate(): a page past the end
+        // shows the last page instead of an empty list (a Deactivate on the
+        // last row of the last page lands there), and an invalid page is 1.
+        $page = min($this->requestedPage(), $lastPage);
+
+        $this->applyListOrder($query, $sort, $direction);
+
+        $tasks = (new LengthAwarePaginator(
+            // task #118: the rows' codes from the company tab already
+            // loaded, no query.
+            Task::useOrganization($query->forPage($page, $perPage)->get(), $organization),
+            $total,
+            $perPage,
+            $page,
+            ['path' => route('tasks.index', $organization)],
+        ))->withQueryString();
 
         // Filter option lists reflect what this user can actually see (same
         // visibility scope as the list itself, ignoring the other filters so
@@ -136,10 +203,15 @@ class TaskManagementController extends Controller
             'tasks' => $tasks,
             'showInactive' => $showInactive,
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
-            'eligibleAssignees' => $this->eligibleAssigneesByTask($tasks),
+            // No 'eligibleAssignees': it only ever fed the drilldown's
+            // subtask assignee dropdowns. eligibleAssigneesByTask() itself
+            // stays — it lives in the shared BuildsAssigneeOptions trait
+            // and KanbanController still uses it.
             'filters' => $filters,
+            'codeElsewhere' => $codeElsewhere,
             'sort' => $sort,
             'direction' => $direction,
+            'perPage' => $perPage,
             'filterProjects' => Project::whereIn('id', $optionProjectIds)->orderBy('name')->get(['id', 'name']),
             'filterDepartments' => Department::whereIn('id', $optionDepartmentIds)->orderBy('name')->get(['id', 'name']),
             'filterAssignees' => User::whereIn('id', $optionAssigneeIds)->orderBy('name')->get(['id', 'name']),
@@ -147,110 +219,290 @@ class TaskManagementController extends Controller
     }
 
     /**
-     * Sorted at the collection level, not via the query builder, since
-     * project/department/assignee live on related models already eager-
-     * loaded for the drilldown rows — joining for those would duplicate
-     * what's already in memory. A missing value (no due date, no assignee)
-     * always sorts last regardless of direction; ties break on title so the
-     * list order stays stable and predictable.
+     * task #72 phase 2: the Tasks list drilldown, as a read-only fragment
+     * fetched on first open instead of rendered inline for every task.
+     *
+     * The list used to render the full interactive _subtasks and _comments
+     * partials plus the description for every row, opened or not — that
+     * was ~185 MB of HTML and ~8 queries per row (viewableUsers()) at
+     * 2,000 tasks. Commenting and subtask editing now happen on the task
+     * page only, so this fragment needs none of that machinery.
+     *
+     * Authorization is Gate 'view' — byte for byte the rule that decides
+     * whether this person may open tasks.edit. A user who cannot see the
+     * task gets 403, never a partial preview.
+     *
+     * QUERY cost is constant in the number of subtasks and comments: the
+     * subtasks and the three comments shown are eager-loaded, and the two
+     * counts come from withCount, so a task with 30 comments costs the
+     * same as one with 1.
+     *
+     * PAYLOAD size is not, and deliberately so: comments are capped at
+     * PREVIEW_COMMENT_LIMIT, but every subtask is listed, because a task's
+     * subtasks are the checklist someone opened the row to read and a
+     * truncated one would send them to the task page for the common case.
+     * A subtask row is a handful of short fields, nowhere near the cost of
+     * the comment editor this replaced, so the cap is not worth the
+     * surprise. If subtask counts ever get large enough to matter, cap it
+     * here with an "N more subtasks" line the way comments do.
      */
-    private function sortTasks(Collection $tasks, string $sort, string $direction): Collection
+    public function preview(Task $task): View
     {
-        $priorityRank = array_flip(array_map(fn ($case) => $case->value, Priority::cases()));
-        $statusRank = array_flip(array_map(fn ($case) => $case->value, TaskStatus::cases()));
+        Gate::authorize('view', $task);
 
-        $valueFor = function (Task $task) use ($sort, $priorityRank, $statusRank) {
-            return match ($sort) {
-                'project' => strtolower($task->project->name ?? ''),
-                'department' => strtolower($task->department->name ?? ''),
-                'assignee' => strtolower($task->assignee->name ?? ''),
-                'priority' => $priorityRank[$task->priority->value] ?? PHP_INT_MAX,
-                'status' => $statusRank[$task->status->value] ?? PHP_INT_MAX,
-                'active' => $task->trashed() ? 0 : 1,
-                'due_date' => $task->due_date?->timestamp,
-                default => strtolower($task->title),
-            };
+        // Deliberately NOT $task->comments: that relation returns replies
+        // too (same table), and this shows top-level comments only.
+        $comments = $task->comments()
+            ->whereNull('parent_comment_id')
+            ->with('user', 'mentionedUsers')
+            ->withCount('replies')
+            // id breaks the tie: two comments posted in the same second
+            // would otherwise come back in whatever order the database
+            // felt like, so "latest 3" wouldn't be a stable answer.
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(self::PREVIEW_COMMENT_LIMIT)
+            ->get();
+
+        $topLevelCommentCount = $task->comments()->whereNull('parent_comment_id')->count();
+
+        return view('tasks._preview', [
+            'task' => $task->load(['subtasks.assignee']),
+            'comments' => $comments,
+            'remainingCommentCount' => max(0, $topLevelCommentCount - $comments->count()),
+            // The list's own URL, so "Open task" comes back to the same
+            // filters and sort. Client-supplied, so it goes through the
+            // same same-origin validation and label allow-list as every
+            // other entry point's return_to — see resolveReturnTo().
+            'returnTo' => $this->resolveReturnTo(route('tasks.index', $task->organization_id)),
+        ]);
+    }
+
+    /**
+     * task #72 phase 4: the Tasks list's "Per page" box. Saved on the
+     * signed-in user only, then back to the list on page 1 with the same
+     * filters and sort.
+     *
+     * Anything that isn't a whole number (empty, "abc", "2.5") is ignored
+     * and the list comes back unchanged — the box's own JS already refuses
+     * to submit those, so this only catches a hand-made request. A whole
+     * number outside 1–100 is clamped and the list says so.
+     */
+    public function updatePerPage(Request $request): RedirectResponse
+    {
+        $returnTo = $request->input('return_to');
+        $listUrl = is_string($returnTo) && $this->isSafeReturnUrl($returnTo) ? $returnTo : route('tasks.index');
+
+        $raw = $request->input('per_page');
+        if (! is_string($raw) || ! preg_match('/^-?\d+$/', trim($raw))) {
+            return redirect()->to($listUrl);
+        }
+
+        $requested = (int) trim($raw);
+        $perPage = max(self::MIN_TASKS_PER_PAGE, min(self::MAX_TASKS_PER_PAGE, $requested));
+
+        $request->user()->update(['tasks_per_page' => $perPage]);
+
+        $redirect = redirect()->to($this->withoutPageParameter($listUrl));
+
+        if ($perPage !== $requested) {
+            $redirect->with('tasks_per_page_hint', $perPage === self::MAX_TASKS_PER_PAGE
+                ? 'Showing '.$perPage.' per page, the maximum.'
+                : 'Showing '.$perPage.' per page, the minimum.');
+        }
+
+        return $redirect;
+    }
+
+    /**
+     * The user's saved page size, or the default. Clamped again on read so
+     * a value written some other way can never ask for 0 or 10,000 rows.
+     */
+    private function tasksPerPage(User $user): int
+    {
+        $perPage = $user->tasks_per_page ?? self::DEFAULT_TASKS_PER_PAGE;
+
+        return max(self::MIN_TASKS_PER_PAGE, min(self::MAX_TASKS_PER_PAGE, $perPage));
+    }
+
+    /** ?page= as a whole number of at least 1; anything else is page 1. */
+    private function requestedPage(): int
+    {
+        $page = request()->query('page');
+
+        return is_string($page) && ctype_digit($page) && (int) $page >= 1 ? (int) $page : 1;
+    }
+
+    private function withoutPageParameter(string $url): string
+    {
+        $parts = parse_url($url);
+        if ($parts === false || ! isset($parts['query'])) {
+            return $url;
+        }
+
+        parse_str($parts['query'], $query);
+        unset($query['page']);
+
+        $base = strtok($url, '?');
+
+        return $query ? $base.'?'.http_build_query($query) : $base;
+    }
+
+    /**
+     * task #118 phase 4: a searched code that belongs to another company:
+     * "SLV-0003 is in Solava.", with a link to that company's Tasks list
+     * and the same search. Only when the user can see that company (it's
+     * one of their tabs) and that task in it (the same visibleTo() scope,
+     * and inactive tasks only with show_inactive), so the notice never
+     * reveals a task they couldn't open. Only called for a code other than
+     * the current company's.
+     *
+     * @param  array{code: string|null, number: int}  $parsed
+     * @return array{code: string, organization: Organization, url: string}|null
+     */
+    private function taskCodeElsewhere(array $parsed, Collection $organizations, User $user, bool $showInactive, string $search): ?array
+    {
+        $other = $organizations->first(fn (Organization $organization) => $organization->code === $parsed['code']);
+
+        if ($other === null) {
+            return null;
+        }
+
+        $found = Task::visibleTo($user, $other->id)
+            ->when($showInactive, fn (Builder $query) => $query->withTrashed())
+            ->where('tasks.task_number', $parsed['number'])
+            ->exists();
+
+        return $found ? [
+            'code' => Task::formatCode($other->code, $parsed['number']),
+            'organization' => $other,
+            'url' => route('tasks.index', [$other, 'q' => $search] + ($showInactive ? ['show_inactive' => 1] : [])),
+        ] : null;
+    }
+
+    /**
+     * task #72 phase 7: the Tasks list's "Completed" filter.
+     *
+     *   - Date range (completed_from and/or completed_to): only tasks
+     *     completed on those dates, inclusive. Open tasks have no
+     *     completion date, so they drop out.
+     *   - All (completed=all), or an explicit Status = Completed: no window.
+     *   - Recent (the default): open tasks, plus tasks completed within the
+     *     company's window — Task::scopeOpenOrCompletedWithin().
+     *
+     * "Show inactive" is applied before this, so it widens the list first
+     * and the window then applies to inactive tasks too.
+     *
+     * task #118 phase 4: $codeNumber is a task number the search box asked
+     * for by code. That one task is shown even when the Recent window
+     * would hide it (searching a code means "find this task"); title
+     * matches keep the window.
+     */
+    private function applyCompletedFilter(Builder $query, Organization $organization, string $status, ?int $codeNumber = null): void
+    {
+        $from = $this->validDate(request()->string('completed_from')->toString());
+        $to = $this->validDate(request()->string('completed_to')->toString());
+
+        if (request()->string('completed')->toString() === 'range' || $from || $to) {
+            $query->where('tasks.status', TaskStatus::Completed->value);
+            if ($from) {
+                $query->whereDate('tasks.completed_at', '>=', $from);
+            }
+            if ($to) {
+                $query->whereDate('tasks.completed_at', '<=', $to);
+            }
+
+            return;
+        }
+
+        if (request()->string('completed')->toString() === 'all' || $status === TaskStatus::Completed->value) {
+            return;
+        }
+
+        $window = $organization->completedWindowStart();
+
+        if ($codeNumber === null) {
+            $query->openOrCompletedWithin($window);
+
+            return;
+        }
+
+        $query->where(fn (Builder $shown) => $shown
+            ->where('tasks.task_number', $codeNumber)
+            ->orWhere(fn (Builder $recent) => $recent->openOrCompletedWithin($window)));
+    }
+
+    /** A real Y-m-d date from a filter input, or null for anything else. */
+    private function validDate(string $value): ?string
+    {
+        // checkdate(), not strtotime(): strtotime rolls 2026-02-31 over to a
+        // real day, and the raw string would then reach whereDate().
+        return preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $parts) && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])
+            ? $value
+            : null;
+    }
+
+    /**
+     * task #72 phase 4: the order the list has always shown (it used to be
+     * sorted in PHP by sortTasks()), now as SQL so the database can return
+     * one page of it:
+     *
+     * - An empty value (no due date, no assignee, an empty name) goes last
+     *   in BOTH directions.
+     * - Ties break on title ascending, case-insensitively, even when the
+     *   column itself is descending; then tasks.id ascending, so a page
+     *   boundary never repeats or skips a task.
+     * - priority/status follow the enum's declared order — see
+     *   Task::scopeOrderByEnum(), shared with Kanban (phase 5).
+     *
+     * Project/department/assignee names come from correlated subqueries,
+     * not joins: projects and departments both have organization_id (and
+     * projects has status and priority), so a join would make the
+     * unqualified columns in Task::scopeVisibleTo() and the filters above
+     * ambiguous. A primary-key lookup per row can't duplicate a task or
+     * change which tasks are visible, and the select stays tasks.*.
+     *
+     * Known differences from the old PHP sort, accepted: PHP's <=> compared
+     * titles made only of digits as numbers ("9" before "10"); SQL compares
+     * them as text. And MySQL's utf8mb4_unicode_ci also ignores accents
+     * and weighs punctuation differently from a byte comparison.
+     */
+    private function applyListOrder(Builder $query, string $sort, string $direction): void
+    {
+        // Shared with the Dashboard sections (task #72 phase 8), tie-break
+        // included.
+        if ($sort === 'due_date') {
+            $query->orderByDueSoonest($direction);
+
+            return;
+        }
+
+        $isSqlite = $query->getConnection()->getDriverName() === 'sqlite';
+        // MySQL's columns are utf8mb4_unicode_ci, already case-insensitive;
+        // wrapping them in lower() measured ~3x slower there.
+        $caseless = fn (string $expression) => $isSqlite ? $expression.' COLLATE NOCASE' : $expression;
+
+        $orderByName = function (string $subquery) use ($query, $caseless, $direction) {
+            $query->orderByRaw("({$subquery} IS NULL OR {$subquery} = '')")
+                ->orderByRaw($caseless($subquery).' '.$direction);
         };
 
-        return $tasks->sort(function (Task $a, Task $b) use ($valueFor, $direction) {
-            $valueA = $valueFor($a);
-            $valueB = $valueFor($b);
+        match ($sort) {
+            'project' => $orderByName('(select projects.name from projects where projects.id = tasks.project_id)'),
+            'department' => $orderByName('(select departments.name from departments where departments.id = tasks.department_id)'),
+            'assignee' => $orderByName('(select users.name from users where users.id = tasks.assignee_id)'),
+            'priority' => $query->orderByEnum('priority', Priority::class, $direction),
+            'status' => $query->orderByEnum('status', TaskStatus::class, $direction),
+            // Ascending puts inactive first, as it always has. Never "empty".
+            'active' => $query->orderByRaw('tasks.deleted_at IS NULL '.$direction),
+            // task #72 phase 7: tasks with no completion date (not
+            // completed) go last in both directions, like due_date.
+            'completed' => $query->orderByRaw('tasks.completed_at IS NULL')->orderBy('tasks.completed_at', $direction),
+            // Title is required, so it is never empty.
+            default => $query->orderByRaw($caseless('tasks.title').' '.$direction),
+        };
 
-            $missingA = $valueA === null || $valueA === '';
-            $missingB = $valueB === null || $valueB === '';
-            if ($missingA !== $missingB) {
-                return $missingA ? 1 : -1;
-            }
-
-            $result = $valueA <=> $valueB;
-            if ($direction === 'desc') {
-                $result = -$result;
-            }
-
-            return $result !== 0 ? $result : strtolower($a->title) <=> strtolower($b->title);
-        })->values();
-    }
-
-    /**
-     * Where the Add/Edit Task page's "← Back" and "Cancel" links should
-     * go — the page that actually linked here (Tasks list, Kanban,
-     * Calendar, Dashboard, or a project's own task list), never a
-     * hardcoded default like Projects, which has no Add Task button and
-     * so can never legitimately be where a Create flow started.
-     *
-     * Every entry-point link passes return_to (its own url()->full(), an
-     * ABSOLUTE url() carrying whatever filters/scroll-state it had) and
-     * return_label (a name from the fixed list below) as plain route()
-     * query params - see tasks/index.blade.php, kanban.blade.php,
-     * calendar.blade.php, dashboard.blade.php, projects/index.blade.php.
-     * return_to is validated same-origin (isSafeReturnUrl()) before use,
-     * since it arrives via the query string and this is otherwise a
-     * textbook open-redirect: a crafted link could point return_to at an
-     * external site and ride a click of "Cancel"/"← Back" there.
-     * return_label is checked against a fixed allow-list for the same
-     * reason - a stray or tampered value falls back to $defaultLabel
-     * instead of rendering whatever was passed.
-     *
-     * @return array{url: string, label: string}
-     */
-    private function resolveReturnTo(string $defaultUrl, string $defaultLabel = 'Tasks'): array
-    {
-        $allowedLabels = ['Tasks', 'Kanban', 'Calendar', 'Dashboard', 'Projects'];
-
-        $returnTo = request()->query('return_to');
-        $returnLabel = request()->query('return_label');
-
-        return [
-            'url' => is_string($returnTo) && $this->isSafeReturnUrl($returnTo) ? $returnTo : $defaultUrl,
-            'label' => in_array($returnLabel, $allowedLabels, true) ? $returnLabel : $defaultLabel,
-        ];
-    }
-
-    /**
-     * Accepts either a plain relative path ("/kanban/1") or an absolute
-     * url() pointing back at THIS app's own host (what url()->full()
-     * actually produces) - rejects anything pointing at a different host,
-     * plus the protocol-relative ("//host/...") and backslash-variant
-     * ("/\host/...", which some browsers also treat as protocol-relative)
-     * open-redirect tricks that a naive "starts with /" check alone
-     * wouldn't catch.
-     */
-    private function isSafeReturnUrl(string $url): bool
-    {
-        if (str_starts_with($url, '//') || str_starts_with($url, '/\\')) {
-            return false;
-        }
-
-        $parsed = parse_url($url);
-        if ($parsed === false) {
-            return false;
-        }
-
-        if (! isset($parsed['host'])) {
-            return str_starts_with($url, '/');
-        }
-
-        return $parsed['host'] === request()->getHost();
+        $query->orderByRaw($caseless('tasks.title').' asc')->orderBy('tasks.id');
     }
 
     public function create(?Project $project = null): View
@@ -268,6 +520,7 @@ class TaskManagementController extends Controller
                 'project' => null,
                 'returnToUrl' => $returnTo['url'],
                 'returnToLabel' => $returnTo['label'],
+                'returnToParams' => $returnTo['params'],
             ]);
         }
 
@@ -284,6 +537,7 @@ class TaskManagementController extends Controller
             'project' => $project,
             'returnToUrl' => $returnTo['url'],
             'returnToLabel' => $returnTo['label'],
+            'returnToParams' => $returnTo['params'],
             // Lets a calendar cell's "+ Add task" link pre-fill the Due
             // Date field with that cell's date, so the user doesn't have
             // to re-pick it after clicking through.
@@ -354,7 +608,8 @@ class TaskManagementController extends Controller
             return $task;
         });
 
-        return redirect()->route('tasks.edit', $task)->with('status', 'Task created.');
+        // task #121: back on the edit page with the same back link.
+        return redirect()->route('tasks.edit', ['task' => $task, ...$this->returnToParams()])->with('status', 'Task created.');
     }
 
     /**
@@ -508,7 +763,7 @@ class TaskManagementController extends Controller
 
         $returnTo = $this->resolveReturnTo(route('tasks.index', $task->organization_id));
 
-        $task->load('subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
+        $task->load('organization:id,code', 'subtasks.assignee', 'comments.user', 'comments.mentionedUsers', 'comments.reactions.user');
 
         // Both computed once, not per document row — see the
         // 'canDetachAnyDocument' entry below for why that matters.
@@ -523,13 +778,23 @@ class TaskManagementController extends Controller
             'projects' => $projects,
             'returnToUrl' => $returnTo['url'],
             'returnToLabel' => $returnTo['label'],
+            'returnToParams' => $returnTo['params'],
+            // task #123: false for a deactivated task (TaskPolicy::update()),
+            // which shows the read-only details instead of the form.
             'canEdit' => auth()->user()->can('update', $task),
             'canDeactivate' => auth()->user()->can('delete', $task),
+            // task #123: a deactivated task is read-only: the notice, a
+            // disabled subtask checkbox, no reactions. Every other control
+            // already follows its own policy check (all refuse a
+            // deactivated task).
+            'isDeactivated' => $task->trashed(),
             // Deliberately separate from canEdit: creating a new document
             // (DocumentPolicy::create, gated by manage_documents) is a
             // different capability from editing this task, even though the
             // two happen to overlap for most roles today.
-            'canManageDocuments' => Gate::allows('create', [Document::class, $task->organization_id]),
+            // task #123: never on a deactivated task (DocumentController::store()
+            // refuses attaching to one).
+            'canManageDocuments' => DeactivatedTask::allowsChanges($task) && Gate::allows('create', [Document::class, $task->organization_id]),
             // task #73 phase 2: TaskPolicy::unlinkDocuments() — manage_
             // documents + task view, not full task-edit rights. Still the
             // FOLDER Detach button's gate, and the precondition for the
@@ -575,6 +840,7 @@ class TaskManagementController extends Controller
         Gate::authorize('update', $task);
 
         $project = Project::findOrFail($request->integer('project_id'));
+        $movedCompany = (int) $project->organization_id !== (int) $task->organization_id;
 
         $task->update([
             'organization_id' => $project->organization_id,
@@ -589,10 +855,21 @@ class TaskManagementController extends Controller
             'start_date' => $request->input('start_date') ?: null,
         ]);
 
-        return redirect()->route('tasks.edit', $task)->with('status', 'Task updated.');
+        // A task moved to another company isn't on the page it came from
+        // (that company's Kanban or list) any more: back to the default,
+        // its new company's Tasks list.
+        $returnTo = $movedCompany ? [] : $this->returnToParams();
+
+        return redirect()->route('tasks.edit', ['task' => $task, ...$returnTo])->with('status', 'Task updated.');
     }
 
-    public function toggleActive(Task $task): RedirectResponse
+    /**
+     * task #121: from the Tasks list (after=list), back to that exact
+     * list URL (search, filters, sort, page); a page left empty by the
+     * deactivation shows the last page instead (index() clamps it).
+     * From the edit page, back there with its back link.
+     */
+    public function toggleActive(Request $request, Task $task): RedirectResponse
     {
         Gate::authorize('delete', $task);
 
@@ -604,7 +881,12 @@ class TaskManagementController extends Controller
             $status = 'Task deactivated.';
         }
 
-        return redirect()->route('tasks.edit', $task)->with('status', $status);
+        $returnTo = $this->returnToParams();
+        if ($request->input('after') === 'list' && isset($returnTo['return_to'])) {
+            return redirect()->to($returnTo['return_to'])->with('status', $status);
+        }
+
+        return redirect()->route('tasks.edit', ['task' => $task, ...$returnTo])->with('status', $status);
     }
 
     /**
@@ -729,6 +1011,9 @@ class TaskManagementController extends Controller
 
         return [
             'projectOrganizations' => $projects->pluck('organization_id', 'id')->all(),
+            // task #118: each offered company's task code, so the edit form
+            // can say which company's number a project switch will give.
+            'organizationCodes' => Organization::whereIn('id', $organizationIds)->pluck('code', 'id')->all(),
             'departmentsByOrganization' => $departmentsByOrganization,
             'eligibleAssignees' => $this->eligibleAssigneesByProjectAndDepartment($projects, $departmentsByOrganization),
         ];

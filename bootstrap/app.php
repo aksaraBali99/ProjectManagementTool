@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureBelongsToOrganization;
 use App\Http\Middleware\EnsurePasswordHasBeenChanged;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\FlushAccessProfileCache;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -16,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // task #72 phase 1: first in the stack, so no request can answer a
+        // permission question from a profile another request built.
+        $middleware->prepend(FlushAccessProfileCache::class);
+
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
             'org.scope' => EnsureBelongsToOrganization::class,

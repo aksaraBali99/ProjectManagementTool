@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Rules\ValidPhoneNumber;
 use App\Services\Import\EmployeeIdGenerator;
+use App\Support\Access\AccessProfileCache;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Console\Command;
@@ -229,6 +230,7 @@ class BootstrapEnvironment extends Command
         // Global roles, via user_roles — not org_members — same as
         // DatabaseSeeder's UserSeeder sets up its "founder" account.
         $user->roles()->sync(Role::whereIn('slug', Role::GLOBAL_SLUGS)->pluck('id'));
+        AccessProfileCache::flushAll();
 
         $this->newLine();
         $this->info('Owner account created.');

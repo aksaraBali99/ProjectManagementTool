@@ -27,6 +27,8 @@
                 class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
         </div>
 
+        @include('organizations._code-field', ['value' => old('code'), 'except' => null, 'suggestOnBlur' => true, 'suggestButton' => false])
+
         <div>
             <label for="accent_color" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Accent color</label>
             <input id="accent_color" name="accent_color" type="color" value="{{ old('accent_color', '#1D9E75') }}" required

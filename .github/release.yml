@@ -1,0 +1,14 @@
+# task #119: how GitHub groups the generated notes of each release
+# (gh release create --generate-notes, in deploy.yml).
+#
+# Release ("Release v...") and back-merge ("Back-merge ...") PRs are left
+# out. GitHub can only exclude by label or author, not by title, so
+# release-check.yml gives those PRs the "release" label.
+changelog:
+  exclude:
+    labels:
+      - release
+  categories:
+    - title: Changes
+      labels:
+        - '*'

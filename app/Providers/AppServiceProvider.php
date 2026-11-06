@@ -3,6 +3,10 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Support\Access\AccessProfileCache;
+use App\Support\ReleaseNotes;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -13,7 +17,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // task #72 phase 1: one access profile per user per request.
+        // Scoped, not singleton — a scoped binding is reset between
+        // requests under Octane and between queued jobs, which is exactly
+        // the lifetime a profile may have.
+        $this->app->scoped(AccessProfileCache::class);
+
+        // task #124: the release notes file, read and validated once per request.
+        $this->app->scoped(ReleaseNotes::class, fn () => new ReleaseNotes(config('solava.release_notes_path')));
     }
 
     /**
@@ -21,10 +32,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // A queue worker is a long-lived process: without this, job 2
+        // could answer from the roles job 1 saw. Queued jobs run outside
+        // the HTTP middleware stack, so the request-level flush doesn't
+        // cover them.
+        Event::listen(JobProcessing::class, fn () => AccessProfileCache::flushAll());
+
         // Not tied to a single Eloquent model — matrix screen spanning
         // organizations/departments/users — so a plain ability rather
         // than a model policy.
         Gate::define('access-control.view', fn (User $user) => $user->isSuperAdmin() || $user->isOwner());
+
+        // task #124: Settings > Release notes, owner and super_admin only.
+        Gate::define('release-notes.view', fn (User $user) => $user->isSuperAdmin() || $user->isOwner());
 
         // Founder Analytics: an owner-tier cross-company oversight view, not
         // an operational one — rides the same manage_settings Administration

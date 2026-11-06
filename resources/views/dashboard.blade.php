@@ -13,13 +13,13 @@
         <div class="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2]">
             <div class="flex items-center justify-between border-b border-[#FCA5A5] px-3 py-2">
                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-[#B91C1C]">Active</span>
-                <span class="text-[10px] text-[#B91C1C]">{{ $activeTasks->count() }}</span>
+                <span class="text-[10px] text-[#B91C1C]">{{ number_format($sectionCounts['active']) }}</span>
             </div>
             <div class="divide-y divide-[#FECACA]">
                 @forelse ($activeTasks as $task)
                     <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Dashboard']) }}" class="flex items-center justify-between px-3 py-2 hover:bg-[#FEE2E2]">
                         <div>
-                            <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
+                            <p class="text-[12px] font-medium text-[#1F2937]"><x-task-code :task="$task" />{{ $task->title }}</p>
                             <p class="mt-0.5 text-[10px] text-gray-500">
                                 {{ $task->project->name }}
                                 @if ($task->assignee) &middot; <x-avatar :user="$task->assignee" size="16px" class="align-middle" /> {{ $task->assignee->name }} @endif
@@ -32,6 +32,12 @@
                     <p class="px-3 py-4 text-center text-[11px] text-gray-400">No active high-priority tasks</p>
                 @endforelse
             </div>
+            {{-- task #72 phase 8: each section shows its first
+                 DashboardController::SECTION_LIMIT tasks; the header counts
+                 them all and the link opens the rest. --}}
+            <div class="border-t border-[#FECACA] px-3 py-1.5 text-right">
+                <a href="{{ $sectionLinks['active']['url'] }}" class="dashboard-tasks-link text-[10px] text-brand-700 hover:underline">{{ $sectionLinks['active']['label'] }}</a>
+            </div>
         </div>
 
         <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -43,14 +49,14 @@
                             <x-dot :color="$priority->badgeText()" size="8px" />
                             <span class="text-[10px] font-medium uppercase tracking-[0.06em]" style="color: {{ $priority->badgeText() }}">{{ $priority->label() }}</span>
                         </span>
-                        <span class="text-[10px] text-gray-400">{{ $group->count() }}</span>
+                        <span class="text-[10px] text-gray-400">{{ number_format($sectionCounts[$priority->value]) }}</span>
                     </div>
                     <div class="space-y-1.5 p-2">
                         @forelse ($group as $task)
                             <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Dashboard']) }}"
                                class="block rounded-md border-l-4 px-4 py-2 hover:opacity-90"
                                style="border-left-color: {{ $priority->badgeText() }}; background-color: {{ $priority->badgeBackground() }};">
-                                <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
+                                <p class="text-[12px] font-medium text-[#1F2937]"><x-task-code :task="$task" />{{ $task->title }}</p>
                                 <p class="mt-0.5 flex items-center justify-between text-[10px]">
                                     <span style="color: {{ $task->department->badgeText() }}">{{ $task->department->name }}</span>
                                     <span style="color: {{ $task->status->badgeText() }}">{{ $task->status->label() }}</span>
@@ -60,18 +66,21 @@
                             <p class="py-4 text-center text-[11px] text-gray-400">No tasks</p>
                         @endforelse
                     </div>
+                    <div class="border-t border-gray-100 px-3 py-1.5 text-right">
+                        <a href="{{ $sectionLinks[$priority->value]['url'] }}" class="dashboard-tasks-link text-[10px] text-brand-700 hover:underline">{{ $sectionLinks[$priority->value]['label'] }}</a>
+                    </div>
                 </div>
             @endforeach
         </div>
 
         {{-- Client falls through to mode 'none': their entire visible task
-             set is already project-scoped and shown in full above (Active +
-             Priority groups), so a MyTask section here would just repeat it. --}}
+             set is already project-scoped and shown above (Active + Priority
+             groups), so a MyTask section here would just repeat it. --}}
         @if ($myTaskMode !== 'none')
         <div class="mt-4 rounded-lg border border-gray-200 bg-white">
             <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
                 <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-500">My Task</span>
-                <span class="text-[10px] text-gray-400">{{ $myTasks->count() }}</span>
+                <span class="text-[10px] text-gray-400">{{ number_format($sectionCounts['my']) }}</span>
             </div>
 
             @if ($myTaskMode === 'admin' && $staffOptions->isNotEmpty())
@@ -98,13 +107,14 @@
                         // For staff, a task can show up here because a subtask
                         // (not the task itself) is assigned to them — surface
                         // which subtask, so they can find it once they drill
-                        // into the task.
+                        // into the task. Staff's $task->subtasks holds only
+                        // their own subtasks (DashboardController).
                         $myViaSubtask = $myTaskMode === 'staff' && $task->assignee_id !== auth()->id()
                             ? $task->subtasks->firstWhere('assignee_id', auth()->id())
                             : null;
                     @endphp
                     <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Dashboard']) }}" class="block px-3 py-2 hover:bg-gray-50">
-                        <p class="text-[12px] font-medium text-[#1F2937]">{{ $task->title }}</p>
+                        <p class="text-[12px] font-medium text-[#1F2937]"><x-task-code :task="$task" />{{ $task->title }}</p>
                         <p class="mt-0.5 text-[10px] text-gray-500">
                             {{ $task->project->name }}
                             @if ($task->assignee) &middot; <x-avatar :user="$task->assignee" size="16px" class="align-middle" /> {{ $task->assignee->name }} @endif
@@ -119,6 +129,11 @@
                     <p class="px-3 py-4 text-center text-[11px] text-gray-400">No tasks</p>
                 @endforelse
             </div>
+            @if ($myTasksLink)
+                <div class="border-t border-gray-100 px-3 py-1.5 text-right">
+                    <a href="{{ $myTasksLink['url'] }}" class="dashboard-tasks-link text-[10px] text-brand-700 hover:underline">{{ $myTasksLink['label'] }}</a>
+                </div>
+            @endif
         </div>
         @endif
         </x-company-tabs>
