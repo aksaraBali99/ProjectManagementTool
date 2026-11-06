@@ -10,13 +10,14 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\MentionedInCommentNotification;
+use App\Support\RichText;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
 
 /**
  * task #122: no comment size limit a person would notice. One safety cap
- * (Comment::MAX_BODY_LENGTH, 1,000,000 characters of stored HTML) against
+ * (Comment::MAX_BODY_LENGTH, 200,000 characters of stored HTML) against
  * crafted requests, checked on the raw request and on the cleaned HTML
  * with the same number and the same message.
  */
@@ -141,7 +142,8 @@ test('a request too large for PHP is a 413, which the comment box shows as "too 
     // The comment box maps any 413 (Laravel's below, or the web server's own
     // HTML 413 page) to the message, before reading the body.
     $page = $this->actingAs($this->management)->get(route('tasks.edit', $this->task))->getContent();
-    expect($page)->toContain("if (response.status === 413) throw new Error('This comment is too long to save.');");
+    expect($page)->toContain('response.status === 413')
+        ->toContain('This comment is too long to save.');
 
     // Laravel's ValidatePostSize answers a body over post_max_size with a
     // 413 (PostTooLargeException), before the controller runs. (Last: the
@@ -151,4 +153,16 @@ test('a request too large for PHP is a 413, which the comment box shows as "too 
         ->postJson("/tasks/{$this->task->id}/comments", ['body' => '<p>hello</p>'])
         ->assertStatus(413);
     expect(Comment::count())->toBe(0);
+});
+
+test('every rich-text size cap fits inside the sanitizer\'s byte limit, at up to 4 bytes per character', function () {
+    // Over RichText::MAX_INPUT_BYTES the sanitizer returns an empty string,
+    // so a cap above it would make a long comment (or description) vanish.
+    expect(Comment::MAX_BODY_LENGTH * 4)->toBeLessThanOrEqual(RichText::MAX_INPUT_BYTES)
+        // The task description's cap (StoreTaskRequest/UpdateTaskRequest).
+        ->and(200_000 * 4)->toBeLessThanOrEqual(RichText::MAX_INPUT_BYTES);
+
+    // And the largest emoji comment the cap allows really survives cleaning.
+    $emoji = '<p>'.str_repeat('😀', Comment::MAX_BODY_LENGTH - 7).'</p>';
+    expect(RichText::normalize($emoji))->toBe($emoji);
 });

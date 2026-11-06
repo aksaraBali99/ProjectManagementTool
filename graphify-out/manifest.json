@@ -230,8 +230,8 @@
     "semantic_hash": ""
   },
   "app/Models/Comment.php": {
-    "mtime": 1793955437.0404613,
-    "ast_hash": "575a66848113257fe953f7f7c01fc7ec",
+    "mtime": 1793956545.6040819,
+    "ast_hash": "6f91d06aecccf4bdf128c30dc19b704e",
     "semantic_hash": ""
   },
   "app/Models/Concerns/BelongsToOrganization.php": {
@@ -700,8 +700,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/CommentController.php": {
-    "mtime": 1793955437.0389528,
-    "ast_hash": "133a9a55f3e832ef3398b36761e3b77a",
+    "mtime": 1793956545.6065238,
+    "ast_hash": "92337be2c5f402169040c3c624cc6b85",
     "semantic_hash": ""
   },
   "app/Http/Controllers/DocumentController.php": {
@@ -780,8 +780,8 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/_comments.blade.php": {
-    "mtime": 1793955437.0457788,
-    "ast_hash": "e1ad6d372a9a8b8db2edfcf45f708006",
+    "mtime": 1793956545.6100638,
+    "ast_hash": "e3451be69f9b9c4c1655b2e7d0c4fe16",
     "semantic_hash": ""
   },
   "resources/views/tasks/_documents.blade.php": {
@@ -1305,8 +1305,8 @@
     "semantic_hash": ""
   },
   "app/Services/Import/ImportValidator.php": {
-    "mtime": 1793955437.0437663,
-    "ast_hash": "02d72f7c9c3047af392b6a7d88f35421",
+    "mtime": 1793956545.6075242,
+    "ast_hash": "ed82881e91730523d7c07aee26ea0990",
     "semantic_hash": ""
   },
   "app/Support/CompanyRoleRules.php": {
@@ -1545,8 +1545,8 @@
     "semantic_hash": ""
   },
   "app/Support/RichText.php": {
-    "mtime": 1790295141.8097432,
-    "ast_hash": "6dab6eeea88690bdc6e021569ed8787c",
+    "mtime": 1793956545.6055257,
+    "ast_hash": "b9f4a3cd2af4873e6c15741e5cd5c325",
     "semantic_hash": ""
   },
   "database/migrations/2026_09_21_000000_widen_task_description_and_comment_body_to_longtext.php": {
@@ -2550,13 +2550,13 @@
     "semantic_hash": ""
   },
   "tests/Feature/Comments/CommentSizeLimitTest.php": {
-    "mtime": 1793955101.8509936,
-    "ast_hash": "ee6ecf527f4b731e61725692d9cb7a16",
+    "mtime": 1793956578.1611612,
+    "ast_hash": "3a8a76f0f20e249b8d4b8fd0ad2f0d8c",
     "semantic_hash": ""
   },
   "tests/Feature/Import/ImportCommentLengthTest.php": {
-    "mtime": 1793955160.2147768,
-    "ast_hash": "dabf35683b6a19dd5036f1510a85c32b",
+    "mtime": 1793956578.120973,
+    "ast_hash": "9f1cea043d1e49d145e5c42c37d72155",
     "semantic_hash": ""
   }
 }

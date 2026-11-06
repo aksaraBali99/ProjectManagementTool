@@ -247,8 +247,12 @@
                 // task #122: a request too large for the web server (an
                 // HTML 413 page) or for PHP's post_max_size (Laravel's
                 // PostTooLargeException, a 413 with an empty message)
-                // carries no usable message of its own.
-                if (response.status === 413) throw new Error('This comment is too long to save.');
+                // carries no usable message of its own. Only a request that
+                // sent a comment (post, reply, edit) says it's too long;
+                // anything else gets its usual fallback.
+                if (response.status === 413) {
+                    throw new Error(body && typeof body.body === 'string' ? 'This comment is too long to save.' : fallback);
+                }
                 return response.json().catch(function () { return null; }).then(function (data) {
                     const fieldErrors = data && data.errors ? Object.values(data.errors)[0] : null;
                     const message = (Array.isArray(fieldErrors) && fieldErrors[0]) || (data && data.message) || fallback;

@@ -967,7 +967,9 @@ class ImportValidator
                 continue;
             }
 
-            // task #122: the same cap as a comment posted in the app.
+            // task #122: the same cap as a comment posted in the app. In
+            // practice a spreadsheet stops first: Excel allows 32,767
+            // characters per cell, and PhpSpreadsheet cuts cells to that.
             if (mb_strlen($cells['body']) > Comment::MAX_BODY_LENGTH) {
                 $result[] = $this->errorRow('Task Comments', $row, 'Comment Body is too long (more than '.number_format(Comment::MAX_BODY_LENGTH).' characters).');
 

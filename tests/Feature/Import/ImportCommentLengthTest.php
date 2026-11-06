@@ -57,5 +57,5 @@ test('a comment over the cap is refused with the new message', function () {
 
     expect($result)->toHaveCount(1)
         ->and($result[0]['validation_status'])->toBe('error')
-        ->and($result[0]['validation_message'])->toBe('Comment Body is too long (more than 1,000,000 characters).');
+        ->and($result[0]['validation_message'])->toBe('Comment Body is too long (more than 200,000 characters).');
 });

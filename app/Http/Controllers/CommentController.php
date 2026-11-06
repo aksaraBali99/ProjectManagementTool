@@ -198,11 +198,12 @@ class CommentController extends Controller
 
     /**
      * Comment bodies arrive as editor HTML (or plain text from older
-     * clients). The old 2000-character cap applied to what a person typed,
-     * so it's now measured on the visible text — HTML markup mustn't eat
-     * into it — with a separate generous cap on the raw HTML so a crafted
-     * request can't store an unbounded blob. Blank content (including the
-     * editor's empty "<p></p>") counts as missing.
+     * clients), cleaned here by RichText::normalize(). task #122: there's
+     * no limit on the visible text any more, only the safety cap on the
+     * cleaned HTML (Comment::MAX_BODY_LENGTH, the same number the raw
+     * request rule uses), so a crafted request can't store an unbounded
+     * blob. Blank content (including the editor's empty "<p></p>") counts
+     * as missing.
      */
     private function cleanBody(string $raw): string
     {
