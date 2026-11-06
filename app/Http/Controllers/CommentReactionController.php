@@ -38,7 +38,8 @@ class CommentReactionController extends Controller
      */
     public function store(Request $request, Comment $comment): JsonResponse
     {
-        Gate::authorize('view', $comment->task);
+        // task #123: the task must be viewable and active (CommentPolicy::react()).
+        Gate::authorize('react', $comment);
 
         $data = $request->validate([
             'emoji' => ['required', 'string', 'min:1', 'max:32'],

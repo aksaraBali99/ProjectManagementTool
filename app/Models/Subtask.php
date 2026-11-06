@@ -30,6 +30,18 @@ class Subtask extends Model
         return $this->belongsTo(Task::class);
     }
 
+    /**
+     * task #123: the subtask's task, deactivated (soft-deleted) or not, for
+     * the policies: a deactivated task still has to be checked (and
+     * refused) rather than read as null. task() is left as it is, so
+     * every query through it (e.g. TaskPolicy::viewAny()'s whereHas)
+     * keeps leaving deactivated tasks out.
+     */
+    public function parentTask(): BelongsTo
+    {
+        return $this->belongsTo(Task::class, 'task_id')->withTrashed();
+    }
+
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assignee_id');

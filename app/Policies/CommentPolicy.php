@@ -5,7 +5,16 @@ namespace App\Policies;
 use App\Models\Comment;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\DeactivatedTask;
+use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Facades\Gate;
 
+/**
+ * task #123: every check reads the comment's task through parentTask
+ * (deactivated tasks included), never task, which is null for a
+ * deactivated task. A deactivated task's comments stay viewable, but none
+ * can be added, edited or deleted.
+ */
 class CommentPolicy
 {
     public function viewAny(User $user): bool
@@ -15,7 +24,7 @@ class CommentPolicy
 
     public function view(User $user, Comment $comment): bool
     {
-        return $user->hasPermission('view_comments', $comment->task->organization_id);
+        return $user->hasPermission('view_comments', $comment->parentTask->organization_id);
     }
 
     /**
@@ -36,21 +45,40 @@ class CommentPolicy
      * unchanged and still does the per-task scoping; this answers only
      * "may this user comment in that task's organization at all".
      */
-    public function create(User $user, Task $task): bool
+    public function create(User $user, Task $task): bool|Response
     {
-        return $this->canEditOwnComments($user, $task->organization_id);
+        return DeactivatedTask::denial($task)
+            ?? $this->canEditOwnComments($user, $task->organization_id);
     }
 
-    public function update(User $user, Comment $comment): bool
+    public function update(User $user, Comment $comment): bool|Response
     {
-        return $this->canEditOwnComments($user, $comment->task->organization_id)
+        $task = $comment->parentTask;
+
+        if ($denied = DeactivatedTask::denial($task)) {
+            return $denied;
+        }
+
+        return $this->canEditOwnComments($user, $task->organization_id)
             ? ($user->isSuperAdmin() || $user->isOwner() || $comment->user_id === $user->id)
             : false;
     }
 
-    public function delete(User $user, Comment $comment): bool
+    public function delete(User $user, Comment $comment): bool|Response
     {
         return $this->update($user, $comment);
+    }
+
+    /**
+     * task #123: adding or removing a reaction (CommentReactionController)
+     * needs the task viewable, and active.
+     */
+    public function react(User $user, Comment $comment): bool|Response
+    {
+        $task = $comment->parentTask;
+
+        return DeactivatedTask::denial($task)
+            ?? Gate::forUser($user)->allows('view', $task);
     }
 
     /**

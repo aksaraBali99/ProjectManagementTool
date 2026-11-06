@@ -6,6 +6,8 @@ use App\Models\Document;
 use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\DeactivatedTask;
+use Illuminate\Auth\Access\Response;
 
 class TaskPolicy
 {
@@ -57,8 +59,13 @@ class TaskPolicy
      * Unlink/Detach button both call this exact method, so they can never
      * disagree.
      */
-    public function unlinkDocuments(User $user, Task $task): bool
+    public function unlinkDocuments(User $user, Task $task): bool|Response
     {
+        // task #123: a deactivated task is read-only until it's activated.
+        if ($denied = DeactivatedTask::denial($task)) {
+            return $denied;
+        }
+
         return $user->hasPermission('manage_documents', $task->organization_id) && $this->view($user, $task);
     }
 
@@ -80,8 +87,13 @@ class TaskPolicy
      * (TaskFolderController::detach()) and the "Attach folder" button
      * still use it, and folders are out of scope here.
      */
-    public function detachDocument(User $user, Task $task, Document $document): bool
+    public function detachDocument(User $user, Task $task, Document $document): bool|Response
     {
+        // task #123: a deactivated task is read-only until it's activated.
+        if ($denied = DeactivatedTask::denial($task)) {
+            return $denied;
+        }
+
         if (! $this->unlinkDocuments($user, $task)) {
             return false;
         }
@@ -107,8 +119,13 @@ class TaskPolicy
      * against the real DocumentPolicy::view() — never against this
      * method or the picker's own narrower query.
      */
-    public function attachDocuments(User $user, Task $task): bool
+    public function attachDocuments(User $user, Task $task): bool|Response
     {
+        // task #123: a deactivated task is read-only until it's activated.
+        if ($denied = DeactivatedTask::denial($task)) {
+            return $denied;
+        }
+
         if ($user->isClientInOrg($task->organization_id)) {
             return false;
         }
@@ -174,8 +191,13 @@ class TaskPolicy
      * create_edit_tasks, since staff without that permission must still be
      * able to edit tasks assigned to them).
      */
-    public function update(User $user, Task $task): bool
+    public function update(User $user, Task $task): bool|Response
     {
+        // task #123: a deactivated task is read-only until it's activated.
+        if ($denied = DeactivatedTask::denial($task)) {
+            return $denied;
+        }
+
         if ($user->hasPermission('create_edit_tasks', $task->organization_id)) {
             if ($user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($task->organization_id)) {
                 return true;
@@ -197,8 +219,13 @@ class TaskPolicy
      * their own card even if update_kanban_cards isn't granted to their
      * role, same reasoning as update()'s assignee bypass.
      */
-    public function updateStatus(User $user, Task $task): bool
+    public function updateStatus(User $user, Task $task): bool|Response
     {
+        // task #123: a deactivated task is read-only until it's activated.
+        if ($denied = DeactivatedTask::denial($task)) {
+            return $denied;
+        }
+
         if ($user->hasPermission('update_kanban_cards', $task->organization_id)
             && ($user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($task->organization_id))) {
             return true;

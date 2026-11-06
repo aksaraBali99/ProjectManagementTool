@@ -42,7 +42,10 @@ class CommentController extends Controller
         // See CommentPolicy::canEditOwnComments()'s own docblock for why
         // this isn't cached on User itself instead.
         $user = auth()->user();
-        $canEditOwnComments = app(CommentPolicy::class)->canEditOwnComments($user, $task->organization_id);
+        // task #123: no comment on a deactivated task can be edited or
+        // deleted (CommentPolicy::update()), so none is offered.
+        $canEditOwnComments = ! $task->trashed()
+            && app(CommentPolicy::class)->canEditOwnComments($user, $task->organization_id);
         $isSuperAdminOrOwner = $user->isSuperAdmin() || $user->isOwner();
 
         return response()->json([
