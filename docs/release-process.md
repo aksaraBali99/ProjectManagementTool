@@ -215,17 +215,53 @@ Run from the wrong branch (e.g. environment `production` from `main`), the run f
 
 > A restore puts the whole database back to the moment of the backup. **Anything written after it is lost**: tasks, comments, uploads' records, logins. Do it only when the data is actually wrong, not just to undo code.
 
+A backup taken right before a release goes with the code that was live before that release, so the code goes back to that commit too. Two commit IDs are needed below, both printed at the top of the failed deploy's log:
+- `<live-sha>`: the "now at" line, the code that was live before the release;
+- `<failed-sha>`: the "deploy" line, the release that failed.
+
 On the PROD server, in the app folder:
-```
-php artisan down
-ls -lt storage/app/backups                      # pick the file, newest first
-grep -E '^DB_(HOST|PORT|DATABASE|USERNAME)=' .env
-gunzip -c storage/app/backups/db-YYYYmmdd-HHMMSS.sql.gz \
-  | mariadb --host=<DB_HOST> --port=<DB_PORT> --user=<DB_USERNAME> -p <DB_DATABASE>
-php artisan up
-```
-- `-p` asks for the database password (`DB_PASSWORD` in `.env`). Type it at the prompt; never put it on the command line.
-- If the code was rolled back too, its migrations must match the restored schema. Restoring a backup taken right before a release goes with the code that was live before that release.
+
+1. **Take the site down, put the code back, and pick the backup.** (After a failed PROD deploy the site is already down.)
+   ```
+   php artisan down
+   git reset --hard <live-sha>
+   composer install --no-dev --optimize-autoloader
+   php artisan view:clear && php artisan config:clear && php artisan route:clear
+   php artisan config:cache && php artisan route:cache
+   ls -lt storage/app/backups                      # pick the file, newest first
+   grep -E '^DB_(HOST|PORT|DATABASE|USERNAME)=' .env
+   ```
+2. **Restore it.**
+   ```
+   gunzip -c storage/app/backups/db-YYYYmmdd-HHMMSS.sql.gz \
+     | mariadb --host=<DB_HOST> --port=<DB_PORT> --user=<DB_USERNAME> -p <DB_DATABASE>
+   ```
+3. **Drop the tables the failed release's migrations created.**
+   - The dump only holds the tables that existed when it was taken. It puts those back exactly as they were, including any columns or indexes the failed release added to them. Tables the failed release *created* are not in the dump, so they are left behind.
+   - Left in place, they make the release's migration fail with "table already exists" the next time it runs.
+   - List the migrations the release added, and the tables they create:
+     ```
+     git diff --name-only --diff-filter=A <live-sha> <failed-sha> -- database/migrations
+     git diff --diff-filter=A <live-sha> <failed-sha> -- database/migrations | grep -oE 'Schema::create\(.[A-Za-z0-9_]+' | sort -u
+     ```
+   - Read each listed migration file too. If it does anything else to the database outside an existing table (renames a table, for example), undo that by hand as well.
+   - Drop the tables, in one statement with foreign-key checks off, so their order doesn't matter:
+     ```
+     mariadb --host=<DB_HOST> --port=<DB_PORT> --user=<DB_USERNAME> -p <DB_DATABASE> \
+       -e "SET FOREIGN_KEY_CHECKS=0; DROP TABLE IF EXISTS <table_1>, <table_2>; SET FOREIGN_KEY_CHECKS=1;"
+     ```
+   - If the second `git diff` lists nothing, the release created no tables; skip the drop.
+4. **Check the database matches the live code.**
+   ```
+   php artisan migrate:status
+   ```
+   Every migration must say **Ran**, and none **Pending**. Anything else means the schema and the live code disagree. Leave the site down and sort that out before going on.
+5. **Bring the site back up.**
+   ```
+   php artisan up
+   ```
+
+`-p` asks for the database password (`DB_PASSWORD` in `.env`). Type it at the prompt; never put it on the command line.
 
 ## 6. When a deploy fails
 
