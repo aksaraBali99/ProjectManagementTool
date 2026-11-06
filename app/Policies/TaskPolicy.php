@@ -89,13 +89,12 @@ class TaskPolicy
      */
     public function detachDocument(User $user, Task $task, Document $document): bool|Response
     {
-        // task #123: a deactivated task is read-only until it's activated.
-        if ($denied = DeactivatedTask::denial($task)) {
-            return $denied;
-        }
-
-        if (! $this->unlinkDocuments($user, $task)) {
-            return false;
+        // unlinkDocuments() refuses a deactivated task (task #123) with a
+        // Response, which is an object, so `! $unlink` alone would read it
+        // as allowed.
+        $unlink = $this->unlinkDocuments($user, $task);
+        if ($unlink instanceof Response ? $unlink->denied() : ! $unlink) {
+            return $unlink;
         }
 
         return $user->isSuperAdmin() || $user->isOwner() || $user->isManagementInOrg($task->organization_id)

@@ -42,10 +42,10 @@ class CommentController extends Controller
         // See CommentPolicy::canEditOwnComments()'s own docblock for why
         // this isn't cached on User itself instead.
         $user = auth()->user();
-        // task #123: no comment on a deactivated task can be edited or
-        // deleted (CommentPolicy::update()), so none is offered.
-        $canEditOwnComments = ! $task->trashed()
-            && app(CommentPolicy::class)->canEditOwnComments($user, $task->organization_id);
+        // task #123: CommentPolicy::create() is canEditOwnComments() plus the
+        // deactivated-task refusal, so on a deactivated task no comment is
+        // offered for editing or deleting either.
+        $canEditOwnComments = Gate::forUser($user)->allows('create', [Comment::class, $task]);
         $isSuperAdminOrOwner = $user->isSuperAdmin() || $user->isOwner();
 
         return response()->json([

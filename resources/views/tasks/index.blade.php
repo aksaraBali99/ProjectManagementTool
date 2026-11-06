@@ -303,6 +303,9 @@
                             <td class="flex items-center justify-end gap-2 py-1 text-[11px] md:table-cell md:px-3 md:py-2.5 md:text-right">
                                 @if ($canEditTask)
                                     <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Tasks']) }}" class="text-brand-600 hover:underline">Edit</a>
+                                @elseif ($task->trashed())
+                                    {{-- task #123: a deactivated task can't be edited, only viewed. --}}
+                                    <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => url()->full(), 'return_label' => 'Tasks']) }}" class="text-brand-600 hover:underline">View</a>
                                 @endif
                                 @if ($canDeactivateTask)
                                     <form method="POST" action="{{ route('tasks.toggle-active', $task) }}" class="inline">

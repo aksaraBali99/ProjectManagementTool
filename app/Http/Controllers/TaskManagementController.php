@@ -22,6 +22,7 @@ use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use App\Services\LinkPreviewService;
 use App\Services\TaskDocumentLinker;
+use App\Support\DeactivatedTask;
 use App\Support\TaskCodeQuery;
 use DOMDocument;
 use DOMXPath;
@@ -793,7 +794,7 @@ class TaskManagementController extends Controller
             // two happen to overlap for most roles today.
             // task #123: never on a deactivated task (DocumentController::store()
             // refuses attaching to one).
-            'canManageDocuments' => ! $task->trashed() && Gate::allows('create', [Document::class, $task->organization_id]),
+            'canManageDocuments' => DeactivatedTask::allowsChanges($task) && Gate::allows('create', [Document::class, $task->organization_id]),
             // task #73 phase 2: TaskPolicy::unlinkDocuments() — manage_
             // documents + task view, not full task-edit rights. Still the
             // FOLDER Detach button's gate, and the precondition for the

@@ -34,12 +34,12 @@
     // docblock for the full story (task #70 phase 4's query-count
     // regression test surfaced this on the JSON polling endpoint;
     // this initial render had the identical N+1).
-    // task #123: a deactivated task's comments are read-only: no new
-    // comment, reply, edit, delete (CommentPolicy) or reaction
-    // (CommentPolicy::react()).
-    $canEditOwnComments = ! $task->trashed()
-        && app(\App\Policies\CommentPolicy::class)->canEditOwnComments(auth()->user(), $task->organization_id);
-    $canReact = ! $task->trashed();
+    // task #123: CommentPolicy::create() is canEditOwnComments() plus the
+    // deactivated-task refusal: a deactivated task's comments are
+    // read-only (no new comment, reply, edit or delete), and no reaction
+    // (CommentPolicy::react()) either.
+    $canEditOwnComments = auth()->user()->can('create', [\App\Models\Comment::class, $task]);
+    $canReact = \App\Support\DeactivatedTask::allowsChanges($task);
     $isSuperAdminOrOwner = auth()->user()->isSuperAdmin() || auth()->user()->isOwner();
     // The toolbar's attach-document button creates a real Document, so it
     // follows the same manage_documents gate (DocumentPolicy::create) as
@@ -85,7 +85,7 @@
                          however many comments/reactions the task has. --}}
                     <div class="reactions-list mt-1 flex flex-wrap items-center gap-1" data-reactions-hash="{{ $comment->reactionsHash(auth()->id()) }}">
                         @foreach ($comment->reactionSummary(auth()->id()) as $reaction)
-                            <button type="button" class="reaction-pill{{ $reaction['reacted_by_me'] ? ' is-mine' : '' }}" data-emoji="{{ $reaction['emoji'] }}" title="{{ implode(', ', $reaction['user_names']) }}">{{ $reaction['emoji'] }} <span class="reaction-count">{{ $reaction['count'] }}</span></button>
+                            <button type="button" class="reaction-pill{{ $reaction['reacted_by_me'] ? ' is-mine' : '' }}" @disabled(! $canReact) data-emoji="{{ $reaction['emoji'] }}" title="{{ implode(', ', $reaction['user_names']) }}">{{ $reaction['emoji'] }} <span class="reaction-count">{{ $reaction['count'] }}</span></button>
                         @endforeach
                     </div>
                     <div class="comment-actions mt-1 flex items-center gap-2">
@@ -127,7 +127,7 @@
                             <x-rich-text :value="$reply->body" class="comment-body-text mt-1 text-[12px] text-gray-700" :data-body-hash="md5($reply->body)" :data-mentioned-users="$reply->mentionedUsers->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->toJson()" />
                             <div class="reactions-list mt-1 flex flex-wrap items-center gap-1" data-reactions-hash="{{ $reply->reactionsHash(auth()->id()) }}">
                                 @foreach ($reply->reactionSummary(auth()->id()) as $reaction)
-                                    <button type="button" class="reaction-pill{{ $reaction['reacted_by_me'] ? ' is-mine' : '' }}" data-emoji="{{ $reaction['emoji'] }}" title="{{ implode(', ', $reaction['user_names']) }}">{{ $reaction['emoji'] }} <span class="reaction-count">{{ $reaction['count'] }}</span></button>
+                                    <button type="button" class="reaction-pill{{ $reaction['reacted_by_me'] ? ' is-mine' : '' }}" @disabled(! $canReact) data-emoji="{{ $reaction['emoji'] }}" title="{{ implode(', ', $reaction['user_names']) }}">{{ $reaction['emoji'] }} <span class="reaction-count">{{ $reaction['count'] }}</span></button>
                                 @endforeach
                             </div>
                             <div class="comment-actions mt-1 flex items-center gap-2">
@@ -289,6 +289,8 @@
                 const pill = document.createElement('button');
                 pill.type = 'button';
                 pill.className = 'reaction-pill' + (reaction.reacted_by_me ? ' is-mine' : '');
+                // task #123: shown, not clickable, on a deactivated task.
+                pill.disabled = ! canReact;
                 pill.dataset.emoji = reaction.emoji;
                 pill.title = reaction.user_names.join(', ');
                 pill.appendChild(document.createTextNode(reaction.emoji + ' '));

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Support\DeactivatedTask;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -306,4 +307,53 @@ test('a subtask on a deactivated task doesn\'t open its company\'s Tasks page', 
     // above tests the deactivation, not a setup gap.
     $this->task->restore();
     $this->actingAs($helper)->get(route('tasks.index', $this->org->id))->assertOk();
+});
+
+// --- Code review follow-ups ------------------------------------------------------------------
+
+test('a stale-tab save that would fail validation is still refused with the message, not sent back to the read-only page', function () {
+    $invalid = taskUpdateFields($this, ['title' => '']);
+
+    assertRefused($this->actingAs($this->management)->putJson("/tasks/{$this->task->id}", $invalid));
+
+    $this->actingAs($this->management)->from(route('tasks.edit', $this->task))
+        ->put("/tasks/{$this->task->id}", $invalid)
+        ->assertForbidden()
+        ->assertSee(DeactivatedTask::MESSAGE);
+
+    expect($this->task->fresh()->title)->toBe('Archived task');
+});
+
+test('detachDocument refuses a deactivated task through unlinkDocuments, with the message', function () {
+    $task = Task::withTrashed()->findOrFail($this->task->id);
+
+    $response = Gate::forUser($this->management)->inspect('detachDocument', [$task, $this->linkedDocument]);
+
+    expect($response->denied())->toBeTrue()
+        ->and($response->message())->toBe(DeactivatedTask::MESSAGE);
+
+    // Active again: the same user may detach.
+    $task->restore();
+    expect(Gate::forUser($this->management)->allows('detachDocument', [$task->fresh(), $this->linkedDocument]))->toBeTrue();
+});
+
+test('an inactive row on the Tasks list offers View, opening the read-only page', function () {
+    $page = $this->actingAs($this->management)
+        ->get(route('tasks.index', ['organization' => $this->org->id, 'show_inactive' => 1]))
+        ->assertOk()->getContent();
+
+    expect($page)->toMatch('/<a href="[^"]*\/tasks\/'.$this->task->id.'\/edit[^"]*" class="text-brand-600 hover:underline">View<\/a>/')
+        ->and($page)->not->toMatch('/\/tasks\/'.$this->task->id.'\/edit[^"]*" class="text-brand-600 hover:underline">Edit<\/a>/');
+});
+
+test('reaction pills on a deactivated task render disabled, and are clickable again once it\'s active', function () {
+    DB::table('comment_reactions')->insert(['comment_id' => $this->comment->id, 'user_id' => $this->assignee->id, 'emoji' => '🎉', 'created_at' => now()]);
+
+    $page = $this->actingAs($this->management)->get(route('tasks.edit', $this->task))->getContent();
+    expect($page)->toMatch('/<button type="button" class="reaction-pill"\s+disabled/');
+
+    $this->task->restore();
+    $page = $this->actingAs($this->management)->get(route('tasks.edit', $this->task))->getContent();
+    expect($page)->toContain('class="reaction-pill"')
+        ->not->toMatch('/<button type="button" class="reaction-pill"\s+disabled/');
 });

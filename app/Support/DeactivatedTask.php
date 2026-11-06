@@ -23,6 +23,16 @@ final class DeactivatedTask
     }
 
     /**
+     * Whether the task accepts changes at all: the UI flags that have no
+     * policy of their own (react, create a new document from the task,
+     * the subtask checkbox) ask this, never a bare trashed().
+     */
+    public static function allowsChanges(Task $task): bool
+    {
+        return self::denial($task) === null;
+    }
+
+    /**
      * For a controller check outside a policy: throws the same 403
      * (AuthorizationException) a policy refusal would.
      */

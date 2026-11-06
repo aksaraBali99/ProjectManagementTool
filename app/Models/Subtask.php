@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTaskIncludingDeactivated;
 use App\Observers\SubtaskObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[ObservedBy(SubtaskObserver::class)]
 class Subtask extends Model
 {
+    use BelongsToTaskIncludingDeactivated;
+
     protected function casts(): array
     {
         return [
@@ -28,18 +31,6 @@ class Subtask extends Model
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
-    }
-
-    /**
-     * task #123: the subtask's task, deactivated (soft-deleted) or not, for
-     * the policies: a deactivated task still has to be checked (and
-     * refused) rather than read as null. task() is left as it is, so
-     * every query through it (e.g. TaskPolicy::viewAny()'s whereHas)
-     * keeps leaving deactivated tasks out.
-     */
-    public function parentTask(): BelongsTo
-    {
-        return $this->belongsTo(Task::class, 'task_id')->withTrashed();
     }
 
     public function assignee(): BelongsTo
