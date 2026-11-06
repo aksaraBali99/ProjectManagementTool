@@ -225,7 +225,7 @@
     "semantic_hash": ""
   },
   "app/Models/AuditLog.php": {
-    "mtime": 1793705483.7589936,
+    "mtime": 1793714876.2984056,
     "ast_hash": "f0a449b0c06de064fd77e86681f48e89",
     "semantic_hash": ""
   },
@@ -430,8 +430,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1786960128.426128,
-    "ast_hash": "08ce86eb542e5ad76f14272466649048",
+    "mtime": 1793847665.914902,
+    "ast_hash": "1c9a38863dd0b250914c55a38ee00e3b",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_18_000100_add_auth_provider_to_users_table.php": {
@@ -725,7 +725,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1793705435.1826987,
+    "mtime": 1793714876.2963958,
     "ast_hash": "8e64ed99bf9420ad0f19d88aed6e972c",
     "semantic_hash": ""
   },
@@ -805,7 +805,7 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
-    "mtime": 1793704418.8856645,
+    "mtime": 1793714876.34856,
     "ast_hash": "38880e223028a075da098ad47848966f",
     "semantic_hash": ""
   },
@@ -945,7 +945,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/AuditTrailController.php": {
-    "mtime": 1793704743.049678,
+    "mtime": 1793714876.2940094,
     "ast_hash": "8188d03399cf32458fa1df2c6194d1e9",
     "semantic_hash": ""
   },
@@ -960,12 +960,12 @@
     "semantic_hash": ""
   },
   "app/Notifications/AuditEventDatabaseNotification.php": {
-    "mtime": 1793704485.229398,
+    "mtime": 1793714876.2984056,
     "ast_hash": "445512b6a5d9e842709968de38444bc8",
     "semantic_hash": ""
   },
   "app/Notifications/AuditEventMailNotification.php": {
-    "mtime": 1793704470.8157344,
+    "mtime": 1793714876.3004494,
     "ast_hash": "873ce2a7500f7c2143032dca597e2e52",
     "semantic_hash": ""
   },
@@ -1025,7 +1025,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/AuditTrail/AuditTrailPageTest.php": {
-    "mtime": 1793704607.4652967,
+    "mtime": 1793714876.350588,
     "ast_hash": "a346938ab1f580e5513452a31bcde28d",
     "semantic_hash": ""
   },
@@ -1125,7 +1125,7 @@
     "semantic_hash": ""
   },
   "app/Notifications/MentionedInCommentNotification.php": {
-    "mtime": 1793704485.5897326,
+    "mtime": 1793714876.302461,
     "ast_hash": "84329bc9d03bd4307bd9be098e242281",
     "semantic_hash": ""
   },
@@ -1135,7 +1135,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/Comments/CommentMentionTest.php": {
-    "mtime": 1793704607.8433523,
+    "mtime": 1793714876.3559387,
     "ast_hash": "af510116f9622b7e382905062f33edf6",
     "semantic_hash": ""
   },
@@ -1575,7 +1575,7 @@
     "semantic_hash": ""
   },
   "tests/Feature/RichText/CommentRichTextTest.php": {
-    "mtime": 1793705501.1789608,
+    "mtime": 1793714876.3584535,
     "ast_hash": "a33266aa71309e13769f4bd675a2a41e",
     "semantic_hash": ""
   },
@@ -2390,22 +2390,22 @@
     "semantic_hash": ""
   },
   "app/Support/CompanyCode.php": {
-    "mtime": 1793713967.65917,
+    "mtime": 1793714876.3053858,
     "ast_hash": "1ce56fe4d7908cd6ec24213422c85fea",
     "semantic_hash": ""
   },
   "database/migrations/2026_11_03_000000_add_task_codes.php": {
-    "mtime": 1793713932.6147835,
+    "mtime": 1793714876.3084579,
     "ast_hash": "ab449f696f9af0b39bb70f1da661d840",
     "semantic_hash": ""
   },
   "tests/Feature/Database/TaskCodesMigrationTest.php": {
-    "mtime": 1793714034.425236,
+    "mtime": 1793714876.3559387,
     "ast_hash": "a3140b385a701d8cd5d528cd3be0a41e",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskCodeTest.php": {
-    "mtime": 1793714050.7025516,
+    "mtime": 1793714876.3604913,
     "ast_hash": "36588f0005dcd4ae691c35f61ac3ac27",
     "semantic_hash": ""
   },
@@ -2440,18 +2440,83 @@
     "semantic_hash": ""
   },
   "app/Support/TaskCodeQuery.php": {
-    "mtime": 1793704371.784415,
+    "mtime": 1793714876.3053858,
     "ast_hash": "46b317947ed0699224caf992ec4beaaf",
     "semantic_hash": ""
   },
   "tests/Feature/AuditTrail/TaskCodeMessagesTest.php": {
-    "mtime": 1793705512.3599617,
+    "mtime": 1793714876.3539286,
     "ast_hash": "8ac45d46cfb3c28441eb2ed3dc6fc395",
     "semantic_hash": ""
   },
   "tests/Feature/Tasks/TaskCodeSearchTest.php": {
-    "mtime": 1793704649.599881,
+    "mtime": 1793714876.3604913,
     "ast_hash": "96c8d5e82ab06bce210ac959d736c2d6",
+    "semantic_hash": ""
+  },
+  ".github/scripts/next-version.sh": {
+    "mtime": 1793847332.069749,
+    "ast_hash": "ede6b0ef2da7023af58ba7c6f8f86f48",
+    "semantic_hash": ""
+  },
+  ".github/scripts/release-check.sh": {
+    "mtime": 1793847357.3625226,
+    "ast_hash": "75a6572bedec307ab68b58e8ae3e51f9",
+    "semantic_hash": ""
+  },
+  ".github/scripts/release-tasks.sh": {
+    "mtime": 1793847339.364629,
+    "ast_hash": "088bf7650b275a2c7db2f12e8825474e",
+    "semantic_hash": ""
+  },
+  "app/Console/Commands/DbBackupCommand.php": {
+    "mtime": 1793851100.4134164,
+    "ast_hash": "9b9e5510f7960740f26c8471e940566c",
+    "semantic_hash": ""
+  },
+  "deploy.sh": {
+    "mtime": 1793851205.9009273,
+    "ast_hash": "598b17ca3b4ac2deab7f47473076985d",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Console/DbBackupCommandTest.php": {
+    "mtime": 1793851124.6133037,
+    "ast_hash": "9c893b40db373b2ca48706fe7b87c046",
+    "semantic_hash": ""
+  },
+  "tests/scripts/run.sh": {
+    "mtime": 1793851193.4939916,
+    "ast_hash": "f6892a3e3b6e90bde0fdd84b5185e3a0",
+    "semantic_hash": ""
+  },
+  ".github/PULL_REQUEST_TEMPLATE/release.md": {
+    "mtime": 1793847802.2276065,
+    "ast_hash": "25022c2346908a9dbc64416309359522",
+    "semantic_hash": ""
+  },
+  ".github/actions/deploy-over-ssh/action.yml": {
+    "mtime": 1793847744.9342098,
+    "ast_hash": "bf04666124ba869ceb0c49dc2abaebd1",
+    "semantic_hash": ""
+  },
+  ".github/release.yml": {
+    "mtime": 1793847791.1942153,
+    "ast_hash": "c4d4d7ea0e42b5c5a4dfca78cff44af3",
+    "semantic_hash": ""
+  },
+  ".github/workflows/deploy.yml": {
+    "mtime": 1793847770.804678,
+    "ast_hash": "3630169947f684b8a143796637aaa49e",
+    "semantic_hash": ""
+  },
+  ".github/workflows/release-check.yml": {
+    "mtime": 1793847809.1886632,
+    "ast_hash": "9206df643ac01fb2418c09e47f842e9c",
+    "semantic_hash": ""
+  },
+  "docs/release-process.md": {
+    "mtime": 1793851241.853953,
+    "ast_hash": "8e205eab3d516555e92421cc0839f80e",
     "semantic_hash": ""
   }
 }

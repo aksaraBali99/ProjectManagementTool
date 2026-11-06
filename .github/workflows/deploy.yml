@@ -1,0 +1,177 @@
+# task #119: CI, then deploy. See docs/release-process.md.
+#
+# - A push to main deploys to DEV (environment "dev").
+# - A push to production deploys to PROD (environment "production"), after
+#   an approval in that environment, and only while the repository
+#   variable PROD_DEPLOY_ENABLED is 'true'. A successful PROD deploy is
+#   tagged vYYYY.MM.N with a GitHub Release.
+# - Run workflow (workflow_dispatch) re-deploys, or dry-runs, the tip of
+#   the branch it's run on: dev from main, production from production.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main, production]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Where to deploy (dev from main, production from production)
+        type: choice
+        options: [dev, production]
+        default: dev
+      dry_run:
+        description: Dry run (print what would be deployed, change nothing)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  target:
+    name: Pick the environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.pick.outputs.environment }}
+    steps:
+      - name: Match the branch to an environment
+        id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          BRANCH: ${{ github.ref_name }}
+          REQUESTED: ${{ inputs.environment }}
+          PROD_ENABLED: ${{ vars.PROD_DEPLOY_ENABLED }}
+        run: |
+          case "$BRANCH" in
+            main) environment=dev ;;
+            production) environment=production ;;
+            *) environment="" ;;
+          esac
+
+          if [[ "$EVENT" == "workflow_dispatch" && "$REQUESTED" != "$environment" ]]; then
+            wanted=$([[ "$REQUESTED" == "dev" ]] && echo main || echo production)
+            echo "::error::'$REQUESTED' deploys from the $wanted branch, but this run is on '$BRANCH'. Run the workflow again with 'Use workflow from' set to $wanted."
+            exit 1
+          fi
+          if [[ "$environment" == "production" && "$PROD_ENABLED" != "true" ]]; then
+            echo "::notice::PROD deploys are switched off (repository variable PROD_DEPLOY_ENABLED isn't 'true'). Nothing will be deployed."
+          fi
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"
+
+  ci:
+    needs: target
+    uses: ./.github/workflows/ci.yml
+
+  deploy-dev:
+    needs: [target, ci]
+    if: needs.target.outputs.environment == 'dev'
+    runs-on: ubuntu-latest
+    environment: dev
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    env:
+      SSH_HOST: ${{ vars.SSH_HOST }}
+      SSH_PORT: ${{ vars.SSH_PORT }}
+      SSH_USER: ${{ vars.SSH_USER }}
+      APP_PATH: ${{ vars.APP_PATH }}
+      APP_URL: ${{ vars.APP_URL }}
+      EXPECTED_APP_ENV: ${{ vars.EXPECTED_APP_ENV }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy
+        uses: ./.github/actions/deploy-over-ssh
+        with:
+          environment: dev
+          branch: main
+          sha: ${{ github.sha }}
+          dry-run: ${{ inputs.dry_run == true }}
+          ssh-key: ${{ secrets.SSH_KEY }}
+          ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key"
+
+  deploy-prod:
+    needs: [target, ci]
+    if: needs.target.outputs.environment == 'production' && vars.PROD_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    # The approval wait happens here, before any step runs.
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    env:
+      SSH_HOST: ${{ vars.SSH_HOST }}
+      SSH_PORT: ${{ vars.SSH_PORT }}
+      SSH_USER: ${{ vars.SSH_USER }}
+      APP_PATH: ${{ vars.APP_PATH }}
+      APP_URL: ${{ vars.APP_URL }}
+      EXPECTED_APP_ENV: ${{ vars.EXPECTED_APP_ENV }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # The whole history and every tag, for the release notes.
+          fetch-depth: 0
+
+      - name: Deploy
+        id: deploy
+        uses: ./.github/actions/deploy-over-ssh
+        with:
+          environment: production
+          branch: production
+          sha: ${{ github.sha }}
+          dry-run: ${{ inputs.dry_run == true }}
+          deploy-args: --maintenance --backup
+          ssh-key: ${{ secrets.SSH_KEY }}
+          ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key"
+
+      # Only after a real deploy whose smoke test passed: a failed step
+      # above stops the job before this, and a skip or dry run isn't
+      # 'deployed'.
+      - name: Tag and publish the release
+        if: steps.deploy.outputs.result == 'deployed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          git fetch --quiet --tags --force origin
+
+          pattern='v[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9]*'
+          existing=$(git tag --points-at "$SHA" --list "$pattern" | head -n 1)
+          if [[ -n "$existing" ]]; then
+            echo "::notice::$SHA is already released as $existing (a re-deploy). No new tag."
+            echo "Release: already $existing (re-deploy, no new tag)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          month=$(TZ=Asia/Makassar date +%Y.%m)
+          tag=$(git tag --list | bash .github/scripts/next-version.sh "$month")
+          previous=$(git describe --tags --abbrev=0 --match "$pattern" "$SHA" 2>/dev/null || true)
+
+          notes="$RUNNER_TEMP/release-notes.md"
+          {
+            echo "## Tasks in this release"
+            echo ""
+            bash .github/scripts/release-tasks.sh "$previous" "$SHA"
+            echo ""
+          } > "$notes"
+
+          start=()
+          if [[ -n "$previous" ]]; then start=(--notes-start-tag "$previous"); fi
+          gh release create "$tag" --target "$SHA" --title "$tag" \
+            --notes-file "$notes" --generate-notes "${start[@]}"
+
+          echo "Released $tag (since ${previous:-the first commit})."
+          echo "Release: [$tag]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$tag)" >> "$GITHUB_STEP_SUMMARY"
