@@ -210,6 +210,47 @@ class ReleaseNotes
         return $value;
     }
 
+    /**
+     * task #124 follow-up: a note's text as display blocks. Consecutive
+     * lines starting "- " form one bullet list; other lines are
+     * paragraphs, a blank line starting a new one, the line breaks inside
+     * a paragraph kept. A "- " with nothing after it is skipped; "-x"
+     * (no space) is an ordinary line. Only plain strings come out: the
+     * view prints every piece with {{ }}, so nothing is ever HTML.
+     *
+     * @return list<array{type: 'p'|'ul', lines: list<string>}>
+     */
+    public static function blocks(?string $text): array
+    {
+        $blocks = [];
+        $current = null;
+
+        foreach (preg_split('/\R/', (string) $text) as $line) {
+            $line = rtrim($line);
+            $isBullet = str_starts_with($line, '- ') || $line === '-';
+            $type = $isBullet ? 'ul' : 'p';
+
+            if ($line === '') {
+                $current = null;
+
+                continue;
+            }
+
+            $content = $isBullet ? trim(substr($line, 2)) : $line;
+            if ($isBullet && $content === '') {
+                continue;
+            }
+
+            if ($current === null || $blocks[$current]['type'] !== $type) {
+                $blocks[] = ['type' => $type, 'lines' => []];
+                $current = array_key_last($blocks);
+            }
+            $blocks[$current]['lines'][] = $content;
+        }
+
+        return $blocks;
+    }
+
     public static function isVersion(string $version): bool
     {
         return (bool) preg_match('/^v\d{4}\.\d{2}\.\d+$/', $version);
