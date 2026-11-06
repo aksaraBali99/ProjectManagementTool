@@ -17,6 +17,27 @@ class Comment extends Model
 {
     use BelongsToTaskIncludingDeactivated;
 
+    /**
+     * task #122: the one size cap on a comment's body, in characters
+     * (mb_strlen, so an emoji counts as one) of its stored HTML: the same
+     * cap task descriptions have. Not a limit anyone writing a comment
+     * should meet (about 30,000 words of plain text): it's a safety cap
+     * against crafted requests. Each comment is re-sanitized and re-sent
+     * on every poll of the comments list, and copied into the audit log on
+     * every save, so a bigger cap costs on each of those.
+     *
+     * CommentController checks it on the raw request and again on the
+     * cleaned HTML (cleanBody()), and ImportValidator on an imported
+     * comment, so they can't disagree. It must also stay within the
+     * sanitizer's own byte limit (RichText::MAX_INPUT_BYTES) at up to 4
+     * bytes per character, or a long comment would sanitize to nothing;
+     * a test checks that.
+     */
+    public const MAX_BODY_LENGTH = 200_000;
+
+    /** The message for a comment over MAX_BODY_LENGTH. */
+    public const TOO_LONG_MESSAGE = 'This comment is too long to save. Split it into several comments.';
+
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
