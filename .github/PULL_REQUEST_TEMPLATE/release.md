@@ -38,6 +38,7 @@ Or: None
 All must be ticked before merging (release-check fails while any box is empty).
 
 - [ ] Every change here was tested on DEV at this exact commit
+- [ ] Release notes entry added for this version (Settings > Release notes on DEV)
 - [ ] Migrations reviewed; data-changing ones have a written rollback or restore plan
 - [ ] The last nightly hPanel backup completed (the deploy also takes its own backup right before migrating)
 - [ ] .env / config changes needed on PROD are done, or there are none

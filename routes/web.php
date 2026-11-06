@@ -20,6 +20,7 @@ use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\OrganizationManagementController;
 use App\Http\Controllers\PermissionManagementController;
 use App\Http\Controllers\ProjectManagementController;
+use App\Http\Controllers\ReleaseNotesController;
 use App\Http\Controllers\RichTextAudioController;
 use App\Http\Controllers\RichTextDocumentController;
 use App\Http\Controllers\RichTextImageController;
@@ -54,6 +55,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/kanban/{organization}/changes', [KanbanController::class, 'changes'])->name('kanban.changes');
     Route::get('/calendar/{organization?}', CalendarController::class)->name('calendar');
     Route::get('/settings', SettingsController::class)->name('settings.index');
+    // task #124: the release notes, read from resources/release-notes.json.
+    Route::get('/settings/release-notes', [ReleaseNotesController::class, 'index'])->name('release-notes.index');
     Route::get('/audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail.index');
     Route::get('/analytics', AnalyticsController::class)->name('analytics.index');
     Route::get('/task-colors', [TaskColorController::class, 'edit'])->name('task-colors.edit');

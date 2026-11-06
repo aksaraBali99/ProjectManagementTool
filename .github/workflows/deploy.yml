@@ -157,11 +157,27 @@ jobs:
           fi
 
           month=$(TZ=Asia/Makassar date +%Y.%m)
-          tag=$(git tag --list | bash .github/scripts/next-version.sh "$month")
           previous=$(git describe --tags --abbrev=0 --match "$pattern" "$SHA" 2>/dev/null || true)
+
+          # task #124: the version from the newest release notes entry at
+          # this commit, if it's usable; else next-version.sh, with a
+          # ::warning:: saying why.
+          git show "$SHA:resources/release-notes.json" > "$RUNNER_TEMP/release-notes.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/release-notes.json"
+          tag=$(git tag --list | bash .github/scripts/release-version.sh "$RUNNER_TEMP/release-notes.json" "$month" "$previous")
+
+          # The newest entry's notes belong to this release unless its
+          # version is already a tag (a stale entry): then none, with a
+          # warning. They're used even when the tag above fell back.
+          entry=$(git tag --list | bash .github/scripts/release-notes-entry.sh "$RUNNER_TEMP/release-notes.json")
 
           notes="$RUNNER_TEMP/release-notes.md"
           {
+            # task #124: the entry's own notes (summary, task, title, what
+            # changes), above the list from the commit subjects.
+            if [[ -n "$entry" ]]; then
+              bash .github/scripts/release-notes-body.sh "$RUNNER_TEMP/release-notes.json" "$entry"
+              echo ""
+            fi
             echo "## Tasks in this release"
             echo ""
             bash .github/scripts/release-tasks.sh "$previous" "$SHA"
