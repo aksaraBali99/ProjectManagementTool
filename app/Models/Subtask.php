@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTaskIncludingDeactivated;
 use App\Observers\SubtaskObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[ObservedBy(SubtaskObserver::class)]
 class Subtask extends Model
 {
+    use BelongsToTaskIncludingDeactivated;
+
     protected function casts(): array
     {
         return [

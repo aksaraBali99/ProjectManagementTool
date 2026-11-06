@@ -6,7 +6,10 @@
 <div class="mx-auto max-w-2xl">
     <div class="flex items-center justify-between">
         <a href="{{ $returnToUrl }}" class="text-[10px] uppercase tracking-[0.05em] text-gray-500 hover:underline">← {{ $returnToLabel }}</a>
-        @if ($canEdit && $canDeactivate)
+        {{-- task #123: $canDeactivate alone. A deactivated task can't be
+             edited ($canEdit is false), and Activate is the one action
+             left on it. --}}
+        @if ($canDeactivate)
             <form method="POST" action="{{ route('tasks.toggle-active', $task) }}">
                 @csrf
                 @method('PATCH')
@@ -28,6 +31,13 @@
 
     @if (session('status'))
         <div class="mt-4 rounded-md bg-brand-50 p-3 text-[12px] text-brand-800">{{ session('status') }}</div>
+    @endif
+
+    {{-- task #123: a deactivated task is read-only until it's activated. --}}
+    @if ($isDeactivated)
+        <div class="mt-4 rounded-md bg-[#FCEBEB] p-3 text-[12px] text-[#A32D2D]" data-deactivated-notice>
+            {{ $canDeactivate ? \App\Support\DeactivatedTask::MESSAGE : 'This task is deactivated.' }}
+        </div>
     @endif
 
     @if ($canEdit)
@@ -265,7 +275,11 @@
                 <div><span class="text-[10px] uppercase tracking-[0.05em] text-gray-500">Completed on</span><p class="mt-0.5 text-gray-700">{{ $task->completed_at->format('M j, Y') }}</p></div>
             @endif
         </div>
-        <p class="mt-3 text-[11px] text-gray-500">You can view this task and toggle its subtasks, but only its assignee or a manager can edit it.</p>
+        {{-- task #123: not on a deactivated task, where nobody can toggle
+             subtasks or edit; the notice above says why. --}}
+        @unless ($isDeactivated)
+            <p class="mt-3 text-[11px] text-gray-500">You can view this task and toggle its subtasks, but only its assignee or a manager can edit it.</p>
+        @endunless
     @endif
 
     <div class="mt-6">
@@ -290,5 +304,8 @@
     </div>
 </div>
 
-@include('users._unsaved-changes-guard', ['formId' => 'edit-task-form'])
+{{-- task #123: only when the form is on the page. --}}
+@if ($canEdit)
+    @include('users._unsaved-changes-guard', ['formId' => 'edit-task-form'])
+@endif
 @endsection

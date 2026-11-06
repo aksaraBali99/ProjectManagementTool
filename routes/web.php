@@ -125,12 +125,12 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/tasks/{task}/preview', [TaskManagementController::class, 'preview'])->name('tasks.preview')->withTrashed();
     Route::put('/tasks/{task}', [TaskManagementController::class, 'update'])->name('tasks.update')->withTrashed();
     Route::patch('/tasks/{task}/toggle-active', [TaskManagementController::class, 'toggleActive'])->name('tasks.toggle-active')->withTrashed();
-    Route::patch('/tasks/{task}/status', [TaskManagementController::class, 'updateStatus'])->name('tasks.update-status');
-    Route::patch('/tasks/{task}/assignee', [TaskManagementController::class, 'updateAssignee'])->name('tasks.update-assignee');
+    Route::patch('/tasks/{task}/status', [TaskManagementController::class, 'updateStatus'])->name('tasks.update-status')->withTrashed();
+    Route::patch('/tasks/{task}/assignee', [TaskManagementController::class, 'updateAssignee'])->name('tasks.update-assignee')->withTrashed();
 
-    // ->withTrashed(): matches tasks.edit/update above — a deactivated
-    // task's Description is still reachable/editable there, so its image
-    // button must keep working too.
+    // ->withTrashed(): matches tasks.edit/update above, so a deactivated
+    // task's upload reaches the policy (task #123: refused there, with the
+    // "This task is deactivated" message, instead of a 404).
     Route::post('/tasks/{task}/images', [RichTextImageController::class, 'store'])->name('tasks.images.store')->withTrashed();
     // Not nested under /tasks/{task} — the Add Task page has no task yet;
     // see RichTextImageController::storePending().
@@ -159,13 +159,13 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::post('/tasks/{task}/link-previews', [LinkPreviewController::class, 'resolve'])->name('tasks.link-previews.resolve')->withTrashed();
     Route::post('/pending-task-link-previews', [LinkPreviewController::class, 'resolvePending'])->name('tasks.link-previews.resolve-pending');
 
-    Route::post('/tasks/{task}/subtasks', [SubtaskController::class, 'store'])->name('subtasks.store');
+    Route::post('/tasks/{task}/subtasks', [SubtaskController::class, 'store'])->name('subtasks.store')->withTrashed();
     Route::patch('/subtasks/{subtask}/toggle', [SubtaskController::class, 'toggle'])->name('subtasks.toggle');
     Route::put('/subtasks/{subtask}', [SubtaskController::class, 'update'])->name('subtasks.update');
     Route::delete('/subtasks/{subtask}', [SubtaskController::class, 'destroy'])->name('subtasks.destroy');
 
-    Route::get('/tasks/{task}/comments', [CommentController::class, 'index'])->name('comments.index');
-    Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
+    Route::get('/tasks/{task}/comments', [CommentController::class, 'index'])->name('comments.index')->withTrashed();
+    Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store')->withTrashed();
     Route::put('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
     Route::post('/comments/{comment}/reactions', [CommentReactionController::class, 'store'])->name('comments.reactions.store');
@@ -204,9 +204,9 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     // list — a fixed trailing segment, so this never competes with
     // task-documents.attach below (same reasoning as documents.dependencies
     // above).
-    Route::get('/tasks/{task}/documents/attachable', [TaskDocumentController::class, 'index'])->name('task-documents.attachable');
-    Route::post('/tasks/{task}/documents', [TaskDocumentController::class, 'attach'])->name('task-documents.attach');
-    Route::delete('/tasks/{task}/documents/{document}', [TaskDocumentController::class, 'detach'])->name('task-documents.detach');
+    Route::get('/tasks/{task}/documents/attachable', [TaskDocumentController::class, 'index'])->name('task-documents.attachable')->withTrashed();
+    Route::post('/tasks/{task}/documents', [TaskDocumentController::class, 'attach'])->name('task-documents.attach')->withTrashed();
+    Route::delete('/tasks/{task}/documents/{document}', [TaskDocumentController::class, 'detach'])->name('task-documents.detach')->withTrashed();
 
     // task #73 phase 4: the folder-attach picker's sibling routes, same
     // fixed-trailing-segment reasoning as task-documents.attachable above.
@@ -214,10 +214,10 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     // /folders/{folder}/documents or similar) since it's read by ANY task
     // viewer who isn't a Client (see TaskFolderController::expand()'s own
     // docblock), not just someone who can attach/detach folders.
-    Route::get('/tasks/{task}/folders/attachable', [TaskFolderController::class, 'index'])->name('task-folders.attachable');
-    Route::post('/tasks/{task}/folders', [TaskFolderController::class, 'attach'])->name('task-folders.attach');
-    Route::delete('/tasks/{task}/folders/{folder}', [TaskFolderController::class, 'detach'])->name('task-folders.detach');
-    Route::get('/tasks/{task}/folders/{folder}/expand', [TaskFolderController::class, 'expand'])->name('task-folders.expand');
+    Route::get('/tasks/{task}/folders/attachable', [TaskFolderController::class, 'index'])->name('task-folders.attachable')->withTrashed();
+    Route::post('/tasks/{task}/folders', [TaskFolderController::class, 'attach'])->name('task-folders.attach')->withTrashed();
+    Route::delete('/tasks/{task}/folders/{folder}', [TaskFolderController::class, 'detach'])->name('task-folders.detach')->withTrashed();
+    Route::get('/tasks/{task}/folders/{folder}/expand', [TaskFolderController::class, 'expand'])->name('task-folders.expand')->withTrashed();
 
     // task #73 phase 2
     Route::post('/document-folders', [DocumentFolderController::class, 'store'])->name('document-folders.store');

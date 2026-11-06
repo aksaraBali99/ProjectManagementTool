@@ -22,6 +22,7 @@ use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use App\Services\LinkPreviewService;
 use App\Services\TaskDocumentLinker;
+use App\Support\DeactivatedTask;
 use App\Support\TaskCodeQuery;
 use DOMDocument;
 use DOMXPath;
@@ -778,13 +779,22 @@ class TaskManagementController extends Controller
             'returnToUrl' => $returnTo['url'],
             'returnToLabel' => $returnTo['label'],
             'returnToParams' => $returnTo['params'],
+            // task #123: false for a deactivated task (TaskPolicy::update()),
+            // which shows the read-only details instead of the form.
             'canEdit' => auth()->user()->can('update', $task),
             'canDeactivate' => auth()->user()->can('delete', $task),
+            // task #123: a deactivated task is read-only: the notice, a
+            // disabled subtask checkbox, no reactions. Every other control
+            // already follows its own policy check (all refuse a
+            // deactivated task).
+            'isDeactivated' => $task->trashed(),
             // Deliberately separate from canEdit: creating a new document
             // (DocumentPolicy::create, gated by manage_documents) is a
             // different capability from editing this task, even though the
             // two happen to overlap for most roles today.
-            'canManageDocuments' => Gate::allows('create', [Document::class, $task->organization_id]),
+            // task #123: never on a deactivated task (DocumentController::store()
+            // refuses attaching to one).
+            'canManageDocuments' => DeactivatedTask::allowsChanges($task) && Gate::allows('create', [Document::class, $task->organization_id]),
             // task #73 phase 2: TaskPolicy::unlinkDocuments() — manage_
             // documents + task view, not full task-edit rights. Still the
             // FOLDER Detach button's gate, and the precondition for the

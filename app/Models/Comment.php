@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTaskIncludingDeactivated;
 use App\Observers\CommentObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[ObservedBy(CommentObserver::class)]
 class Comment extends Model
 {
+    use BelongsToTaskIncludingDeactivated;
+
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);

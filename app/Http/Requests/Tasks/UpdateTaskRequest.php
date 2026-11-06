@@ -9,17 +9,25 @@ use App\Models\Department;
 use App\Models\Project;
 use App\Models\Task;
 use App\Support\RichText;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class UpdateTaskRequest extends FormRequest
 {
     use ValidatesTaskAssignment;
 
-    public function authorize(): bool
+    /**
+     * task #123: TaskPolicy::update() before validation, so a save that
+     * can't happen (a deactivated task, from a tab left open) is refused
+     * with the policy's own message, not sent back to a page that no
+     * longer shows the form or its errors.
+     */
+    public function authorize(): Response
     {
-        return true;
+        return Gate::inspect('update', $this->route('task'));
     }
 
     protected function prepareForValidation(): void

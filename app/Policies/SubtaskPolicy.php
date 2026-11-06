@@ -5,13 +5,21 @@ namespace App\Policies;
 use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\DeactivatedTask;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * task #123: every check reads the subtask's task through parentTask
+ * (deactivated tasks included), never task, which is null for a
+ * deactivated task; and a deactivated task's subtasks can't be changed.
+ */
 class SubtaskPolicy
 {
-    public function create(User $user, Task $task): bool
+    public function create(User $user, Task $task): bool|Response
     {
-        return Gate::forUser($user)->allows('update', $task);
+        return DeactivatedTask::denial($task)
+            ?? Gate::forUser($user)->allows('update', $task);
     }
 
     /**
@@ -23,18 +31,24 @@ class SubtaskPolicy
      * as view_tasks, but a distinct slug so it can diverge later) on top
      * of the existing task-visibility scoping check.
      */
-    public function toggle(User $user, Subtask $subtask): bool
+    public function toggle(User $user, Subtask $subtask): bool|Response
     {
-        return $user->hasPermission('toggle_subtask_done', $subtask->task->organization_id)
-            && Gate::forUser($user)->allows('view', $subtask->task);
+        $task = $subtask->parentTask;
+
+        return DeactivatedTask::denial($task)
+            ?? ($user->hasPermission('toggle_subtask_done', $task->organization_id)
+                && Gate::forUser($user)->allows('view', $task));
     }
 
-    public function update(User $user, Subtask $subtask): bool
+    public function update(User $user, Subtask $subtask): bool|Response
     {
-        return Gate::forUser($user)->allows('update', $subtask->task);
+        $task = $subtask->parentTask;
+
+        return DeactivatedTask::denial($task)
+            ?? Gate::forUser($user)->allows('update', $task);
     }
 
-    public function delete(User $user, Subtask $subtask): bool
+    public function delete(User $user, Subtask $subtask): bool|Response
     {
         return $this->update($user, $subtask);
     }

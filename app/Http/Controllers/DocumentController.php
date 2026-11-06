@@ -15,6 +15,7 @@ use App\Services\DocumentDependencyService;
 use App\Services\DocumentUploadService;
 use App\Services\FileStorageService;
 use App\Services\TaskDocumentLinker;
+use App\Support\DeactivatedTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -276,7 +277,9 @@ class DocumentController extends Controller
 
         $task = null;
         if (! empty($data['task_id'])) {
-            $task = Task::findOrFail($data['task_id']);
+            // task #123: deactivated tasks included, so one is refused with
+            // the "This task is deactivated" message rather than a 404.
+            $task = Task::withTrashed()->findOrFail($data['task_id']);
             // 'view', not 'update' — creating and attaching a new document
             // is authorized entirely by DocumentPolicy::create() above
             // (manage_documents), a deliberately separate capability from
@@ -289,6 +292,7 @@ class DocumentController extends Controller
             // manage_documents (who can never pass TaskPolicy::update)
             // attach a document to a task on their own project.
             Gate::authorize('view', $task);
+            DeactivatedTask::refuse($task);
 
             // (int) cast, not a bare !== : $data['organization_id'] is a
             // STRING for a real multipart/form-data upload (raw HTTP

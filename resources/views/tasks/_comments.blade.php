@@ -34,7 +34,12 @@
     // docblock for the full story (task #70 phase 4's query-count
     // regression test surfaced this on the JSON polling endpoint;
     // this initial render had the identical N+1).
-    $canEditOwnComments = app(\App\Policies\CommentPolicy::class)->canEditOwnComments(auth()->user(), $task->organization_id);
+    // task #123: CommentPolicy::create() is canEditOwnComments() plus the
+    // deactivated-task refusal: a deactivated task's comments are
+    // read-only (no new comment, reply, edit or delete), and no reaction
+    // (CommentPolicy::react()) either.
+    $canEditOwnComments = auth()->user()->can('create', [\App\Models\Comment::class, $task]);
+    $canReact = \App\Support\DeactivatedTask::allowsChanges($task);
     $isSuperAdminOrOwner = auth()->user()->isSuperAdmin() || auth()->user()->isOwner();
     // The toolbar's attach-document button creates a real Document, so it
     // follows the same manage_documents gate (DocumentPolicy::create) as
@@ -80,7 +85,7 @@
                          however many comments/reactions the task has. --}}
                     <div class="reactions-list mt-1 flex flex-wrap items-center gap-1" data-reactions-hash="{{ $comment->reactionsHash(auth()->id()) }}">
                         @foreach ($comment->reactionSummary(auth()->id()) as $reaction)
-                            <button type="button" class="reaction-pill{{ $reaction['reacted_by_me'] ? ' is-mine' : '' }}" data-emoji="{{ $reaction['emoji'] }}" title="{{ implode(', ', $reaction['user_names']) }}">{{ $reaction['emoji'] }} <span class="reaction-count">{{ $reaction['count'] }}</span></button>
+                            <button type="button" class="reaction-pill{{ $reaction['reacted_by_me'] ? ' is-mine' : '' }}" @disabled(! $canReact) data-emoji="{{ $reaction['emoji'] }}" title="{{ implode(', ', $reaction['user_names']) }}">{{ $reaction['emoji'] }} <span class="reaction-count">{{ $reaction['count'] }}</span></button>
                         @endforeach
                     </div>
                     <div class="comment-actions mt-1 flex items-center gap-2">
@@ -103,7 +108,9 @@
                         {{-- Reactions are deliberately NOT gated here: they need
                              only view access to the task, not add_edit_own_comment
                              (TC-55 confirmed this as intended behaviour). --}}
-                        <button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">{!! $reactIcon !!}</button>
+                        @if ($canReact)
+                            <button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">{!! $reactIcon !!}</button>
+                        @endif
                     </div>
                 </div>
                 <div class="replies-list mt-2 ml-6 space-y-2">
@@ -120,7 +127,7 @@
                             <x-rich-text :value="$reply->body" class="comment-body-text mt-1 text-[12px] text-gray-700" :data-body-hash="md5($reply->body)" :data-mentioned-users="$reply->mentionedUsers->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->toJson()" />
                             <div class="reactions-list mt-1 flex flex-wrap items-center gap-1" data-reactions-hash="{{ $reply->reactionsHash(auth()->id()) }}">
                                 @foreach ($reply->reactionSummary(auth()->id()) as $reaction)
-                                    <button type="button" class="reaction-pill{{ $reaction['reacted_by_me'] ? ' is-mine' : '' }}" data-emoji="{{ $reaction['emoji'] }}" title="{{ implode(', ', $reaction['user_names']) }}">{{ $reaction['emoji'] }} <span class="reaction-count">{{ $reaction['count'] }}</span></button>
+                                    <button type="button" class="reaction-pill{{ $reaction['reacted_by_me'] ? ' is-mine' : '' }}" @disabled(! $canReact) data-emoji="{{ $reaction['emoji'] }}" title="{{ implode(', ', $reaction['user_names']) }}">{{ $reaction['emoji'] }} <span class="reaction-count">{{ $reaction['count'] }}</span></button>
                                 @endforeach
                             </div>
                             <div class="comment-actions mt-1 flex items-center gap-2">
@@ -131,7 +138,9 @@
                                 @if ($canEditOwnComments)
                                     <button type="button" class="reply-comment-btn text-[10px] text-brand-600 hover:underline">Reply</button>
                                 @endif
-                                <button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">{!! $reactIcon !!}</button>
+                                @if ($canReact)
+                                    <button type="button" class="react-comment-btn inline-flex items-center text-brand-600 hover:text-brand-700" title="Add reaction" aria-label="Add reaction">{!! $reactIcon !!}</button>
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -176,6 +185,9 @@
         // once at render time: a permission changed mid-session only takes
         // effect on the next page load, same as $canEditOwnComments itself.
         const canComment = @json($canEditOwnComments);
+        // task #123: false on a deactivated task: no "Add reaction" button
+        // and the reaction pills only show the counts.
+        const canReact = @json($canReact);
         const canAttachFiles = @json($canAttachFiles);
 
         // task #70 phase 3: captures each server-rendered comment body's
@@ -277,6 +289,8 @@
                 const pill = document.createElement('button');
                 pill.type = 'button';
                 pill.className = 'reaction-pill' + (reaction.reacted_by_me ? ' is-mine' : '');
+                // task #123: shown, not clickable, on a deactivated task.
+                pill.disabled = ! canReact;
                 pill.dataset.emoji = reaction.emoji;
                 pill.title = reaction.user_names.join(', ');
                 pill.appendChild(document.createTextNode(reaction.emoji + ' '));
@@ -372,7 +386,7 @@
                 + '<circle cx="6.3" cy="6.3" r="4.8"/><circle cx="4.7" cy="5.2" r=".6" fill="currentColor" stroke="none"/><circle cx="7.9" cy="5.2" r=".6" fill="currentColor" stroke="none"/>'
                 + '<path d="M4.1 7.6a3.1 3.1 0 0 0 4.4 0"/><line x1="11.5" y1="10" x2="11.5" y2="14"/><line x1="9.5" y1="12" x2="13.5" y2="12"/></svg>'
                 + '</button>';
-            const actionsHtml = '<div class="comment-actions mt-1 flex items-center gap-2">' + editDeleteHtml + replyHtml + reactHtml + '</div>';
+            const actionsHtml = '<div class="comment-actions mt-1 flex items-center gap-2">' + editDeleteHtml + replyHtml + (canReact ? reactHtml : '') + '</div>';
             // Always empty at build time — a comment JS builds here is either
             // brand new (nobody could have reacted yet) or freshly discovered
             // by the poll (which, if it already has reactions, rebuilds this
@@ -728,7 +742,7 @@
             }
 
             const pill = event.target.closest('.reaction-pill');
-            if (pill) {
+            if (pill && canReact) {
                 const card = pill.closest('.comment-card');
                 if (card) postReaction(card.dataset.commentId, pill.dataset.emoji);
             }
