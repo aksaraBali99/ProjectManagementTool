@@ -2595,8 +2595,8 @@
     "semantic_hash": ""
   },
   "resources/views/release-notes/index.blade.php": {
-    "mtime": 1793964777.226628,
-    "ast_hash": "54b268015732d925065c9ea133efa5d7",
+    "mtime": 1793965651.3711238,
+    "ast_hash": "70e1f15926c85e2e15d97580ccbcf8b0",
     "semantic_hash": ""
   },
   "tests/Feature/ReleaseNotes/ReleaseNotesPageTest.php": {
@@ -2615,8 +2615,13 @@
     "semantic_hash": ""
   },
   "resources/views/release-notes/_task.blade.php": {
-    "mtime": 1793964557.02601,
-    "ast_hash": "5dc629a226aa8c69af0a1c455fa3e15e",
+    "mtime": 1793965651.3721237,
+    "ast_hash": "26bd72cd70f664cf8ed0794b12c7840b",
+    "semantic_hash": ""
+  },
+  "resources/release-notes.json": {
+    "mtime": 1793963970.971786,
+    "ast_hash": "",
     "semantic_hash": ""
   }
 }
