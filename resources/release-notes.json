@@ -1,3 +1,71 @@
 {
-    "releases": []
+    "releases": [
+        {
+            "version": "v2026.11.1",
+            "date": "2026-11-06",
+            "summary": "Faster pages as the number of tasks grows, company-coded task numbers, longer comments, read-only deactivated tasks, back links that survive a save, and a Release notes page.",
+            "tasks": [
+                {
+                    "number": 72,
+                    "type": "Enhancement",
+                    "title": "Faster Tasks, Kanban, Dashboard and Projects pages",
+                    "before": "Every page loaded all tasks at once, with their details, so pages got slower as tasks grew. The Tasks list showed every task on one page, Kanban showed every card, completed tasks stayed on every page forever, and Kanban only showed other people's changes after a reload.",
+                    "after": "The Tasks list has pages (25 tasks per page by default; type any number up to 100, remembered for you), and a row's details load when you open it. Kanban shows 30 cards per column with Load more, and updates by itself every 15 seconds. Tasks completed longer ago than the company's window (set on the Companies page) are hidden by default on Kanban, the Tasks list, Dashboard and Projects; nothing is deleted, and each page can still show them. The Dashboard shows the first 10 tasks per section, and Projects load a project's tasks (the first 25, soonest due) when you open its row.",
+                    "prs": [133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143]
+                },
+                {
+                    "number": 118,
+                    "type": "Enhancement",
+                    "title": "Company-coded task numbers",
+                    "before": "Tasks had a plain number shared by all companies, shown as #id, and couldn't be searched by number.",
+                    "after": "Each task has a code made of its company's code and its own number in that company, for example BGS-0012. The code shows before the title on every screen, in notifications, emails and the Audit Trail, and the Tasks search finds a task by its code or number. Each company's code is set on the Companies page, and is locked once that company has numbered tasks.",
+                    "prs": [144, 145, 146, 147, 148]
+                },
+                {
+                    "number": 121,
+                    "type": "Bugfix",
+                    "title": "Keep the back link after saving or deactivating a task",
+                    "before": "After saving a task opened from Kanban (or Calendar, Dashboard, Projects), the back link changed to Tasks. Deactivating or activating a task on the Tasks list opened the task's page and lost the list's search, filters, sort and page.",
+                    "after": "The back link stays the one you came from after Save, Deactivate and Activate. On the Tasks list, Deactivate and Activate keep you on the same list, with the same search, filters, sort and page.",
+                    "pr": 151
+                },
+                {
+                    "number": 122,
+                    "type": "Enhancement",
+                    "title": "Much longer comments",
+                    "before": "A comment could have at most 2,000 characters of text, in the app and in the Excel import.",
+                    "after": "A comment can be up to 200,000 characters, about 30,000 words, the same as a task description. Above that, the comment box says the comment is too long to save. (An Excel import is limited by Excel itself to 32,767 characters per cell.)",
+                    "pr": 153
+                },
+                {
+                    "number": 123,
+                    "type": "Bugfix",
+                    "title": "Deactivated tasks are read-only",
+                    "before": "A deactivated task could still be edited and saved. Its comments didn't load, and some actions on it failed with an error.",
+                    "after": "A deactivated task shows a notice and can only be viewed, with its details, subtasks, documents and comments. Activate is the only action left, for the people allowed to use it. On the Tasks list, an inactive row offers View.",
+                    "pr": 152
+                },
+                {
+                    "number": 124,
+                    "type": "Enhancement",
+                    "title": "Release notes page",
+                    "before": "There was no list in the app of what changed in each release.",
+                    "after": "Settings > Release notes, for owners and super admins, lists every release with its tasks and what changed for people.",
+                    "pr": 154
+                },
+                {
+                    "number": 119,
+                    "type": "Chore",
+                    "title": "Release process with automatic DEV deploys and a backup before every PROD deploy",
+                    "pr": 149
+                },
+                {
+                    "number": 120,
+                    "type": "Chore",
+                    "title": "Update GitHub Actions for the Node.js 20 deprecation",
+                    "pr": 150
+                }
+            ]
+        }
+    ]
 }
