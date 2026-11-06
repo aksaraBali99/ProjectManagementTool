@@ -20,4 +20,18 @@ return [
 
     'access_cache' => env('ACCESS_CACHE_ENABLED', true),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Release notes
+    |--------------------------------------------------------------------------
+    |
+    | task #124. The file Settings > Release notes reads: one entry per
+    | release, newest first, added on main before each release PR (see
+    | docs/release-process.md). Configurable so tests can point it at a
+    | fixture.
+    |
+    */
+
+    'release_notes_path' => resource_path('release-notes.json'),
+
 ];

@@ -70,6 +70,34 @@ jobs:
           fi
           echo "No drift: every commit on production is on main."
 
+      # task #124: the newest entry in resources/release-notes.json is this
+      # release's (the version it will get, every task in it). Runs even
+      # when a check above failed, so all problems show at once.
+      - name: Release notes entry
+        if: ${{ !cancelled() }}
+        run: |
+          previous=$(git describe --tags --abbrev=0 --match 'v[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9]*' origin/production 2>/dev/null || true)
+          next=$(git tag --list | bash .github/scripts/next-version.sh "$(TZ=Asia/Makassar date +%Y.%m)")
+          git tag --list > "$RUNNER_TEMP/tags"
+          { bash .github/scripts/release-tasks.sh "$previous" HEAD | grep -oE '[0-9]+' || true; } > "$RUNNER_TEMP/tasks"
+
+          code=0
+          output=$(bash .github/scripts/release-notes-check.sh resources/release-notes.json "$next" "$RUNNER_TEMP/tags" "$RUNNER_TEMP/tasks") || code=$?
+          echo "$output"
+          {
+            echo ""
+            echo "## Release notes"
+            echo ""
+            while IFS= read -r line; do
+              case "$line" in
+                ::error::*) echo "- ❌ ${line#::error::}" ;;
+                ::warning::*) echo "- ⚠️ ${line#::warning::}" ;;
+                OK:*) echo "- ✅ ${line#OK: }" ;;
+              esac
+            done <<<"$output"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
+
   label:
     name: Label release and back-merge PRs
     # Same-repository PRs only: a fork's token can't add labels.

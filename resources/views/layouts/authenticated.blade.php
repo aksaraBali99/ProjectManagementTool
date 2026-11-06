@@ -38,6 +38,7 @@
                     ['label' => 'Audit trail', 'route' => 'audit-trail.index', 'matches' => ['audit-trail.*'], 'can' => ['viewAny', \App\Models\AuditLog::class]],
                     ['label' => 'Status & Priority Colors', 'route' => 'task-colors.edit', 'matches' => ['task-colors.*'], 'can' => ['task-colors.view']],
                     ['label' => 'Bulk Import', 'route' => 'import.index', 'matches' => ['import.*'], 'can' => ['import.view']],
+                    ['label' => 'Release notes', 'route' => 'release-notes.index', 'matches' => ['release-notes.*'], 'can' => ['release-notes.view']],
                 ],
             ],
         ];

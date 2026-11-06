@@ -13,7 +13,8 @@
             || auth()->user()->can('viewAny', App\Models\Role::class)
             || auth()->user()->can('viewAny', App\Models\AuditLog::class)
             || auth()->user()->can('analytics.view')
-            || auth()->user()->can('task-colors.view');
+            || auth()->user()->can('task-colors.view')
+            || auth()->user()->can('release-notes.view');
     @endphp
 
     <div class="mt-6 space-y-2">
@@ -100,6 +101,18 @@
                 <span>
                     <span class="block text-sm font-medium text-gray-900">Status & Priority Colors</span>
                     <span class="block text-xs text-gray-500">Customize the colors used for task statuses and priorities app-wide</span>
+                </span>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+        @endcan
+
+        {{-- task #124 --}}
+        @can('release-notes.view')
+            <a href="{{ route('release-notes.index') }}"
+               class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50">
+                <span>
+                    <span class="block text-sm font-medium text-gray-900">Release notes</span>
+                    <span class="block text-xs text-gray-500">What changed in each release, newest first</span>
                 </span>
                 <i class="ti ti-chevron-right text-gray-400"></i>
             </a>

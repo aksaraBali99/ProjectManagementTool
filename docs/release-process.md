@@ -16,7 +16,8 @@ The moving parts:
 | `deploy.sh` | Runs on the server. Pre-flight checks, then (PROD) maintenance mode on and a backup, then fast-forward, composer, migrate, caches, and maintenance mode off. |
 | `php artisan solva:db-backup` | The gzipped database dump every PROD deploy takes with the site down, just before the pull, in `storage/app/backups` (5 kept). Each file is read back and checked before older ones are deleted. |
 | `.github/PULL_REQUEST_TEMPLATE/release.md` | The release PR template. |
-| `.github/scripts/*.sh` | Version number, task list and release checks, tested by `tests/scripts/run.sh`. |
+| `.github/scripts/*.sh` | Version number, task list, release checks and release notes checks (the release notes ones need `jq`), tested by `tests/scripts/run.sh`. |
+| `resources/release-notes.json` | The release notes, one entry per release, shown in Settings > Release notes (section 7). |
 
 Assets are unchanged: `public/build` is still built locally (`npm run build`) and committed, because Hostinger can't run npm.
 
@@ -143,7 +144,7 @@ When ready: Settings > Secrets and variables > Actions > Variables > New reposit
 
 PROD's current checkout is older than `solva:db-backup`. On the very first release, the deploy's backup step stops it with "no 'solva:db-backup' command yet", before changing anything. For that one release:
 
-1. Merge the release PR as usual (section 2). The Deploy run waits for your approval. **Don't approve yet.**
+1. Add its release notes entry first, as `v2026.11.1` (section 2, step 1): everything on main since the commit live on PROD. Then merge the release PR as usual (section 2). The Deploy run waits for your approval. **Don't approve yet.**
 2. Check the latest hPanel backup completed (or take one in hPanel > Files > Backups).
 3. On the PROD server, run that release's own `deploy.sh` by hand: a dry run first, then for real without `--backup`:
    ```
@@ -162,21 +163,22 @@ From then on every release goes through the workflow alone.
 
 ## 2. A normal release
 
-1. **Open the release PR** with the template:
+1. **Add the release notes.** On a branch from main, add the release's entry at the top of `resources/release-notes.json`: its version (the next `vYYYY.MM.N`), planned date, summary, and one item per task (section 7). Open a PR into main titled `Chore: release notes for vYYYY.MM.N`, merge it, and check Settings > Release notes on DEV once it's deployed there.
+2. **Open the release PR** with the template:
    https://github.com/aksaraBali99/ProjectManagementTool/compare/production...main?template=release.md
-2. **Title it** `Release vYYYY.MM.N`, using the number from the release-check job's summary. It must start with `Release v`: the PR is then labelled `release` and left out of the release notes.
-3. **Wait for the checks** (`test`, `release-check`). Open *release-check > Summary* and paste its task list and migrations into the PR.
-4. **Fill in the template:**
+3. **Title it** `Release vYYYY.MM.N`, with the version from the entry. It must start with `Release v`: the PR is then labelled `release` and left out of GitHub's generated list.
+4. **Wait for the checks** (`test`, `release-check`). Open *release-check > Summary* and paste its task list and migrations into the PR. Its **Release notes** section must be all ✅: the entry's version is the one this release will get, and it lists every task in the release. Fix the entry on main (another small PR) if not; the release PR picks it up.
+5. **Fill in the template:**
    - mark each migration safe / data-changing / slow;
    - list the before and after steps, or "None";
    - write the rollback plan.
-5. **Tick every checklist box** once it's true. `release-check` fails while any box is empty, and re-runs when you edit the description.
-6. **Merge** with **Create a merge commit**.
-7. **Do the "before" steps**, if any.
-8. **Approve the deploy:** Actions > the Deploy run > *Review deployments* > production > *Approve and deploy*.
-9. **Watch the run.** It takes the site down, backs up the database, deploys and migrates, brings the site up, then smoke-tests `/up`. With the site down during the backup, nothing is written between the backup and the migrations. Maintenance mode lasts from before the backup until the caches are rebuilt: the backup's time plus usually under a minute.
-10. **Do the "after" steps**, if any.
-11. **Fill in the version** in the PR. It's in the run's summary and on the Releases page.
+6. **Tick every checklist box** once it's true. `release-check` fails while any box is empty, and re-runs when you edit the description.
+7. **Merge** with **Create a merge commit**.
+8. **Do the "before" steps**, if any.
+9. **Approve the deploy:** Actions > the Deploy run > *Review deployments* > production > *Approve and deploy*.
+10. **Watch the run.** It takes the site down, backs up the database, deploys and migrates, brings the site up, then smoke-tests `/up`. With the site down during the backup, nothing is written between the backup and the migrations. Maintenance mode lasts from before the backup until the caches are rebuilt: the backup's time plus usually under a minute.
+11. **Do the "after" steps**, if any.
+12. **Fill in the version** in the PR. It's the entry's version, unless the run warned that it had to use another one (it says why); it's in the run's summary and on the Releases page either way.
 
 A release PR from main always contains everything on main. To leave something out, it has to be reverted on main first, or not merged yet.
 
@@ -190,9 +192,9 @@ For a fix that can't wait for the next release:
    git checkout -b Hotfix/<task>-<slug> origin/production
    ```
    The name must start with `Hotfix/` (capital H), or `release-check` fails.
-2. Make the fix and open a PR into **production**. `test` and `release-check` run. The checklist and drift checks don't apply to hotfixes.
-3. Merge it with **Create a merge commit**, then approve the deploy. It gets the next number, e.g. `v2026.11.4`.
-4. **Straight away**, open a PR from **production** into **main**, titled `Back-merge v2026.11.4 into main`, and merge it with **Create a merge commit** (not squash). Until this is merged, the drift check blocks the next release PR.
+2. Make the fix, and add its entry at the top of `resources/release-notes.json` **on the hotfix branch** (the next version, e.g. `v2026.11.4`). Open a PR into **production**. `test` and `release-check` run; the checklist and drift checks don't apply to hotfixes, but the release notes check does.
+3. Merge it with **Create a merge commit**, then approve the deploy. It's tagged with the entry's version.
+4. **Straight away**, open a PR from **production** into **main**, titled `Back-merge v2026.11.4 into main`, and merge it with **Create a merge commit** (not squash). That also brings the hotfix's notes entry to main. Until this is merged, the drift check blocks the next release PR.
 
 ## 4. Re-deploying the same commit
 
@@ -294,9 +296,44 @@ No tag and no Release are created unless the deploy and the smoke test both pass
 
 ## 7. Release notes
 
-Each GitHub Release (Releases on the repo page) starts with **Tasks in this release**, the unique `task #N` references from the commit subjects since the previous tag. GitHub's generated list of merged PRs follows under **Changes**, grouped by `.github/release.yml`, without release and back-merge PRs.
+**Settings > Release notes** (owner and super_admin) lists every release, newest first, with what changed for people: per task, its title and a before / after. It reads `resources/release-notes.json`, which ships with the code it describes: each server lists the notes of the code it runs, so DEV shows a release before PROD does. Nothing is stored in the database or fetched from GitHub.
 
-A future Settings > Release notes page in Solava can read these Releases through the GitHub API (`GET /repos/aksaraBali99/ProjectManagementTool/releases`).
+**The file**, newest entry first:
+
+```json
+{
+  "releases": [
+    {
+      "version": "v2026.11.2",
+      "date": "2026-11-20",
+      "summary": "One or two sentences on the release.",
+      "tasks": [
+        {
+          "number": 123,
+          "type": "Bugfix",
+          "title": "Make a deactivated task read-only",
+          "before": "What people saw or could do before.",
+          "after": "What changes for them now.",
+          "pr": 152
+        }
+      ]
+    }
+  ]
+}
+```
+
+- `version` is `vYYYY.MM.N`: the version the release **will** get. Versions are unique and newest first.
+- `date` is the planned release date, `YYYY-MM-DD`.
+- `type` is `Enhancement`, `Bugfix` or `Chore`. `before` and `after` are required for Enhancement and Bugfix, and optional for Chore.
+- `pr` is one PR number, or `prs` a list of them (not both). A task number appears once per entry.
+- **Plain text only**, line breaks allowed: the page shows it exactly as written, never as HTML. The file is shipped to PROD, so plain change descriptions only: no secrets, no internal hostnames.
+
+**The checks:**
+- A test checks the real file on every PR (`ReleaseNotesPageTest`), so a bad edit fails CI.
+- **release-check** (on release and hotfix PRs into production) checks that the newest entry's version is the one this release will get and isn't already a tag, and that it lists every `task #N` from the release's commits. Extra tasks in the entry only warn. If the entry's planned date is in another month than its version, it warns: the deploy then computes the version from the deploy's month.
+- An entry for a release that never happened (its release PR closed) is reused for the next release: the version check shows it, since the next release gets the same version.
+
+**The GitHub Release** for each PROD deploy is tagged with the newest entry's version, if it's a `vYYYY.MM.N`, isn't already a tag and is higher than the previous tag. Otherwise it gets the next version as before, and the run warns why. The Release starts with the entry's notes (**Release notes**: summary and each task's title and "after"), then **Tasks in this release** (the `task #N` references from the commit subjects since the previous tag), then GitHub's generated list of merged PRs under **Changes**, without release and back-merge PRs.
 
 ## Edge cases, for reference
 
