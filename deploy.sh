@@ -246,6 +246,13 @@ deploy_fail() {
         echo "  php artisan view:clear && php artisan config:clear && php artisan route:clear"
         echo "  php artisan config:cache && php artisan route:cache"
         echo "  (migrations that already ran stay; restore the backup if the data needs to go back too)"
+        echo "  Once back on ${old_sha}, don't re-run this deploy: ${branch} still has the failed commit,"
+        echo "  so it would fast-forward straight back onto it. The fix ships as a new commit on top:"
+        if [[ "$branch" == "production" ]]; then
+            echo "  a revert release (revert PR into main, then a release) or a hotfix."
+        else
+            echo "  a revert PR into main."
+        fi
         if ((maintenance_on)); then
             echo "Only when the site works again:"
             echo "  php artisan up"

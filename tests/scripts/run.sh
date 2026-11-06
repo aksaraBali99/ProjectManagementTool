@@ -122,6 +122,7 @@ STUB
 cat >"$sandbox/bin/composer" <<'STUB'
 #!/usr/bin/env bash
 echo "composer $*" >>"$DEPLOY_TEST_LOG"
+if [[ -n "${FAIL_COMPOSER:-}" ]]; then exit 1; fi
 STUB
 chmod +x "$sandbox/bin/php" "$sandbox/bin/composer"
 
@@ -175,6 +176,12 @@ expect_equal "a failed backup runs no composer" "" "$(line_of "composer")"
 expect_equal "a failed backup brings the site back up, after the backup" "yes" \
     "$(up=$(line_of "artisan up"); backup=$(line_of "artisan solva:db-backup"); [[ -n "$up" ]] && ((backup < up)) && echo yes || echo no)"
 expect_equal "and says so" "yes" "$([[ "$deploy_output" == *"Nothing was pulled or migrated, and the site is up"* ]] && echo yes || echo no)"
+
+FAIL_COMPOSER=1 run_deploy --branch main --expect-sha "$second" --expect-env staging --maintenance
+expect_equal "a failure after the pull fails the deploy" "1" "$deploy_code"
+expect_equal "it leaves the site down (no 'up')" "" "$(line_of "artisan up")"
+expect_equal "its go-back steps say not to re-run the deploy" "yes" \
+    "$([[ "$deploy_output" == *"don't re-run this deploy"*"a revert PR into main"* ]] && echo yes || echo no)"
 
 run_deploy --branch main --expect-sha "$first" --expect-env staging
 expect_equal "an older commit than the branch tip is skipped (78)" "78" "$deploy_code"

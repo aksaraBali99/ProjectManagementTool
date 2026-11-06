@@ -196,7 +196,7 @@ For a fix that can't wait for the next release:
 
 ## 4. Re-deploying the same commit
 
-After fixing a server's `.env`, for example:
+After fixing a server's `.env`, for example. Not after a rollback (section 5): that would deploy the failed commit again.
 
 - Actions > Deploy > Run workflow, with *Use workflow from* set to the branch: `main` for dev, `production` for production.
 - environment: `dev` or `production`; dry run: unticked.
@@ -261,6 +261,13 @@ On the PROD server, in the app folder:
    php artisan up
    ```
 
+**After rolling back, don't re-run the failed deploy.**
+- The branch still has the failed commit. Re-running Deploy (section 4), or approving a run for that commit that's still waiting, fast-forwards the server straight back onto it and runs its migrations again. Cancel any such waiting run in Actions.
+- The server stays on `<live-sha>` until the fix ships as a **new commit on top**:
+  - a revert release: a revert PR into main, then a normal release (section 2);
+  - or a hotfix (section 3).
+- That new commit deploys normally: the server fast-forwards from `<live-sha>` past the failed commit to the fix, and the failed release's migrations run only if the fix still contains them.
+
 `-p` asks for the database password (`DB_PASSWORD` in `.env`). Type it at the prompt; never put it on the command line.
 
 ## 6. When a deploy fails
@@ -274,7 +281,7 @@ GitHub emails you, and the run is red. Open the run, then the failed job (*deplo
   - **PROD (maintenance mode on): the site stays down, on purpose**, so a half-migrated database doesn't take traffic. Visitors see the maintenance page. To bring it back:
     1. SSH in and `cd` to the app folder.
     2. Read `storage/logs/laravel.log` and the job log.
-    3. Either finish the deploy with the printed commands (often just re-running the failed one), or go back to the previous code with the printed `git reset --hard <old-sha>`, `composer install` and cache commands (and restore the backup if a migration half-ran, section 5).
+    3. Either finish the deploy with the printed commands (often just re-running the failed one), or go back to the previous code with the printed `git reset --hard <old-sha>`, `composer install` and cache commands (and restore the backup if a migration half-ran, section 5). Once gone back, don't re-run the deploy; the fix ships as a revert release or a hotfix (section 5).
     4. Only when the site works: `php artisan up`.
   - **DEV:** there's no maintenance mode, so the site may be half-deployed until you fix it the same way, or until the next merge deploys over it.
 - **"Skipped: a newer commit is on ..."**: not a failure. Two merges landed close together, and the later run deploys the newer commit.
