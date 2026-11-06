@@ -430,8 +430,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1793847665.914902,
-    "ast_hash": "1c9a38863dd0b250914c55a38ee00e3b",
+    "mtime": 1793939532.5985863,
+    "ast_hash": "4a22a752fd531bb5e297204ec4d87c37",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_18_000100_add_auth_provider_to_users_table.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/TaskManagementController.php": {
-    "mtime": 1793714876.2963958,
-    "ast_hash": "8e64ed99bf9420ad0f19d88aed6e972c",
+    "mtime": 1793941118.0742817,
+    "ast_hash": "70e581cb15f095350edaf7e92a35d966",
     "semantic_hash": ""
   },
   "app/Http/Requests/Tasks/StoreTaskRequest.php": {
@@ -795,18 +795,18 @@
     "semantic_hash": ""
   },
   "resources/views/tasks/create.blade.php": {
-    "mtime": 1791261802.1703887,
-    "ast_hash": "e21cbbfc54653c07b5d0889a30c15b34",
+    "mtime": 1793940934.473281,
+    "ast_hash": "84e71f7f5a1cf0616fb4f85f4f2f2ba4",
     "semantic_hash": ""
   },
   "resources/views/tasks/edit.blade.php": {
-    "mtime": 1793703952.986429,
-    "ast_hash": "334931411bee77957c9109aa71786a2b",
+    "mtime": 1793940934.473281,
+    "ast_hash": "ce229954a6834d88658b0b3532b5468f",
     "semantic_hash": ""
   },
   "resources/views/tasks/index.blade.php": {
-    "mtime": 1793714876.34856,
-    "ast_hash": "38880e223028a075da098ad47848966f",
+    "mtime": 1793940934.473281,
+    "ast_hash": "b62b296d8004a5666c8904f492508796",
     "semantic_hash": ""
   },
   "resources/views/users/_inline-validation.blade.php": {
@@ -2370,8 +2370,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Concerns/ResolvesReturnTo.php": {
-    "mtime": 1793608339.2495742,
-    "ast_hash": "fc92482de353ca49ef6995e5c3d98665",
+    "mtime": 1793940889.7869208,
+    "ast_hash": "852bdbd0402acbdef81e25d66d9e3e43",
     "semantic_hash": ""
   },
   "resources/views/projects/_tasks.blade.php": {
@@ -2455,68 +2455,83 @@
     "semantic_hash": ""
   },
   ".github/scripts/next-version.sh": {
-    "mtime": 1793847332.069749,
+    "mtime": 1793933768.3081458,
     "ast_hash": "ede6b0ef2da7023af58ba7c6f8f86f48",
     "semantic_hash": ""
   },
   ".github/scripts/release-check.sh": {
-    "mtime": 1793847357.3625226,
+    "mtime": 1793933768.3096554,
     "ast_hash": "75a6572bedec307ab68b58e8ae3e51f9",
     "semantic_hash": ""
   },
   ".github/scripts/release-tasks.sh": {
-    "mtime": 1793847339.364629,
+    "mtime": 1793933768.3117344,
     "ast_hash": "088bf7650b275a2c7db2f12e8825474e",
     "semantic_hash": ""
   },
   "app/Console/Commands/DbBackupCommand.php": {
-    "mtime": 1793851100.4134164,
+    "mtime": 1793933768.3217964,
     "ast_hash": "9b9e5510f7960740f26c8471e940566c",
     "semantic_hash": ""
   },
   "deploy.sh": {
-    "mtime": 1793851205.9009273,
-    "ast_hash": "598b17ca3b4ac2deab7f47473076985d",
+    "mtime": 1793933768.3254282,
+    "ast_hash": "35602c7721e9f6a4b7a2ba992bd155c2",
     "semantic_hash": ""
   },
   "tests/Feature/Console/DbBackupCommandTest.php": {
-    "mtime": 1793851124.6133037,
+    "mtime": 1793933768.3787253,
     "ast_hash": "9c893b40db373b2ca48706fe7b87c046",
     "semantic_hash": ""
   },
   "tests/scripts/run.sh": {
-    "mtime": 1793851193.4939916,
-    "ast_hash": "f6892a3e3b6e90bde0fdd84b5185e3a0",
+    "mtime": 1793933768.379727,
+    "ast_hash": "43bac0c97b40073294d9ea324ffc1518",
     "semantic_hash": ""
   },
   ".github/PULL_REQUEST_TEMPLATE/release.md": {
-    "mtime": 1793847802.2276065,
+    "mtime": 1793933768.3021445,
     "ast_hash": "25022c2346908a9dbc64416309359522",
     "semantic_hash": ""
   },
   ".github/actions/deploy-over-ssh/action.yml": {
-    "mtime": 1793847744.9342098,
-    "ast_hash": "bf04666124ba869ceb0c49dc2abaebd1",
+    "mtime": 1793933768.304145,
+    "ast_hash": "5976ae65de4a4024ff51e9440aadff81",
     "semantic_hash": ""
   },
   ".github/release.yml": {
-    "mtime": 1793847791.1942153,
+    "mtime": 1793933768.3051455,
     "ast_hash": "c4d4d7ea0e42b5c5a4dfca78cff44af3",
     "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {
-    "mtime": 1793847770.804678,
-    "ast_hash": "3630169947f684b8a143796637aaa49e",
+    "mtime": 1793939532.6019132,
+    "ast_hash": "596d710a709baa3eee57f03b26bdbbf0",
     "semantic_hash": ""
   },
   ".github/workflows/release-check.yml": {
-    "mtime": 1793847809.1886632,
-    "ast_hash": "9206df643ac01fb2418c09e47f842e9c",
+    "mtime": 1793939532.6059122,
+    "ast_hash": "61c6ea76b3f9b6d2d337d46b76a427b3",
     "semantic_hash": ""
   },
   "docs/release-process.md": {
-    "mtime": 1793851241.853953,
-    "ast_hash": "8e205eab3d516555e92421cc0839f80e",
+    "mtime": 1793933768.326437,
+    "ast_hash": "2f82773f075d060a7eaf6f7484e23064",
+    "semantic_hash": ""
+  },
+  ".github/scripts/check-deploy-config.sh": {
+    "mtime": 1793933768.3071465,
+    "ast_hash": "09430e2ed9ed19c04c1b6729b46778d5",
+    "semantic_hash": ""
+  },
+  "resources/views/tasks/_return-to-inputs.blade.php": {
+    "mtime": 1793940933.2614272,
+    "ast_hash": "8ad45d44f795e306a227c0fcfbed18be",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Tasks/TaskReturnAfterSaveTest.php": {
+    "mtime": 1793941098.448366,
+    "ast_hash": "ae7652ce95b3d22dd0ea1027efbc26ad",
     "semantic_hash": ""
   }
 }

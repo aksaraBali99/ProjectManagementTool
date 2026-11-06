@@ -308,6 +308,9 @@
                                     <form method="POST" action="{{ route('tasks.toggle-active', $task) }}" class="inline">
                                         @csrf
                                         @method('PATCH')
+                                        {{-- task #121: back to this exact list (search, filters, sort, page). --}}
+                                        <input type="hidden" name="after" value="list">
+                                        <input type="hidden" name="return_to" value="{{ url()->full() }}">
                                         <button type="submit" class="ml-3 text-gray-500 hover:underline">
                                             {{ $task->trashed() ? 'Activate' : 'Deactivate' }}
                                         </button>

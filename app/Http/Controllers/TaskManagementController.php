@@ -519,6 +519,7 @@ class TaskManagementController extends Controller
                 'project' => null,
                 'returnToUrl' => $returnTo['url'],
                 'returnToLabel' => $returnTo['label'],
+                'returnToParams' => $this->returnToParams(),
             ]);
         }
 
@@ -535,6 +536,7 @@ class TaskManagementController extends Controller
             'project' => $project,
             'returnToUrl' => $returnTo['url'],
             'returnToLabel' => $returnTo['label'],
+            'returnToParams' => $this->returnToParams(),
             // Lets a calendar cell's "+ Add task" link pre-fill the Due
             // Date field with that cell's date, so the user doesn't have
             // to re-pick it after clicking through.
@@ -605,7 +607,8 @@ class TaskManagementController extends Controller
             return $task;
         });
 
-        return redirect()->route('tasks.edit', $task)->with('status', 'Task created.');
+        // task #121: back on the edit page with the same back link.
+        return redirect()->route('tasks.edit', ['task' => $task, ...$this->returnToParams()])->with('status', 'Task created.');
     }
 
     /**
@@ -774,6 +777,7 @@ class TaskManagementController extends Controller
             'projects' => $projects,
             'returnToUrl' => $returnTo['url'],
             'returnToLabel' => $returnTo['label'],
+            'returnToParams' => $this->returnToParams(),
             'canEdit' => auth()->user()->can('update', $task),
             'canDeactivate' => auth()->user()->can('delete', $task),
             // Deliberately separate from canEdit: creating a new document
@@ -840,10 +844,16 @@ class TaskManagementController extends Controller
             'start_date' => $request->input('start_date') ?: null,
         ]);
 
-        return redirect()->route('tasks.edit', $task)->with('status', 'Task updated.');
+        return redirect()->route('tasks.edit', ['task' => $task, ...$this->returnToParams()])->with('status', 'Task updated.');
     }
 
-    public function toggleActive(Task $task): RedirectResponse
+    /**
+     * task #121: from the Tasks list (after=list), back to that exact
+     * list URL (search, filters, sort, page); a page left empty by the
+     * deactivation shows the last page instead (index() clamps it).
+     * From the edit page, back there with its back link.
+     */
+    public function toggleActive(Request $request, Task $task): RedirectResponse
     {
         Gate::authorize('delete', $task);
 
@@ -855,7 +865,12 @@ class TaskManagementController extends Controller
             $status = 'Task deactivated.';
         }
 
-        return redirect()->route('tasks.edit', $task)->with('status', $status);
+        $returnTo = $request->input('return_to');
+        if ($request->input('after') === 'list' && is_string($returnTo) && $this->isSafeReturnUrl($returnTo)) {
+            return redirect()->to($returnTo)->with('status', $status);
+        }
+
+        return redirect()->route('tasks.edit', ['task' => $task, ...$this->returnToParams()])->with('status', $status);
     }
 
     /**
