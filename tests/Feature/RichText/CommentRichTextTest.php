@@ -11,6 +11,7 @@ use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\MentionedInCommentNotification;
+use App\Support\RichText;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
@@ -173,18 +174,28 @@ test('hostile markup written straight into the database is still neutralized whe
     expect($json)->not->toContain('<script')->not->toContain('onmouseover')->not->toContain('onerror');
 });
 
-test('the 2000-character limit applies to the visible text, not to the markup around it', function () {
-    // 1900 characters of text wrapped in ~30KB of tags: fine.
-    $formatted = '<p>'.str_repeat('<strong>a</strong>', 1900).'</p>';
-    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $formatted])->assertCreated();
+test('task #122: a comment has no visible-text limit: 2,001 and 50,000 characters save, on post and on edit', function (int $length) {
+    $body = '<p>'.str_repeat('a', $length).'</p>';
 
-    // 2001 characters of visible text: rejected, same as before the editor.
-    $tooLong = '<p>'.str_repeat('a', 2001).'</p>';
-    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $tooLong])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors('body');
+    $created = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $body])->assertCreated();
+    $comment = Comment::findOrFail($created->json('comment.id'));
+    expect($comment->body)->toBe($body);
 
-    expect(Comment::count())->toBe(1);
+    $edited = '<p>'.str_repeat('b', $length).'</p>';
+    $this->actingAs($this->management)->putJson("/comments/{$comment->id}", ['body' => $edited])->assertOk();
+    expect($comment->fresh()->body)->toBe($edited);
+})->with(['just over the old limit' => [2001], 'a long comment' => [50000]]);
+
+test('task #122: heavy formatting saves too, and renders the same after reload', function () {
+    $formatted = str_repeat('<ul><li><p><strong>Bold</strong> and <em>italic</em></p></li></ul>', 2000)
+        .'<table><tbody>'.str_repeat('<tr><td><p>Cell one</p></td><td><p>Cell two</p></td></tr>', 500).'</tbody></table>';
+
+    $created = $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $formatted])->assertCreated();
+    $html = $created->json('comment.body_html');
+
+    expect(mb_strlen(RichText::plainText(Comment::firstOrFail()->body)))->toBeGreaterThan(30000)
+        // The polling endpoint (what a reload shows) renders it the same.
+        ->and($this->actingAs($this->management)->getJson("/tasks/{$this->task->id}/comments")->json('comments.0.body_html'))->toBe($html);
 });
 
 test('an empty editor cannot be posted as a comment', function () {

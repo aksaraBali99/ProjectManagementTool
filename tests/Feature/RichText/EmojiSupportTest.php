@@ -143,17 +143,19 @@ test('editing a comment to add an emoji keeps it', function () {
     expect($comment->fresh()->body)->toBe('<p>plain old comment 😀</p>');
 });
 
-test('emoji count as one character each toward the comment length limit', function () {
-    $atLimit = '<p>'.str_repeat('😀', 2000).'</p>';
-    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $atLimit])->assertCreated();
+test('task #122: emoji count as one character each toward the comment size cap', function () {
+    // "<p>" + "</p>" is 7 characters; the rest is emoji (4 bytes each).
+    $atCap = '<p>'.str_repeat('😀', Comment::MAX_BODY_LENGTH - 7).'</p>';
+    expect(mb_strlen($atCap))->toBe(Comment::MAX_BODY_LENGTH);
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $atCap])->assertCreated();
 
-    $overLimit = '<p>'.str_repeat('😀', 2001).'</p>';
-    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $overLimit])
+    $overCap = '<p>'.str_repeat('😀', Comment::MAX_BODY_LENGTH - 6).'</p>';
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/comments", ['body' => $overCap])
         ->assertUnprocessable()
-        ->assertJsonValidationErrors('body');
+        ->assertJsonValidationErrors(['body' => Comment::TOO_LONG_MESSAGE]);
 
     expect(Comment::count())->toBe(1);
-    expect(Comment::firstOrFail()->body)->toBe($atLimit);
+    expect(Comment::firstOrFail()->body)->toBe($atCap);
 });
 
 test('an emoji-only comment counts as content, not as empty', function () {

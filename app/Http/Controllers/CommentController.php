@@ -15,10 +15,6 @@ use Illuminate\Validation\ValidationException;
 
 class CommentController extends Controller
 {
-    private const MAX_BODY_TEXT_LENGTH = 2000;
-
-    private const MAX_BODY_HTML_LENGTH = 100000;
-
     public function index(Task $task): JsonResponse
     {
         Gate::authorize('view', $task);
@@ -78,7 +74,7 @@ class CommentController extends Controller
         Gate::authorize('create', [Comment::class, $task]);
 
         $data = $request->validate([
-            'body' => ['required', 'string', 'max:500000'],
+            'body' => ['required', 'string', 'max:'.Comment::MAX_BODY_LENGTH],
             'mentioned_user_ids' => ['sometimes', 'array'],
             'mentioned_user_ids.*' => ['integer'],
             // The comment the "Reply" action was actually clicked on -
@@ -87,6 +83,10 @@ class CommentController extends Controller
             // ancestor for storage (see that method's own docblock for
             // why).
             'parent_comment_id' => ['nullable', 'integer', 'exists:comments,id'],
+        ], [
+            // task #122: the same message as cleanBody(), however the
+            // request is refused.
+            'body.max' => Comment::TOO_LONG_MESSAGE,
         ]);
 
         $parentCommentId = $this->resolveParentCommentId($task, $data['parent_comment_id'] ?? null);
@@ -139,9 +139,13 @@ class CommentController extends Controller
         Gate::authorize('update', $comment);
 
         $data = $request->validate([
-            'body' => ['required', 'string', 'max:500000'],
+            'body' => ['required', 'string', 'max:'.Comment::MAX_BODY_LENGTH],
             'mentioned_user_ids' => ['sometimes', 'array'],
             'mentioned_user_ids.*' => ['integer'],
+        ], [
+            // task #122: the same message as cleanBody(), however the
+            // request is refused.
+            'body.max' => Comment::TOO_LONG_MESSAGE,
         ]);
 
         $comment->update(['body' => $this->cleanBody($data['body'])]);
@@ -208,8 +212,10 @@ class CommentController extends Controller
             throw ValidationException::withMessages(['body' => 'The body field is required.']);
         }
 
-        if (mb_strlen(RichText::plainText($body)) > self::MAX_BODY_TEXT_LENGTH || mb_strlen($body) > self::MAX_BODY_HTML_LENGTH) {
-            throw ValidationException::withMessages(['body' => 'The body field must not be greater than '.self::MAX_BODY_TEXT_LENGTH.' characters.']);
+        // task #122: no visible-text limit any more, only the safety cap on
+        // the stored HTML (Comment::MAX_BODY_LENGTH).
+        if (mb_strlen($body) > Comment::MAX_BODY_LENGTH) {
+            throw ValidationException::withMessages(['body' => Comment::TOO_LONG_MESSAGE]);
         }
 
         return $body;

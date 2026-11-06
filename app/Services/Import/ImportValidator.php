@@ -5,6 +5,7 @@ namespace App\Services\Import;
 use App\Enums\Priority;
 use App\Enums\ProjectStatus;
 use App\Enums\TaskStatus;
+use App\Models\Comment;
 use App\Models\Department;
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
@@ -966,8 +967,9 @@ class ImportValidator
                 continue;
             }
 
-            if (mb_strlen($cells['body']) > 2000) {
-                $result[] = $this->errorRow('Task Comments', $row, 'Comment Body must be 2000 characters or fewer.');
+            // task #122: the same cap as a comment posted in the app.
+            if (mb_strlen($cells['body']) > Comment::MAX_BODY_LENGTH) {
+                $result[] = $this->errorRow('Task Comments', $row, 'Comment Body is too long (more than '.number_format(Comment::MAX_BODY_LENGTH).' characters).');
 
                 continue;
             }
