@@ -2200,8 +2200,8 @@
     "semantic_hash": ""
   },
   "config/solava.php": {
-    "mtime": 1793959542.958642,
-    "ast_hash": "63aebd656c800ba569f9f379a85ceff5",
+    "mtime": 1793961339.73349,
+    "ast_hash": "a05f84c3012876111621f6615273d8b8",
     "semantic_hash": ""
   },
   "tests/Feature/Permissions/AccessCacheKillSwitchTest.php": {
@@ -2485,8 +2485,8 @@
     "semantic_hash": ""
   },
   "tests/scripts/run.sh": {
-    "mtime": 1793959968.6793034,
-    "ast_hash": "dbeb4502bd5d6e23ea98dbcda05fe226",
+    "mtime": 1793961376.016636,
+    "ast_hash": "51254c0165f2f960b2e4851b4167bc7a",
     "semantic_hash": ""
   },
   ".github/PULL_REQUEST_TEMPLATE/release.md": {
@@ -2505,8 +2505,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {
-    "mtime": 1793959872.84929,
-    "ast_hash": "16d1a2c904e3aecdd56cc6a6a9b16567",
+    "mtime": 1793961339.7325075,
+    "ast_hash": "3e8576ace0b7c41fcb4c7c1d21ed86e7",
     "semantic_hash": ""
   },
   ".github/workflows/release-check.yml": {
@@ -2515,8 +2515,8 @@
     "semantic_hash": ""
   },
   "docs/release-process.md": {
-    "mtime": 1793959927.7341604,
-    "ast_hash": "05bcb812aff639e3e067aa4b9b4a3f5c",
+    "mtime": 1793961339.7374914,
+    "ast_hash": "2a7e0eeebd19e6efc01fa2f0ca19a436",
     "semantic_hash": ""
   },
   ".github/scripts/check-deploy-config.sh": {
@@ -2560,13 +2560,13 @@
     "semantic_hash": ""
   },
   ".github/scripts/release-notes-body.sh": {
-    "mtime": 1793959912.015046,
-    "ast_hash": "ca8ab7a8efa283f06851e5f5d01344ab",
+    "mtime": 1793961318.6050832,
+    "ast_hash": "88d11792df3d9945d2304cade9484f44",
     "semantic_hash": ""
   },
   ".github/scripts/release-notes-check.sh": {
-    "mtime": 1793959735.4975033,
-    "ast_hash": "3299da644130002428f5e4d451203963",
+    "mtime": 1793961339.803079,
+    "ast_hash": "ecd20777101b70af4c3fb1fc44ff6997",
     "semantic_hash": ""
   },
   ".github/scripts/release-notes-lib.sh": {
@@ -2595,13 +2595,18 @@
     "semantic_hash": ""
   },
   "resources/views/release-notes/index.blade.php": {
-    "mtime": 1793959600.9038744,
-    "ast_hash": "4696b3a2dc438e5629eea8256f3d398f",
+    "mtime": 1793961339.73549,
+    "ast_hash": "d28d3d7d46fa216a205907c0f9cf34a1",
     "semantic_hash": ""
   },
   "tests/Feature/ReleaseNotes/ReleaseNotesPageTest.php": {
-    "mtime": 1793959648.3461924,
-    "ast_hash": "3fe152cd00b37e0e8524f30cb1ba0d2a",
+    "mtime": 1793961376.0176332,
+    "ast_hash": "b774f40677e676f783a059f1b0aa942b",
+    "semantic_hash": ""
+  },
+  ".github/scripts/release-notes-entry.sh": {
+    "mtime": 1793961317.0834775,
+    "ast_hash": "0f6f4c3e449824a4e0234e0b2d759511",
     "semantic_hash": ""
   }
 }

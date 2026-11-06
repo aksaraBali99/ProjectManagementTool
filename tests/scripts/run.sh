@@ -168,6 +168,7 @@ expect_equal "and next-version.sh gives v2026.11.1 then" "v2026.11.1" "$(bash "$
 notes_check "$(notes_file december "{\"releases\": [${entry/2026-11-10/2026-12-01}]}")" v2026.11.1 "$notes_dir/tags" "$notes_dir/tasks"
 expect_equal "a planned date in another month only warns" "0" "$check_code"
 expect_equal "saying the deploy may tag another version" "yes" "$(contains '::warning::Release notes: v2026.11.1 is planned for 2026-12-01, another month')"
+expect_equal "and that the deploy still tags the entry's version" "yes" "$(contains 'The deploy still tags it v2026.11.1')"
 
 notes_check "$(notes_file empty '{"releases": []}')" v2026.11.1 "$notes_dir/tags" "$notes_dir/tasks"
 expect_equal "no entry at all fails" "1" "$check_code"
@@ -194,7 +195,51 @@ expect_equal "naming it" "yes" "$(contains 'v2026.11.1 appears more than once')"
 
 notes_check "$(notes_file duplicate-task "{\"releases\": [${entry/\"Release process\"\}/\"Release process\"\}, {\"number\": 118, \"type\": \"Chore\", \"title\": \"Again\"\}}]}")" v2026.11.1 "$notes_dir/tags" "$notes_dir/tasks"
 expect_equal "a task listed twice in one entry fails" "1" "$check_code"
-expect_equal "naming it" "yes" "$(contains 'task #118 is listed more than once')"
+expect_equal "naming it" "yes" "$(contains 'v2026.11.1 lists task #118 more than once')"
+
+# The same rules as App\Support\ReleaseNotes (ReleaseNotesPageTest has the
+# same cases): what the page rejects, this rejects.
+# rule_case <name> <json for the releases list> <expected message part>
+rule_case() {
+    notes_check "$(notes_file "rule-$RANDOM" "{\"releases\": $2}")" v2026.11.1 "$notes_dir/tags" "$notes_dir/tasks"
+    expect_equal "$1 fails" "1" "$check_code"
+    expect_equal "$1: says why" "yes" "$(contains "$3")"
+}
+chore() { echo "[{\"version\": \"v2026.11.1\", \"date\": \"2026-11-10\", \"summary\": \"S.\", \"tasks\": [$1]}]"; }
+
+rule_case "a Chore with an empty before" "$(chore '{"number": 119, "type": "Chore", "title": "T", "before": ""}')" 'task #119: "before" must be text'
+rule_case "a Chore with a non-text after" "$(chore '{"number": 119, "type": "Chore", "title": "T", "after": 5}')" 'task #119: "after" must be text'
+rule_case "a task number written 5.0" "$(chore '{"number": 5.0, "type": "Chore", "title": "T"}')" 'a task needs a "number"'
+rule_case "PR number 0" "$(chore '{"number": 119, "type": "Chore", "title": "T", "pr": 0}')" 'a PR number must be a whole number'
+rule_case "a PR number as text" "$(chore '{"number": 119, "type": "Chore", "title": "T", "prs": ["150"]}')" 'a PR number must be a whole number'
+rule_case "prs that isn't a list" "$(chore '{"number": 119, "type": "Chore", "title": "T", "prs": 150}')" '"prs" must be a list'
+rule_case "a month 13" '[{"version": "v2026.11.1", "date": "2026-13-45", "summary": "S.", "tasks": [{"number": 1, "type": "Chore", "title": "T"}]}]' 'needs a "date"'
+rule_case "29 February in a non-leap year" '[{"version": "v2026.11.1", "date": "2026-02-29", "summary": "S.", "tasks": [{"number": 1, "type": "Chore", "title": "T"}]}]' 'needs a "date"'
+rule_case "a release that isn't an object" '["oops"]' 'release #1 must be an object'
+rule_case "a task that isn't an object" "$(chore '"oops"')" 'every task must be an object'
+
+notes_check "$(notes_file leap "{\"releases\": [${entry/2026-11-10/2028-02-29}]}")" v2026.11.1 "$notes_dir/tags" "$notes_dir/tasks"
+expect_equal "29 February in a leap year is a real date" "no" "$(contains 'needs a "date"')"
+
+echo "release-notes-entry.sh"
+# entry_of <notes> <tags-file>: the printed version in $entry_out, any warning in $entry_warning.
+entry_of() {
+    local warnings="$sandbox/entry-warnings"
+    entry_out=$(bash "$scripts/release-notes-entry.sh" "$1" <"$2" 2>"$warnings")
+    entry_warning=$(cat "$warnings")
+}
+
+entry_of "$good" "$notes_dir/tags"
+expect_equal "the newest entry, not yet a tag, is this release's" "v2026.11.1" "$entry_out"
+expect_equal "without a warning" "" "$entry_warning"
+
+entry_of "$good" "$notes_dir/tags-taken"
+expect_equal "an entry that's already a tag (stale) gives no notes" "" "$entry_out"
+expect_equal "with a warning saying why" "yes" "$([[ "$entry_warning" == *"v2026.11.1, is already a tag"* ]] && echo yes || echo no)"
+
+entry_of "$notes_dir/broken.json" "$notes_dir/tags"
+expect_equal "an invalid file gives no notes" "" "$entry_out"
+expect_equal "with a warning" "yes" "$([[ "$entry_warning" == *"no usable entry"* ]] && echo yes || echo no)"
 
 echo "release-version.sh"
 # pick <notes> <tags-file> <previous>: the chosen tag in $picked, any warning in $pick_warning.
@@ -239,6 +284,10 @@ expect_equal "the entry's tasks, grouped by type, with what changes" \
     $'## Release notes\n\nThe first release.\n\n### Enhancement\n\n- **task #118** Company-coded task numbers: Every task has a code.\n\n### Bugfix\n\n- **task #121** Keep the back link: Kept.\n\n### Chore\n\n- **task #119** Release process' \
     "$body"
 expect_equal "nothing for a version with no entry" "" "$(bash "$scripts/release-notes-body.sh" "$good" v2026.11.9)"
+unreadable=$(notes_file unreadable '{"releases": [{"version": "v2026.11.1", "summary": "S.", "tasks": "oops"}]}')
+body_warning="$sandbox/body-warning"
+expect_equal "an entry that can't be read gives nothing, not a partial section" "" "$(bash "$scripts/release-notes-body.sh" "$unreadable" v2026.11.1 2>"$body_warning")"
+expect_equal "with a warning" "yes" "$([[ "$(cat "$body_warning")" == *"couldn't be read"* ]] && echo yes || echo no)"
 
 # --- check-deploy-config.sh ---------------------------------------------
 

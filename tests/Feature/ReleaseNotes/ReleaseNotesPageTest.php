@@ -82,6 +82,8 @@ test('the owner and a super_admin see every release, newest first, with tasks gr
         ->toContain('href="https://github.com/aksaraBali99/ProjectManagementTool/pull/144"')
         ->toContain('href="https://github.com/aksaraBali99/ProjectManagementTool/pull/145"')
         ->toContain('href="https://github.com/aksaraBali99/ProjectManagementTool/releases/tag/v2026.11.1"')
+        // The link may not exist yet (DEV, before the release): it says so.
+        ->toContain('title="Exists once v2026.11.1 is released to PROD"')
         // Line breaks are kept by CSS, the text itself printed as is.
         ->toContain("A deactivated task is read-only.\nActivate it to change it.")
         ->toContain('whitespace-pre-line');
@@ -147,7 +149,28 @@ dataset('invalid notes', [
     'an impossible date' => [fn () => withDate('2026-02-30'), 'like 2026-11-10'],
     'an unknown type' => [fn () => withType('Feature'), 'needs a "type"'],
     'both pr and prs' => [fn () => withBothPrs(), 'both "pr" and "prs"'],
+    // The same cases as tests/scripts/run.sh's jq checks, so release-check
+    // never passes a file this page then rejects.
+    'a Chore with an empty before' => [fn () => withChore(['before' => '']), 'needs "before"'],
+    'a Chore with a non-text after' => [fn () => withChore(['after' => 5]), 'needs "after"'],
+    'a task number written 5.0' => ['{"releases": [{"version": "v2026.11.1", "date": "2026-11-10", "summary": "S.", "tasks": [{"number": 5.0, "type": "Chore", "title": "T"}]}]}', 'needs a task "number"'],
+    'PR number 0' => [fn () => withChore(['pr' => 0]), 'a PR number must be a whole number'],
+    'a PR number as text' => [fn () => withChore(['prs' => ['150']]), 'a PR number must be a whole number'],
+    'prs that isn\'t a list' => [fn () => withChore(['prs' => 150]), '"prs" must be a list'],
+    'a month 13' => [fn () => withDate('2026-13-45'), 'like 2026-11-10'],
+    '29 February in a non-leap year' => [fn () => withDate('2026-02-29'), 'like 2026-11-10'],
+    'a release that isn\'t an object' => ['{"releases": ["oops"]}', 'must be an object'],
+    'a task that isn\'t an object' => ['{"releases": [{"version": "v2026.11.1", "date": "2026-11-10", "summary": "S.", "tasks": ["oops"]}]}', 'must be an object'],
 ]);
+
+/** The newest release with one Chore task, with $fields added. */
+function withChore(array $fields): array
+{
+    $notes = twoReleases();
+    $notes['releases'][0]['tasks'] = [['number' => 119, 'type' => 'Chore', 'title' => 'T', ...$fields]];
+
+    return $notes;
+}
 
 function withoutBefore(): array
 {

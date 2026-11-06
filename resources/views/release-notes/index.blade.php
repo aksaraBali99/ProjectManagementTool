@@ -12,7 +12,7 @@
 <div class="mx-auto max-w-2xl">
     <h1 class="text-[14px] font-medium text-[#1F2937]">Release notes</h1>
     <p class="mt-1 text-[11px] text-gray-500">
-        What changed in each release, newest first. Each server lists the notes of the code it runs, so DEV can show a release that isn't on PROD yet.
+        What changed in each release, newest first. Each server lists the notes of the code it runs, so DEV can show a release that isn't on PROD yet; its GitHub release exists once it's released to PROD.
     </p>
 
     @if ($error)
@@ -29,7 +29,8 @@
                             <span class="rounded-sm bg-[#EAF3DE] px-2 py-0.5 text-[10px] font-medium text-[#3B6D11]">Latest</span>
                         @endif
                         <span class="text-[11px] text-gray-500">{{ \Illuminate\Support\Carbon::parse($release['date'])->format('M j, Y') }}</span>
-                        <a href="https://github.com/aksaraBali99/ProjectManagementTool/releases/tag/{{ $release['version'] }}"
+                        <a href="{{ config('solava.github_repo_url') }}/releases/tag/{{ $release['version'] }}"
+                           title="Exists once {{ $release['version'] }} is released to PROD"
                            class="ml-auto text-[11px] text-brand-600 hover:underline" target="_blank" rel="noopener noreferrer">GitHub release</a>
                     </div>
                     <p class="mt-1 whitespace-pre-line break-words text-[12px] text-gray-700">{{ $release['summary'] }}</p>
@@ -56,7 +57,7 @@
                                         @if ($task['prs'] !== [])
                                             <p class="mt-1 flex flex-wrap gap-2 text-[11px]">
                                                 @foreach ($task['prs'] as $pr)
-                                                    <a href="https://github.com/aksaraBali99/ProjectManagementTool/pull/{{ $pr }}"
+                                                    <a href="{{ config('solava.github_repo_url') }}/pull/{{ $pr }}"
                                                        class="text-brand-600 hover:underline" target="_blank" rel="noopener noreferrer">PR #{{ $pr }}</a>
                                                 @endforeach
                                             </p>

@@ -34,4 +34,8 @@ return [
 
     'release_notes_path' => resource_path('release-notes.json'),
 
+    // The GitHub repository the release notes link to (each release's
+    // GitHub Release, each task's PRs).
+    'github_repo_url' => 'https://github.com/aksaraBali99/ProjectManagementTool',
+
 ];
