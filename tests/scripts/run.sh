@@ -102,6 +102,29 @@ if [[ -e /tmp/release-check-injected ]]; then
     rm -f /tmp/release-check-injected
 fi
 
+# --- check-deploy-config.sh ---------------------------------------------
+
+echo "check-deploy-config.sh"
+# config <APP_PATH>: runs the check with every other value set.
+config() {
+    SSH_HOST=h SSH_PORT=65002 SSH_USER=u APP_URL=https://x EXPECTED_APP_ENV=production \
+        SSH_KEY=k SSH_KNOWN_HOSTS=kh APP_PATH="$1" bash "$scripts/check-deploy-config.sh"
+}
+
+# A literal ~, as someone might type it into the variable.
+# shellcheck disable=SC2088 # the ~ must stay unexpanded
+tilde_path='~/domains/x/solava'
+expect_exit "a full path passes" 0 config /home/u1/domains/x/solava
+expect_exit "a ~ path fails" 1 config "$tilde_path"
+expect_exit "a relative path fails" 1 config domains/x
+expect_equal "and says why" "yes" \
+    "$([[ "$(config "$tilde_path")" == *"APP_PATH must be the full path on the server"* ]] && echo yes || echo no)"
+expect_exit "an empty APP_PATH fails as missing" 1 config ""
+expect_equal "and is reported as missing" "yes" \
+    "$([[ "$(config "")" == *"Missing config for this environment: APP_PATH."* ]] && echo yes || echo no)"
+expect_equal "a missing secret is reported" "yes" \
+    "$([[ "$(SSH_HOST=h SSH_PORT=1 SSH_USER=u APP_PATH=/a APP_URL=x EXPECTED_APP_ENV=p SSH_KNOWN_HOSTS=kh bash "$scripts/check-deploy-config.sh")" == *"Missing config for this environment: SSH_KEY."* ]] && echo yes || echo no)"
+
 # --- deploy.sh ----------------------------------------------------------
 #
 # A throwaway origin and "server" checkout, with stub php and composer

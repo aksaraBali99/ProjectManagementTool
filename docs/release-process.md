@@ -93,7 +93,7 @@ Then add these to **each** environment:
 | `SSH_HOST` | variable | the server's SSH host (hPanel > Advanced > SSH Access) |
 | `SSH_PORT` | variable | `65002` |
 | `SSH_USER` | variable | the SSH username, e.g. `u123456789` |
-| `APP_PATH` | variable | the app folder, absolute, e.g. `/home/u123456789/domains/<domain>/solava` |
+| `APP_PATH` | variable | the app folder, absolute, e.g. `/home/u123456789/domains/<domain>/solava`. Must start with `/`, not `~` (run `pwd` in the app folder over SSH to get it) |
 | `APP_URL` | variable | the site's address, e.g. `https://dev.example.com` (no trailing slash) |
 | `EXPECTED_APP_ENV` | variable | that server's `APP_ENV` from its `.env`, exactly (check with `php artisan env` on the server) |
 | `SSH_KEY` | secret | the private key of a key pair made only for this (below) |
@@ -275,6 +275,7 @@ On the PROD server, in the app folder:
 GitHub emails you, and the run is red. Open the run, then the failed job (*deploy-dev* or *deploy-prod*), then the *Deploy* step.
 
 - **"Missing config for this environment"**: a variable or secret isn't set (section 1d). Nothing ran on the server.
+- **"APP_PATH must be the full path on the server"**: `APP_PATH` starts with `~` or is a relative path. Set it to the full path, starting with `/` (run `pwd` in the app folder over SSH to get it). Nothing ran on the server.
 - **"DEPLOY STOPPED before changing anything"**: a pre-flight check failed. The message says which one: wrong branch, local changes, wrong `APP_ENV`, a checkout that can't fast-forward, or a commit that isn't on the branch (the branch was rewritten or moved backwards). The site is untouched and still up. Fix the cause, then re-run (section 4).
 - **"the database backup failed … Nothing was pulled or migrated, and the site is up"**: the backup ran with the site down and failed. The script brought the site back up, unchanged. Check the space left on the server (hPanel > Files) and the backup's error above it, then re-run. If it also says **"'php artisan up' failed too: THE SITE IS STILL DOWN"**, SSH in and run `php artisan up`. Nothing else needs undoing.
 - **"!!! DEPLOY FAILED at step: ..."**: something failed after the code started changing. The log says which step and prints the exact commands to finish the deploy or go back.

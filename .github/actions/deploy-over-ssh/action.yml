@@ -44,15 +44,9 @@ runs:
       env:
         SSH_KEY: ${{ inputs.ssh-key }}
         SSH_KNOWN_HOSTS: ${{ inputs.ssh-known-hosts }}
-      run: |
-        missing=()
-        for name in SSH_HOST SSH_PORT SSH_USER APP_PATH APP_URL EXPECTED_APP_ENV SSH_KEY SSH_KNOWN_HOSTS; do
-          if [[ -z "${!name:-}" ]]; then missing+=("$name"); fi
-        done
-        if ((${#missing[@]} > 0)); then
-          echo "::error::Missing config for this environment: ${missing[*]}. Add them under Settings > Environments (docs/release-process.md, one-time setup)."
-          exit 1
-        fi
+      # Every variable and secret set, and APP_PATH a full path. Tested by
+      # tests/scripts/run.sh.
+      run: bash "$GITHUB_WORKSPACE/.github/scripts/check-deploy-config.sh"
 
     - name: Set up SSH
       shell: bash
