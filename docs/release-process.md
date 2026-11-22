@@ -16,7 +16,8 @@ The moving parts:
 | `deploy.sh` | Runs on the server. Pre-flight checks, then (PROD) maintenance mode on and a backup, then fast-forward, composer, migrate, caches, and maintenance mode off. |
 | `php artisan solva:db-backup` | The gzipped database dump every PROD deploy takes with the site down, just before the pull, in `storage/app/backups` (5 kept). Each file is read back and checked before older ones are deleted. |
 | `.github/PULL_REQUEST_TEMPLATE/release.md` | The release PR template. |
-| `.github/scripts/*.sh` | Version number, task list, release checks and release notes checks (the release notes ones need `jq`), tested by `tests/scripts/run.sh`. |
+| `.github/scripts/*.sh` | Version number, task list, release checks and release notes checks (the release notes ones need `jq`), deploy config check and the command sent to the server, tested by `tests/scripts/run.sh`. |
+| `server/solava-gate.sh` | The SSH deploy gate (section 8): the only thing the restricted deploy keys can run on the server. Copied there by hand; tested by `tests/scripts/run.sh`. |
 | `resources/release-notes.json` | The release notes, one entry per release, shown in Settings > Release notes (section 7). |
 
 Assets are unchanged: `public/build` is still built locally (`npm run build`) and committed, because Hostinger can't run npm.
@@ -97,19 +98,21 @@ Then add these to **each** environment:
 | `APP_PATH` | variable | the app folder, absolute, e.g. `/home/u123456789/domains/<domain>/solava`. Must start with `/`, not `~` (run `pwd` in the app folder over SSH to get it) |
 | `APP_URL` | variable | the site's address, e.g. `https://dev.example.com` (no trailing slash) |
 | `EXPECTED_APP_ENV` | variable | that server's `APP_ENV` from its `.env`, exactly (check with `php artisan env` on the server) |
-| `SSH_KEY` | secret | the private key of a key pair made only for this (below) |
+| `SSH_KEY` | secret | the private key of a key pair made only for this (below). Not needed once `SSH_GATE` is `true` |
 | `SSH_KNOWN_HOSTS` | secret | the server's host key line (below) |
+| `SSH_GATE` | variable | `true` to deploy through the SSH deploy gate (section 8). Unset or anything else: the old way, with `SSH_KEY` |
+| `SSH_GATE_KEY` | secret | the private key of the gate-only key pair (section 8). Required when `SSH_GATE` is `true` |
 
 **SSH key**, one per environment, on your machine:
 ```
 ssh-keygen -t ed25519 -N "" -C "github-deploy-dev" -f solava-deploy-dev
 ```
-- Add `solava-deploy-dev.pub` in hPanel > SSH Access > SSH keys for that server's account.
+- The public key goes into `~/.ssh/authorized_keys` on the server **by hand**, as one line (section 8 shows how, with a backup first). Never through hPanel > SSH Access > SSH keys: that page rewrites the whole file from its own list, which doesn't include hand-added lines such as the gate keys.
 - Paste the whole content of `solava-deploy-dev` (the private key) into the `SSH_KEY` secret.
 - Then delete both files from your machine.
 - Repeat with `-prod` for production.
 
-If DEV and PROD are on the same Hostinger account, either key reaches both sites. `APP_PATH` and the `EXPECTED_APP_ENV` check still keep each deploy on its own site.
+If DEV and PROD are on the same Hostinger account, either `SSH_KEY` key reaches both sites, and every other site on that account: it's a full shell. `APP_PATH` and the `EXPECTED_APP_ENV` check keep each deploy on its own site, but don't limit what a leaked key can do. The SSH deploy gate (section 8) does: its keys can only deploy Solava, to one environment each.
 
 **Known hosts:**
 ```
@@ -277,6 +280,10 @@ On the PROD server, in the app folder:
 GitHub emails you, and the run is red. Open the run, then the failed job (*deploy-dev* or *deploy-prod*), then the *Deploy* step.
 
 - **"Missing config for this environment"**: a variable or secret isn't set (section 1d). Nothing ran on the server.
+- **"SSH_GATE is on, but SSH_GATE_KEY isn't set"**: add the gate key as the environment's `SSH_GATE_KEY` secret, or set `SSH_GATE` to `false` to deploy the old way (section 8). Nothing ran on the server.
+- **"The server's SSH deploy gate refused the command (exit 126)"** (gate on): the gate ran but didn't accept what it was sent, or `gate.conf` next to it is unsafe. Nothing was deployed. On the server, read the last lines of `~/apps/solava/logs/gate.log`, check that `~/apps/solava/bin/gate.sh` is the current `server/solava-gate.sh` and that the key's line says `gate.sh dev` or `gate.sh production` for the right environment (section 8). To deploy meanwhile, set `SSH_GATE` to `false` and re-run.
+- **"The server tried to run 'deploy' as a shell command (exit 127)"** (gate on): the key in `SSH_GATE_KEY` has no `command="…gate.sh …"` on its line, so the server's shell got `deploy <sha>` and didn't know it. Fix the key's line (section 8, steps 4 and 5) or set `SSH_GATE` to `false`.
+- **"Another deploy is running on this server"** (gate on, exit 75): the gate's lock for that environment is held by a running deploy. Re-run once it's done. A lock left by a killed deploy is taken over by itself.
 - **"APP_PATH must be the full path on the server"**: `APP_PATH` starts with `~` or is a relative path. Set it to the full path, starting with `/` (run `pwd` in the app folder over SSH to get it). Nothing ran on the server.
 - **"DEPLOY STOPPED before changing anything"**: a pre-flight check failed. The message says which one: wrong branch, local changes, wrong `APP_ENV`, a checkout that can't fast-forward, or a commit that isn't on the branch (the branch was rewritten or moved backwards). The site is untouched and still up. Fix the cause, then re-run (section 4).
 - **"the database backup failed … Nothing was pulled or migrated, and the site is up"**: the backup ran with the site down and failed. The script brought the site back up, unchanged. Check the space left on the server (hPanel > Files) and the backup's error above it, then re-run. If it also says **"'php artisan up' failed too: THE SITE IS STILL DOWN"**, SSH in and run `php artisan up`. Nothing else needs undoing.
@@ -334,6 +341,107 @@ No tag and no Release are created unless the deploy and the smoke test both pass
 - An entry for a release that never happened (its release PR closed) is reused for the next release: the version check shows it, since the next release gets the same version.
 
 **The GitHub Release** for each PROD deploy is tagged with the newest entry's version, if it's a `vYYYY.MM.N`, isn't already a tag and is higher than the previous tag. Otherwise it gets the next version as before, and the run warns why. The Release starts with the entry's notes (**Release notes**: summary and each task's title and "after"), then **Tasks in this release** (the `task #N` references from the commit subjects since the previous tag), then GitHub's generated list of merged PRs under **Changes**, without release and back-merge PRs.
+
+## 8. SSH deploy gate
+
+All the sites share one Hostinger SSH account. The deploy keys in `SSH_KEY` (lines `github-deploy-dev` and `github-deploy-prod` in `~/.ssh/authorized_keys`) have no restriction, so whoever holds one has a full shell on every site and database on the account. The gate (SOL-0023) replaces them with keys that can only deploy Solava:
+
+- Each gate key's line in `authorized_keys` forces one command, `~/apps/solava/bin/gate.sh <env>`, with `restrict` (no shell, no port forwarding, no scp/sftp).
+- The gate accepts exactly `ping`, `deploy <40-hex sha>` or `deploy <40-hex sha> --dry-run`, and refuses anything else (exit 126).
+- Where it deploys, the branch, `APP_ENV` and PROD's `--maintenance --backup` are fixed in the gate, never sent by GitHub. A commit that isn't on the branch is refused before anything from it runs.
+- One deploy per environment at a time (exit 75 while one runs).
+- Every attempt is one line in `~/apps/solava/logs/gate.log`: time, environment, client IP, command, verdict and exit code.
+
+With `SSH_GATE` unset (as when this ships), deploys run exactly as before. Each environment switches on its own, with its own variable.
+
+**These steps are done by you, by hand, over your own SSH login.** Nothing here touches AdminTool: not `~/apps/admintool`, not its lines in `authorized_keys`. Never use hPanel's SSH keys page to add or delete keys: it rewrites `authorized_keys` from its own list, which doesn't have the hand-added gate lines, and may bring back the old unrestricted ones.
+
+### Switching DEV on
+
+1. **Back up `authorized_keys` and look at it, without changing anything:**
+   ```
+   cd ~/.ssh
+   cp -p authorized_keys "authorized_keys.bak-$(date +%Y%m%d-%H%M%S)"   # a dated copy, permissions kept
+   ssh-keygen -lf authorized_keys          # one fingerprint per line; no key material
+   tail -c1 authorized_keys | od -c        # must end in \n, or an append joins two lines
+   ```
+   If the last command doesn't show `\n`, add one first: `echo >> authorized_keys`.
+
+2. **Check `APP_ENV` on each server**, so the gate's built-in values match (DEV `dev`, PROD `production`):
+   ```
+   cd ~/domains/solavadev.aksaravirtualagency.com/solava && php artisan env   # [... environment is [dev].]
+   cd ~/domains/solava.aksaravirtualagency.com/solava && php artisan env      # [... environment is [production].]
+   ```
+   If either differs, stop: a gate deploy there would stop at deploy.sh's pre-flight check.
+
+3. **Install the gate**, from the DEV checkout (never inside `~/apps/admintool`):
+   ```
+   mkdir -p ~/apps/solava/{bin,logs,run} && chmod 700 ~/apps/solava ~/apps/solava/*   # private folders
+   cd ~/domains/solavadev.aksaravirtualagency.com/solava
+   git fetch --quiet origin main
+   git show origin/main:server/solava-gate.sh > ~/apps/solava/bin/gate.sh   # the reviewed copy from main
+   chmod 700 ~/apps/solava/bin/gate.sh
+   ```
+   Don't create a `gate.conf` on the server: the gate's built-in settings are the real ones (`gate.conf` exists for the tests). To update the gate later, repeat the `git show` line.
+
+4. **Make the new key, on your PC:**
+   ```
+   ssh-keygen -t ed25519 -N "" -C "solava-gate-dev" -f solava-gate-dev
+   ```
+
+5. **Add ONE line to `authorized_keys`, by hand** (in nano, or with `printf`), in single quotes, all on one line:
+   ```
+   cd ~/.ssh
+   printf '%s\n' 'command="/home/u738067934/apps/solava/bin/gate.sh dev",restrict <contents of solava-gate-dev.pub>' >> authorized_keys
+   ```
+
+6. **Check that the old lines are byte for byte unchanged, and only one line was added:**
+   ```
+   b=$(ls -t authorized_keys.bak-* | head -1)                                 # the newest backup
+   head -n "$(wc -l < "$b")" authorized_keys | cmp - "$b" && echo "old lines unchanged"
+   wc -l "$b" authorized_keys               # exactly one more
+   ssh-keygen -lf authorized_keys           # old fingerprints identical, one new
+   chmod 600 authorized_keys
+   ```
+
+7. **Test from your PC** (the expected result in brackets):
+   ```
+   K="-i solava-gate-dev -o IdentitiesOnly=yes -p 65002 u738067934@145.79.14.215"
+   ssh $K ping                               # [ok solava-gate dev]
+   ssh $K                                    # [refused, no shell]
+   ssh $K bash                               # [refused]
+   ssh $K 'ls ~'                             # [refused]
+   ssh $K "deploy $(git rev-parse origin/main); id"   # [refused]
+   sftp -i solava-gate-dev -P 65002 u738067934@145.79.14.215   # [fails]
+   ssh $K -N -L 3307:127.0.0.1:3306          # [port forwarding refused]
+   ssh $K "deploy $(git rev-parse origin/main) --dry-run"     # [deploy.sh dry-run output]
+   ```
+   Then, on the server, `cat ~/apps/solava/logs/gate.log` should show each attempt.
+
+8. **GitHub, environment `dev`:** add the secret `SSH_GATE_KEY` = the whole content of `solava-gate-dev` (the private key), and the variable `SSH_GATE` = `true`. Delete both `solava-gate-dev` files from your PC. Then Actions > Deploy > Run workflow (from main, dev, dry run); its summary says "SSH gate | on". Then a real DEV deploy (the next merge, or a re-deploy, section 4).
+
+### Switching PROD on
+
+9. After at least 3 clean DEV deploys through the gate: repeat steps 1 and 4 to 8 for production, with `-C "solava-gate-prod"` / `-f solava-gate-prod` and `gate.sh production` on the line. From your PC, test **only** `ping` (`[ok solava-gate production]`) and `--dry-run` (with `$(git rev-parse origin/production)`): a real `deploy` from your PC would deploy PROD. Then set `SSH_GATE_KEY` and `SSH_GATE` in the `production` environment, and the next release deploys through the gate.
+
+### Removing the old keys
+
+10. Only after one PROD release through the gate and two more weeks with no problems:
+    - Back up `authorized_keys` again (step 1).
+    - Remove the `github-deploy-dev` and `github-deploy-prod` lines **by hand**, matching each by its comment and its fingerprint from `ssh-keygen -lf`, never by line number.
+    - Check that every other line (AdminTool's and the two gate lines) is byte for byte unchanged: `ssh-keygen -lf authorized_keys` shows the same fingerprints minus those two, and `diff` against the backup shows only those two lines removed.
+    - Delete the `SSH_KEY` secret in both environments.
+    - A follow-up PR removes the old path (`ssh-gate` false) from the deploy action.
+
+### Rollback
+
+- **The gate or a gate key misbehaves:** set `SSH_GATE` to `false` in that environment and re-run. The old key and its line stay until step 10, so the old way still works.
+- **`authorized_keys` is broken** (a joined or cut line, logins failing): copy the newest backup back, through your own SSH login or hPanel's browser terminal / File Manager:
+  ```
+  cd ~/.ssh && cp -p "$(ls -t authorized_keys.bak-* | head -1)" authorized_keys
+  ```
+- **A deploy itself breaks the site:** unchanged, sections 5 and 6, through your own login.
+- **Never** fix keys on hPanel's SSH keys page (see above).
 
 ## Edge cases, for reference
 

@@ -89,7 +89,12 @@ jobs:
           branch: main
           sha: ${{ github.sha }}
           dry-run: ${{ inputs.dry_run == true }}
+          # SOL-0023: the action picks the key (the gate key when SSH_GATE
+          # is on). Not picked here: a missing SSH_GATE_KEY must fail, not
+          # fall back to the unrestricted key.
+          ssh-gate: ${{ vars.SSH_GATE == 'true' }}
           ssh-key: ${{ secrets.SSH_KEY }}
+          ssh-gate-key: ${{ secrets.SSH_GATE_KEY }}
           ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
 
       - name: Remove the SSH key
@@ -129,8 +134,14 @@ jobs:
           branch: production
           sha: ${{ github.sha }}
           dry-run: ${{ inputs.dry_run == true }}
+          # Ignored with the gate on: the gate adds them itself.
           deploy-args: --maintenance --backup
+          # SOL-0023: the action picks the key (the gate key when SSH_GATE
+          # is on). Not picked here: a missing SSH_GATE_KEY must fail, not
+          # fall back to the unrestricted key.
+          ssh-gate: ${{ vars.SSH_GATE == 'true' }}
           ssh-key: ${{ secrets.SSH_KEY }}
+          ssh-gate-key: ${{ secrets.SSH_GATE_KEY }}
           ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
 
       - name: Remove the SSH key
