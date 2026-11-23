@@ -35,7 +35,9 @@ function twoReleases(): array
         [
             'version' => 'v2026.11.2', 'date' => '2026-11-20', 'summary' => "A fix release.\nSecond line of the summary.",
             'tasks' => [
-                ['number' => 123, 'type' => 'Bugfix', 'title' => 'Read-only deactivated tasks',
+                // SOL-0021: new entries name a task by its code; v2026.11.1
+                // below keeps the old numbers.
+                ['code' => 'SOL-0025', 'type' => 'Bugfix', 'title' => 'Read-only deactivated tasks',
                     'before' => 'A deactivated task could still be edited.', 'after' => "A deactivated task is read-only.\nActivate it to change it.", 'pr' => 152],
             ],
         ],
@@ -75,6 +77,9 @@ test('the owner and a super_admin see every release, newest first, with its sect
         // Dates, titles, number tags.
         ->toContain('Nov 20, 2026')->toContain('Nov 10, 2026')
         ->toContain('>#118</span>')->toContain('Company-coded task numbers')
+        // A code task shows its code; an old one its number.
+        ->toContain('>SOL-0025</span>')->toContain('data-task="SOL-0025"')->toContain('data-task="118"')
+        ->not->toContain('#SOL-0025')
         // Sections in order inside v2026.11.1: New and improved, Fixed, then
         // Behind the scenes, each with its count.
         ->toMatch('/data-release="v2026.11.1">.*?New and improved\s*<span[^>]*>1<\/span>.*?#118.*?Fixed\s*<span[^>]*>1<\/span>.*?#121.*?Behind the scenes\s*<span[^>]*>1<\/span>.*?#119/s')
@@ -135,7 +140,7 @@ test('PR links fold into "N pull requests", or "1 pull request", and there is no
 
     $html = $this->actingAs($this->owner)->get(route('release-notes.index'))->getContent();
 
-    expect($html)->toMatch('/data-task="123">.*?<details[^>]*>\s*<summary[^>]*>11 pull requests<\/summary>.*?href="https:\/\/github.com\/aksaraBali99\/ProjectManagementTool\/pull\/133".*?pull\/143"/s')
+    expect($html)->toMatch('/data-task="SOL-0025">.*?<details[^>]*>\s*<summary[^>]*>11 pull requests<\/summary>.*?href="https:\/\/github.com\/aksaraBali99\/ProjectManagementTool\/pull\/133".*?pull\/143"/s')
         ->toMatch('/data-task="121">.*?<summary[^>]*>1 pull request<\/summary>.*?pull\/151"/s');
     preg_match('/data-task="118">(.*?)<\/article>/s', $html, $task118);
     expect($task118[1])->not->toContain('pull request');
@@ -237,7 +242,38 @@ dataset('invalid notes', [
     '29 February in a non-leap year' => [fn () => withDate('2026-02-29'), 'like 2026-11-10'],
     'a release that isn\'t an object' => ['{"releases": ["oops"]}', 'must be an object'],
     'a task that isn\'t an object' => ['{"releases": [{"version": "v2026.11.1", "date": "2026-11-10", "summary": "S.", "tasks": ["oops"]}]}', 'must be an object'],
+    // SOL-0021: a task names itself with "code" or an old "number", one of
+    // the two (the same messages as release-notes-check.sh).
+    'a task with neither code nor number' => [fn () => withTask(['type' => 'Chore', 'title' => 'T']), 'task entry #1 needs a task "code" like SOL-0021 (or an old "number")'],
+    'a task with both code and number' => [fn () => withTask(['code' => 'SOL-0021', 'number' => 21, 'type' => 'Chore', 'title' => 'T']), 'task entry #1 has both "code" and "number"; use one'],
+    'both, with a bad code: only "has both"' => [fn () => withTask(['code' => 'sol-21', 'number' => 21, 'type' => 'Chore', 'title' => 'T']), 'task entry #1 has both "code" and "number"; use one'],
+    'a lowercase code' => [fn () => withTask(['code' => 'sol-0021', 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
+    'a code with too few digits' => [fn () => withTask(['code' => 'SOL-21', 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
+    'a code with four letters' => [fn () => withTask(['code' => 'SOLA-0021', 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
+    'a code with a line break after it' => [fn () => withTask(['code' => "SOL-0021\n", 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
+    'a code with a line break before it' => [fn () => withTask(['code' => "x\nSOL-0021", 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
+    'a code that isn\'t text' => [fn () => withTask(['code' => 21, 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
+    'the same code twice in one release' => [fn () => withTasks([
+        ['code' => 'SOL-0021', 'type' => 'Chore', 'title' => 'T'],
+        ['code' => 'SOL-0021', 'type' => 'Chore', 'title' => 'U'],
+    ]), 'v2026.11.2 lists SOL-0021 more than once'],
+    'a code task missing before' => [fn () => withTask(['code' => 'SOL-0025', 'type' => 'Enhancement', 'title' => 'T', 'after' => 'A']), 'v2026.11.2, SOL-0025 needs "before"'],
 ]);
+
+/** The newest release with $tasks as its tasks. */
+function withTasks(array $tasks): array
+{
+    $notes = twoReleases();
+    $notes['releases'][0]['tasks'] = $tasks;
+
+    return $notes;
+}
+
+/** The newest release with one task, $task. */
+function withTask(array $task): array
+{
+    return withTasks([$task]);
+}
 
 /** The newest release with one Chore task, with $fields added. */
 function withChore(array $fields): array
@@ -313,6 +349,18 @@ test('versions compare as numbers: v2026.11.10 is newer than v2026.11.9', functi
         ->and(ReleaseNotes::compareVersions('v2026.12.1', 'v2026.11.9'))->toBeGreaterThan(0)
         ->and(ReleaseNotes::compareVersions('v2027.01.1', 'v2026.12.5'))->toBeGreaterThan(0)
         ->and(ReleaseNotes::compareVersions('v2026.11.1', 'v2026.11.1'))->toBe(0);
+});
+
+test('a code and an old number with the same digits are two different tasks', function () {
+    writeNotes($this, withTasks([
+        ['code' => 'ABC-0118', 'type' => 'Chore', 'title' => 'Coded'],
+        ['number' => 118, 'type' => 'Chore', 'title' => 'Numbered'],
+    ]));
+
+    $html = $this->actingAs($this->owner)->get(route('release-notes.index'))->assertOk()
+        ->assertDontSee('The release notes file is invalid:')
+        ->getContent();
+    expect($html)->toContain('>ABC-0118</span>')->toContain('>#118</span>');
 });
 
 // --- The real file ----------------------------------------------------------------

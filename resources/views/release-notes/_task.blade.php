@@ -3,9 +3,9 @@
     Before and Now side by side (stacked on a phone), and its PR links
     folded away. Expects $task (App\Support\ReleaseNotes).
 --}}
-<article class="min-w-0 rounded-lg border border-gray-100 p-3" data-task="{{ $task['number'] }}">
+<article class="min-w-0 rounded-lg border border-gray-100 p-3" data-task="{{ $task['code'] ?? $task['number'] }}">
     <h4 class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500">#{{ $task['number'] }}</span>
+        <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500">{{ $task['label'] }}</span>
         <span class="text-[12px] font-semibold text-[#1F2937]">{{ $task['title'] }}</span>
     </h4>
 

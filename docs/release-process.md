@@ -3,7 +3,7 @@
 How Solava gets from a merged PR to DEV and to PROD (task #119).
 
 - **main** is the integration branch. Every push to main, once CI passes, deploys to **DEV** by itself.
-- **production** is what's live on **PROD**. It only changes through a pull request: a *release PR* from main, or a *hotfix* from a `Hotfix/<task>-<slug>` branch. Every push to production, once CI passes, waits for your approval, then deploys to PROD.
+- **production** is what's live on **PROD**. It only changes through a pull request: a *release PR* from main, or a *hotfix* from a `Hotfix/<code>-<slug>` branch (for example `Hotfix/SOL-0030-fix-login`). Every push to production, once CI passes, waits for your approval, then deploys to PROD.
 - Each successful PROD deploy is tagged **vYYYY.MM.N** (Bali time) and gets a GitHub Release listing its tasks and PRs.
 
 The moving parts:
@@ -21,6 +21,20 @@ The moving parts:
 | `resources/release-notes.json` | The release notes, one entry per release, shown in Settings > Release notes (section 7). |
 
 Assets are unchanged: `public/build` is still built locally (`npm run build`) and committed, because Hostinger can't run npm.
+
+## Naming work after task codes
+
+Every task has a code like `SOL-0021`: the company's 3-letter code, a hyphen, and the task's number in that company (at least 4 digits). Branches, PRs and commits are named after it, and the release scripts read it from the commit subjects (section 7).
+
+- **Branch:** `<Type>/SOL-0021-short-slug`, or `<Type>/SOL-0021-p1-short-slug` for a phase. Types: `Enhancement`, `Bugfix`, `Chore`.
+- **Hotfix branch:** `Hotfix/SOL-0030-short-slug` (section 3).
+- **PR title:** `<Type>: plain description (SOL-0021)`, or `(SOL-0021, phase 1/3)` for a phase.
+- **Commit:** `<Type>: description (SOL-0021)`.
+- **Two tasks** in one commit or PR: `(SOL-0021, SOL-0030)`.
+
+The code must be a whole item inside the parentheses at the end of the subject; a code in the running text isn't counted. Anything in parentheses shaped like a code (3 letters, a hyphen, 4 or more digits) counts as one, so don't write something like `(ISO-8601)` on its own in a subject. A merged PR also counts through its branch name (`Merge pull request #N from <owner>/<Type>/SOL-0021-...`), in case its own commits left the code out.
+
+Releases up to v2026.11.1 used the old `task #N`; the release scripts still read it.
 
 ---
 
@@ -166,7 +180,7 @@ From then on every release goes through the workflow alone.
 
 ## 2. A normal release
 
-1. **Add the release notes.** On a branch from main, add the release's entry at the top of `resources/release-notes.json`: its version (the next `vYYYY.MM.N`), planned date, summary, and one item per task (section 7). Open a PR into main titled `Chore: release notes for vYYYY.MM.N`, merge it, and check Settings > Release notes on DEV once it's deployed there.
+1. **Add the release notes.** On a branch from main, add the release's entry at the top of `resources/release-notes.json`: its version (the next `vYYYY.MM.N`), planned date, summary, and one item per task, naming each task by its code (section 7). Open a PR into main titled `Chore: release notes for vYYYY.MM.N`, merge it, and check Settings > Release notes on DEV once it's deployed there.
 2. **Open the release PR** with the template:
    https://github.com/aksaraBali99/ProjectManagementTool/compare/production...main?template=release.md
 3. **Title it** `Release vYYYY.MM.N`, with the version from the entry. It must start with `Release v`: the PR is then labelled `release` and left out of GitHub's generated list.
@@ -192,7 +206,7 @@ For a fix that can't wait for the next release:
 1. Branch from **production**, not main:
    ```
    git fetch origin
-   git checkout -b Hotfix/<task>-<slug> origin/production
+   git checkout -b Hotfix/<code>-<slug> origin/production
    ```
    The name must start with `Hotfix/` (capital H), or `release-check` fails.
 2. Make the fix, and add its entry at the top of `resources/release-notes.json` **on the hotfix branch** (the next version, e.g. `v2026.11.4`). Open a PR into **production**. `test` and `release-check` run; the checklist and drift checks don't apply to hotfixes, but the release notes check does.
@@ -319,12 +333,18 @@ No tag and no Release are created unless the deploy and the smoke test both pass
       "summary": "One or two sentences on the release.",
       "tasks": [
         {
-          "number": 123,
-          "type": "Bugfix",
-          "title": "Make a deactivated task read-only",
+          "code": "SOL-0025",
+          "type": "Enhancement",
+          "title": "Kanban board grouped by project",
           "before": "What people saw or could do before.",
           "after": "What changes for them now.",
-          "pr": 152
+          "prs": [159, 160]
+        },
+        {
+          "code": "SOL-0023",
+          "type": "Chore",
+          "title": "SSH deploy gate",
+          "pr": 158
         }
       ]
     }
@@ -333,17 +353,18 @@ No tag and no Release are created unless the deploy and the smoke test both pass
 ```
 
 - `version` is `vYYYY.MM.N`: the version the release **will** get. Versions are unique and newest first.
+- `code` is the task's code, like `SOL-0021`. Entries up to v2026.11.1 use the old `number` instead; a task has one or the other, never both.
 - `date` is the planned release date, `YYYY-MM-DD`.
 - `type` is `Enhancement`, `Bugfix` or `Chore`. `before` and `after` are required for Enhancement and Bugfix, and optional for Chore.
-- `pr` is one PR number, or `prs` a list of them (not both). A task number appears once per entry.
+- `pr` is one PR number, or `prs` a list of them (not both). A task appears once per entry.
 - **Plain text only**, line breaks allowed: the page shows it exactly as written, never as HTML. The file is shipped to PROD, so plain change descriptions only: no secrets, no internal hostnames.
 
 **The checks:**
 - A test checks the real file on every PR (`ReleaseNotesPageTest`), so a bad edit fails CI.
-- **release-check** (on release and hotfix PRs into production) checks that the newest entry's version is the one this release will get and isn't already a tag, and that it lists every `task #N` from the release's commits. Extra tasks in the entry only warn. If the entry's planned date is in another month than its version, it warns: the deploy still tags the entry's version (a November version deployed in December stays `v2026.11.N`), so for a version of the later month, update the entry and open the release PR in that month.
+- **release-check** (on release and hotfix PRs into production) checks that the newest entry's version is the one this release will get and isn't already a tag, and that it lists every task code (and any old `task #N`) from the release's commits. Extra tasks in the entry only warn. If the entry's planned date is in another month than its version, it warns: the deploy still tags the entry's version (a November version deployed in December stays `v2026.11.N`), so for a version of the later month, update the entry and open the release PR in that month.
 - An entry for a release that never happened (its release PR closed) is reused for the next release: the version check shows it, since the next release gets the same version.
 
-**The GitHub Release** for each PROD deploy is tagged with the newest entry's version, if it's a `vYYYY.MM.N`, isn't already a tag and is higher than the previous tag. Otherwise it gets the next version as before, and the run warns why. The Release starts with the entry's notes (**Release notes**: summary and each task's title and "after"), then **Tasks in this release** (the `task #N` references from the commit subjects since the previous tag), then GitHub's generated list of merged PRs under **Changes**, without release and back-merge PRs.
+**The GitHub Release** for each PROD deploy is tagged with the newest entry's version, if it's a `vYYYY.MM.N`, isn't already a tag and is higher than the previous tag. Otherwise it gets the next version as before, and the run warns why. The Release starts with the entry's notes (**Release notes**: summary and each task's title and "after"), then **Tasks in this release** (the task codes and old `task #N` references in the commit subjects (and in merged PR branch names) since the previous tag), then GitHub's generated list of merged PRs under **Changes**, without release and back-merge PRs.
 
 ## 8. SSH deploy gate
 
