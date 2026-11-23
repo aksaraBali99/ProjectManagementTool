@@ -366,7 +366,7 @@ No tag and no Release are created unless the deploy and the smoke test both pass
 
 **The GitHub Release** for each PROD deploy is tagged with the newest entry's version, if it's a `vYYYY.MM.N`, isn't already a tag and is higher than the previous tag. Otherwise it gets the next version as before, and the run warns why. The Release starts with the entry's notes (**Release notes**: summary and each task's title and "after"), then **Tasks in this release** (the task codes and old `task #N` references in the commit subjects (and in merged PR branch names) since the previous tag), then GitHub's generated list of merged PRs under **Changes**, without release and back-merge PRs.
 
-**The version in the menu** (SOL-0028): the sidebar shows, next to "Solava", the newest entry's version on PROD (the tag this deploy gets), and the environment and commit elsewhere (`dev · a13a163`). It is read when the config is cached, which `deploy.sh` does after every pull; after a manual pull on a server, rebuild the config cache (`php artisan config:clear && php artisan config:cache`) or the menu keeps the previous version.
+**The version in the menu** (SOL-0028): the sidebar shows, under "Solava", the newest entry's version: `v2026.11.2` on PROD (the version release-check gives the release, which the deploy tags; if a deploy ever falls back to another tag, its run warns and the menu still shows the entry's version), and the environment with it elsewhere, `[DEV] v2026.11.2`. It is read when the config is cached, which `deploy.sh` does after every pull; after a manual pull on a server, rebuild the config cache (`php artisan config:clear && php artisan config:cache`) or the menu keeps the previous version.
 
 ## 8. SSH deploy gate
 
