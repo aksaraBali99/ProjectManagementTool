@@ -3,7 +3,7 @@
         {
             "version": "v2026.11.2",
             "date": "2026-11-23",
-            "summary": "The Kanban board grouped by project, with the projects you leave open remembered for you, plus a deploy-only gate for the server's deploy keys and task codes in the release tooling.",
+            "summary": "The Kanban board grouped by project, with the projects you leave open remembered for you, and the release number next to the app name; plus a deploy-only gate for the server's deploy keys and task codes in the release tooling.",
             "tasks": [
                 {
                     "code": "SOL-0025",
@@ -12,6 +12,14 @@
                     "before": "Kanban showed one set of status columns per company, with every project's cards mixed together and the project name on each card.",
                     "after": "Kanban shows one row per project, sorted by name, with its number of tasks in each status. Click + on a project to see its cards in the four columns, and − to close it; a card is dragged between columns within its own project. Expand all and Collapse all open or close every project at once, and the projects you leave open are remembered for you, per company, on any browser or device. Load more, the dropdowns and the 15-second updates work inside each project. Cards no longer repeat the project name and show their due date as \"Due Dec 5\". A project whose tasks were all completed some time ago has no row; the \"Show all\" link above the board shows them.",
                     "prs": [159, 160]
+                },
+                {
+                    "code": "SOL-0028",
+                    "type": "Enhancement",
+                    "title": "Release number next to the app name",
+                    "before": "Nothing in the app showed which version it was running.",
+                    "after": "The menu shows the release number next to Solava, for example v2026.11.2. The owner and super admins can click it to open the release notes.",
+                    "prs": [164]
                 },
                 {
                     "code": "SOL-0023",

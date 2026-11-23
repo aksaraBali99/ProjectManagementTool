@@ -366,6 +366,8 @@ No tag and no Release are created unless the deploy and the smoke test both pass
 
 **The GitHub Release** for each PROD deploy is tagged with the newest entry's version, if it's a `vYYYY.MM.N`, isn't already a tag and is higher than the previous tag. Otherwise it gets the next version as before, and the run warns why. The Release starts with the entry's notes (**Release notes**: summary and each task's title and "after"), then **Tasks in this release** (the task codes and old `task #N` references in the commit subjects (and in merged PR branch names) since the previous tag), then GitHub's generated list of merged PRs under **Changes**, without release and back-merge PRs.
 
+**The version in the menu** (SOL-0028): the sidebar shows, next to "Solava", the newest entry's version on PROD (the tag this deploy gets), and the environment and commit elsewhere (`dev · a13a163`). It is read when the config is cached, which `deploy.sh` does after every pull; after a manual pull on a server, rebuild the config cache (`php artisan config:clear && php artisan config:cache`) or the menu keeps the previous version.
+
 ## 8. SSH deploy gate
 
 All the sites share one Hostinger SSH account. The deploy keys in `SSH_KEY` (lines `github-deploy-dev` and `github-deploy-prod` in `~/.ssh/authorized_keys`) have no restriction, so whoever holds one has a full shell on every site and database on the account. The gate (SOL-0023) replaces them with keys that can only deploy Solava:

@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\AppVersion;
+
 return [
 
     /*
@@ -37,5 +39,10 @@ return [
     // The GitHub repository the release notes link to (each release's
     // GitHub Release, each task's PRs).
     'github_repo_url' => 'https://github.com/aksaraBali99/ProjectManagementTool',
+
+    // SOL-0028: what the sidebar shows next to "Solava". Worked out when the
+    // config is loaded, so config:cache (run by deploy.sh after every pull)
+    // freezes it per deploy: no file reads per page on DEV and PROD.
+    'build' => AppVersion::detect(resource_path('release-notes.json'), base_path('.git')),
 
 ];
