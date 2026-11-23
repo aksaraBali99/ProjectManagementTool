@@ -23,10 +23,15 @@
         <p id="kanban-live-note" class="mb-2 text-[11px] text-gray-500" hidden>
             <a href="{{ url()->full() }}" class="text-brand-700 hover:underline">Reload to see updates</a>
         </p>
+        {{-- SOL-0025 phase 2: the completed-window lines on the left, and
+             Expand all / Collapse all on the right (hidden with no lanes;
+             the script keeps them current). --}}
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div class="min-w-0">
         {{-- task #72 phase 7: ?completed=all shows every completed task,
              for this visit only. --}}
         @if ($showAllCompleted)
-            <p class="kanban-completed-window mb-2 text-[11px] text-gray-500">
+            <p class="kanban-completed-window text-[11px] text-gray-500">
                 Showing all completed tasks ·
                 <a href="{{ route('kanban', $organization) }}" class="text-brand-700 hover:underline">Show recent only</a>
             </p>
@@ -34,7 +39,7 @@
             {{-- SOL-0025: a project whose visible tasks were all completed
                  before the window has no lane, so no lane's older line
                  reaches them; this one does. The poll keeps it current. --}}
-            <p id="kanban-hidden-older" class="mb-2 text-[11px] text-gray-500"
+            <p id="kanban-hidden-older" class="text-[11px] text-gray-500"
                data-show-all-url="{{ route('kanban', [$organization, 'completed' => 'all']) }}" @if ($hiddenOlder === 0) hidden @endif>
                 @if ($hiddenOlder > 0)
                     {{ number_format($hiddenOlder) }} older completed {{ \Illuminate\Support\Str::plural('task', $hiddenOlder) }} in projects not shown ·
@@ -42,6 +47,16 @@
                 @endif
             </p>
         @endif
+        </div>
+        <div id="kanban-lane-actions" class="ml-auto" @if ($lanes->isEmpty()) hidden @endif>
+            <div class="flex gap-1.5">
+                <button type="button" id="kanban-expand-all" class="rounded-md border border-gray-300 bg-white px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-default disabled:opacity-60"
+                        @if (count($openLaneIds) === $lanes->count()) disabled @endif>Expand all</button>
+                <button type="button" id="kanban-collapse-all" class="rounded-md border border-gray-300 bg-white px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-default disabled:opacity-60"
+                        @if ($openLaneIds === []) disabled @endif>Collapse all</button>
+            </div>
+        </div>
+        </div>
         {{-- SOL-0025: one collapsible lane per project, sorted by name,
              under one header row of the four statuses. Below xl the board
              keeps a min width and scrolls sideways inside the folder, so
@@ -54,7 +69,14 @@
         <div class="overflow-x-auto pb-1 xl:overflow-x-visible">
             <div id="kanban-board" class="min-w-[880px]"
                  data-changes-url="{{ route('kanban.changes', [$organization] + ($showAllCompleted ? ['completed' => 'all'] : [])) }}"
-                 data-cursor="{{ $cursor }}">
+                 data-cursor="{{ $cursor }}"
+                 {{-- SOL-0025 phase 2: the saved open lanes on the board now
+                      (opened on load), every id saved for this company (so a
+                      save keeps those whose lane is gone for now), and
+                      where to save. --}}
+                 data-open-lanes="{{ json_encode($openLaneIds) }}"
+                 data-saved-lanes="{{ json_encode($savedLaneIds) }}"
+                 data-open-lanes-url="{{ route('kanban.open-lanes', $organization) }}">
                 <div class="sticky top-0 z-10 grid grid-cols-[200px_repeat(4,minmax(0,1fr))] gap-2 px-[9px] pb-2"
                      style="background-color: {{ $organization->badgeBackground() }}">
                     <div class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2">
@@ -105,6 +127,8 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const lanesEl = document.getElementById('kanban-lanes');
         const laneTemplate = document.getElementById('kanban-lane-template');
+        const expandAllBtn = document.getElementById('kanban-expand-all');
+        const collapseAllBtn = document.getElementById('kanban-collapse-all');
         const STATUSES = Array.from(board.querySelectorAll('.kanban-column-header')).map(function (header) {
             return header.dataset.status;
         });
@@ -273,6 +297,17 @@
             toggle.textContent = open ? '−' : '+';
             toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
             toggle.setAttribute('aria-label', (open ? 'Close ' : 'Open ') + lane.dataset.name);
+            refreshLaneActions();
+        }
+
+        // SOL-0025 phase 2: Expand all / Collapse all, hidden with no lanes,
+        // each disabled while it would change nothing.
+        function refreshLaneActions() {
+            const lanes = lanesEl.querySelectorAll('.kanban-lane');
+            const open = lanesEl.querySelectorAll('.kanban-lane[data-open="1"]').length;
+            document.getElementById('kanban-lane-actions').hidden = lanes.length === 0;
+            expandAllBtn.disabled = open === lanes.length;
+            collapseAllBtn.disabled = open === 0;
         }
 
         function openLane(projectId) {
@@ -303,12 +338,40 @@
         // next open tries again. Cards the poll brought for this lane while
         // it loaded were skipped (applyChanges() only fills loaded lanes),
         // so the next poll re-reads from the time of this response.
+        //
+        // SOL-0025 phase 2: loads queue up and run LANE_LOADS_AT_ONCE at a
+        // time, in the order asked (top first on page load and Expand all).
+        // A lane shows "Loading…" while it waits its turn, and counts as
+        // loading (its header ignores clicks) until its request is done.
+        const LANE_LOADS_AT_ONCE = 3;
+        const laneQueue = [];
+        let laneLoadsRunning = 0;
+
         function loadLane(lane) {
             if (lane.dataset.loading === '1') return;
             lane.dataset.loading = '1';
             setLaneState(lane, 'loading');
+            laneQueue.push(lane);
+            runLaneQueue();
+        }
 
-            fetch(lane.dataset.url, {
+        function runLaneQueue() {
+            while (laneLoadsRunning < LANE_LOADS_AT_ONCE && laneQueue.length > 0) {
+                const lane = laneQueue.shift();
+                if (! lane.isConnected) {
+                    delete lane.dataset.loading;
+                    continue;
+                }
+                laneLoadsRunning++;
+                fetchLane(lane).finally(function () {
+                    laneLoadsRunning--;
+                    runLaneQueue();
+                });
+            }
+        }
+
+        function fetchLane(lane) {
+            return fetch(lane.dataset.url, {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
             })
@@ -472,9 +535,74 @@
             if (lane.dataset.loading === '1') return;
             if (lane.dataset.open === '1') {
                 closeLane(lane.dataset.projectId);
+                savedOpen.delete(lane.dataset.projectId);
             } else {
                 openLane(lane.dataset.projectId);
+                savedOpen.add(lane.dataset.projectId);
             }
+            scheduleOpenLanesSave();
+        });
+
+        // SOL-0025 phase 2: Expand all opens every lane on the board (loads
+        // through the queue above) and keeps the saved ids of lanes not on
+        // the page now. Collapse all means "everything closed": it clears
+        // the whole saved set for this company, those ids included. Cards
+        // already loaded stay in the page either way.
+        expandAllBtn.addEventListener('click', function () {
+            lanesEl.querySelectorAll('.kanban-lane').forEach(function (lane) {
+                if (lane.dataset.open !== '1') openLane(lane.dataset.projectId);
+                savedOpen.add(lane.dataset.projectId);
+            });
+            scheduleOpenLanesSave();
+        });
+
+        collapseAllBtn.addEventListener('click', function () {
+            lanesEl.querySelectorAll('.kanban-lane[data-open="1"]').forEach(function (lane) {
+                closeLane(lane.dataset.projectId);
+            });
+            savedOpen.clear();
+            scheduleOpenLanesSave();
+        });
+
+        // ---------------------------------------------------------------
+        // SOL-0025 phase 2: the open lanes are remembered per user and
+        // company. savedOpen holds every id saved as open, including lanes
+        // not on the page right now (a lane that comes back reopens). Your
+        // own opens and closes save the whole set, debounced so Expand all
+        // or quick clicks send one request; opening the saved lanes on load
+        // doesn't save. A save is a convenience: a failure is ignored and
+        // never undoes anything (a dead session is the poll's to report).
+        // ---------------------------------------------------------------
+        const OPEN_LANES_SAVE_DELAY = 600;
+        const openLanesUrl = board.dataset.openLanesUrl;
+        const savedOpen = new Set(JSON.parse(board.dataset.savedLanes || '[]').map(String));
+        let openLanesTimer = null;
+
+        function scheduleOpenLanesSave() {
+            clearTimeout(openLanesTimer);
+            openLanesTimer = setTimeout(saveOpenLanes, OPEN_LANES_SAVE_DELAY);
+        }
+
+        function saveOpenLanes() {
+            clearTimeout(openLanesTimer);
+            openLanesTimer = null;
+            // keepalive: still sent when the page is being left.
+            fetch(openLanesUrl, {
+                method: 'PUT',
+                keepalive: true,
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ project_ids: Array.from(savedOpen).map(Number) }),
+            }).catch(function () {});
+        }
+
+        // Leaving within the debounce: send it now.
+        window.addEventListener('pagehide', function () {
+            if (openLanesTimer !== null) saveOpenLanes();
         });
 
         // task #72 phase 5: the next 30 cards of one cell (SOL-0025: of one
@@ -679,8 +807,13 @@
                 if (! lane) {
                     lane = newLane(info);
                     lanesEl.insertBefore(lane, previous ? previous.nextElementSibling : lanesEl.firstElementChild);
+                    updateLane(lane, info);
+                    // SOL-0025 phase 2: a lane saved as open (one that
+                    // went away and came back) reopens; others stay closed.
+                    if (savedOpen.has(String(info.id))) openLane(info.id);
+                } else {
+                    updateLane(lane, info);
                 }
-                updateLane(lane, info);
                 previous = lane;
             });
 
@@ -729,6 +862,7 @@
                 if (! laneHasBusyCard(lane)) lane.remove();
             });
             document.getElementById('kanban-no-lanes').hidden = lanesEl.querySelector('.kanban-lane') !== null;
+            refreshLaneActions();
         }
 
         function toCardElement(change) {
@@ -926,6 +1060,11 @@
         });
 
         if (document.visibilityState === 'visible') startTimer();
+
+        // SOL-0025 phase 2: the lanes this user left open, top first; their
+        // cards load through the queue, 3 at a time. Not a save.
+        JSON.parse(board.dataset.openLanes || '[]').forEach(openLane);
+        refreshLaneActions();
     })();
 </script>
 @endsection
