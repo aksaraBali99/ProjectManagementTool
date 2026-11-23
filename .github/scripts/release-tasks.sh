@@ -11,8 +11,11 @@
 #   - A task code (3 letters, a hyphen, 4 or more digits: App\Support\
 #     CompanyCode and Task::formatCode()) that is a whole comma-separated
 #     item inside parentheses: "(SOL-0021)", "(SOL-0021, phase 1/3)",
-#     "(SOL-0021, SOL-0030)". Not in running text, and not "(ISO-8601)" or
-#     "(UTF-8)". Uppercased; the digits kept as written.
+#     "(SOL-0021, SOL-0030)". Not in running text, and not items like
+#     "(ISO-8601 dates)" or "(UTF-8)". Codes aren't listed per company,
+#     so anything in parentheses with a code's shape counts: a bare
+#     "(ISO-8601)" would be read as task ISO-8601. Uppercased; the digits
+#     kept as written.
 #   - The branch of a GitHub merge commit, "Merge pull request #N from
 #     <owner>/<Type>/<CODE>-...", with <Type> Enhancement, Bugfix, Chore or
 #     Hotfix: catches a PR whose own commits left the code out.

@@ -80,8 +80,13 @@ jobs:
           next=$(git tag --list | bash .github/scripts/next-version.sh "$(TZ=Asia/Makassar date +%Y.%m)")
           git tag --list > "$RUNNER_TEMP/tags"
           # SOL-0021: the release's task ids, one per line (SOL-0021, or #N
-          # for an old task number), for the entry's task list check.
-          bash .github/scripts/release-tasks.sh --ids "$previous" HEAD > "$RUNNER_TEMP/tasks"
+          # for an old task number), for the entry's task list check. If
+          # they can't be read, the check stops here: an empty list would
+          # let "every task is listed" pass for the wrong reason.
+          if ! bash .github/scripts/release-tasks.sh --ids "$previous" HEAD > "$RUNNER_TEMP/tasks"; then
+            echo "::error::Couldn't read this release's tasks from the commits since ${previous:-the first commit} (git log failed; the error is above). The release notes entry wasn't checked."
+            exit 1
+          fi
 
           code=0
           output=$(bash .github/scripts/release-notes-check.sh resources/release-notes.json "$next" "$RUNNER_TEMP/tags" "$RUNNER_TEMP/tasks") || code=$?

@@ -36,7 +36,7 @@ class ReleaseNotes
      * "number": exactly one of the two. release-notes-check.sh applies the
      * same pattern.
      */
-    public const CODE_PATTERN = '/^[A-Z]{3}-\d{4,}$/';
+    public const CODE_PATTERN = '/^[A-Z]{3}-\d{4,}\z/';
 
     /** @var list<array<string, mixed>>|null */
     private ?array $releases = null;

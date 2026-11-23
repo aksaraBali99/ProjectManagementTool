@@ -69,7 +69,8 @@ main() {
         # SOL-0021: a task code, like SOL-0021 (App\Support\ReleaseNotes::
         # CODE_PATTERN). A task names itself with "code", or (entries up to
         # v2026.11.1) the old "number": one of the two, never both.
-        def iscode: type == "string" and test("^[A-Z]{3}-[0-9]{4,}$");
+        # The whole string: no line break anywhere (as \z does in PHP).
+        def iscode: type == "string" and test("^[A-Z]{3}-[0-9]{4,}$") and (contains("\n") | not);
         def hasboth: has("code") and has("number");
         # How later messages name a task: its code, or task #N.
         def tasklabel:

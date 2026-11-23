@@ -137,6 +137,7 @@ expect_equal "no previous tag: every commit" \
 expect_equal "--ids: old numbers as #N" $'#7\n#9\n#30\n#118' "$(cd "$repo" && bash "$scripts/release-tasks.sh" --ids v2026.11.0 "$head_sha")"
 expect_equal "--ids with nothing found prints nothing" "" "$(coded_tasks --ids "$coded_sha" "$coded_sha")"
 expect_exit "a missing sha is refused" 2 coded_tasks v2026.12.0
+expect_exit "an unknown previous tag fails (release-check then stops with an error)" 128 coded_tasks --ids v9999.99.9 "$coded_sha"
 expect_exit "an empty sha is refused" 2 coded_tasks v2026.12.0 ""
 expect_exit "a missing sha is refused with --ids" 2 coded_tasks --ids v2026.12.0
 expect_exit "an empty sha is refused with --ids" 2 coded_tasks --ids v2026.12.0 ""
@@ -330,6 +331,8 @@ expect_equal "both, with a bad code: only the \"has both\" message" "no" "$(cont
 rule_case "a lowercase code" "$(chore '{"code": "sol-0021", "type": "Chore", "title": "T"}')" "$needs_code"
 rule_case "a code with too few digits" "$(chore '{"code": "SOL-21", "type": "Chore", "title": "T"}')" "$needs_code"
 rule_case "a code with four letters" "$(chore '{"code": "SOLA-0021", "type": "Chore", "title": "T"}')" "$needs_code"
+rule_case "a code with a line break after it" "$(chore '{"code": "SOL-0021\n", "type": "Chore", "title": "T"}')" "$needs_code"
+rule_case "a code with a line break before it" "$(chore '{"code": "x\nSOL-0021", "type": "Chore", "title": "T"}')" "$needs_code"
 rule_case "a code that isn't text" "$(chore '{"code": 21, "type": "Chore", "title": "T"}')" "$needs_code"
 rule_case "the same code twice in one entry" "$(chore '{"code": "SOL-0021", "type": "Chore", "title": "T"}, {"code": "SOL-0021", "type": "Chore", "title": "U"}')" 'v2026.11.1 lists SOL-0021 more than once'
 rule_case "a code task missing before" "$(chore '{"code": "SOL-0025", "type": "Enhancement", "title": "T", "after": "A"}')" 'v2026.11.1: SOL-0025 needs "before" (text)'

@@ -250,6 +250,8 @@ dataset('invalid notes', [
     'a lowercase code' => [fn () => withTask(['code' => 'sol-0021', 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
     'a code with too few digits' => [fn () => withTask(['code' => 'SOL-21', 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
     'a code with four letters' => [fn () => withTask(['code' => 'SOLA-0021', 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
+    'a code with a line break after it' => [fn () => withTask(['code' => "SOL-0021\n", 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
+    'a code with a line break before it' => [fn () => withTask(['code' => "x\nSOL-0021", 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
     'a code that isn\'t text' => [fn () => withTask(['code' => 21, 'type' => 'Chore', 'title' => 'T']), 'needs a task "code" like SOL-0021 (or an old "number")'],
     'the same code twice in one release' => [fn () => withTasks([
         ['code' => 'SOL-0021', 'type' => 'Chore', 'title' => 'T'],
