@@ -30,6 +30,17 @@
                 Showing all completed tasks ·
                 <a href="{{ route('kanban', $organization) }}" class="text-brand-700 hover:underline">Show recent only</a>
             </p>
+        @else
+            {{-- SOL-0025: a project whose visible tasks were all completed
+                 before the window has no lane, so no lane's older line
+                 reaches them; this one does. The poll keeps it current. --}}
+            <p id="kanban-hidden-older" class="mb-2 text-[11px] text-gray-500"
+               data-show-all-url="{{ route('kanban', [$organization, 'completed' => 'all']) }}" @if ($hiddenOlder === 0) hidden @endif>
+                @if ($hiddenOlder > 0)
+                    {{ number_format($hiddenOlder) }} older completed {{ \Illuminate\Support\Str::plural('task', $hiddenOlder) }} in projects not shown ·
+                    <a href="{{ route('kanban', [$organization, 'completed' => 'all']) }}" class="text-brand-700 hover:underline">Show all</a>
+                @endif
+            </p>
         @endif
         {{-- SOL-0025: one collapsible lane per project, sorted by name,
              under one header row of the four statuses. Below xl the board
@@ -290,8 +301,8 @@
 
         // A lane's first cards. On failure the lane stays unloaded, so the
         // next open tries again. Cards the poll brought for this lane while
-        // it loaded were skipped (applyChanges() only fills loaded lanes):
-        // this response is at least as new.
+        // it loaded were skipped (applyChanges() only fills loaded lanes),
+        // so the next poll re-reads from the time of this response.
         function loadLane(lane) {
             if (lane.dataset.loading === '1') return;
             lane.dataset.loading = '1';
@@ -320,9 +331,28 @@
                             // Still shown in another lane (moved, and the
                             // poll hasn't caught up): this is the newer
                             // place, unless you're working on that card.
-                            const existing = cardEl(card.dataset.taskId);
+                            const id = card.dataset.taskId;
+                            const existing = cardEl(id);
                             if (existing) {
-                                if (isBusy(card.dataset.taskId)) return;
+                                // You're working on it there: it moves here
+                                // once free (counted in this cell's total
+                                // meanwhile), unless the poll already holds
+                                // an update for it.
+                                if (isBusy(id)) {
+                                    if (! pending.has(id)) {
+                                        pending.set(id, {
+                                            change: {
+                                                id: Number(id),
+                                                status: status,
+                                                project_id: Number(lane.dataset.projectId),
+                                                sort_key: card.dataset.sortKey,
+                                                html: card.outerHTML,
+                                            },
+                                            seq: pollSeq,
+                                        });
+                                    }
+                                    return;
+                                }
                                 existing.remove();
                             }
                             body.insertBefore(card, body.querySelector('.kanban-empty'));
@@ -332,6 +362,11 @@
                     });
                     setOlder(lane, data.older);
                     lane.dataset.loaded = '1';
+                    // A poll that landed while this lane loaded skipped
+                    // its cards, and may have moved the cursor past a
+                    // change this response predates: the next poll
+                    // re-reads from this response's own time.
+                    rewindTo = rewindTo === null ? Number(data.cursor) : Math.min(rewindTo, Number(data.cursor));
                 })
                 .catch(function () {
                     if (lane.isConnected) setLaneState(lane, 'error');
@@ -349,7 +384,10 @@
         }
 
         // SOL-0025: a card moves between the cells of its own lane only;
-        // another project's lane doesn't accept it.
+        // another project's lane doesn't accept it. The target cell is
+        // highlighted from dragover alone (cleared over anything else, on
+        // drop and on dragend): some browsers send dragleave with no
+        // relatedTarget while still over the cell, which made it flicker.
         let dragLane = null;
         let dropTarget = null;
 
@@ -391,12 +429,6 @@
             const cell = sameLaneCell(event);
             setDropTarget(cell);
             if (cell) event.preventDefault();
-        });
-
-        board.addEventListener('dragleave', function (event) {
-            if (dropTarget && ! (event.relatedTarget instanceof Node && dropTarget.contains(event.relatedTarget))) {
-                setDropTarget(null);
-            }
         });
 
         board.addEventListener('drop', function (event) {
@@ -526,6 +558,9 @@
         // triggers is numbered higher and brings the new state.
         let pollSeq = 0;
         const savedAfterPoll = new Map();
+        // SOL-0025: set when a lane finishes loading - its response's server
+        // time, for the next poll to read changes from (see loadLane()).
+        let rewindTo = null;
 
         // Never move a card under the user: one being dragged, one whose
         // status or assignee dropdown has focus, or one being saved.
@@ -584,6 +619,7 @@
             const template = document.createElement('template');
             template.innerHTML = laneTemplate.innerHTML.split('__PROJECT__').join(String(Number(info.id)));
             const lane = template.content.firstElementChild;
+            lane.dataset.name = info.name;
             setLaneOpen(lane, false);
 
             return lane;
@@ -648,7 +684,44 @@
                 previous = lane;
             });
 
+            // A renamed project's lane moves to its new place - only while
+            // nothing is under the user (moving a lane would drop a drag or
+            // a dropdown's focus); otherwise on a later poll.
+            const ordered = lanes.map(function (info) { return laneEl(info.id); });
+            const shown = Array.from(lanesEl.querySelectorAll('.kanban-lane')).filter(function (lane) {
+                return listed.has(lane.dataset.projectId);
+            });
+            const outOfOrder = shown.some(function (lane, index) { return lane !== ordered[index]; });
+            const focused = document.activeElement;
+            const userBusy = draggingId !== null || busy.size > 0 || !! (focused && lanesEl.contains(focused) && focused.matches('select'));
+            if (outOfOrder && ! userBusy) {
+                ordered.forEach(function (lane) { lanesEl.appendChild(lane); });
+            }
+
             document.getElementById('kanban-project-count').textContent = formatNumber(lanes.length);
+        }
+
+        // SOL-0025: "N older completed tasks in projects not shown · Show
+        // all" - the company's older count less the lanes' own.
+        function setHiddenOlder(companyOlder, lanes) {
+            const line = document.getElementById('kanban-hidden-older');
+            if (! line) return;
+            const count = Math.max(0, Number(companyOlder) - lanes.reduce(function (sum, info) { return sum + Number(info.older); }, 0));
+
+            line.hidden = count === 0;
+            if (count === 0) {
+                line.replaceChildren();
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.href = line.dataset.showAllUrl;
+            link.className = 'text-brand-700 hover:underline';
+            link.textContent = 'Show all';
+            line.replaceChildren(
+                document.createTextNode(formatNumber(count) + ' older completed ' + (count === 1 ? 'task' : 'tasks') + ' in projects not shown · '),
+                link,
+            );
         }
 
         function removeUnlistedLanes() {
@@ -761,7 +834,8 @@
         function pollOnce() {
             const seq = ++pollSeq;
             const url = new URL(changesUrl, window.location.origin);
-            url.searchParams.set('since', cursor);
+            const rewound = rewindTo;
+            url.searchParams.set('since', String(rewound === null ? cursor : Math.min(Number(cursor), rewound)));
 
             return fetch(url.toString(), {
                 credentials: 'same-origin',
@@ -791,8 +865,10 @@
                     }
 
                     // Advanced only after a successful poll, so a failed
-                    // one loses nothing.
+                    // one loses nothing. A rewind this poll covered is
+                    // done (unless another lane loaded meanwhile).
                     cursor = String(data.cursor);
+                    if (rewindTo === rewound) rewindTo = null;
                     board.querySelectorAll('.kanban-column-header').forEach(function (header) {
                         if (header.dataset.status in data.totals) {
                             header.querySelector('.kanban-column-total').textContent = formatNumber(Number(data.totals[header.dataset.status]));
@@ -801,6 +877,7 @@
                     // Lanes first: the cells' totals must be current
                     // before applyChanges() decides where cards go.
                     applyLanes(data.lanes || []);
+                    setHiddenOlder(data.older || 0, data.lanes || []);
                     applyChanges(data.cards, data.removed, seq);
                     flushPending();
                 })

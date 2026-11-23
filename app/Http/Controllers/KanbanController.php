@@ -91,6 +91,10 @@ class KanbanController extends Controller
             'lanes' => $summary['lanes'],
             // The column headers: the company's total per status.
             'totals' => $summary['totals'],
+            // Older completed tasks of projects with no lane (all their
+            // visible tasks are older completed ones): the board's own
+            // "Show all" line, since no lane can offer it.
+            'hiddenOlder' => $summary['older'] - $summary['lanes']->sum('older'),
             // Same gate the Tasks list page's own "+ Add task" button uses
             // (create_edit_tasks, narrowed to allowed departments for
             // Staff) - viewing the board (view_kanban) and creating a task
@@ -112,16 +116,22 @@ class KanbanController extends Controller
      * Access is the board's rule (403); a project of another company is a
      * 404. A project with no visible tasks returns empty columns, since a
      * lane can empty out between page load and open.
+     *
+     * cursor: this server's time before anything is read. The board's next
+     * poll re-reads changes from it, so a change saved while the lane
+     * loaded (which the poll skipped, the lane not being loaded yet) is
+     * applied rather than lost.
      */
     public function project(Organization $organization, string $project): JsonResponse
     {
+        $cursor = now()->getTimestamp();
         $project = $this->boardProject($organization, $project);
 
         $visible = Task::visibleTo(auth()->user(), $organization->id)
             ->where('tasks.project_id', $project->id);
         $since = $this->completedWindowStartFor($organization);
-        $summary = $this->laneSummaries($visible, $since);
-        $totals = $summary['totals'];
+        $counts = $this->projectCounts($visible, $since);
+        $totals = $counts['totals'];
 
         $pages = collect(TaskStatus::cases())->mapWithKeys(fn (TaskStatus $status) => [
             // An empty status needs no query.
@@ -131,9 +141,11 @@ class KanbanController extends Controller
         ]);
 
         // One eager load and one set of assignee options across every
-        // card of the lane, not one per status.
+        // card of the lane, not one per status. The project is the one
+        // already loaded above.
         $rendered = new EloquentCollection($pages->flatten(1)->all());
-        $rendered->load(['project', 'department', 'assignee']);
+        $rendered->each(fn (Task $task) => $task->setRelation('project', $project));
+        $rendered->load(['department', 'assignee']);
         $html = $this->renderCards($rendered, $organization)
             ->groupBy(fn (array $card) => $card['task']->status->value)
             ->map(fn (Collection $cards) => $cards->pluck('html')->implode(''));
@@ -144,7 +156,8 @@ class KanbanController extends Controller
                 'total' => $totals[$status],
                 'remaining' => max(0, $totals[$status] - $tasks->count()),
             ])->all(),
-            'older' => $summary['older'],
+            'older' => $counts['older'],
+            'cursor' => $cursor,
         ]);
     }
 
@@ -264,19 +277,23 @@ class KanbanController extends Controller
     {
         $user = auth()->user();
 
-        $this->authorizeBoard($organization);
+        // SOL-0025: the grouped board continues one lane's cell. Without
+        // ?project= (a tab opened before the deploy) the whole company's
+        // column, as before. boardProject() applies the board's access
+        // rule itself.
+        $project = request()->query('project');
+        $project = $project === null ? null : $this->boardProject($organization, $project);
+        if ($project === null) {
+            $this->authorizeBoard($organization);
+        }
 
         // A non-negative whole number; anything else starts from the top.
         $offset = request()->query('offset');
         $offset = is_string($offset) && ctype_digit($offset) ? (int) $offset : 0;
 
         $visible = Task::visibleTo($user, $organization->id);
-        // SOL-0025: the grouped board continues one lane's cell. Without
-        // ?project= (a tab opened before the deploy) the whole company's
-        // column, as before.
-        $project = request()->query('project');
         if ($project !== null) {
-            $visible->where('tasks.project_id', $this->boardProject($organization, $project)->id);
+            $visible->where('tasks.project_id', $project->id);
         }
         // Same window as the board, so Load more continues the same list.
         $since = $this->completedWindowStartFor($organization);
@@ -301,9 +318,8 @@ class KanbanController extends Controller
      * SOL-0025: the board's lanes, one per project with visible tasks,
      * sorted by name (case-insensitive) then id, plus the company totals
      * the column headers show. At most three queries whatever the number
-     * of tasks or projects: a count grouped by project and status, the
-     * in-window completed count grouped by project (only when a window
-     * applies and something is completed), and the lanes' projects.
+     * of tasks or projects: projectCounts()'s one or two, and the lanes'
+     * projects.
      *
      * task #72 phase 7: Completed counts only tasks completed within the
      * company's window, unless ?completed=all ($since null); the rest are
@@ -316,6 +332,42 @@ class KanbanController extends Controller
      * @return array{lanes: Collection<int, array<string, mixed>>, totals: array<string, int>, older: int}
      */
     private function laneSummaries(Builder $visible, ?DateTimeInterface $since): array
+    {
+        ['counts' => $counts, 'totals' => $companyTotals, 'older' => $companyOlder] = $this->projectCounts($visible, $since);
+
+        // The tasks are already this company's, so the projects need no
+        // organization scope.
+        $projects = $counts === []
+            ? collect()
+            : Project::withoutGlobalScope('organization')->whereIn('id', array_keys($counts))->get(['id', 'name', 'status']);
+
+        $lanes = $projects
+            ->map(fn (Project $project) => [
+                'id' => $project->id,
+                'name' => $project->name,
+                'closed' => $project->status === ProjectStatus::Closed,
+                'totals' => $counts[$project->id]['totals'],
+                'total' => array_sum($counts[$project->id]['totals']),
+                'older' => $counts[$project->id]['older'],
+            ])
+            ->sort(fn (array $a, array $b) => [mb_strtolower($a['name']), $a['id']] <=> [mb_strtolower($b['name']), $b['id']])
+            ->values()
+            ->toBase();
+
+        return ['lanes' => $lanes, 'totals' => $companyTotals, 'older' => $companyOlder];
+    }
+
+    /**
+     * SOL-0025: the counts behind the lanes, without the projects: per
+     * project with visible tasks in the window, its totals (every status)
+     * and older count; and the totals and older count of all of them
+     * together, older counting projects with no lane too. One grouped
+     * count, plus the in-window completed count when a window applies and
+     * something is completed. project() uses it alone for one lane.
+     *
+     * @return array{counts: array<int, array{totals: array<string, int>, older: int}>, totals: array<string, int>, older: int}
+     */
+    private function projectCounts(Builder $visible, ?DateTimeInterface $since): array
     {
         $rows = (clone $visible)->toBase()
             ->select('tasks.project_id', 'tasks.status')
@@ -359,26 +411,7 @@ class KanbanController extends Controller
             }
         }
 
-        // The tasks are already this company's, so the projects need no
-        // organization scope.
-        $projects = $counts === []
-            ? collect()
-            : Project::withoutGlobalScope('organization')->whereIn('id', array_keys($counts))->get(['id', 'name', 'status']);
-
-        $lanes = $projects
-            ->map(fn (Project $project) => [
-                'id' => $project->id,
-                'name' => $project->name,
-                'closed' => $project->status === ProjectStatus::Closed,
-                'totals' => $counts[$project->id]['totals'],
-                'total' => array_sum($counts[$project->id]['totals']),
-                'older' => $counts[$project->id]['older'],
-            ])
-            ->sort(fn (array $a, array $b) => [mb_strtolower($a['name']), $a['id']] <=> [mb_strtolower($b['name']), $b['id']])
-            ->values()
-            ->toBase();
-
-        return ['lanes' => $lanes, 'totals' => $companyTotals, 'older' => $companyOlder];
+        return ['counts' => $counts, 'totals' => $companyTotals, 'older' => $companyOlder];
     }
 
     /**

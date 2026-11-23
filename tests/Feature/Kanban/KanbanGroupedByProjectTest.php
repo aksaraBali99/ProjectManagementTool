@@ -228,6 +228,52 @@ test('a project with only old completed tasks has no lane, but one under ?comple
         ->not->toContain('older completed');
 });
 
+test('older completed tasks of projects with no lane get the board\'s own "Show all" line', function () {
+    $showAll = preg_quote(e(route('kanban', [$this->org, 'completed' => 'all'])), '/');
+    $board = fn (array $query = []) => withoutScripts($this->actingAs($this->management)->get(route('kanban', [$this->org] + $query))->assertOk()->getContent());
+
+    // Only lanes' own older tasks: the line is there, hidden and empty.
+    laneCompletedTask($this, $this->beta, '2026-11-18 09:00:00');
+    laneCompletedTask($this, $this->beta, '2026-10-01 09:00:00');
+    expect($board())->toMatch('/<p id="kanban-hidden-older"[^>]*\shidden\s*>\s*<\/p>/');
+
+    // Alpha's tasks are all older: no lane, so the board line counts them.
+    laneCompletedTask($this, $this->alpha, '2026-09-01 09:00:00');
+    laneCompletedTask($this, $this->alpha, '2026-09-02 09:00:00');
+    expect(kanbanLanes($this->management, $this->org->id)->pluck('name')->all())->toBe(['beta']);
+    expect($board())->toMatch('/<p id="kanban-hidden-older"[^>]*>\s*2 older completed tasks in projects not shown ·\s*<a href="'.$showAll.'"[^>]*>Show all<\/a>/')
+        ->toMatch('/1 older completed ·/'); // beta's own line
+
+    // Even when no project has a lane at all (beta's tasks deactivated).
+    $this->beta->tasks()->get()->each->delete();
+    $html = $board();
+    expect($html)->toMatch('/<p id="kanban-no-lanes"[^>]*>No tasks<\/p>/')
+        ->toMatch('/2 older completed tasks in projects not shown ·/');
+
+    // One: "task". Under ?completed=all the line isn't rendered.
+    $this->alpha->tasks()->limit(1)->get()->each->delete();
+    expect($board())->toContain('1 older completed task in projects not shown ·');
+    expect($board(['completed' => 'all']))->not->toContain('kanban-hidden-older');
+});
+
+test('kanban.project returns its server time, and doesn\'t look up the project again for its cards', function () {
+    laneTask($this, $this->alpha, 'pending');
+    laneTask($this, $this->alpha, 'completed');
+
+    $projectQueries = 0;
+    DB::listen(function ($query) use (&$projectQueries) {
+        if (preg_match('/from ["`]?projects["`]?/i', $query->sql)) {
+            $projectQueries++;
+        }
+    });
+    $lane = kanbanLane($this->management, $this->org->id, $this->alpha->id);
+
+    expect($lane['cursor'])->toBe(now()->getTimestamp())
+        // boardProject()'s own lookup only.
+        ->and($projectQueries)->toBe(1)
+        ->and(kanbanCardIds($lane['columns']['pending']['html']))->toHaveCount(1);
+});
+
 test('the poll\'s company older also counts projects that have no lane', function () {
     laneCompletedTask($this, $this->alpha, '2026-09-01 09:00:00');
     laneCompletedTask($this, $this->beta, '2026-11-18 09:00:00');
