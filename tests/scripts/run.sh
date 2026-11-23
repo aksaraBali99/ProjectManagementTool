@@ -90,6 +90,57 @@ expect_equal "no previous tag: every commit" \
     $'- Task #1\n- Task #7\n- Task #9\n- Task #30\n- Task #118' "$(tasks "" "$head_sha")"
 expect_equal "nothing new" "- None found in the commit subjects" "$(tasks "$head_sha" "$head_sha")"
 
+# SOL-0021: task codes, in a second repo so the number-only cases above
+# stay as they were.
+coded="$sandbox/coded-repo"
+mkdir -p "$coded"
+(
+    cd "$coded"
+    git init --quiet
+    git config user.name "Test"
+    git config user.email "test@example.com"
+    git config commit.gpgsign false
+    git commit --quiet --allow-empty -m "Enhancement: before the tag (SOL-0001)"
+    git tag v2026.12.0
+    git commit --quiet --allow-empty -m "Enhancement: lanes (SOL-0025)"
+    git commit --quiet --allow-empty -m "Enhancement: phase two (SOL-0025, phase 2/2) (#160)"
+    git commit --quiet --allow-empty -m "Chore: gate (sol-0023)"
+    git tag codes-only
+    # A parenthesised item counts only when it is exactly a code: not
+    # "ISO-8601 dates". (A bare "(ISO-8601)" has a code's shape, so it
+    # would count: codes aren't hard-coded per company.)
+    git commit --quiet --allow-empty -m "Chore: dates as (ISO-8601 dates)"
+    git commit --quiet --allow-empty -m "Chore: two tasks (SOL-0021, AVA-0003)"
+    git commit --quiet --allow-empty -m "Chore: a SOL-0099 mention outside parentheses"
+    git commit --quiet --allow-empty -m "Merge pull request #161 from org/Bugfix/SOL-0040-login"
+    git commit --quiet --allow-empty -m "Merge pull request #150 from org/main"
+    git commit --quiet --allow-empty -m "Chore: both (task #119) (SOL-0021)"
+    git commit --quiet --allow-empty -m "Chore: code last in the group (phase 1/3, SOL-0009)"
+    git commit --quiet --allow-empty -m "Chore: not codes (UTF-8) (ABCD-0001) (SO-0021) (SOL-021)"
+    git commit --quiet --allow-empty -m "Chore: a long number (SOL-12345)"
+    git commit --quiet --allow-empty -m "Bugfix: an old one (task #7)"
+)
+coded_sha="$(git -C "$coded" rev-parse HEAD)"
+coded_tasks() { (cd "$coded" && bash "$scripts/release-tasks.sh" "$@"); }
+
+expect_equal "codes in parentheses, merge branches and old numbers: codes first (prefix, then number), then old numbers" \
+    $'- AVA-0003\n- SOL-0009\n- SOL-0021\n- SOL-0023\n- SOL-0025\n- SOL-0040\n- SOL-12345\n- Task #7\n- Task #119' \
+    "$(coded_tasks v2026.12.0 "$coded_sha")"
+expect_equal "--ids: one id per line" \
+    $'AVA-0003\nSOL-0009\nSOL-0021\nSOL-0023\nSOL-0025\nSOL-0040\nSOL-12345\n#7\n#119' \
+    "$(coded_tasks --ids v2026.12.0 "$coded_sha")"
+expect_equal "only codes (lowercase uppercased, a code in several commits once)" \
+    $'- SOL-0023\n- SOL-0025' "$(coded_tasks v2026.12.0 codes-only)"
+expect_equal "no previous tag: every commit" \
+    $'AVA-0003\nSOL-0001\nSOL-0009\nSOL-0021\nSOL-0023\nSOL-0025\nSOL-0040\nSOL-12345\n#7\n#119' \
+    "$(coded_tasks --ids "" "$coded_sha")"
+expect_equal "--ids: old numbers as #N" $'#7\n#9\n#30\n#118' "$(cd "$repo" && bash "$scripts/release-tasks.sh" --ids v2026.11.0 "$head_sha")"
+expect_equal "--ids with nothing found prints nothing" "" "$(coded_tasks --ids "$coded_sha" "$coded_sha")"
+expect_exit "a missing sha is refused" 2 coded_tasks v2026.12.0
+expect_exit "an empty sha is refused" 2 coded_tasks v2026.12.0 ""
+expect_exit "a missing sha is refused with --ids" 2 coded_tasks --ids v2026.12.0
+expect_exit "an empty sha is refused with --ids" 2 coded_tasks --ids v2026.12.0 ""
+
 # --- release-check.sh ---------------------------------------------------
 
 echo "release-check.sh"
@@ -106,6 +157,10 @@ expect_exit "Hotfix/12-x passes the source check" 0 check Hotfix/12-x "$unticked
 expect_exit "feature/x fails" 1 check feature/x "$ticked"
 expect_exit "hotfix/ in lower case fails" 1 check hotfix/12-x "$ticked"
 expect_exit "Enhancement/119-x fails" 1 check Enhancement/119-x "$ticked"
+expect_exit "Hotfix/SOL-0030-x passes the source check" 0 check Hotfix/SOL-0030-x "$unticked"
+expect_exit "Enhancement/SOL-0021-x fails" 1 check Enhancement/SOL-0021-x "$ticked"
+expect_equal "the error names the code format" "yes" \
+    "$([[ "$(check feature/x "$ticked" 2>&1 || true)" == *"Hotfix/<code>-<slug> branch (for example Hotfix/SOL-0030-fix-login)"* ]] && echo yes || echo no)"
 expect_exit "body text is never run" 0 check main $'- [x] $(touch /tmp/release-check-injected)\n'
 if [[ -e /tmp/release-check-injected ]]; then
     fail "body text is never run (file created)" "no file" "file"
@@ -224,6 +279,61 @@ rule_case "a task that isn't an object" "$(chore '"oops"')" 'every task must be 
 notes_check "$(notes_file leap "{\"releases\": [${entry/2026-11-10/2028-02-29}]}")" v2026.11.1 "$notes_dir/tags" "$notes_dir/tasks"
 expect_equal "29 February in a leap year is a real date" "no" "$(contains 'needs a "date"')"
 
+# SOL-0021: tasks named by code.
+code_entry='{"version": "v2026.11.1", "date": "2026-11-10", "summary": "Codes.", "tasks": [
+    {"code": "SOL-0025", "type": "Enhancement", "title": "Kanban by project", "before": "One set of columns.", "after": "One lane per project.", "prs": [159, 160]},
+    {"code": "SOL-0023", "type": "Chore", "title": "SSH deploy gate", "pr": 158},
+    {"code": "AVA-0003", "type": "Chore", "title": "Another company"}]}'
+coded_notes=$(notes_file coded "{\"releases\": [$code_entry]}")
+printf 'SOL-0025\nSOL-0023\nAVA-0003\n' >"$notes_dir/code-tasks"
+
+notes_check "$coded_notes" v2026.11.1 "$notes_dir/tags" "$notes_dir/code-tasks"
+expect_equal "a code-only entry with a matching tasks file passes" "0" "$check_code"
+expect_equal "every task in it" "yes" "$(contains 'OK: every task in the release is in v2026.11.1')"
+
+printf 'SOL-0025\nSOL-0023\nAVA-0003\nSOL-0030\n' >"$notes_dir/code-tasks-more"
+notes_check "$coded_notes" v2026.11.1 "$notes_dir/tags" "$notes_dir/code-tasks-more"
+expect_equal "a code missing from the entry fails" "1" "$check_code"
+expect_equal "naming it" "yes" "$(contains "doesn't list these tasks that are in the release: SOL-0030.")"
+
+printf 'SOL-0030\n#125\nAVA-0009\nSOL-0025\nSOL-0023\nAVA-0003\n' >"$notes_dir/code-tasks-mixed-missing"
+notes_check "$coded_notes" v2026.11.1 "$notes_dir/tags" "$notes_dir/code-tasks-mixed-missing"
+expect_equal "missing ones: codes first (by prefix, then number), then numbers" "yes" \
+    "$(contains "doesn't list these tasks that are in the release: AVA-0009 SOL-0030 #125.")"
+
+printf 'SOL-0025\n' >"$notes_dir/code-tasks-fewer"
+notes_check "$coded_notes" v2026.11.1 "$notes_dir/tags" "$notes_dir/code-tasks-fewer"
+expect_equal "extra codes in the entry only warn" "0" "$check_code"
+expect_equal "naming them, sorted" "yes" "$(contains 'lists tasks no commit in the release mentions: AVA-0003 SOL-0023')"
+
+mixed_entry='{"version": "v2026.11.1", "date": "2026-11-10", "summary": "Both.", "tasks": [
+    {"code": "SOL-0021", "type": "Chore", "title": "Codes"},
+    {"number": 118, "type": "Chore", "title": "Old one"},
+    {"number": 121, "type": "Chore", "title": "Another old one"}]}'
+printf 'SOL-0021\r\n#118\r\n121\r\nnot an id\r\n' >"$notes_dir/mixed-tasks"
+notes_check "$(notes_file mixed "{\"releases\": [$mixed_entry]}")" v2026.11.1 "$notes_dir/tags" "$notes_dir/mixed-tasks"
+expect_equal "a mixed tasks file (a code, #N, a bare N, \\r line ends, a stray line) compares correctly" "0" "$check_code"
+expect_equal "with nothing extra" "no" "$(contains '::warning::Release notes: v2026.11.1 lists tasks')"
+
+same_digits='{"version": "v2026.11.1", "date": "2026-11-10", "summary": "S.", "tasks": [
+    {"code": "ABC-0118", "type": "Chore", "title": "Coded"},
+    {"number": 118, "type": "Chore", "title": "Numbered"}]}'
+printf 'ABC-0118\n#118\n' >"$notes_dir/same-digits-tasks"
+notes_check "$(notes_file same-digits "{\"releases\": [$same_digits]}")" v2026.11.1 "$notes_dir/tags" "$notes_dir/same-digits-tasks"
+expect_equal "a code and a number with the same digits don't clash" "0" "$check_code"
+
+needs_code='needs a task "code" like SOL-0021 (or an old "number")'
+rule_case "a task with neither code nor number" "$(chore '{"type": "Chore", "title": "T"}')" "v2026.11.1, task entry #1 $needs_code"
+rule_case "a task with both code and number" "$(chore '{"code": "SOL-0021", "number": 21, "type": "Chore", "title": "T"}')" 'v2026.11.1, task entry #1 has both "code" and "number"; use one'
+rule_case "both, with a bad code" "$(chore '{"code": "sol-21", "number": 21, "type": "Chore", "title": "T"}')" 'has both "code" and "number"; use one'
+expect_equal "both, with a bad code: only the \"has both\" message" "no" "$(contains "$needs_code")"
+rule_case "a lowercase code" "$(chore '{"code": "sol-0021", "type": "Chore", "title": "T"}')" "$needs_code"
+rule_case "a code with too few digits" "$(chore '{"code": "SOL-21", "type": "Chore", "title": "T"}')" "$needs_code"
+rule_case "a code with four letters" "$(chore '{"code": "SOLA-0021", "type": "Chore", "title": "T"}')" "$needs_code"
+rule_case "a code that isn't text" "$(chore '{"code": 21, "type": "Chore", "title": "T"}')" "$needs_code"
+rule_case "the same code twice in one entry" "$(chore '{"code": "SOL-0021", "type": "Chore", "title": "T"}, {"code": "SOL-0021", "type": "Chore", "title": "U"}')" 'v2026.11.1 lists SOL-0021 more than once'
+rule_case "a code task missing before" "$(chore '{"code": "SOL-0025", "type": "Enhancement", "title": "T", "after": "A"}')" 'v2026.11.1: SOL-0025 needs "before" (text)'
+
 echo "release-notes-entry.sh"
 # entry_of <notes> <tags-file>: the printed version in $entry_out, any warning in $entry_warning.
 entry_of() {
@@ -287,6 +397,11 @@ expect_equal "the entry's tasks, grouped by type, with what changes" \
     $'## Release notes\n\nThe first release.\n\n### Enhancement\n\n- **task #118** Company-coded task numbers: Every task has a code.\n\n### Bugfix\n\n- **task #121** Keep the back link: Kept.\n\n### Chore\n\n- **task #119** Release process' \
     "$body"
 expect_equal "nothing for a version with no entry" "" "$(bash "$scripts/release-notes-body.sh" "$good" v2026.11.9)"
+expect_equal "a code task prints its code; an old one task #N" \
+    $'## Release notes\n\nBoth.\n\n### Chore\n\n- **SOL-0021** Codes\n- **task #118** Old one\n- **task #121** Another old one' \
+    "$(bash "$scripts/release-notes-body.sh" "$notes_dir/mixed.json" v2026.11.1)"
+expect_equal "with what changes for people" "yes" \
+    "$([[ "$(bash "$scripts/release-notes-body.sh" "$coded_notes" v2026.11.1)" == *"- **SOL-0025** Kanban by project: One lane per project."* ]] && echo yes || echo no)"
 unreadable=$(notes_file unreadable '{"releases": [{"version": "v2026.11.1", "summary": "S.", "tasks": "oops"}]}')
 body_warning="$sandbox/body-warning"
 expect_equal "an entry that can't be read gives nothing, not a partial section" "" "$(bash "$scripts/release-notes-body.sh" "$unreadable" v2026.11.1 2>"$body_warning")"

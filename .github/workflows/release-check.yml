@@ -79,7 +79,9 @@ jobs:
           previous=$(git describe --tags --abbrev=0 --match 'v[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9]*' origin/production 2>/dev/null || true)
           next=$(git tag --list | bash .github/scripts/next-version.sh "$(TZ=Asia/Makassar date +%Y.%m)")
           git tag --list > "$RUNNER_TEMP/tags"
-          { bash .github/scripts/release-tasks.sh "$previous" HEAD | grep -oE '[0-9]+' || true; } > "$RUNNER_TEMP/tasks"
+          # SOL-0021: the release's task ids, one per line (SOL-0021, or #N
+          # for an old task number), for the entry's task list check.
+          bash .github/scripts/release-tasks.sh --ids "$previous" HEAD > "$RUNNER_TEMP/tasks"
 
           code=0
           output=$(bash .github/scripts/release-notes-check.sh resources/release-notes.json "$next" "$RUNNER_TEMP/tags" "$RUNNER_TEMP/tasks") || code=$?

@@ -7,8 +7,10 @@
 #
 #   <next-version>  the version this release will get (next-version.sh)
 #   <tags-file>     the existing tags, one per line
-#   <tasks-file>    the task numbers in this release, one per line
-#                   (from release-tasks.sh)
+#   <tasks-file>    the tasks in this release, one per line: a code like
+#                   SOL-0021, or #N for an old task number (from
+#                   release-tasks.sh --ids). A bare N counts as #N, so an
+#                   older tasks file still works; other lines are ignored.
 #
 # Prints one line per finding: "::error::...", "::warning::..." or
 # "OK: ...". Exits 1 when there's an error, 2 when jq is missing.
@@ -21,6 +23,15 @@
 set -euo pipefail
 # shellcheck disable=SC1091 # release-notes-lib.sh, next to this script (checked on its own)
 source "$(dirname "${BASH_SOURCE[0]}")/release-notes-lib.sh"
+
+# Task ids, unique, one per line: codes first (by prefix, then by number),
+# then #N ascending.
+sort_ids() {
+    local ids
+    ids=$(LC_ALL=C sort -u)
+    { grep -E '^[A-Z]{3}-[0-9]+$' <<<"$ids" | LC_ALL=C sort -t- -k1,1 -k2,2n || true; }
+    { grep -E '^#[0-9]+$' <<<"$ids" | sort -t'#' -k2,2n || true; }
+}
 
 main() {
     if (($# != 4)); then
@@ -55,10 +66,30 @@ main() {
             and (split("-") | map(tonumber) as [$y, $m, $d]
                 | $m >= 1 and $m <= 12 and $d >= 1
                   and $d <= ([31, (if ($y | leap) then 29 else 28 end), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][$m - 1]));
-        def task($v):
+        # SOL-0021: a task code, like SOL-0021 (App\Support\ReleaseNotes::
+        # CODE_PATTERN). A task names itself with "code", or (entries up to
+        # v2026.11.1) the old "number": one of the two, never both.
+        def iscode: type == "string" and test("^[A-Z]{3}-[0-9]{4,}$");
+        def hasboth: has("code") and has("number");
+        # How later messages name a task: its code, or task #N.
+        def tasklabel:
+            if hasboth then "a task"
+            elif has("code") then (if (.code | iscode) then .code else "a task" end)
+            elif (.number | wholenumber) then "task #\(.number)"
+            else "a task" end;
+        # The duplicate key: the code, or #N (so a code and a number never clash).
+        def taskkey:
+            if hasboth then empty
+            elif has("code") then (.code | select(iscode))
+            elif (.number | wholenumber) then "#\(.number)"
+            else empty end;
+        def task($v; $where):
             if type != "object" then "\($v): every task must be an object"
-            else (if (.number | wholenumber) then "task #\(.number)" else "a task" end) as $t
-                | ( if (.number | wholenumber) then empty else "\($v): a task needs a \"number\" (a whole number, 1 or more)" end ),
+            else tasklabel as $t
+                | ( if hasboth then "\($where) has both \"code\" and \"number\"; use one"
+                    elif has("code") then (if (.code | iscode) then empty else "\($where) needs a task \"code\" like SOL-0021 (or an old \"number\")" end)
+                    elif has("number") then (if (.number | wholenumber) then empty else "\($v): a task needs a \"number\" (a whole number, 1 or more)" end)
+                    else "\($where) needs a task \"code\" like SOL-0021 (or an old \"number\")" end ),
                   ( if (.type | IN("Enhancement", "Bugfix", "Chore")) then empty else "\($v): \($t) needs a \"type\": Enhancement, Bugfix or Chore" end ),
                   ( if (.title | text) then empty else "\($v): \($t) needs \"title\" (text)" end ),
                   ( ["before", "after"][] as $field
@@ -85,8 +116,9 @@ main() {
                       ( if (.date | realdate) then empty else "\($v) needs a \"date\" like 2026-11-10" end ),
                       ( if (.summary | text) then empty else "\($v) needs \"summary\" (text)" end ),
                       ( if ((.tasks | type) == "array" and (.tasks | length) > 0) then
-                            ( .tasks[] | task($v) ),
-                            ( [.tasks[] | objects | .number | select(wholenumber)] | group_by(.)[] | select(length > 1) | "\($v) lists task #\(.[0]) more than once" )
+                            ( .tasks | to_entries[] | .key as $i | .value | task($v; "\($v), task entry #\($i + 1)") ),
+                            ( [.tasks[] | objects | taskkey] | group_by(.)[] | select(length > 1)
+                              | "\($v) lists \(if (.[0] | startswith("#")) then "task \(.[0])" else .[0] end) more than once" )
                         else "\($v) needs a non-empty \"tasks\" list" end )
                   end ),
               ( [$r[] | objects | .version | select(isversion)] | group_by(.)[] | select(length > 1) | "\(.[0]) appears more than once" )
@@ -147,17 +179,21 @@ main() {
         echo "::warning::Release notes: $version is planned for $date, another month. The deploy still tags it $version (it only falls back when that's already a tag, or not above the previous one). For a ${date_month/-/.} version instead, update the entry and open the release PR in that month."
     fi
 
+    # SOL-0021: compared as ids: a code (SOL-0021), or #N for an old
+    # task number.
     local listed missing="" extra=""
-    listed=$(jqr -r '.releases[0].tasks[].number' "$notes" | sort -n)
+    listed=$(jqr -r '.releases[0].tasks[] | (.code // "#\(.number)")' "$notes" | sort_ids)
     local in_release
-    in_release=$(tr -d '\r' <"$tasks_file" | grep -E '^[0-9]+$' | sort -n -u || true)
+    in_release=$(tr -d '\r' <"$tasks_file" \
+        | sed -nE -e 's/^([A-Z]{3}-[0-9]{4,})$/\1/p' -e 's/^#?([0-9]+)$/#\1/p' \
+        | sort_ids)
 
-    local number
-    for number in $in_release; do
-        if ! grep -qx "$number" <<<"$listed"; then missing+=" #$number"; fi
+    local id
+    for id in $in_release; do
+        if ! grep -qxF "$id" <<<"$listed"; then missing+=" $id"; fi
     done
-    for number in $listed; do
-        if ! grep -qx "$number" <<<"$in_release"; then extra+=" #$number"; fi
+    for id in $listed; do
+        if ! grep -qxF "$id" <<<"$in_release"; then extra+=" $id"; fi
     done
 
     if [[ -n "$missing" ]]; then

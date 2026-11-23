@@ -5,8 +5,9 @@
 #
 # Usage: bash release-notes-body.sh <notes.json> <version>
 #
-# Prints "## Release notes" with the entry's summary and each task (task #N,
-# title, and what changes for people), grouped by type. Prints nothing
+# Prints "## Release notes" with the entry's summary and each task (its
+# code like SOL-0021, or task #N for an old number; title; and what changes
+# for people), grouped by type. Prints nothing
 # when there's no entry for <version>, and nothing (with a ::warning:: on
 # stderr) when the entry can't be read: never a partial section. Exits 2
 # when jq is missing.
@@ -32,7 +33,7 @@ main() {
               | [$entry.tasks[] | select(.type == $type)] as $tasks
               | select($tasks | length > 0)
               | "### \($type)", "",
-                ( $tasks[] | "- **task #\(.number)** \(.title)" + (if (.after // "") != "" then ": " + (.after | gsub("\n"; " ")) else "" end) ),
+                ( $tasks[] | "- **\(if .code then .code else "task #\(.number)" end)** \(.title)" + (if (.after // "") != "" then ": " + (.after | gsub("\n"; " ")) else "" end) ),
                 "" )
           end
     ' "$1" 2>/dev/null); then
