@@ -19,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -137,7 +138,12 @@ class KanbanController extends Controller
      * a 422. Nothing is written when the list is the one already saved.
      *
      * Two tabs on the same board each send their own full list, so the
-     * last save wins. That's acceptable for a convenience setting.
+     * last save wins. That's acceptable for a convenience setting. Saves
+     * for different companies don't clash: each changes only its own key,
+     * under a lock on the user's row.
+     *
+     * The board sends the lanes open on the page first, then saved ids of
+     * lanes not on it now, so the limit drops those first.
      */
     public function saveOpenLanes(Organization $organization): Response
     {
@@ -166,23 +172,33 @@ class KanbanController extends Controller
             $ids = array_slice(array_values(array_intersect($ids, $ours)), 0, self::OPEN_LANES_LIMIT);
         }
 
-        $user = auth()->user();
-        $current = $this->savedOpenLaneIds($user, $organization);
-        $sortedNew = $ids;
-        sort($sortedNew);
-        sort($current);
-        if ($sortedNew === $current) {
-            return response()->noContent();
-        }
+        // The column holds every company's list, and this changes one key
+        // of it: read and write under a lock on the user's row, so saves
+        // for two companies at once (two tabs) can't drop each other's.
+        DB::transaction(function () use ($organization, $ids) {
+            $user = User::whereKey(auth()->id())->lockForUpdate()->firstOrFail(['id', 'kanban_open_lanes']);
 
-        $saved = is_array($user->kanban_open_lanes) ? $user->kanban_open_lanes : [];
-        if ($ids === []) {
-            unset($saved[$organization->id]);
-        } else {
-            $saved[$organization->id] = $ids;
-        }
-        $user->kanban_open_lanes = $saved === [] ? null : $saved;
-        $user->save();
+            $current = $this->savedOpenLaneIds($user, $organization);
+            $sortedNew = $ids;
+            sort($sortedNew);
+            sort($current);
+            if ($sortedNew === $current) {
+                return;
+            }
+
+            $saved = is_array($user->kanban_open_lanes) ? $user->kanban_open_lanes : [];
+            if ($ids === []) {
+                unset($saved[$organization->id]);
+            } else {
+                $saved[$organization->id] = $ids;
+            }
+            $user->kanban_open_lanes = $saved === [] ? null : $saved;
+            $user->save();
+
+            // The signed-in user model of this request, in step with what
+            // was saved.
+            auth()->user()->forceFill(['kanban_open_lanes' => $user->kanban_open_lanes])->syncOriginalAttribute('kanban_open_lanes');
+        });
 
         return response()->noContent();
     }

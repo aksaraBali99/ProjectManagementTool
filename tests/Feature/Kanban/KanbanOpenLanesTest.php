@@ -229,23 +229,42 @@ test('a user\'s save never changes another user\'s saved lanes', function () {
         ->and($this->actingAs($colleague)->get(route('kanban', $this->org))->viewData('openLaneIds'))->toBe([$this->gamma->id]);
 });
 
-test('the save action\'s own queries, after the board access check: the project check and the update, or only the check when nothing changed', function () {
-    // Counted: queries on projects (the id check) and updates of users
-    // (the save). The board access check and the session/auth middleware
-    // are left out.
+test('the save action\'s own queries, after the board access check: project check, locked read and update, or no update when nothing changed', function () {
+    // Counted: queries on projects (the id check), the save's own locked
+    // read of the user's saved lanes, and updates of users. The board
+    // access check and the session/auth middleware are left out. The
+    // locked read (one query more than a plain read-modify-write) keeps
+    // saves for two companies at once from dropping each other's list.
     $queries = 0;
     DB::listen(function ($query) use (&$queries) {
-        if (preg_match('/from ["`]?projects["`]?|^update ["`]?users["`]?/i', $query->sql)) {
+        if (preg_match('/from ["`]?projects["`]?|"kanban_open_lanes".* from ["`]?users["`]?|^update ["`]?users["`]?/i', $query->sql)) {
             $queries++;
         }
     });
 
     saveOpenLanes($this->management, $this->org, [$this->alpha->id, $this->beta->id])->assertNoContent();
-    expect($queries)->toBe(2);
+    expect($queries)->toBe(3);
 
     $queries = 0;
     saveOpenLanes($this->management, $this->org, [$this->beta->id, $this->alpha->id])->assertNoContent();
-    expect($queries)->toBe(1);
+    expect($queries)->toBe(2);
+});
+
+test('a save changes only its own company\'s key of what is stored now, not of what the request started with', function () {
+    // Another save (another tab, another company) landed after this
+    // user model was loaded: the save reads the row again, so it keeps it.
+    saveOpenLanes($this->management, $this->org, [$this->alpha->id])->assertNoContent();
+    $staleModel = $this->management->fresh();
+    DB::table('users')->where('id', $this->management->id)->update([
+        'kanban_open_lanes' => json_encode([(string) $this->org->id => [$this->alpha->id], (string) $this->otherOrg->id => [$this->otherProject->id]]),
+    ]);
+
+    saveOpenLanes($staleModel, $this->org, [$this->alpha->id, $this->gamma->id])->assertNoContent();
+
+    expect(storedOpenLanes($this->management))->toBe([
+        (string) $this->org->id => [$this->alpha->id, $this->gamma->id],
+        (string) $this->otherOrg->id => [$this->otherProject->id],
+    ]);
 });
 
 test('the board shows Expand all / Collapse all, hidden with no lanes, each disabled when it would change nothing', function () {
@@ -258,6 +277,14 @@ test('the board shows Expand all / Collapse all, hidden with no lanes, each disa
     $all = withoutScripts($this->actingAs($this->management)->get(route('kanban', $this->org))->getContent());
     expect($all)->toMatch('/<button type="button" id="kanban-expand-all"[^>]*\sdisabled\s*>/')
         ->not->toMatch('/<button type="button" id="kanban-collapse-all"[^>]*\sdisabled\s*>/');
+
+    // Every visible lane closed, but a saved lane not on the board now:
+    // Collapse all stays enabled, since it clears that one too.
+    saveOpenLanes($this->management, $this->org, [$this->beta->id])->assertNoContent();
+    $this->beta->tasks()->get()->each->delete();
+    $offPage = withoutScripts($this->actingAs($this->management)->get(route('kanban', $this->org))->getContent());
+    expect($offPage)->not->toMatch('/<button type="button" id="kanban-collapse-all"[^>]*\sdisabled\s*>/')
+        ->not->toMatch('/<button type="button" id="kanban-expand-all"[^>]*\sdisabled\s*>/');
 
     Task::query()->get()->each->delete();
     $none = withoutScripts($this->actingAs($this->management)->get(route('kanban', $this->org))->getContent());

@@ -53,7 +53,7 @@
                 <button type="button" id="kanban-expand-all" class="rounded-md border border-gray-300 bg-white px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-default disabled:opacity-60"
                         @if (count($openLaneIds) === $lanes->count()) disabled @endif>Expand all</button>
                 <button type="button" id="kanban-collapse-all" class="rounded-md border border-gray-300 bg-white px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-default disabled:opacity-60"
-                        @if ($openLaneIds === []) disabled @endif>Collapse all</button>
+                        @if ($openLaneIds === [] && $savedLaneIds === []) disabled @endif>Collapse all</button>
             </div>
         </div>
         </div>
@@ -301,13 +301,15 @@
         }
 
         // SOL-0025 phase 2: Expand all / Collapse all, hidden with no lanes,
-        // each disabled while it would change nothing.
+        // each disabled while it would change nothing. Collapse all also
+        // clears saved lanes not on the page now, so it stays enabled
+        // while there are any.
         function refreshLaneActions() {
             const lanes = lanesEl.querySelectorAll('.kanban-lane');
             const open = lanesEl.querySelectorAll('.kanban-lane[data-open="1"]').length;
             document.getElementById('kanban-lane-actions').hidden = lanes.length === 0;
             expandAllBtn.disabled = open === lanes.length;
-            collapseAllBtn.disabled = open === 0;
+            collapseAllBtn.disabled = open === 0 && savedOpen.size === 0;
         }
 
         function openLane(projectId) {
@@ -319,7 +321,9 @@
 
         function closeLane(projectId) {
             const lane = laneEl(projectId);
-            if (lane) setLaneOpen(lane, false);
+            if (! lane) return;
+            dequeueLane(lane);
+            setLaneOpen(lane, false);
         }
 
         // "Loading…", the error line, or neither, in every cell of a lane.
@@ -341,8 +345,9 @@
         //
         // SOL-0025 phase 2: loads queue up and run LANE_LOADS_AT_ONCE at a
         // time, in the order asked (top first on page load and Expand all).
-        // A lane shows "Loading…" while it waits its turn, and counts as
-        // loading (its header ignores clicks) until its request is done.
+        // A lane shows "Loading…" while it waits its turn. Closing a lane
+        // still waiting takes it out of the queue (no request is sent);
+        // only while its request runs does its header ignore clicks.
         const LANE_LOADS_AT_ONCE = 3;
         const laneQueue = [];
         let laneLoadsRunning = 0;
@@ -350,14 +355,25 @@
         function loadLane(lane) {
             if (lane.dataset.loading === '1') return;
             lane.dataset.loading = '1';
+            lane.dataset.queued = '1';
             setLaneState(lane, 'loading');
             laneQueue.push(lane);
             runLaneQueue();
         }
 
+        function dequeueLane(lane) {
+            if (lane.dataset.queued !== '1') return;
+            const index = laneQueue.indexOf(lane);
+            if (index !== -1) laneQueue.splice(index, 1);
+            delete lane.dataset.queued;
+            delete lane.dataset.loading;
+            setLaneState(lane, null);
+        }
+
         function runLaneQueue() {
             while (laneLoadsRunning < LANE_LOADS_AT_ONCE && laneQueue.length > 0) {
                 const lane = laneQueue.shift();
+                delete lane.dataset.queued;
                 if (! lane.isConnected) {
                     delete lane.dataset.loading;
                     continue;
@@ -532,7 +548,9 @@
             const header = closestIn(event, '.kanban-lane-header');
             if (! header) return;
             const lane = header.closest('.kanban-lane');
-            if (lane.dataset.loading === '1') return;
+            // Its request is running: wait for it. (Still queued: it can
+            // be closed.)
+            if (lane.dataset.loading === '1' && lane.dataset.queued !== '1') return;
             if (lane.dataset.open === '1') {
                 closeLane(lane.dataset.projectId);
                 savedOpen.delete(lane.dataset.projectId);
@@ -596,8 +614,22 @@
                     Accept: 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
                 },
-                body: JSON.stringify({ project_ids: Array.from(savedOpen).map(Number) }),
+                body: JSON.stringify({ project_ids: openLanesPayload() }),
             }).catch(function () {});
+        }
+
+        // Lanes open on the page first (in lane order), then saved ids of
+        // lanes not on it now: past the server's limit of 200, those are
+        // the ones dropped, never a lane the user just opened.
+        function openLanesPayload() {
+            const onPage = Array.from(lanesEl.querySelectorAll('.kanban-lane')).map(function (lane) {
+                return lane.dataset.projectId;
+            });
+            const shown = new Set(onPage);
+            const open = onPage.filter(function (id) { return savedOpen.has(id); });
+            const offPage = Array.from(savedOpen).filter(function (id) { return ! shown.has(id); });
+
+            return open.concat(offPage).map(Number);
         }
 
         // Leaving within the debounce: send it now.
