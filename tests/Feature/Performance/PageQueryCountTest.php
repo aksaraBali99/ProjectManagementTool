@@ -26,12 +26,12 @@ use App\Models\User;
  *   - THE TARGET: flat in task count AND within PAGE_QUERY_TARGET. Used
  *     for every page that has reached it.
  *   - A RATCHET: today's measured ceiling, plus an explicit assertion
- *     that the page DOES still grow — so the day it stops growing is a
+ *     that the page DOES still grow Ã¢â‚¬â€ so the day it stops growing is a
  *     deliberate change rather than something nobody noticed.
  *
  * IMPORTANT: these are SQLite in-memory counts from the test environment,
  * because that is what CI asserts against. They are NOT comparable with
- * the MySQL numbers `php artisan perf:baseline` prints — different driver,
+ * the MySQL numbers `php artisan perf:baseline` prints Ã¢â‚¬â€ different driver,
  * and the baseline command measures a 2,000-task company rather than 20.
  * Keep the two sets of numbers apart when recording results.
  *
@@ -57,14 +57,14 @@ use App\Models\User;
  * PHASE 5 (Kanban column cap) runs one grouped count plus one capped query
  * per NON-EMPTY column instead of one query for the whole company. Here
  * every task is Pending, so that is +1: 21 / 20 as management, 22 / 21 as
- * staff. With all four columns in use it is +4, still within the target —
+ * staff. With all four columns in use it is +4, still within the target Ã¢â‚¬â€
  * see the full-board test at the bottom, which also pins 30 cards per
  * column and a Load more whose cost doesn't grow with the column.
  *
  * (counts shown as "5 tasks / 20 tasks")
  *
  * Every page is now on the real target, so there are no ratchets left in
- * this file — each test asserts flat AND <= PAGE_QUERY_TARGET, with the
+ * this file Ã¢â‚¬â€ each test asserts flat AND <= PAGE_QUERY_TARGET, with the
  * measured ceiling kept alongside to stop it drifting back up.
  *
  * Kanban becoming flat is the notable one: its per-card
@@ -87,7 +87,7 @@ use App\Models\User;
  * per row to build the drilldown's @mention list. Phase 2 removed the
  * reason to call it: the drilldown is read-only now and fetched on
  * demand, so there is no mention autocomplete on the list to feed. The
- * preview endpoint has its own constant-cost test — see
+ * preview endpoint has its own constant-cost test Ã¢â‚¬â€ see
  * tests/Feature/Tasks/TaskPreviewTest.php.
  */
 const PAGE_QUERY_TARGET = 30;
@@ -112,7 +112,11 @@ const PROJECTS_MAX_QUERIES_20_TASKS = 13;
 // 25 tasks, their departments and assignees.
 const PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS = 12;
 const CALENDAR_MAX_QUERIES_20_TASKS = 10;
-const KANBAN_MAX_QUERIES_20_TASKS = 22;
+// Kanban: -10 in SOL-0025. The page renders no cards (each project lane
+// loads its own from kanban.project when opened): two grouped counts and
+// the lanes' projects instead of four column pages, their eager loads and
+// the assignee options.
+const KANBAN_MAX_QUERIES_20_TASKS = 12;
 // Tasks list: +1 since phase 4 (task #72), the page's own count(*) for the
 // paginator. It shows one page now, so this stays put however many tasks.
 const TASKS_LIST_MAX_QUERIES_20_TASKS = 22;
@@ -124,15 +128,16 @@ const TASKS_LIST_MAX_QUERIES_20_TASKS = 22;
 // Staff visibility runs through department access instead of the
 // management-tier shortcut, so it is a genuinely different query path.
 const TASKS_LIST_MAX_QUERIES_20_TASKS_STAFF = 25;
-const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 23;
+const KANBAN_MAX_QUERIES_20_TASKS_STAFF = 13;
 const PROJECTS_MAX_QUERIES_20_TASKS_STAFF = 16;
 const PROJECT_DRILLDOWN_MAX_QUERIES_20_TASKS_STAFF = 14;
 // task #72 phase 10: the Kanban poll, idle (nothing changed) and with
-// changed cards to render (the same for 1 card or 50).
-const KANBAN_CHANGES_MAX_QUERIES_IDLE = 7;
-const KANBAN_CHANGES_MAX_QUERIES_CARDS = 18;
-const KANBAN_CHANGES_MAX_QUERIES_IDLE_STAFF = 8;
-const KANBAN_CHANGES_MAX_QUERIES_CARDS_STAFF = 19;
+// changed cards to render (the same for 1 card or 50). +1 in SOL-0025:
+// the lanes' projects, for the lane list every poll returns.
+const KANBAN_CHANGES_MAX_QUERIES_IDLE = 8;
+const KANBAN_CHANGES_MAX_QUERIES_CARDS = 19;
+const KANBAN_CHANGES_MAX_QUERIES_IDLE_STAFF = 9;
+const KANBAN_CHANGES_MAX_QUERIES_CARDS_STAFF = 20;
 
 beforeEach(function () {
     // The database cache store, as on dev and production: phpunit.xml's
@@ -218,7 +223,7 @@ function makeMeasuredTasks(object $context, int $count): void
 
             if ($c === 1) {
                 $comment->mentionedUsers()->attach($context->staff->id);
-                $comment->reactions()->create(['user_id' => $context->staff->id, 'emoji' => '👍']);
+                $comment->reactions()->create(['user_id' => $context->staff->id, 'emoji' => 'Ã°Å¸â€˜Â']);
             }
         }
     }
@@ -226,7 +231,7 @@ function makeMeasuredTasks(object $context, int $count): void
 
 /**
  * Measures a page at 5 tasks, adds 15 more, measures again. Both requests
- * must return 200 — a page that started 500ing would otherwise "improve"
+ * must return 200 Ã¢â‚¬â€ a page that started 500ing would otherwise "improve"
  * its query count dramatically.
  *
  * @return array{small:int, large:int}
@@ -321,7 +326,7 @@ test('Tasks list: flat in task count and within the target', function () {
     // _subtasks/_comments partials for every task whether anyone opened it
     // or not, and called viewableUsers() (~8 queries) per row to do it.
     // Phase 2 fetches tasks.preview on first open instead, so the list
-    // itself is flat — the last of the five pages to get there.
+    // itself is flat Ã¢â‚¬â€ the last of the five pages to get there.
     $counts = measurePageGrowth($this, $this->management, route('tasks.index', $this->org, false));
 
     expect($counts['large'] - $counts['small'])->toBeLessThanOrEqual(GROWTH_TOLERANCE);
@@ -370,13 +375,16 @@ test('Tasks list: a 60-task company renders exactly one page of 25 rows', functi
     expect($queries)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
 });
 
-/** Plain tasks (no subtasks/comments): these tests are about card count, not card cost. */
-function makePlainKanbanTasks(object $context, int $count, string $status): void
+/**
+ * Plain tasks (no subtasks/comments): these tests are about card count, not
+ * card cost. In $context->project unless another project is given.
+ */
+function makePlainKanbanTasks(object $context, int $count, string $status, ?Project $project = null): void
 {
     for ($i = 0; $i < $count; $i++) {
         Task::create([
             'organization_id' => $context->org->id,
-            'project_id' => $context->project->id,
+            'project_id' => ($project ?? $context->project)->id,
             'department_id' => $context->dept->id,
             'assignee_id' => $context->staff->id,
             'title' => 'Board task '.$status.' '.$i,
@@ -386,25 +394,81 @@ function makePlainKanbanTasks(object $context, int $count, string $status): void
     }
 }
 
-test('Kanban: with every column over 30, the board shows 30 cards per column within the target', function () {
-    // task #72 phase 5: the board used to render every card in the company.
-    foreach (TaskStatus::cases() as $status) {
-        makePlainKanbanTasks($this, 40, $status->value);
-    }
+test('Kanban (SOL-0025): the board page renders no cards, and the same number of queries for 30 or 300 tasks and 2 or 20 projects', function (string $who) {
+    // task #72 phase 5: the board used to render every card in the
+    // company; then 30 per column. Now one closed lane per project, whose
+    // cards load when it opens (kanban.project, below).
+    $second = Project::create(['organization_id' => $this->org->id, 'name' => 'Second project', 'description' => 'd']);
+    $spread = function (int $perStatus) use ($second) {
+        foreach (TaskStatus::cases() as $status) {
+            makePlainKanbanTasks($this, intdiv($perStatus, 2), $status->value);
+            makePlainKanbanTasks($this, $perStatus - intdiv($perStatus, 2), $status->value, $second);
+        }
+    };
 
-    foreach ([$this->management, $this->staff] as $user) {
-        $html = null;
-        $queries = countRequestQueries(function () use ($user, &$html) {
+    $user = $this->{$who};
+    $measure = function () use ($user, &$html) {
+        return countRequestQueries(function () use ($user, &$html) {
             $html = $this->actingAs($user)->get(route('kanban', $this->org, false))->assertOk()->getContent();
         });
+    };
 
-        expect(substr_count($html, 'class="kanban-card '))->toBe(4 * KanbanController::COLUMN_BATCH);
-        expect($queries)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+    $spread(8);
+    // Warm-up request: the first request in a test pays one-off cache
+    // misses the measured ones don't.
+    $measure();
+    $small = $measure();
+    // The two projects' lanes, plus the page's lane template.
+    expect(substr_count($html, '<section class="kanban-lane '))->toBe(2 + 1);
+
+    $spread(67);
+    $manyTasks = $measure();
+
+    foreach (range(1, 18) as $i) {
+        makePlainKanbanTasks($this, 1, 'pending', Project::create(['organization_id' => $this->org->id, 'name' => 'Extra '.$i, 'description' => 'd']));
     }
-});
+    $manyProjects = $measure();
+
+    expect(substr_count($html, '<section class="kanban-lane '))->toBe(20 + 1)
+        ->and(substr_count($html, 'class="kanban-card '))->toBe(0);
+    expect($manyTasks)->toBe($small)
+        ->and($manyProjects)->toBe($small)
+        ->and($small)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+})->with(['management', 'staff']);
+
+test('Kanban lane (SOL-0025): the same number of queries for a project of 30 or 300 tasks, 30 cards per full status', function (string $who) {
+    $url = route('kanban.project', [$this->org, $this->project], false);
+    $user = $this->{$who};
+    $measure = function () use ($user, $url, &$json) {
+        return countRequestQueries(function () use ($user, $url, &$json) {
+            $json = $this->actingAs($user)->getJson($url)->assertOk()->json();
+        });
+    };
+
+    foreach (TaskStatus::cases() as $status) {
+        makePlainKanbanTasks($this, 8, $status->value);
+    }
+    // Warm-up request, as above.
+    $measure();
+    $small = $measure();
+
+    foreach (TaskStatus::cases() as $status) {
+        makePlainKanbanTasks($this, 67, $status->value);
+    }
+    $large = $measure();
+
+    $existing = Task::where('project_id', $this->project->id)->count() / 4;
+    foreach (TaskStatus::cases() as $status) {
+        expect(substr_count($json['columns'][$status->value]['html'], 'class="kanban-card '))->toBe(KanbanController::COLUMN_BATCH);
+    }
+    expect($existing)->toBeGreaterThanOrEqual(75)
+        ->and($large)->toBe($small)
+        ->and($large)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+})->with(['management', 'staff']);
 
 test('Kanban Load more: the same number of queries whether the column holds 30 or 300 tasks', function () {
-    $url = route('kanban.column', [$this->org, 'pending'], false).'?offset=0';
+    // SOL-0025: as a lane sends it, for one project.
+    $url = route('kanban.column', [$this->org, 'pending', 'project' => $this->project->id, 'offset' => 0], false);
 
     $measure = function () use ($url) {
         return countRequestQueries(function () use ($url) {

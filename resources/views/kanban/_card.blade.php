@@ -1,9 +1,12 @@
 {{--
-    task #72 phase 5: one Kanban card, shared by the board and the Load
-    more endpoint (KanbanController::column()) so both render identical
-    cards. Moved here unchanged from kanban.blade.php, except that the
-    title link's return_to is the board's own URL ($returnTo) passed in by
-    the caller - inside Load more, url()->full() would be the JSON
+    task #72 phase 5: one Kanban card. SOL-0025: rendered only by the JSON
+    endpoints - a lane's first cards (KanbanController::project()), Load
+    more (column()) and the live poll (changes()) - so all three render
+    identical cards. It shows the code, title, due date, avatar, priority
+    and the two dropdowns; the project is the lane's, so not repeated here.
+
+    The title link's return_to is the board's own URL ($returnTo) passed
+    in by the caller: inside a JSON endpoint, url()->full() would be the
     endpoint.
 
     Expects: $task, $canEdit, $canReassign, $eligibleAssignees, $returnTo.
@@ -35,10 +38,11 @@
                  title. It replaces task #71's "#<id>", which used to lead
                  the muted line below. --}}
             <a href="{{ route('tasks.edit', ['task' => $task, 'return_to' => $returnTo, 'return_label' => 'Kanban']) }}" class="text-[12px] font-medium text-[#1F2937] hover:underline"><x-task-code :task="$task" />{{ $task->title }}</a>
-            <p class="mt-1 text-[10px] text-gray-500">
-                {{ $task->project->name }}
-                @if ($task->due_date) &middot; {{ $task->due_date->format('M j') }} @endif
-            </p>
+            {{-- SOL-0025: the project name left this line; the card sits
+                 in its project's lane, which names it. --}}
+            @if ($task->due_date)
+                <p class="mt-1 text-[10px] text-gray-500">Due {{ $task->due_date->format('M j') }}</p>
+            @endif
         </div>
         <x-avatar :user="$task->assignee" size="32px" class="shrink-0" />
     </div>

@@ -74,7 +74,8 @@ test('<x-task-code> renders the code, muted and unbreakable, and nothing without
 test('a title is escaped next to its code, never output raw', function () {
     $this->task->update(['title' => '<b>Bold</b> & co']);
 
-    $html = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk()->getContent();
+    // SOL-0025: the card comes from its project's lane.
+    $html = kanbanBoardCardsHtml($this->management, $this->org->id);
     expect($html)->toContain('BGS-0001 </span>&lt;b&gt;Bold&lt;/b&gt; &amp; co')
         ->not->toContain('<b>Bold</b>');
 
@@ -84,8 +85,8 @@ test('a title is escaped next to its code, never output raw', function () {
 
 // --- Kanban ------------------------------------------------------------
 
-test('Kanban: the board card shows the code before the title, and not "#<id>"', function () {
-    $html = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk()->getContent();
+test('Kanban: the lane card shows the code before the title, and not "#<id>"', function () {
+    $html = kanbanBoardCardsHtml($this->management, $this->org->id);
     $card = kanbanCardMarkup($html, $this->task->id);
 
     expect($card)->toMatch(codedTitle())
@@ -95,6 +96,12 @@ test('Kanban: the board card shows the code before the title, and not "#<id>"', 
 test('Kanban: Load more cards show the code', function () {
     $json = $this->actingAs($this->management)
         ->getJson(route('kanban.column', [$this->org, 'in_progress']).'?offset=0')->assertOk()->json();
+
+    expect($json['html'])->toMatch(codedTitle());
+
+    // SOL-0025: and Load more for one project.
+    $json = $this->actingAs($this->management)
+        ->getJson(route('kanban.column', [$this->org, 'in_progress', 'project' => $this->task->project_id, 'offset' => 0]))->assertOk()->json();
 
     expect($json['html'])->toMatch(codedTitle());
 });
@@ -115,7 +122,7 @@ test('Kanban: live update cards show the code, the new one after a move to anoth
     OrgMember::create(['organization_id' => $other->id, 'user_id' => $this->management->id, 'role_id' => Role::where('slug', 'management')->firstOrFail()->id]);
     $this->task->update(['organization_id' => $other->id, 'project_id' => $otherProject->id, 'department_id' => $otherDept->id]);
 
-    $html = $this->actingAs($this->management)->get(route('kanban', $other))->assertOk()->getContent();
+    $html = kanbanBoardCardsHtml($this->management, $other->id);
     expect(kanbanCardMarkup($html, $this->task->id))->toMatch(codedTitle('SLV-0001', 'Fix invoice PDF layout v2'));
 });
 

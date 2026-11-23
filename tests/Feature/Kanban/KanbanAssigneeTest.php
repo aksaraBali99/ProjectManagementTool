@@ -201,14 +201,13 @@ test('the Kanban card\'s assignee select is enabled for management, pre-selected
         'status' => 'pending',
     ]);
 
-    $response = $this->actingAs($this->management)->get('/kanban/'.$this->orgA->id);
-    $response->assertOk();
+    // SOL-0025: the card comes from its project's lane.
+    $html = kanbanCardMarkup(kanbanLaneColumn($this->management, $this->orgA->id, $this->projectA->id, TaskStatus::Pending)['html'], $task->id);
+    // canReassign: the select is enabled.
+    preg_match('/<select class="kanban-assignee-select[^>]*>/', $html, $select);
+    expect($select)->not->toBeEmpty();
+    expect($select[0])->not->toContain('disabled');
 
-    $column = $response->viewData('columns')->firstWhere('status', TaskStatus::Pending);
-    $item = $column['tasks']->firstWhere('task.id', $task->id);
-    expect($item['canReassign'])->toBeTrue();
-
-    $html = $response->getContent();
     // task #71: fixed width + truncate — no longer sized to fit whichever
     // name happens to be selected (that was the actual bug this replaced:
     // the dropdown's own width used to vary with the assignee's name).
@@ -231,16 +230,12 @@ test('the Kanban card\'s assignee select is present but disabled for a staff use
         'status' => 'pending',
     ]);
 
-    $response = $this->actingAs($staff)->get('/kanban/'.$this->orgA->id);
-    $response->assertOk();
+    // SOL-0025: the card comes from its project's lane.
+    $html = kanbanLaneColumn($staff, $this->orgA->id, $this->projectA->id, TaskStatus::Pending)['html'];
 
-    $column = $response->viewData('columns')->firstWhere('status', TaskStatus::Pending);
-    $item = $column['tasks']->firstWhere('task.id', $task->id);
-    expect($item['canReassign'])->toBeFalse();
-
-    // Rendered (not hidden), just disabled - same "show, don't hide"
-    // pattern as the status select.
-    expect($response->getContent())->toMatch('/kanban-assignee-select[^>]*data-task-id="'.$task->id.'"[^>]*disabled/');
+    // Rendered (not hidden), just disabled (canReassign false) - same
+    // "show, don't hide" pattern as the status select.
+    expect($html)->toMatch('/kanban-assignee-select[^>]*data-task-id="'.$task->id.'"[^>]*disabled/');
 });
 
 test('the assignee select only offers users actually attached to that task\'s project, not every user in the company', function () {
@@ -257,9 +252,11 @@ test('the assignee select only offers users actually attached to that task\'s pr
         'status' => 'pending',
     ]);
 
-    $response = $this->actingAs($this->management)->get('/kanban/'.$this->orgA->id);
-    $response->assertOk();
-
-    $ids = collect($response->viewData('eligibleAssignees')[$this->projectA->id][$this->deptA->id])->pluck('id')->all();
+    // SOL-0025: the card comes from its project's lane; its options are
+    // the eligible assignees.
+    $card = kanbanCardMarkup(kanbanLaneColumn($this->management, $this->orgA->id, $this->projectA->id, TaskStatus::Pending)['html'], $task->id);
+    preg_match('/<select class="kanban-assignee-select.*?<\/select>/s', $card, $select);
+    preg_match_all('/<option value="(\d+)"/', $select[0], $options);
+    $ids = array_map('intval', $options[1]);
     expect($ids)->toContain($eligible->id)->not->toContain($ineligible->id);
 });

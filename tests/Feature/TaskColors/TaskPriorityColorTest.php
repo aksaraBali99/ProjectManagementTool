@@ -68,8 +68,8 @@ test('changing the medium priority color updates Kanban, Dashboard, Task list, a
     ]);
     $update->assertRedirect(route('task-colors.edit'));
 
-    $kanban = $this->actingAs($this->owner)->get("/kanban/{$this->orgA->id}");
-    $kanban->assertOk()->assertSee($newBackground, false);
+    // SOL-0025: priority colours are on the cards, in the lanes.
+    expect(kanbanBoardCardsHtml($this->owner, $this->orgA->id))->toContain($newBackground);
 
     $dashboard = $this->actingAs($this->owner)->get("/dashboard/{$this->orgA->id}");
     $dashboard->assertOk()->assertSee($newBackground, false)->assertSee($newText, false);

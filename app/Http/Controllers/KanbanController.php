@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Priority;
+use App\Enums\ProjectStatus;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Concerns\AppliesCompletedWindow;
 use App\Http\Controllers\Concerns\BuildsAssigneeOptions;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\Organization;
+use App\Models\Project;
 use App\Models\Task;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,7 +25,8 @@ class KanbanController extends Controller
     use AppliesCompletedWindow, BuildsAssigneeOptions, ResolvesCurrentOrganization;
 
     /**
-     * task #72 phase 5: cards per column on the board, and per Load more.
+     * task #72 phase 5: cards per status in an opened lane (per column
+     * before SOL-0025), and per Load more.
      * Fixed here rather than taken from the request, so a client can't ask
      * for the whole column at once.
      */
@@ -62,76 +65,86 @@ class KanbanController extends Controller
             return view('kanban', [
                 'organizations' => $organizations,
                 'organization' => null,
-                'columns' => collect(),
+                'lanes' => collect(),
+                'totals' => [],
                 'emptyMessage' => $user->boardAccessDeniedReason('view_kanban')->message(),
                 'canCreate' => false,
-                'eligibleAssignees' => [],
             ]);
         }
 
         $organization = $this->resolveCurrentOrganization($organizations, $organization);
 
-        // task #72 phase 5: the board used to load every visible task in
-        // the company and split it by status in PHP. It now shows the first
-        // COLUMN_BATCH cards of each column (Load more fetches the rest from
-        // column()), with the column's TOTAL in its header.
+        // SOL-0025: the board is one collapsible lane per project, and
+        // renders no cards: a lane's cards come from project() when it is
+        // first opened. The page costs the same however many tasks or
+        // projects the company has.
         //
         // Built once and cloned per query, so the staff/client visibility
-        // lookups inside visibleTo() run once, not once per column.
+        // lookups inside visibleTo() run once.
         $visible = Task::visibleTo($user, $organization->id);
-
         $since = $this->completedWindowStartFor($organization);
-        [$totals, $completedOlder] = $this->columnTotals($visible, $since);
-
-        $tasksByStatus = collect(TaskStatus::cases())->mapWithKeys(fn (TaskStatus $status) => [
-            // An empty column needs no query.
-            $status->value => ($totals[$status->value] ?? 0) > 0
-                ? $this->columnPage($visible, $status, 0, $since)
-                : new EloquentCollection,
-        ]);
-
-        // One eager load across every rendered card, not one per column.
-        // Loading mutates the models in place, so each column's own
-        // collection sees the relations too.
-        $rendered = new EloquentCollection($tasksByStatus->flatten(1)->all());
-        $rendered->load(['project', 'department', 'assignee']);
-        // task #118: their codes from the company this board already has.
-        Task::useOrganization($rendered, $organization);
-
-        $showAllCompleted = $since === null;
-        $columns = collect(TaskStatus::cases())->map(function (TaskStatus $status) use ($tasksByStatus, $totals, $completedOlder, $showAllCompleted) {
-            $tasks = $tasksByStatus[$status->value];
-            $total = (int) ($totals[$status->value] ?? 0);
-
-            return [
-                'status' => $status,
-                'tasks' => $this->cardItems($tasks),
-                'total' => $total,
-                'remaining' => max(0, $total - $tasks->count()),
-                // Completed column only: hidden by the window, and whether
-                // this visit asked to see them.
-                'older' => $status === TaskStatus::Completed ? $completedOlder : 0,
-                'showAllCompleted' => $status === TaskStatus::Completed && $showAllCompleted,
-            ];
-        });
+        $summary = $this->laneSummaries($visible, $since);
 
         return view('kanban', [
             'organizations' => $organizations,
             'organization' => $organization,
-            'columns' => $columns,
+            'lanes' => $summary['lanes'],
+            // The column headers: the company's total per status.
+            'totals' => $summary['totals'],
             // Same gate the Tasks list page's own "+ Add task" button uses
             // (create_edit_tasks, narrowed to allowed departments for
             // Staff) - viewing the board (view_kanban) and creating a task
             // in it are separate permissions, so this can't be assumed
             // from having reached this far.
             'canCreate' => Gate::allows('create', [Task::class, $organization->id]),
-            // Only for the cards actually rendered; Load more builds its
-            // own for its batch. Options depend only on (project,
-            // department), so a card gets the same list either way.
-            'eligibleAssignees' => $this->eligibleAssigneesByTask($rendered),
             'returnTo' => route('kanban', $organization),
             'cursor' => $cursor,
-            'showAllCompleted' => $showAllCompleted,
+            'showAllCompleted' => $since === null,
+        ]);
+    }
+
+    /**
+     * SOL-0025: one lane's cards, fetched when the lane is first opened:
+     * the first COLUMN_BATCH cards of each status (same order and
+     * completed window as the board), each status's total and what remains
+     * after the batch, and the lane's "older completed" count.
+     *
+     * Access is the board's rule (403); a project of another company is a
+     * 404. A project with no visible tasks returns empty columns, since a
+     * lane can empty out between page load and open.
+     */
+    public function project(Organization $organization, string $project): JsonResponse
+    {
+        $project = $this->boardProject($organization, $project);
+
+        $visible = Task::visibleTo(auth()->user(), $organization->id)
+            ->where('tasks.project_id', $project->id);
+        $since = $this->completedWindowStartFor($organization);
+        $summary = $this->laneSummaries($visible, $since);
+        $totals = $summary['totals'];
+
+        $pages = collect(TaskStatus::cases())->mapWithKeys(fn (TaskStatus $status) => [
+            // An empty status needs no query.
+            $status->value => $totals[$status->value] > 0
+                ? $this->columnPage($visible, $status, 0, $since)
+                : new EloquentCollection,
+        ]);
+
+        // One eager load and one set of assignee options across every
+        // card of the lane, not one per status.
+        $rendered = new EloquentCollection($pages->flatten(1)->all());
+        $rendered->load(['project', 'department', 'assignee']);
+        $html = $this->renderCards($rendered, $organization)
+            ->groupBy(fn (array $card) => $card['task']->status->value)
+            ->map(fn (Collection $cards) => $cards->pluck('html')->implode(''));
+
+        return response()->json([
+            'columns' => $pages->map(fn (EloquentCollection $tasks, string $status) => [
+                'html' => $html[$status] ?? '',
+                'total' => $totals[$status],
+                'remaining' => max(0, $totals[$status] - $tasks->count()),
+            ])->all(),
+            'older' => $summary['older'],
         ]);
     }
 
@@ -147,6 +160,9 @@ class KanbanController extends Controller
      *   this user, or completed outside the window. Ids only.
      * - totals / older: every column's total and the Completed "older"
      *   count, recomputed each poll so headers and "N more" stay right.
+     * - lanes (SOL-0025): every project lane in the board's order, with
+     *   its totals and older count; the board adds, updates and removes
+     *   lanes from it. A card carries its project_id.
      * - stale: more than CHANGES_LIMIT changes; the board asks for a
      *   reload.
      *
@@ -163,10 +179,7 @@ class KanbanController extends Controller
         $cursor = now()->getTimestamp();
         $user = auth()->user();
 
-        abort_unless(
-            $organization->is_active && collect($user->boardOrganizationIds('view_kanban'))->contains($organization->id),
-            403,
-        );
+        $this->authorizeBoard($organization);
 
         $since = request()->query('since');
         $changedIds = is_string($since) && ctype_digit($since)
@@ -186,7 +199,7 @@ class KanbanController extends Controller
 
         $visible = Task::visibleTo($user, $organization->id);
         $window = $this->completedWindowStartFor($organization);
-        [$totals, $completedOlder] = $this->columnTotals($visible, $window);
+        $summary = $this->laneSummaries($visible, $window);
 
         $cards = [];
         $removed = [];
@@ -201,6 +214,9 @@ class KanbanController extends Controller
                 ->map(fn (array $card) => [
                     'id' => $card['task']->id,
                     'status' => $card['task']->status->value,
+                    // SOL-0025: the lane it goes in. A task moved to
+                    // another project leaves its old lane for this one.
+                    'project_id' => $card['task']->project_id,
                     'sort_key' => $card['task']->kanbanSortKey(),
                     'html' => $card['html'],
                 ])
@@ -212,10 +228,17 @@ class KanbanController extends Controller
             'cursor' => $cursor,
             'cards' => $cards,
             'removed' => $removed,
-            'totals' => collect(TaskStatus::cases())
-                ->mapWithKeys(fn (TaskStatus $status) => [$status->value => (int) ($totals[$status->value] ?? 0)])
-                ->all(),
-            'older' => $completedOlder,
+            'totals' => $summary['totals'],
+            // Company-wide, for board tabs opened before SOL-0025; the
+            // lanes carry their own.
+            'older' => $summary['older'],
+            'lanes' => $summary['lanes']->map(fn (array $lane) => [
+                'id' => $lane['id'],
+                'name' => $lane['name'],
+                'closed' => $lane['closed'],
+                'totals' => $lane['totals'],
+                'older' => $lane['older'],
+            ])->all(),
         ]);
     }
 
@@ -229,6 +252,9 @@ class KanbanController extends Controller
      * the cards go through the same Task::visibleTo(). An unknown status
      * is a 404 from the TaskStatus route binding.
      *
+     * SOL-0025: with ?project=<id>, only that project's tasks (404 for a
+     * project of another company).
+     *
      * Offset-based: if someone else moves a card out of this column above
      * the offset between loads, the next batch starts one card later and
      * that card is skipped until the board is reloaded. Duplicates can't
@@ -238,16 +264,20 @@ class KanbanController extends Controller
     {
         $user = auth()->user();
 
-        abort_unless(
-            $organization->is_active && collect($user->boardOrganizationIds('view_kanban'))->contains($organization->id),
-            403,
-        );
+        $this->authorizeBoard($organization);
 
         // A non-negative whole number; anything else starts from the top.
         $offset = request()->query('offset');
         $offset = is_string($offset) && ctype_digit($offset) ? (int) $offset : 0;
 
         $visible = Task::visibleTo($user, $organization->id);
+        // SOL-0025: the grouped board continues one lane's cell. Without
+        // ?project= (a tab opened before the deploy) the whole company's
+        // column, as before.
+        $project = request()->query('project');
+        if ($project !== null) {
+            $visible->where('tasks.project_id', $this->boardProject($organization, $project)->id);
+        }
         // Same window as the board, so Load more continues the same list.
         $since = $this->completedWindowStartFor($organization);
         $columnQuery = (clone $visible)->where('status', $status->value);
@@ -268,36 +298,121 @@ class KanbanController extends Controller
     }
 
     /**
-     * Every column's total of visible tasks (one grouped count), keyed by
-     * status. task #72 phase 7: the Completed column shows only tasks
-     * completed within the company's window, unless ?completed=all. Its
-     * total counts the window; the rest are "older", by subtraction, so the
-     * window costs one extra count. Shared by the board and changes().
+     * SOL-0025: the board's lanes, one per project with visible tasks,
+     * sorted by name (case-insensitive) then id, plus the company totals
+     * the column headers show. At most three queries whatever the number
+     * of tasks or projects: a count grouped by project and status, the
+     * in-window completed count grouped by project (only when a window
+     * applies and something is completed), and the lanes' projects.
      *
-     * @return array{0: Collection<string, int>, 1: int}
+     * task #72 phase 7: Completed counts only tasks completed within the
+     * company's window, unless ?completed=all ($since null); the rest are
+     * the lane's "older", by subtraction. A project whose only visible
+     * tasks are older completed ones gets no lane, but those tasks still
+     * count in the company-wide older.
+     *
+     * Each lane: id, name, closed, totals (every status), total, older.
+     *
+     * @return array{lanes: Collection<int, array<string, mixed>>, totals: array<string, int>, older: int}
      */
-    private function columnTotals(Builder $visible, ?DateTimeInterface $since): array
+    private function laneSummaries(Builder $visible, ?DateTimeInterface $since): array
     {
-        $totals = (clone $visible)->toBase()
-            ->select('status')
+        $rows = (clone $visible)->toBase()
+            ->select('tasks.project_id', 'tasks.status')
             ->selectRaw('count(*) as aggregate')
-            ->groupBy('status')
-            ->pluck('aggregate', 'status');
+            ->groupBy('tasks.project_id', 'tasks.status')
+            ->get();
 
-        $completedTotal = (int) ($totals[TaskStatus::Completed->value] ?? 0);
-        $completedOlder = 0;
-        if ($since && $completedTotal > 0) {
-            $inWindow = (clone $visible)->completedWithin($since)->count();
-            $completedOlder = $completedTotal - $inWindow;
-            $totals[TaskStatus::Completed->value] = $inWindow;
+        $completed = TaskStatus::Completed->value;
+        $inWindow = null;
+        if ($since && $rows->contains(fn ($row) => $row->status === $completed)) {
+            $inWindow = (clone $visible)->completedWithin($since)->toBase()
+                ->select('tasks.project_id')
+                ->selectRaw('count(*) as aggregate')
+                ->groupBy('tasks.project_id')
+                ->pluck('aggregate', 'project_id');
         }
 
-        return [$totals, $completedOlder];
+        $emptyTotals = collect(TaskStatus::cases())->mapWithKeys(fn (TaskStatus $status) => [$status->value => 0])->all();
+        $companyTotals = $emptyTotals;
+        $companyOlder = 0;
+        $counts = [];
+        foreach ($rows->groupBy('project_id') as $projectId => $projectRows) {
+            $totals = $emptyTotals;
+            foreach ($projectRows as $row) {
+                $totals[$row->status] = (int) $row->aggregate;
+            }
+            $older = 0;
+            if ($inWindow !== null) {
+                $within = (int) ($inWindow[$projectId] ?? 0);
+                $older = $totals[$completed] - $within;
+                $totals[$completed] = $within;
+            }
+
+            foreach ($totals as $status => $count) {
+                $companyTotals[$status] += $count;
+            }
+            $companyOlder += $older;
+
+            if (array_sum($totals) > 0) {
+                $counts[(int) $projectId] = ['totals' => $totals, 'older' => $older];
+            }
+        }
+
+        // The tasks are already this company's, so the projects need no
+        // organization scope.
+        $projects = $counts === []
+            ? collect()
+            : Project::withoutGlobalScope('organization')->whereIn('id', array_keys($counts))->get(['id', 'name', 'status']);
+
+        $lanes = $projects
+            ->map(fn (Project $project) => [
+                'id' => $project->id,
+                'name' => $project->name,
+                'closed' => $project->status === ProjectStatus::Closed,
+                'totals' => $counts[$project->id]['totals'],
+                'total' => array_sum($counts[$project->id]['totals']),
+                'older' => $counts[$project->id]['older'],
+            ])
+            ->sort(fn (array $a, array $b) => [mb_strtolower($a['name']), $a['id']] <=> [mb_strtolower($b['name']), $b['id']])
+            ->values()
+            ->toBase();
+
+        return ['lanes' => $lanes, 'totals' => $companyTotals, 'older' => $companyOlder];
     }
 
     /**
-     * Cards rendered outside the board (Load more, changes()) by the
-     * board's own _card partial, with the same permissions and assignee
+     * The board's own access rule: the company must be one of the
+     * caller's view_kanban board companies, and active (403 otherwise).
+     */
+    private function authorizeBoard(Organization $organization): void
+    {
+        abort_unless(
+            $organization->is_active && collect(auth()->user()->boardOrganizationIds('view_kanban'))->contains($organization->id),
+            403,
+        );
+    }
+
+    /**
+     * SOL-0025: the project a lane request names, after the board's access
+     * rule (403). A project of another company, or no such project, is a
+     * 404. Looked up without the organization scope, so which of the two
+     * a caller gets doesn't depend on the companies they belong to.
+     */
+    private function boardProject(Organization $organization, mixed $projectId): Project
+    {
+        $this->authorizeBoard($organization);
+
+        abort_unless(is_string($projectId) && ctype_digit($projectId), 404);
+
+        return Project::withoutGlobalScope('organization')
+            ->where('organization_id', $organization->id)
+            ->findOrFail((int) $projectId);
+    }
+
+    /**
+     * Cards rendered by the board's own _card partial (a lane, Load more,
+     * changes()), with the same permissions and assignee
      * options. The tasks must already have project, department and
      * assignee loaded.
      *

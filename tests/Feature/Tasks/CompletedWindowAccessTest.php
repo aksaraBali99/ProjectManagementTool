@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\TaskStatus;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\Task;
@@ -46,14 +45,12 @@ test('the window never adds a task the user could not already see', function (st
     expect($visible)->not->toBeEmpty();
 
     foreach ([[], ['completed' => 'all']] as $query) {
-        // Kanban, every column and batch.
-        foreach (TaskStatus::cases() as $status) {
-            $board = $this->actingAs($user)->get(route('kanban', [$this->org] + $query));
-            if ($board->status() === 403) {
-                break;
-            }
-            $column = $board->viewData('columns')->firstWhere('status', $status);
-            expect($column['tasks']->pluck('task.id')->diff($visible)->all())->toBe([]);
+        // Kanban, every lane (SOL-0025) and column.
+        $board = $this->actingAs($user)->get(route('kanban', [$this->org] + $query));
+        if ($board->status() !== 403) {
+            $shown = kanbanCardIds(kanbanBoardCardsHtml($user, $this->org->id, $query));
+            expect($shown)->not->toBeEmpty()
+                ->and(array_diff($shown, $visible))->toBe([]);
         }
 
         // Tasks list, every page.

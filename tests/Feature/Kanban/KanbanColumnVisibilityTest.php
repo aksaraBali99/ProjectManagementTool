@@ -121,13 +121,15 @@ dataset('kanban viewers', [
     'client' => ['client'],
 ]);
 
-test('the cards across the board and every Load more are exactly what visibleTo() allows, per column', function (string $viewer) {
+test('the cards across every lane and every Load more are exactly what visibleTo() allows, per column', function (string $viewer) {
     $user = $this->{$viewer};
+    // SOL-0025: every lane the board lists, each opened and loaded to the end.
+    $lanes = kanbanLanes($user, $this->org->id);
 
     foreach (TaskStatus::cases() as $status) {
         $expected = Task::visibleTo($user, $this->org->id)->where('status', $status->value)->pluck('id')->sort()->values()->all();
 
-        $shown = kanbanColumnIdsAcrossBatches($user, $this->org->id, $status);
+        $shown = $lanes->flatMap(fn (array $lane) => kanbanColumnIdsAcrossBatches($user, $this->org->id, $status, $lane['id']))->all();
 
         expect($shown)->toHaveCount(count(array_unique($shown)), "{$viewer} / {$status->value}: a card appeared twice");
         sort($shown);
@@ -145,8 +147,8 @@ test('the dataset gives the viewers different, non-trivial slices, with Load mor
         ->and($count($this->client))->toBeGreaterThan(30)->toBeLessThan($count($this->management));
 });
 
-test('the Load more endpoint refuses who the board refuses', function () {
-    $url = route('kanban.column', [$this->org, 'pending']);
+test('the Load more endpoint refuses who the board refuses', function (array $query) {
+    $url = route('kanban.column', [$this->org, 'pending'] + ($query === [] ? [] : ['project' => $this->projectA->id]));
 
     // Another company's management.
     $this->actingAs($this->otherManagement)->getJson($url)->assertForbidden();
@@ -164,29 +166,48 @@ test('the Load more endpoint refuses who the board refuses', function () {
     // Guests.
     auth()->logout();
     $this->getJson($url)->assertUnauthorized();
-});
+})->with([
+    'whole column' => [[]],
+    'one project (SOL-0025)' => [['project' => true]],
+]);
 
 test('an unknown status or company is a 404', function () {
     $this->actingAs($this->management)->getJson(route('kanban', $this->org).'/columns/not_a_status')->assertNotFound();
     $this->actingAs($this->management)->getJson('/kanban/999999/columns/pending')->assertNotFound();
 });
 
-test('a card from Load more is identical to the same card on the board: permissions and assignee options', function (string $viewer) {
+test('a card from Load more is identical to the same card in its lane: permissions and assignee options', function (string $viewer) {
     $user = $this->{$viewer};
 
-    // Everything past the 30th card of Pending arrives via Load more.
-    $order = kanbanColumnIdsAcrossBatches($user, $this->org->id, TaskStatus::Pending);
+    // SOL-0025: one lane holds fewer cards than the old company-wide
+    // column, so Project A gets 12 more Pending cards in the staff's own
+    // department (half theirs), keeping more than 30 for every viewer.
+    foreach (range(1, 12) as $i) {
+        Task::create([
+            'organization_id' => $this->org->id, 'project_id' => $this->projectA->id, 'department_id' => $this->deptA->id,
+            'assignee_id' => $i % 2 ? $this->staffWithAccess->id : null,
+            'title' => 'Extra '.$i, 'priority' => 'medium', 'status' => 'pending', 'due_date' => '2026-11-15',
+        ]);
+    }
+
+    // Everything past the 30th card of Project A's Pending cell arrives
+    // via Load more (SOL-0025: ?project=, as the lane sends it).
+    $order = kanbanColumnIdsAcrossBatches($user, $this->org->id, TaskStatus::Pending, $this->projectA->id);
     expect(count($order))->toBeGreaterThan(30);
     $loadedIds = array_slice($order, 30, 30);
 
-    $json = $this->actingAs($user)->getJson(route('kanban.column', [$this->org, 'pending']).'?offset=30')->assertOk()->json();
+    $json = $this->actingAs($user)
+        ->getJson(route('kanban.column', [$this->org, 'pending', 'project' => $this->projectA->id, 'offset' => 30]))
+        ->assertOk()
+        ->json();
     $fromLoadMore = collect($loadedIds)->mapWithKeys(fn ($id) => [$id => kanbanCardMarkup($json['html'], $id)]);
 
     // Deactivate the cards in front of them, so the same cards now render
-    // on the board itself. Nothing a card shows depends on its position.
+    // in the lane's first batch. Nothing a card shows depends on its
+    // position.
     Task::whereIn('id', array_slice($order, 0, 30))->get()->each->delete();
 
-    $board = $this->actingAs($user)->get(route('kanban', $this->org))->assertOk()->getContent();
+    $board = kanbanLaneColumn($user, $this->org->id, $this->projectA->id, TaskStatus::Pending)['html'];
 
     foreach ($fromLoadMore as $id => $markup) {
         expect(kanbanCardMarkup($board, $id))->toBe($markup, "card {$id} differs for {$viewer}");
