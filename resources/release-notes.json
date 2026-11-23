@@ -1,6 +1,35 @@
 {
     "releases": [
         {
+            "version": "v2026.11.2",
+            "date": "2026-11-23",
+            "summary": "The Kanban board grouped by project, with the projects you leave open remembered for you, plus a deploy-only gate for the server's deploy keys and task codes in the release tooling.",
+            "tasks": [
+                {
+                    "code": "SOL-0025",
+                    "type": "Enhancement",
+                    "title": "Kanban board grouped by project",
+                    "before": "Kanban showed one set of status columns per company, with every project's cards mixed together and the project name on each card.",
+                    "after": "Kanban shows one row per project, sorted by name, with its number of tasks in each status. Click + on a project to see its cards in the four columns, and − to close it; a card is dragged between columns within its own project. Expand all and Collapse all open or close every project at once, and the projects you leave open are remembered for you, per company, on any browser or device. Load more, the dropdowns and the 15-second updates work inside each project. Cards no longer repeat the project name and show their due date as \"Due Dec 5\". A project whose tasks were all completed some time ago has no row; the \"Show all\" link above the board shows them.",
+                    "prs": [159, 160]
+                },
+                {
+                    "code": "SOL-0023",
+                    "type": "Chore",
+                    "title": "A deploy-only gate for the server's deploy keys",
+                    "after": "The keys GitHub uses to deploy can be limited to running a deploy and nothing else on the server, switched on per environment.",
+                    "pr": 158
+                },
+                {
+                    "code": "SOL-0021",
+                    "type": "Chore",
+                    "title": "Task codes in the release tooling",
+                    "after": "Release checks, the GitHub release notes and this page name tasks by their code, like SOL-0025.",
+                    "pr": 161
+                }
+            ]
+        },
+        {
             "version": "v2026.11.1",
             "date": "2026-11-06",
             "summary": "Faster pages as the number of tasks grows, company-coded task numbers, longer comments, read-only deactivated tasks, back links that survive a save, and a Release notes page.",
