@@ -19,7 +19,7 @@
                     "title": "Release number next to the app name",
                     "before": "Nothing in the app showed which version it was running.",
                     "after": "The menu shows the release number next to Solava, for example v2026.11.2. The owner and super admins can click it to open the release notes.",
-                    "prs": [164]
+                    "prs": [164, 166]
                 },
                 {
                     "code": "SOL-0023",
