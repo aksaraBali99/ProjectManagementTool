@@ -43,6 +43,9 @@ expect_exit() {
     expect_equal "$name" "$expected" "$code"
 }
 
+# has <text> <part>: yes if the text contains the part.
+has() { [[ "$1" == *"$2"* ]] && echo yes || echo no; }
+
 # --- next-version.sh ----------------------------------------------------
 
 echo "next-version.sh"
@@ -312,6 +315,72 @@ expect_equal "and is reported as missing" "yes" \
 expect_equal "a missing secret is reported" "yes" \
     "$([[ "$(SSH_HOST=h SSH_PORT=1 SSH_USER=u APP_PATH=/a APP_URL=x EXPECTED_APP_ENV=p SSH_KNOWN_HOSTS=kh bash "$scripts/check-deploy-config.sh")" == *"Missing config for this environment: SSH_KEY."* ]] && echo yes || echo no)"
 
+# SOL-0023: gate_config <NAME=value...>: the check with every non-key value set.
+gate_config() {
+    env SSH_HOST=h SSH_PORT=65002 SSH_USER=u APP_PATH=/a APP_URL=https://x EXPECTED_APP_ENV=p SSH_KNOWN_HOSTS=kh \
+        "$@" bash "$scripts/check-deploy-config.sh"
+}
+expect_exit "SSH_GATE on with SSH_GATE_KEY and no SSH_KEY passes" 0 gate_config SSH_GATE=true SSH_GATE_KEY=gk
+expect_exit "SSH_GATE on without SSH_GATE_KEY fails, even with SSH_KEY" 1 gate_config SSH_GATE=true SSH_KEY=k
+expect_equal "and says SSH_GATE_KEY isn't set" "yes" \
+    "$([[ "$(gate_config SSH_GATE=true SSH_KEY=k)" == *"SSH_GATE is on, but SSH_GATE_KEY isn't set"* ]] && echo yes || echo no)"
+expect_exit "SSH_GATE off still needs SSH_KEY" 1 gate_config SSH_GATE=false SSH_GATE_KEY=gk
+expect_exit "SSH_GATE off with SSH_KEY passes" 0 gate_config SSH_GATE=false SSH_KEY=k
+
+# --- deploy-remote-command.sh -------------------------------------------
+
+echo "deploy-remote-command.sh"
+fixed_sha=0123456789abcdef0123456789abcdef01234567
+# remote_cmd <SSH_GATE> <BRANCH> <EXPECTED_APP_ENV> <APP_PATH> <DEPLOY_ARGS> <DRY_RUN>
+remote_cmd() {
+    env SSH_GATE="$1" BRANCH="$2" SHA="$fixed_sha" EXPECTED_APP_ENV="$3" APP_PATH="$4" DEPLOY_ARGS="$5" DRY_RUN="$6" \
+        bash "$scripts/deploy-remote-command.sh"
+}
+
+# The expected lines were captured from the action's own code before
+# SOL-0023 (its inline printf), not from this script. $HOME stays literal,
+# for the server's shell to expand.
+# shellcheck disable=SC2016 # literal $HOME, $? and $code on purpose
+legacy_prod='cd /home/u1/domains/x/solava && git fetch --quiet origin production && git show 0123456789abcdef0123456789abcdef01234567:deploy.sh > $HOME/.deploy-0123456789abcdef0123456789abcdef01234567.sh && bash $HOME/.deploy-0123456789abcdef0123456789abcdef01234567.sh --branch production --expect-sha 0123456789abcdef0123456789abcdef01234567 --expect-env production --maintenance --backup ; code=$?; rm -f $HOME/.deploy-0123456789abcdef0123456789abcdef01234567.sh; exit $code'
+# shellcheck disable=SC2016
+legacy_dev_dry='cd /home/u1/domains/a\ b/solava && git fetch --quiet origin main && git show 0123456789abcdef0123456789abcdef01234567:deploy.sh > $HOME/.deploy-0123456789abcdef0123456789abcdef01234567.sh && bash $HOME/.deploy-0123456789abcdef0123456789abcdef01234567.sh --branch main --expect-sha 0123456789abcdef0123456789abcdef01234567 --expect-env dev --dry-run ; code=$?; rm -f $HOME/.deploy-0123456789abcdef0123456789abcdef01234567.sh; exit $code'
+expect_equal "gate off, PROD: byte for byte the line from before the gate" \
+    "$legacy_prod" "$(remote_cmd false production production /home/u1/domains/x/solava "--maintenance --backup" false)"
+expect_equal "gate off, DEV dry run, a path with a space: byte for byte the same" \
+    "$legacy_dev_dry" "$(remote_cmd "" main dev "/home/u1/domains/a b/solava" "" true)"
+expect_equal "gate on: just deploy <sha>, deploy-args ignored" \
+    "deploy $fixed_sha" "$(remote_cmd true production production /home/u1/x "--maintenance --backup" false)"
+expect_equal "gate on, dry run: deploy <sha> --dry-run" \
+    "deploy $fixed_sha --dry-run" "$(remote_cmd true main dev /home/u1/x "" true)"
+
+# --- check-gate-ping.sh -------------------------------------------------
+
+echo "check-gate-ping.sh"
+# ping_check <environment> <code> <reply>: the exit code in $ping_code, the output in $ping_output.
+ping_check() {
+    ping_code=0
+    ping_output=$(bash "$scripts/check-gate-ping.sh" "$@" 2>&1) || ping_code=$?
+}
+ping_check production 0 "ok solava-gate production"
+expect_equal "the gate answering for this environment passes" "0" "$ping_code"
+ping_check production 0 "ok solava-gate dev"
+expect_equal "the DEV gate key in the production environment fails" "1" "$ping_code"
+expect_equal "naming both" "yes" "$(has "$ping_output" "in the 'production' environment is the gate key for 'dev', not 'production'")"
+ping_check dev 0 "ok solava-gate production"
+expect_equal "the PROD gate key in the dev environment fails" "1" "$ping_code"
+ping_check dev 2 "Usage: ping [-aAbBdDfhLnOqrRUvV64] destination"
+expect_equal "a key with no gate (the shell ran ping) fails" "1" "$ping_code"
+expect_equal "saying the key line probably has no gate" "yes" "$(has "$ping_output" "probably has no gate")"
+ping_check dev 0 "ok solava-gate dev extra"
+expect_equal "anything but the exact answer fails" "1" "$ping_code"
+ping_check dev 126 ""
+expect_equal "the gate refusing ping fails" "1" "$ping_code"
+expect_equal "pointing at gate.log" "yes" "$(has "$ping_output" "gate.log")"
+ping_check dev 255 ""
+expect_equal "an SSH failure says so" "yes" "$(has "$ping_output" "SSH itself failed")"
+ping_check dev 2 $'line one\nline two'
+expect_equal "the reply is shown on one line" "yes" "$(has "$ping_output" "reply: 'line one line two'")"
+
 # --- deploy.sh ----------------------------------------------------------
 #
 # A throwaway origin and "server" checkout, with stub php and composer
@@ -404,6 +473,243 @@ expect_equal "and says why" "yes" "$([[ "$deploy_output" == *"doesn't contain ${
 run_deploy --branch main --expect-sha "$second" --expect-env production
 expect_equal "the wrong APP_ENV stops it" "1" "$deploy_code"
 expect_equal "before anything is called but the env check" "php artisan env --no-interaction" "$(cat "$DEPLOY_TEST_LOG")"
+
+# --- server/solava-gate.sh (SOL-0023) -----------------------------------
+#
+# A sandbox copy of the gate with its own gate.conf, pointing at a dev and
+# a production "server" checkout of a throwaway origin. Each commit's
+# deploy.sh records its arguments and umask, then runs the real deploy.sh
+# (with the stub php and composer above, APP_ENV "staging").
+
+echo "solava-gate.sh"
+g="$sandbox/gate"
+gate="$g/home/bin/gate.sh"
+mkdir -p "$g/home/bin"
+cp "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/server/solava-gate.sh" "$gate"
+
+cat >"$g/deploy-wrapper.sh" <<'WRAPPER'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >"$GATE_TEST_ARGS"
+umask >"$GATE_TEST_UMASK"
+exec bash "$GATE_TEST_REAL_DEPLOY" "$@"
+WRAPPER
+
+(
+    git init --quiet --bare "$g/origin.git"
+    git clone --quiet "$g/origin.git" "$g/work" 2>/dev/null
+    cd "$g/work"
+    git config user.name "Test"
+    git config user.email "test@example.com"
+    git config commit.gpgsign false
+    git config core.autocrlf false
+    git checkout --quiet -b main
+    cp "$g/deploy-wrapper.sh" deploy.sh
+    git add deploy.sh
+    git commit --quiet -m "first"
+    git push --quiet origin main
+    git branch production
+    git push --quiet origin production
+    git clone --quiet --branch main "$g/origin.git" "$g/server-dev"
+    git clone --quiet --branch production "$g/origin.git" "$g/server-prod"
+    git commit --quiet --allow-empty -m "second"
+    git push --quiet origin main
+    git checkout --quiet production
+    git commit --quiet --allow-empty -m "second on production"
+    git push --quiet origin production
+    # A commit that isn't on main, whose deploy.sh leaves a marker if run.
+    git checkout --quiet -b elsewhere main~1
+    # shellcheck disable=SC2016 # expanded when that deploy.sh runs
+    printf '#!/usr/bin/env bash\ntouch "$GATE_TEST_MARKER"\n' >deploy.sh
+    git commit --quiet -am "not on main"
+    git push --quiet origin elsewhere
+)
+# The server has the commit's objects; the gate must still refuse it.
+git -C "$g/server-dev" fetch --quiet origin elsewhere
+dev1="$(git -C "$g/work" rev-parse main~1)"
+dev2="$(git -C "$g/work" rev-parse main)"
+prod1="$(git -C "$g/work" rev-parse production~1)"
+prod2="$(git -C "$g/work" rev-parse production)"
+off_branch="$(git -C "$g/work" rev-parse elsewhere)"
+
+conf="$g/home/bin/gate.conf"
+cat >"$conf" <<CONF
+dev_app_path=$(printf '%q' "$g/server-dev")
+dev_app_env=staging
+production_app_path=$(printf '%q' "$g/server-prod")
+production_app_env=staging
+CONF
+chmod 600 "$conf"
+
+export GATE_TEST_ARGS="$g/args" GATE_TEST_UMASK="$g/umask" GATE_TEST_MARKER="$g/marker" GATE_TEST_REAL_DEPLOY="$deploy"
+gate_log="$g/home/logs/gate.log"
+dev_lock="$g/home/run/dev.lock"
+
+# run_gate <env> <SSH_ORIGINAL_COMMAND>: the gate as sshd runs it, on
+# fresh checkouts; the exit code in $gate_code, the output in $gate_output.
+run_gate() {
+    : >"$DEPLOY_TEST_LOG"
+    rm -f "$GATE_TEST_ARGS" "$GATE_TEST_UMASK" "$GATE_TEST_MARKER"
+    git -C "$g/server-dev" reset --quiet --hard "$dev1"
+    git -C "$g/server-prod" reset --quiet --hard "$prod1"
+    gate_code=0
+    gate_output=$(cd "$g" && SSH_ORIGINAL_COMMAND="$2" SSH_CLIENT="203.0.113.7 51000 65002" \
+        PATH="$sandbox/bin:$PATH" bash "$gate" "$1" 2>&1) || gate_code=$?
+}
+deploy_ran() { [[ -e "$GATE_TEST_ARGS" ]] && echo yes || echo no; }
+last_log() { tail -n 1 "$gate_log"; }
+
+run_gate dev ping
+expect_equal "ping answers" "ok solava-gate dev" "$gate_output"
+expect_equal "ping exits 0" "0" "$gate_code"
+run_gate production ping
+expect_equal "ping names the key's environment" "ok solava-gate production" "$gate_output"
+
+# refused_case <name> <env> <command>
+refused_case() {
+    run_gate "$2" "$3"
+    expect_equal "refused (126): $1" "126" "$gate_code"
+    expect_equal "refused: $1: deploy.sh never ran" "no" "$(deploy_ran)"
+}
+refused_case "an empty command (a login shell)" dev ""
+refused_case "bash" dev "bash"
+refused_case "a second command after ;" dev "deploy $dev2; id"
+refused_case "a second line" dev "deploy $dev2"$'\n'"id"
+refused_case "a trailing newline" dev "deploy $dev2"$'\n'
+refused_case "a short SHA" dev "deploy ${dev2:0:12}"
+refused_case "an uppercase SHA" dev "deploy ${dev2^^}"
+refused_case "two spaces" dev "deploy  $dev2"
+refused_case "an extra deploy.sh flag" dev "deploy $dev2 --maintenance"
+refused_case "a flag after --dry-run" dev "deploy $dev2 --dry-run --backup"
+refused_case "scp" dev "scp -t ."
+refused_case "the sftp subsystem" dev "/usr/libexec/openssh/sftp-server"
+refused_case "rsync" dev "rsync --server -e.LsfxC . ."
+refused_case "an unknown environment" staging "ping"
+refused_case "a deploy for an unknown environment" staging "deploy $dev2"
+expect_equal "refused says so on stderr" "yes" "$(has "$(run_gate dev bash; echo "$gate_output")" "refused")"
+
+run_gate dev "deploy $off_branch"
+expect_equal "a commit not on the branch stops before deploy.sh (65)" "65" "$gate_code"
+expect_equal "and says so" "yes" "$(has "$gate_output" "isn't on origin/main. Nothing on the site changed")"
+expect_equal "and its deploy.sh never ran" "no" "$([[ -e "$GATE_TEST_MARKER" ]] && echo yes || echo no)"
+expect_equal "the log says stopped, with the code" "yes" "$(has "$(last_log)" "verdict=stopped exit=65")"
+
+# A second sandbox gate whose gate.conf points at a folder that isn't there.
+mkdir -p "$g/badhome/bin"
+cp "$gate" "$g/badhome/bin/gate.sh"
+printf 'dev_app_path=%q\n' "$g/no-such-folder" >"$g/badhome/bin/gate.conf"
+chmod 600 "$g/badhome/bin/gate.conf"
+bad_code=0
+bad_output=$(SSH_ORIGINAL_COMMAND="deploy $dev2" bash "$g/badhome/bin/gate.sh" dev 2>&1) || bad_code=$?
+expect_equal "a missing app folder stops before deploy.sh (65), not a raw error" "65" "$bad_code"
+expect_equal "and names the folder" "yes" "$(has "$bad_output" "the app folder $g/no-such-folder doesn't exist")"
+expect_equal "and releases the lock" "no" "$([[ -e "$g/badhome/run/dev.lock" ]] && echo yes || echo no)"
+
+run_gate dev "deploy $dev2"
+expect_equal "dev: a deploy succeeds" "0" "$gate_code"
+expect_equal "dev: deploy.sh gets no extra flags" "--branch main --expect-sha $dev2 --expect-env staging" "$(cat "$GATE_TEST_ARGS")"
+expect_equal "dev: it deploys the commit" "$dev2" "$(git -C "$g/server-dev" rev-parse HEAD)"
+expect_equal "dev: no maintenance mode or backup" "" "$(line_of "artisan down")$(line_of "solva:db-backup")"
+expect_equal "deploy.sh keeps the caller's umask (the gate never sets it)" "$(umask)" "$(cat "$GATE_TEST_UMASK")"
+expect_equal "the lock is gone afterwards" "no" "$([[ -e "$dev_lock" ]] && echo yes || echo no)"
+expect_equal "no temp script is left behind" "" "$(find "$g/home/run" -name 'deploy.*' 2>/dev/null)"
+expect_equal "the log has the accepted deploy and its exit code" "yes" "$(has "$(last_log)" "env=dev ip=203.0.113.7 verdict=accepted exit=0 cmd=deploy $dev2")"
+
+expect_equal "an unusual umask (0027) reaches deploy.sh unchanged" "0027" \
+    "$(umask 0027 && run_gate dev "deploy $dev2" && cat "$GATE_TEST_UMASK")"
+
+run_gate production "deploy $prod2"
+expect_equal "production: a deploy succeeds" "0" "$gate_code"
+expect_equal "production: always --maintenance --backup" \
+    "--branch production --expect-sha $prod2 --expect-env staging --maintenance --backup" "$(cat "$GATE_TEST_ARGS")"
+expect_equal "production: the backup ran" "yes" "$([[ -n "$(line_of "solva:db-backup")" ]] && echo yes || echo no)"
+
+run_gate dev "deploy $dev2 --dry-run"
+expect_equal "dev dry run: --dry-run passes through" "--branch main --expect-sha $dev2 --expect-env staging --dry-run" "$(cat "$GATE_TEST_ARGS")"
+expect_equal "dev dry run: changes nothing" "$dev1" "$(git -C "$g/server-dev" rev-parse HEAD)"
+expect_equal "dev dry run: deploy.sh's dry run output" "yes" "$(has "$gate_output" "Dry run done.")"
+
+run_gate production "deploy $prod2 --dry-run"
+expect_equal "production dry run: the backup flags stay, then --dry-run" \
+    "--branch production --expect-sha $prod2 --expect-env staging --maintenance --backup --dry-run" "$(cat "$GATE_TEST_ARGS")"
+
+run_gate dev "deploy $dev1"
+expect_equal "exit 78 (a newer commit, skipped) passes through" "78" "$gate_code"
+
+mkdir -p "$dev_lock"
+echo "$$" >"$dev_lock/pid"
+run_gate dev "deploy $dev2"
+expect_equal "a live lock: busy (75)" "75" "$gate_code"
+expect_equal "a live lock: deploy.sh never ran" "no" "$(deploy_ran)"
+expect_equal "a live lock: it's left alone" "$$" "$(cat "$dev_lock/pid")"
+expect_equal "the log says busy" "yes" "$(has "$(last_log)" "verdict=busy")"
+run_gate production "deploy $prod2"
+expect_equal "a lock on dev doesn't block production" "0" "$gate_code"
+rm -f "$dev_lock/pid"
+rmdir "$dev_lock"
+
+true &
+dead_pid=$!
+wait "$dead_pid"
+mkdir -p "$dev_lock"
+echo "$dead_pid" >"$dev_lock/pid"
+run_gate dev "deploy $dev2"
+expect_equal "a stale lock (dead pid) is taken over" "0" "$gate_code"
+expect_equal "and removed afterwards" "no" "$([[ -e "$dev_lock" ]] && echo yes || echo no)"
+
+mkdir -p "$dev_lock"
+run_gate dev "deploy $dev2"
+expect_equal "a lock with no pid file yet: busy (75)" "75" "$gate_code"
+touch -d '10 minutes ago' "$dev_lock"
+run_gate dev "deploy $dev2"
+expect_equal "a lock with no pid file, over 5 minutes old, is taken over" "0" "$gate_code"
+
+mkdir -p "$dev_lock"
+echo "$$" >"$dev_lock/pid"
+touch -d '3 hours ago' "$dev_lock"
+run_gate dev "deploy $dev2"
+expect_equal "a lock over 2 hours old is taken over even if its pid runs (pid reuse)" "0" "$gate_code"
+
+# Another gate in the middle of taking over (its guard is there): this one
+# leaves the stale lock alone instead of removing it a second time.
+dev_guard="$g/home/run/dev.takeover"
+mkdir -p "$dev_lock" "$dev_guard"
+echo "$dead_pid" >"$dev_lock/pid"
+run_gate dev "deploy $dev2"
+expect_equal "a takeover already in progress: busy (75)" "75" "$gate_code"
+expect_equal "and the stale lock is left to that takeover" "$dead_pid" "$(cat "$dev_lock/pid" 2>/dev/null)"
+expect_equal "and its guard too" "yes" "$([[ -d "$dev_guard" ]] && echo yes || echo no)"
+touch -d '2 minutes ago' "$dev_guard"
+run_gate dev "deploy $dev2"
+expect_equal "a guard over a minute old (a killed takeover) is cleared, and the lock taken over" "0" "$gate_code"
+expect_equal "with no guard or lock left behind" "no" "$([[ -e "$dev_guard" || -e "$dev_lock" ]] && echo yes || echo no)"
+
+lines_before=$(wc -l <"$gate_log")
+secret_value="s3cret-$RANDOM-must-not-be-logged"
+GATE_TEST_SECRET="$secret_value" run_gate dev "deploy $dev2"$'\n'"id"
+expect_equal "a refused command is logged as one line" "$((lines_before + 1))" "$(wc -l <"$gate_log")"
+expect_equal "with its control characters stripped" "yes" "$(has "$(last_log)" "verdict=refused cmd=deploy ${dev2}id")"
+GATE_TEST_SECRET="$secret_value" run_gate dev "deploy $dev2"
+expect_equal "no environment value is ever logged" "no" "$(grep -q -- "$secret_value" "$gate_log" && echo yes || echo no)"
+run_gate dev "deploy $dev2 $(printf 'x%.0s' {1..300})"
+expect_equal "a long command is cut to 200 characters" "200" "$(last_log | sed 's/.* cmd=//' | tr -d '\n' | wc -c | tr -d ' ')"
+
+# gate_conf_writable_case <chmod mode> <who>
+gate_conf_writable_case() {
+    chmod 600 "$conf"
+    chmod "$1" "$conf"
+    if (((8#$(stat -c %a "$conf") & 8#022) == 0)); then
+        echo "  skip a gate.conf writable by $2 (this filesystem doesn't keep that permission)"
+        chmod 600 "$conf"
+        return
+    fi
+    run_gate dev "deploy $dev2"
+    expect_equal "a gate.conf writable by $2 is refused (126)" "126" "$gate_code"
+    expect_equal "a gate.conf writable by $2: deploy.sh never ran" "no" "$(deploy_ran)"
+    expect_equal "a gate.conf writable by $2: says why" "yes" "$(has "$gate_output" "gate.conf can be written by others")"
+    chmod 600 "$conf"
+}
+gate_conf_writable_case g+w "the group"
+gate_conf_writable_case o+w "everyone"
 
 echo ""
 echo "${passed} passed, ${failed} failed"

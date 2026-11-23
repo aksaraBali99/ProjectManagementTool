@@ -4,6 +4,11 @@
 #
 # The SSH key is written to $RUNNER_TEMP/deploy_key. The calling job
 # removes it in an `if: always()` step, so it goes even when this fails.
+#
+# SOL-0023: with ssh-gate 'true', the action uses ssh-gate-key, a key
+# the server only lets run its deploy gate (server/solava-gate.sh), and
+# sends just "deploy <sha>". With 'false' it uses ssh-key and sends the
+# same shell line as before the gate (the rollback path).
 
 name: Deploy over SSH
 description: Runs deploy.sh on the environment's server for one commit, then smoke-tests it.
@@ -23,11 +28,21 @@ inputs:
     required: false
     default: 'false'
   deploy-args:
-    description: Extra deploy.sh flags (--maintenance --backup)
+    description: Extra deploy.sh flags (--maintenance --backup). Ignored with ssh-gate, where the server's gate adds them.
     required: false
     default: ''
+  ssh-gate:
+    description: "'true' to deploy through the server's SSH deploy gate with ssh-gate-key"
+    required: false
+    default: 'false'
   ssh-key:
-    required: true
+    description: The unrestricted deploy key, used when ssh-gate isn't 'true'
+    required: false
+    default: ''
+  ssh-gate-key:
+    description: The gate-only deploy key, used when ssh-gate is 'true'
+    required: false
+    default: ''
   ssh-known-hosts:
     required: true
 
@@ -42,20 +57,28 @@ runs:
     - name: Check the environment's config
       shell: bash
       env:
+        SSH_GATE: ${{ inputs.ssh-gate }}
         SSH_KEY: ${{ inputs.ssh-key }}
+        SSH_GATE_KEY: ${{ inputs.ssh-gate-key }}
         SSH_KNOWN_HOSTS: ${{ inputs.ssh-known-hosts }}
-      # Every variable and secret set, and APP_PATH a full path. Tested by
-      # tests/scripts/run.sh.
+      # Every variable and secret set (the gate key when the gate is on),
+      # and APP_PATH a full path. Tested by tests/scripts/run.sh.
       run: bash "$GITHUB_WORKSPACE/.github/scripts/check-deploy-config.sh"
 
     - name: Set up SSH
       shell: bash
       env:
+        SSH_GATE: ${{ inputs.ssh-gate }}
         SSH_KEY: ${{ inputs.ssh-key }}
+        SSH_GATE_KEY: ${{ inputs.ssh-gate-key }}
         SSH_KNOWN_HOSTS: ${{ inputs.ssh-known-hosts }}
       run: |
+        # The key is picked here, not in deploy.yml: there, a missing
+        # SSH_GATE_KEY would quietly fall back to the unrestricted key.
+        key="$SSH_KEY"
+        if [[ "$SSH_GATE" == "true" ]]; then key="$SSH_GATE_KEY"; fi
         install -m 700 -d ~/.ssh
-        (umask 077 && printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/deploy_key")
+        (umask 077 && printf '%s\n' "$key" > "$RUNNER_TEMP/deploy_key")
         printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
 
@@ -63,32 +86,58 @@ runs:
       id: deploy
       shell: bash
       env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        SSH_GATE: ${{ inputs.ssh-gate }}
         BRANCH: ${{ inputs.branch }}
         SHA: ${{ inputs.sha }}
         DRY_RUN: ${{ inputs.dry-run }}
         DEPLOY_ARGS: ${{ inputs.deploy-args }}
       run: |
-        args=(--branch "$BRANCH" --expect-sha "$SHA" --expect-env "$EXPECTED_APP_ENV")
-        # Word-split on purpose: a fixed list of flags from deploy.yml.
-        read -r -a extra <<<"$DEPLOY_ARGS"
-        args+=("${extra[@]}")
-        if [[ "$DRY_RUN" == "true" ]]; then args+=(--dry-run); fi
+        # "deploy <sha>" for the gate, else the whole shell line that runs
+        # the commit's own deploy.sh. Tested by tests/scripts/run.sh.
+        remote=$(bash "$GITHUB_WORKSPACE/.github/scripts/deploy-remote-command.sh")
 
-        # The commit's own deploy.sh, not the copy in the server's current
-        # checkout (that's the previous release's). A temp file, not
-        # `bash -s`: composer or artisan reading stdin would eat the script.
-        script="\$HOME/.deploy-${SHA}.sh"
-        printf -v remote 'cd %q && git fetch --quiet origin %q && git show %q:deploy.sh > %s && bash %s %s; code=$?; rm -f %s; exit $code' \
-          "$APP_PATH" "$BRANCH" "$SHA" "$script" "$script" "$(printf '%q ' "${args[@]}")" "$script"
+        ssh_to_server=(ssh -n -T -p "$SSH_PORT" -i "$RUNNER_TEMP/deploy_key"
+          -o IdentitiesOnly=yes -o BatchMode=yes
+          -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          -o ConnectTimeout=30 -o ServerAliveInterval=30
+          "$SSH_USER@$SSH_HOST")
+
+        # The gate decides where to deploy from the key's line, so first
+        # make sure this key's gate is this job's environment (replaces
+        # the --expect-env check the gate path doesn't send).
+        if [[ "$SSH_GATE" == "true" ]]; then
+          set +e
+          reply=$("${ssh_to_server[@]}" ping 2>/dev/null)
+          ping_code=$?
+          set -e
+          bash "$GITHUB_WORKSPACE/.github/scripts/check-gate-ping.sh" "$ENVIRONMENT" "$ping_code" "$reply"
+        fi
 
         set +e
-        ssh -n -T -p "$SSH_PORT" -i "$RUNNER_TEMP/deploy_key" \
-          -o IdentitiesOnly=yes -o BatchMode=yes \
-          -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-          -o ConnectTimeout=30 -o ServerAliveInterval=30 \
-          "$SSH_USER@$SSH_HOST" "$remote"
+        "${ssh_to_server[@]}" "$remote"
         code=$?
         set -e
+
+        # Exit codes only the gate gives (server/solava-gate.sh). deploy.sh
+        # itself exits 0, 1, 2 or 78, but a command inside it could in
+        # theory exit 126 or 127, so those messages say so.
+        if [[ "$SSH_GATE" == "true" ]]; then
+          case "$code" in
+            126)
+              echo "::error::The server's SSH deploy gate refused the command (exit 126). Nothing was deployed. Check ~/apps/solava/logs/gate.log on the server, and that ~/apps/solava/bin/gate.sh is the current server/solava-gate.sh (docs/release-process.md, section 8). If the log above shows deploy.sh output, a command inside deploy.sh couldn't run instead."
+              exit "$code" ;;
+            127)
+              echo "::error::Exit 127: most likely this key's line in authorized_keys has no gate, so the server's shell tried to run 'deploy' as a command. Fix the key line, or set SSH_GATE to false (docs/release-process.md, section 8). If the log above shows deploy.sh output, a command inside deploy.sh wasn't found instead."
+              exit "$code" ;;
+            75)
+              echo "::error::Another deploy is running on this server (the gate's lock is held). Nothing was deployed. Re-run once it's done."
+              exit "$code" ;;
+            65)
+              echo "::error::The gate stopped before deploy.sh ran (exit 65); the line above says why. Nothing on the site changed: no maintenance mode, no pull, no migration."
+              exit "$code" ;;
+          esac
+        fi
 
         if ((code == 78)); then
           echo "::notice::Skipped: a newer commit is on $BRANCH, and its own run deploys it."
@@ -125,6 +174,7 @@ runs:
       shell: bash
       env:
         ENVIRONMENT: ${{ inputs.environment }}
+        GATE: ${{ inputs.ssh-gate == 'true' && 'on' || 'off' }}
         BRANCH: ${{ inputs.branch }}
         SHA: ${{ inputs.sha }}
         RESULT: ${{ steps.deploy.outputs.result || 'failed' }}
@@ -136,6 +186,7 @@ runs:
           echo "| | |"
           echo "|---|---|"
           echo "| APP_ENV | ${EXPECTED_APP_ENV:-not set} |"
+          echo "| SSH gate | $GATE |"
           echo "| Branch | \`$BRANCH\` |"
           echo "| Commit | \`$SHA\` |"
           echo "| Result | $RESULT |"
