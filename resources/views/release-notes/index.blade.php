@@ -72,7 +72,7 @@
                                                     @include('release-notes._task', ['task' => $task])
                                                 @else
                                                     <p class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[12px] text-gray-700">
-                                                        <span class="font-mono text-[10px] text-gray-500">#{{ $task['number'] }}</span>
+                                                        <span class="font-mono text-[10px] text-gray-500">{{ $task['label'] }}</span>
                                                         <span>{{ $task['title'] }}</span>
                                                         @foreach ($task['prs'] as $pr)
                                                             <a href="{{ config('solava.github_repo_url') }}/pull/{{ $pr }}"

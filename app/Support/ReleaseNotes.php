@@ -28,6 +28,16 @@ class ReleaseNotes
     /** Types whose tasks must say what changed for people: before and after. */
     public const TYPES_NEEDING_BEFORE_AFTER = ['Enhancement', 'Bugfix'];
 
+    /**
+     * SOL-0021: a task code, like SOL-0021: the company's 3-letter code
+     * (App\Support\CompanyCode), a hyphen, and the task's number padded to
+     * at least 4 digits (Task::formatCode()). A task in the file names
+     * itself with "code", or (entries up to v2026.11.1) with the old global
+     * "number": exactly one of the two. release-notes-check.sh applies the
+     * same pattern.
+     */
+    public const CODE_PATTERN = '/^[A-Z]{3}-\d{4,}$/';
+
     /** @var list<array<string, mixed>>|null */
     private ?array $releases = null;
 
@@ -39,7 +49,10 @@ class ReleaseNotes
      * Every release, newest first, as in the file. Empty when the file is
      * invalid (see error()).
      *
-     * @return list<array{version: string, date: string, summary: string, tasks: list<array{number: int, type: string, title: string, before: ?string, after: ?string, prs: list<int>}>}>
+     * Each task has a code (SOL-0021) or an old number, and its label: the
+     * code, or "#N".
+     *
+     * @return list<array{version: string, date: string, summary: string, tasks: list<array{code: ?string, number: ?int, label: string, type: string, title: string, before: ?string, after: ?string, prs: list<int>}>}>
      */
     public function releases(): array
     {
@@ -137,14 +150,17 @@ class ReleaseNotes
             throw new InvalidReleaseNotes("{$where} needs a non-empty \"tasks\" list.");
         }
 
-        $numbers = [];
+        // Duplicates by the task's code, or #N for an old number, so a code
+        // and a number never clash.
+        $seen = [];
         $parsedTasks = [];
         foreach ($tasks as $index => $task) {
             $task = $this->task($task, "{$where}, task entry #".($index + 1));
-            if (isset($numbers[$task['number']])) {
-                throw new InvalidReleaseNotes("{$where} lists task #{$task['number']} more than once.");
+            if (isset($seen[$task['label']])) {
+                $named = $task['code'] ?? "task {$task['label']}";
+                throw new InvalidReleaseNotes("{$where} lists {$named} more than once.");
             }
-            $numbers[$task['number']] = true;
+            $seen[$task['label']] = true;
             $parsedTasks[] = $task;
         }
 
@@ -158,11 +174,27 @@ class ReleaseNotes
             throw new InvalidReleaseNotes("{$where} must be an object.");
         }
 
-        $number = $task['number'] ?? null;
-        if (! is_int($number) || $number < 1) {
-            throw new InvalidReleaseNotes("{$where} needs a task \"number\" (a whole number, 1 or more).");
+        $code = null;
+        $number = null;
+        $hasCode = array_key_exists('code', $task);
+        $hasNumber = array_key_exists('number', $task);
+        if ($hasCode && $hasNumber) {
+            throw new InvalidReleaseNotes("{$where} has both \"code\" and \"number\"; use one.");
         }
-        $where = preg_replace('/task entry #\d+$/', "task #{$number}", $where);
+        if ($hasNumber) {
+            $number = $task['number'];
+            if (! is_int($number) || $number < 1) {
+                throw new InvalidReleaseNotes("{$where} needs a task \"number\" (a whole number, 1 or more).");
+            }
+        } else {
+            $code = $task['code'] ?? null;
+            if (! is_string($code) || ! preg_match(self::CODE_PATTERN, $code)) {
+                throw new InvalidReleaseNotes("{$where} needs a task \"code\" like SOL-0021 (or an old \"number\").");
+            }
+        }
+        $label = $code ?? "#{$number}";
+        // Later messages name the task: "SOL-0021" or "task #118".
+        $where = preg_replace('/task entry #\d+$/', $code ?? "task #{$number}", $where);
 
         $type = $task['type'] ?? null;
         if (! in_array($type, self::TYPES, true)) {
@@ -185,7 +217,9 @@ class ReleaseNotes
         }
 
         return [
+            'code' => $code,
             'number' => $number,
+            'label' => $label,
             'type' => $type,
             'title' => $this->text($task, 'title', $where, required: true),
             'before' => $this->text($task, 'before', $where, required: $needsBeforeAfter),
