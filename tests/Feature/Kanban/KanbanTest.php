@@ -71,16 +71,29 @@ test('Kanban renders one column per TaskStatus case, in the enum\'s declared ord
     sort($sorted);
     expect($positions)->toBe($sorted);
 
-    $columnCount = substr_count($content, 'class="kanban-column ');
+    // SOL-0025: one column header per status, and one cell per status in
+    // every lane.
+    $columnCount = substr_count($content, 'class="kanban-column-header ');
     expect($columnCount)->toBe(count(TaskStatus::cases()));
 });
 
-test('Kanban board uses a horizontally scroll-snapping container below md, and equal-width columns at md and up', function () {
+test('SOL-0025: below xl the board keeps a min width and scrolls sideways inside the folder; a 200px project column, then four equal status columns', function () {
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'A task',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+
     $response = $this->actingAs($this->management)->get('/kanban/'.$this->orgA->id);
 
     $response->assertOk();
-    $response->assertSee('snap-x snap-mandatory', false);
-    $response->assertSee('md:flex-1', false);
+    $response->assertSee('<div class="overflow-x-auto pb-1 xl:overflow-x-visible">', false);
+    $response->assertSee('id="kanban-board" class="min-w-[880px]"', false);
+    $response->assertSee('grid-cols-[200px_repeat(4,minmax(0,1fr))]', false);
+    $response->assertDontSee('snap-x snap-mandatory', false);
 });
 
 test('Kanban columns sort tasks by Priority\'s natural ordering, High before Medium before Low', function () {
@@ -109,11 +122,8 @@ test('Kanban columns sort tasks by Priority\'s natural ordering, High before Med
         'status' => 'pending',
     ]);
 
-    $response = $this->actingAs($this->management)->get('/kanban/'.$this->orgA->id);
-    $response->assertOk();
-
-    $pendingColumn = $response->viewData('columns')->firstWhere('status', TaskStatus::Pending);
-    expect($pendingColumn['tasks']->pluck('task.id')->all())->toBe([$high->id, $medium->id, $low->id]);
+    $pendingColumn = kanbanLaneColumn($this->management, $this->orgA->id, $this->projectA->id, TaskStatus::Pending);
+    expect($pendingColumn['ids'])->toBe([$high->id, $medium->id, $low->id]);
 });
 
 test('a staff user who is not the assignee cannot change another person\'s task status via Kanban', function () {
@@ -250,11 +260,11 @@ test('Kanban only shows tasks in a staff user\'s granted departments, same as th
         'status' => 'pending',
     ]);
 
-    $response = $this->actingAs($staff)->get('/kanban/'.$this->orgA->id);
+    // SOL-0025: the cards come from the lanes the board lists.
+    $cards = kanbanBoardCardsHtml($staff, $this->orgA->id);
 
-    $response->assertOk();
-    $response->assertSee('Visible task');
-    $response->assertDontSee('Hidden task');
+    expect($cards)->toContain('Visible task')->not->toContain('Hidden task');
+    expect(kanbanLaneColumn($staff, $this->orgA->id, $this->projectA->id, TaskStatus::Pending)['total'])->toBe(1);
 });
 
 test('task #73 (visibility consolidation): a staff user with view_tasks revoked sees no tasks on the Kanban board, even with valid department access', function () {
@@ -272,10 +282,10 @@ test('task #73 (visibility consolidation): a staff user with view_tasks revoked 
     $viewTasksId = Permission::where('slug', 'view_tasks')->firstOrFail()->id;
     $staffRole->permissions()->detach($viewTasksId);
 
-    $response = $this->actingAs($staff)->get('/kanban/'.$this->orgA->id);
-
-    $response->assertOk();
-    $response->assertDontSee('Should be hidden');
+    // SOL-0025: no lane at all, and the project's lane endpoint is empty.
+    expect(kanbanLanes($staff, $this->orgA->id))->toBeEmpty();
+    expect(collect(kanbanLane($staff, $this->orgA->id, $this->projectA->id)['columns'])->pluck('html')->implode(''))
+        ->not->toContain('Should be hidden');
 });
 
 test('task #73 (visibility consolidation): a staff user with access to a now-deactivated department no longer sees that task on the Kanban board', function () {
@@ -291,10 +301,10 @@ test('task #73 (visibility consolidation): a staff user with access to a now-dea
 
     $this->deptA->update(['is_active' => false]);
 
-    $response = $this->actingAs($staff)->get('/kanban/'.$this->orgA->id);
-
-    $response->assertOk();
-    $response->assertDontSee('Should be hidden');
+    // SOL-0025: no lane at all, and the project's lane endpoint is empty.
+    expect(kanbanLanes($staff, $this->orgA->id))->toBeEmpty();
+    expect(collect(kanbanLane($staff, $this->orgA->id, $this->projectA->id)['columns'])->pluck('html')->implode(''))
+        ->not->toContain('Should be hidden');
 });
 
 test('a client-role user gets a Kanban tab for their project\'s company, scoped to only their attached project\'s tasks', function () {
@@ -333,8 +343,10 @@ test('a client-role user gets a Kanban tab for their project\'s company, scoped 
 
     $response->assertOk();
     $response->assertSee('Org A');
-    $response->assertSee('My project task');
-    $response->assertDontSee('Other project task');
+    // SOL-0025: only their project's lane, and only its cards.
+    expect($response->viewData('lanes')->pluck('id')->all())->toBe([$this->projectA->id]);
+    $cards = kanbanBoardCardsHtml($client, $this->orgA->id);
+    expect($cards)->toContain('My project task')->not->toContain('Other project task');
 });
 
 test('a client with the Client role but no attached project sees a "no active project" Kanban message', function () {
@@ -388,19 +400,28 @@ test('revoking the view_kanban permission from Client removes their Kanban acces
     $response->assertSee('You have no access for this page.');
 });
 
-test('a column\'s status color applies only to its header, not the whole column, which stays white', function () {
+test('a status color applies only to its column header; the lane cells under it stay neutral grey', function () {
+    Task::create([
+        'organization_id' => $this->orgA->id,
+        'project_id' => $this->projectA->id,
+        'department_id' => $this->deptA->id,
+        'title' => 'A task',
+        'priority' => Priority::Medium,
+        'status' => 'pending',
+    ]);
+
     $response = $this->actingAs($this->owner)->get("/kanban/{$this->orgA->id}");
     $html = $response->getContent();
 
     $response->assertOk();
 
-    // The column wrapper itself carries bg-white and no inline
-    // background-color — only its header div does.
-    preg_match('/class="kanban-column [^"]*"[^>]*data-status="pending"/', $html, $columnMatch);
-    expect($columnMatch)->not->toBeEmpty();
-    expect($columnMatch[0])->toContain('bg-white')->not->toContain('style=');
+    // SOL-0025: a lane's cell carries a plain grey background and no
+    // inline background-color — only the column header does.
+    preg_match('/class="kanban-cell [^"]*"[^>]*data-status="pending"/', $html, $cellMatch);
+    expect($cellMatch)->not->toBeEmpty();
+    expect($cellMatch[0])->toContain('bg-gray-100')->not->toContain('style=');
 
-    preg_match('/<div class="flex items-center justify-between rounded-t-lg border-b border-gray-200 px-3 py-2"\s+style="background-color: ([^;"]+)/', $html, $headerMatch);
+    preg_match('/class="kanban-column-header [^"]*"\s+style="background-color: ([^;"]+)"\s+data-status="pending"/', $html, $headerMatch);
     expect($headerMatch)->not->toBeEmpty();
     expect($headerMatch[1])->toBe(TaskStatus::Pending->badgeBackground());
 });

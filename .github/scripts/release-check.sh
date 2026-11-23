@@ -29,7 +29,7 @@ main() {
         echo "Source: ${head} (a hotfix). The checklist check doesn't apply."
         return 0
     else
-        echo "::error::Only main (a release) or a Hotfix/<task>-<slug> branch can be merged into production, not '${head}'."
+        echo "::error::Only main (a release) or a Hotfix/<code>-<slug> branch (for example Hotfix/SOL-0030-fix-login) can be merged into production, not '${head}'."
         return 1
     fi
 

@@ -77,7 +77,14 @@ function colourReadsDuring(callable $request): array
 test('a page full of badges reads the colours from the store at most once per enum', function (string $routeName, int $enums) {
     // The Projects page shows only project priority badges since task #72
     // phase 9; its task rows (status badges too) are the drilldown.
-    $url = $routeName === 'projects.tasks' ? route($routeName, $this->project) : route($routeName, $this->org);
+    // SOL-0025: the Kanban page shows only the status headers (one enum);
+    // its cards, with their priority badges (the other), come from
+    // kanban.project when a lane opens.
+    $url = match ($routeName) {
+        'projects.tasks' => route($routeName, $this->project),
+        'kanban.project' => route($routeName, [$this->org, $this->project]),
+        default => route($routeName, $this->org),
+    };
 
     // Cold store (after a deploy or a colour save): each enum misses once
     // and loads its colour table once. Writing it back clears that key's
@@ -92,7 +99,8 @@ test('a page full of badges reads the colours from the store at most once per en
         ->and($warm['colors'])->toBe(0);
 })->with([
     'dashboard' => ['dashboard', 2],
-    'kanban' => ['kanban', 2],
+    'kanban' => ['kanban', 1],
+    'kanban.project' => ['kanban.project', 1],
     'tasks.index' => ['tasks.index', 2],
     'projects.index' => ['projects.index', 1],
     'projects.tasks' => ['projects.tasks', 2],
@@ -138,6 +146,7 @@ test('the memo does not carry over to the next request: it reads the store again
         $html = $this->actingAs($this->owner)->get(route('kanban', $this->org))->assertOk()->getContent();
     });
 
-    expect($reads['cache'])->toBe(2)
+    // One enum on the board page since SOL-0025: the status headers.
+    expect($reads['cache'])->toBe(1)
         ->and($html)->toContain('#0A0B0C');
 });

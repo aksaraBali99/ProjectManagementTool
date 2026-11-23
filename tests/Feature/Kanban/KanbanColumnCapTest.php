@@ -13,7 +13,10 @@ use App\Models\User;
 /**
  * task #72 phase 5: each Kanban column shows its first 30 cards, the
  * header shows the column's TOTAL, and Load more brings the rest 30 at a
- * time. Order within a column: priority (High, Medium, Low), then due date
+ * time. SOL-0025: per project lane - an opened lane (kanban.project) shows
+ * the first 30 of each status, and Load more continues that project
+ * (?project=). Without ?project=, Load more still continues the whole
+ * company's column, for board tabs opened before that change. Order within a column: priority (High, Medium, Low), then due date
  * soonest first with no date last, then task id — so batches never repeat
  * or skip a card.
  *
@@ -77,17 +80,11 @@ test('a column of 70 shows the first 30 in order, and Load more returns the rest
     $expected = expectedKanbanColumnOrder($this->org->id, TaskStatus::Pending);
     expect($expected)->toHaveCount(70);
 
-    $response = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk();
-    $pending = $response->viewData('columns')->firstWhere('status', TaskStatus::Pending);
+    $pending = kanbanLaneColumn($this->management, $this->org->id, $this->project->id, TaskStatus::Pending);
 
-    expect($pending['tasks']->pluck('task.id')->all())->toBe(array_slice($expected, 0, 30))
+    expect($pending['ids'])->toBe(array_slice($expected, 0, 30))
         ->and($pending['total'])->toBe(70)
         ->and($pending['remaining'])->toBe(40);
-
-    // The rendered board matches the view data, card for card.
-    expect(array_slice(kanbanCardIds($response->getContent()), 0, 30))->toBe(array_slice($expected, 0, 30));
-
-    $response->assertSee('40 more');
 
     expect(kanbanColumnIdsAcrossBatches($this->management, $this->org->id, TaskStatus::Pending))->toBe($expected);
 });
@@ -131,28 +128,28 @@ test('each column header shows its total, whether over 30, under 30 or empty', f
     }
     // in_progress and completed stay empty.
 
-    $response = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk();
-    $columns = $response->viewData('columns')->keyBy(fn ($column) => $column['status']->value);
+    // SOL-0025: the lane's cells.
+    $columns = kanbanLane($this->management, $this->org->id, $this->project->id)['columns'];
 
-    expect($columns['pending']['total'])->toBe(45)->and($columns['pending']['tasks'])->toHaveCount(30)
-        ->and($columns['in_review']['total'])->toBe(7)->and($columns['in_review']['tasks'])->toHaveCount(7)
-        ->and($columns['in_progress']['total'])->toBe(0)->and($columns['completed']['total'])->toBe(0);
+    expect($columns['pending']['total'])->toBe(45)->and(kanbanCardIds($columns['pending']['html']))->toHaveCount(30)
+        ->and($columns['pending']['remaining'])->toBe(15)
+        ->and($columns['in_review']['total'])->toBe(7)->and(kanbanCardIds($columns['in_review']['html']))->toHaveCount(7)
+        ->and($columns['in_review']['remaining'])->toBe(0)
+        ->and($columns['in_progress'])->toBe(['html' => '', 'total' => 0, 'remaining' => 0])
+        ->and($columns['completed'])->toBe(['html' => '', 'total' => 0, 'remaining' => 0]);
 
     // The header renders the total, not the 30 shown.
+    $response = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk();
     $html = $response->getContent();
     expect($html)->toMatch('/'.preg_quote(TaskStatus::Pending->label(), '/').'<\/span>\s*<span[^>]*>45<\/span>/')
         ->and($html)->toMatch('/'.preg_quote(TaskStatus::InReview->label(), '/').'<\/span>\s*<span[^>]*>7<\/span>/')
         ->and($html)->toMatch('/'.preg_quote(TaskStatus::Completed->label(), '/').'<\/span>\s*<span[^>]*>0<\/span>/');
 
-    // Load more only where there is more: one shown, for Pending. (Since
-    // task #72 phase 10 every column has the box, hidden when there is
-    // nothing to load, so the live update can show it.)
-    expect(visibleKanbanLoadMoreCount($html))->toBe(1);
-    $response->assertSee('15 more');
-    $response->assertSee(route('kanban.column', [$this->org, 'pending']), false);
-
-    // Empty columns look as they always did.
-    expect(substr_count($html, 'No tasks</p>'))->toBe(2);
+    // Every cell has a Load more box (hidden until the lane is opened
+    // and its script shows "N more" from the totals above), and it
+    // continues this project only.
+    expect(visibleKanbanLoadMoreCount(withoutScripts($html)))->toBe(0);
+    $response->assertSee(e(route('kanban.column', [$this->org, 'pending', 'project' => $this->project->id])), false);
 });
 
 test('a column that fits entirely shows no "more" line and no button', function () {
@@ -160,10 +157,12 @@ test('a column that fits entirely shows no "more" line and no button', function 
         makeKanbanCapTask($this, 'pending', 'medium', null);
     }
 
-    $html = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk()->getContent();
+    $pending = kanbanLaneColumn($this->management, $this->org->id, $this->project->id, TaskStatus::Pending);
+    expect($pending['ids'])->toHaveCount(30)->and($pending['remaining'])->toBe(0);
 
-    expect(kanbanCardIds($html))->toHaveCount(30)
-        ->and(visibleKanbanLoadMoreCount($html))->toBe(0)
+    $html = withoutScripts($this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk()->getContent());
+
+    expect(visibleKanbanLoadMoreCount($html))->toBe(0)
         ->and($html)->toMatch('/<div class="kanban-load-more [^>]*\shidden\b/')
         ->and($html)->not->toContain(' more</p>');
 });
@@ -183,10 +182,16 @@ test('cards from Load more link back to the board, not to the Load more endpoint
     expect($json['html'])->toContain(e($editHref))
         ->and($json['html'])->not->toContain('columns%2Fpending');
 
-    // And the board's own cards use the same return URL, even when the
-    // board was opened without a company in the URL.
-    $this->actingAs($this->management)->get('/kanban')->assertOk()
-        ->assertSee(e(route('tasks.edit', ['task' => Task::orderBy('id')->firstOrFail(), 'return_to' => route('kanban', $this->org), 'return_label' => 'Kanban'])), false);
+    // And Load more with ?project= (SOL-0025), and the lane's own cards.
+    $json = $this->actingAs($this->management)
+        ->getJson(route('kanban.column', [$this->org, 'pending', 'project' => $this->project->id, 'offset' => 30]))
+        ->assertOk()
+        ->json();
+    expect($json['html'])->toContain(e($editHref));
+
+    $lane = kanbanLaneColumn($this->management, $this->org->id, $this->project->id, TaskStatus::Pending)['html'];
+    expect($lane)->toContain(e(route('tasks.edit', ['task' => Task::orderBy('id')->firstOrFail(), 'return_to' => route('kanban', $this->org), 'return_label' => 'Kanban'])))
+        ->and($lane)->not->toContain('projects%2F');
 });
 
 test('the board script delegates its listeners, so appended cards work without re-binding', function () {

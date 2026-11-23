@@ -91,7 +91,8 @@ test('the Assignee select and the Status select render as siblings in the same r
         'status' => 'pending',
     ]);
 
-    $page = $this->actingAs($this->management)->get('/kanban/'.$this->org->id)->assertOk()->getContent();
+    // SOL-0025: the cards come from the lanes.
+    $page = kanbanBoardCardsHtml($this->management, $this->org->id);
     $card = findKanbanCard($page, $task->id);
     expect($card)->not->toBeNull();
 
@@ -143,7 +144,8 @@ test('the Assignee select has the same fixed width regardless of whether the ass
         'status' => 'pending',
     ]);
 
-    $page = $this->actingAs($this->management)->get('/kanban/'.$this->org->id)->assertOk()->getContent();
+    // SOL-0025: the cards come from the lanes.
+    $page = kanbanBoardCardsHtml($this->management, $this->org->id);
 
     $shortCard = findKanbanCard($page, $shortTask->id);
     $longCard = findKanbanCard($page, $longTask->id);
@@ -176,7 +178,8 @@ test('a long assignee name truncates with an ellipsis (the truncate utility) rat
         'status' => 'pending',
     ]);
 
-    $page = $this->actingAs($this->management)->get('/kanban/'.$this->org->id)->assertOk()->getContent();
+    // SOL-0025: the cards come from the lanes.
+    $page = kanbanBoardCardsHtml($this->management, $this->org->id);
     $card = findKanbanCard($page, $task->id);
     $xpath = new DOMXPath($card->ownerDocument);
     $select = $xpath->query('.//select[contains(@class, "kanban-assignee-select")]', $card)->item(0);
@@ -204,7 +207,8 @@ test('the avatar and the Status select both sit at the same right-hand boundary 
         'status' => 'pending',
     ]);
 
-    $page = $this->actingAs($this->management)->get('/kanban/'.$this->org->id)->assertOk()->getContent();
+    // SOL-0025: the cards come from the lanes.
+    $page = kanbanBoardCardsHtml($this->management, $this->org->id);
     $card = findKanbanCard($page, $task->id);
     $xpath = new DOMXPath($card->ownerDocument);
 
@@ -242,7 +246,8 @@ test('every Kanban card shows its task code before the title, and no longer the 
         'status' => 'pending',
     ]);
 
-    $page = $this->actingAs($this->management)->get('/kanban/'.$this->org->id)->assertOk()->getContent();
+    // SOL-0025: the cards come from the lanes.
+    $page = kanbanBoardCardsHtml($this->management, $this->org->id);
     $card = findKanbanCard($page, $task->id);
     expect($card)->not->toBeNull();
 
@@ -269,7 +274,8 @@ test('two different tasks show two different codes, each its own', function () {
         'status' => 'pending',
     ]);
 
-    $page = $this->actingAs($this->management)->get('/kanban/'.$this->org->id)->assertOk()->getContent();
+    // SOL-0025: the cards come from the lanes.
+    $page = kanbanBoardCardsHtml($this->management, $this->org->id);
 
     $cardOne = findKanbanCard($page, $taskOne->id);
     $cardTwo = findKanbanCard($page, $taskTwo->id);

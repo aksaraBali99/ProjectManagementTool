@@ -142,9 +142,11 @@ test('a changed task comes back as exactly the card the board renders; an unchan
 
     $card = $json['cards'][0];
     expect($card['status'])->toBe('pending')
+        ->and($card['project_id'])->toBe($task->project_id)
         ->and($card['sort_key'])->toBe($task->fresh()->kanbanSortKey());
 
-    $board = $this->actingAs($user)->get(route('kanban', $this->org))->assertOk()->getContent();
+    // SOL-0025: the same card the task's lane renders.
+    $board = kanbanLaneColumn($user, $this->org->id, $task->project_id, TaskStatus::Pending)['html'];
     expect(kanbanCardMarkup($card['html'], $task->id))->toBe(kanbanCardMarkup($board, $task->id))
         ->and($card['html'])->toContain('Renamed');
 })->with([
@@ -289,13 +291,18 @@ test('totals match the board headers and the "older" count after changes, in bot
     $this->travel(5)->seconds();
 
     $json = kanbanChanges($this, $this->management, $since, $query);
-    $columns = $this->actingAs($this->management)->get(route('kanban', [$this->org] + $query))->assertOk()->viewData('columns');
+    $board = $this->actingAs($this->management)->get(route('kanban', [$this->org] + $query))->assertOk();
 
-    foreach ($columns as $column) {
-        expect($json['totals'][$column['status']->value])->toBe($column['total'], $column['status']->value);
-    }
-    $completed = $columns->firstWhere('status', TaskStatus::Completed);
-    expect($json['older'])->toBe($completed['older']);
+    // SOL-0025: the column headers are the company totals; each lane's
+    // counts and older line match the poll's lanes, in the same order.
+    expect($json['totals'])->toBe($board->viewData('totals'));
+    expect($json['lanes'])->toBe($board->viewData('lanes')->map(fn (array $lane) => [
+        'id' => $lane['id'],
+        'name' => $lane['name'],
+        'closed' => $lane['closed'],
+        'totals' => $lane['totals'],
+        'older' => $lane['older'],
+    ])->all());
 
     if ($query === []) {
         expect($json['older'])->toBe(1)->and($json['totals']['completed'])->toBe(2);
@@ -399,14 +406,15 @@ test('sorting cards by data-sort-key gives exactly the board order, in every col
             ->and($tasks->map->kanbanSortKey()->unique())->toHaveCount($tasks->count());
     }
 
-    // And the board's own first batch is in that order too.
-    $board = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk()->getContent();
+    // And the lanes' own first batches are in that order too.
+    $board = kanbanBoardCardsHtml($this->management, $this->org->id);
     preg_match_all('/data-task-id="(\d+)" data-sort-key="([^"]+)"/', $board, $matches);
     expect($matches[2])->toHaveCount(count($matches[1]))->not->toBeEmpty();
 });
 
-test('every card carries its sort key, on the board and from Load more', function () {
-    $board = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk()->getContent();
+test('every card carries its sort key, in a lane and from Load more', function () {
+    $board = kanbanBoardCardsHtml($this->management, $this->org->id);
+    expect(kanbanCardIds($board))->not->toBeEmpty();
 
     foreach (kanbanCardIds($board) as $id) {
         expect($board)->toContain('data-task-id="'.$id.'" data-sort-key="'.Task::find($id)->kanbanSortKey().'"');

@@ -54,7 +54,7 @@ jobs:
         run: php artisan test
 
       - name: Check shell scripts (shellcheck)
-        run: shellcheck deploy.sh .github/scripts/*.sh tests/scripts/*.sh
+        run: shellcheck deploy.sh server/*.sh .github/scripts/*.sh tests/scripts/*.sh
 
       - name: Test release scripts
         run: bash tests/scripts/run.sh

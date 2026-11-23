@@ -3,7 +3,7 @@
 How Solava gets from a merged PR to DEV and to PROD (task #119).
 
 - **main** is the integration branch. Every push to main, once CI passes, deploys to **DEV** by itself.
-- **production** is what's live on **PROD**. It only changes through a pull request: a *release PR* from main, or a *hotfix* from a `Hotfix/<task>-<slug>` branch. Every push to production, once CI passes, waits for your approval, then deploys to PROD.
+- **production** is what's live on **PROD**. It only changes through a pull request: a *release PR* from main, or a *hotfix* from a `Hotfix/<code>-<slug>` branch (for example `Hotfix/SOL-0030-fix-login`). Every push to production, once CI passes, waits for your approval, then deploys to PROD.
 - Each successful PROD deploy is tagged **vYYYY.MM.N** (Bali time) and gets a GitHub Release listing its tasks and PRs.
 
 The moving parts:
@@ -16,10 +16,25 @@ The moving parts:
 | `deploy.sh` | Runs on the server. Pre-flight checks, then (PROD) maintenance mode on and a backup, then fast-forward, composer, migrate, caches, and maintenance mode off. |
 | `php artisan solva:db-backup` | The gzipped database dump every PROD deploy takes with the site down, just before the pull, in `storage/app/backups` (5 kept). Each file is read back and checked before older ones are deleted. |
 | `.github/PULL_REQUEST_TEMPLATE/release.md` | The release PR template. |
-| `.github/scripts/*.sh` | Version number, task list, release checks and release notes checks (the release notes ones need `jq`), tested by `tests/scripts/run.sh`. |
+| `.github/scripts/*.sh` | Version number, task list, release checks and release notes checks (the release notes ones need `jq`), deploy config check, the command sent to the server and the check of the gate's `ping` answer, tested by `tests/scripts/run.sh`. |
+| `server/solava-gate.sh` | The SSH deploy gate (section 8): the only thing the restricted deploy keys can run on the server. Copied there by hand; tested by `tests/scripts/run.sh`. |
 | `resources/release-notes.json` | The release notes, one entry per release, shown in Settings > Release notes (section 7). |
 
 Assets are unchanged: `public/build` is still built locally (`npm run build`) and committed, because Hostinger can't run npm.
+
+## Naming work after task codes
+
+Every task has a code like `SOL-0021`: the company's 3-letter code, a hyphen, and the task's number in that company (at least 4 digits). Branches, PRs and commits are named after it, and the release scripts read it from the commit subjects (section 7).
+
+- **Branch:** `<Type>/SOL-0021-short-slug`, or `<Type>/SOL-0021-p1-short-slug` for a phase. Types: `Enhancement`, `Bugfix`, `Chore`.
+- **Hotfix branch:** `Hotfix/SOL-0030-short-slug` (section 3).
+- **PR title:** `<Type>: plain description (SOL-0021)`, or `(SOL-0021, phase 1/3)` for a phase.
+- **Commit:** `<Type>: description (SOL-0021)`.
+- **Two tasks** in one commit or PR: `(SOL-0021, SOL-0030)`.
+
+The code must be a whole item inside the parentheses at the end of the subject; a code in the running text isn't counted. Anything in parentheses shaped like a code (3 letters, a hyphen, 4 or more digits) counts as one, so don't write something like `(ISO-8601)` on its own in a subject. A merged PR also counts through its branch name (`Merge pull request #N from <owner>/<Type>/SOL-0021-...`), in case its own commits left the code out.
+
+Releases up to v2026.11.1 used the old `task #N`; the release scripts still read it.
 
 ---
 
@@ -97,19 +112,21 @@ Then add these to **each** environment:
 | `APP_PATH` | variable | the app folder, absolute, e.g. `/home/u123456789/domains/<domain>/solava`. Must start with `/`, not `~` (run `pwd` in the app folder over SSH to get it) |
 | `APP_URL` | variable | the site's address, e.g. `https://dev.example.com` (no trailing slash) |
 | `EXPECTED_APP_ENV` | variable | that server's `APP_ENV` from its `.env`, exactly (check with `php artisan env` on the server) |
-| `SSH_KEY` | secret | the private key of a key pair made only for this (below) |
+| `SSH_KEY` | secret | the private key of a key pair made only for this (below). Not needed once `SSH_GATE` is `true` |
 | `SSH_KNOWN_HOSTS` | secret | the server's host key line (below) |
+| `SSH_GATE` | variable | `true` to deploy through the SSH deploy gate (section 8). Unset or anything else: the old way, with `SSH_KEY` |
+| `SSH_GATE_KEY` | secret | the private key of the gate-only key pair (section 8). Required when `SSH_GATE` is `true` |
 
 **SSH key**, one per environment, on your machine:
 ```
 ssh-keygen -t ed25519 -N "" -C "github-deploy-dev" -f solava-deploy-dev
 ```
-- Add `solava-deploy-dev.pub` in hPanel > SSH Access > SSH keys for that server's account.
+- The public key goes into `~/.ssh/authorized_keys` on the server **by hand**, as one line (section 8 shows how, with a backup first). Never through hPanel > SSH Access > SSH keys: that page rewrites the whole file from its own list, which doesn't include hand-added lines such as the gate keys.
 - Paste the whole content of `solava-deploy-dev` (the private key) into the `SSH_KEY` secret.
 - Then delete both files from your machine.
 - Repeat with `-prod` for production.
 
-If DEV and PROD are on the same Hostinger account, either key reaches both sites. `APP_PATH` and the `EXPECTED_APP_ENV` check still keep each deploy on its own site.
+If DEV and PROD are on the same Hostinger account, either `SSH_KEY` key reaches both sites, and every other site on that account: it's a full shell. `APP_PATH` and the `EXPECTED_APP_ENV` check keep each deploy on its own site, but don't limit what a leaked key can do. The SSH deploy gate (section 8) does: its keys can only deploy Solava, to one environment each.
 
 **Known hosts:**
 ```
@@ -163,7 +180,7 @@ From then on every release goes through the workflow alone.
 
 ## 2. A normal release
 
-1. **Add the release notes.** On a branch from main, add the release's entry at the top of `resources/release-notes.json`: its version (the next `vYYYY.MM.N`), planned date, summary, and one item per task (section 7). Open a PR into main titled `Chore: release notes for vYYYY.MM.N`, merge it, and check Settings > Release notes on DEV once it's deployed there.
+1. **Add the release notes.** On a branch from main, add the release's entry at the top of `resources/release-notes.json`: its version (the next `vYYYY.MM.N`), planned date, summary, and one item per task, naming each task by its code (section 7). Open a PR into main titled `Chore: release notes for vYYYY.MM.N`, merge it, and check Settings > Release notes on DEV once it's deployed there.
 2. **Open the release PR** with the template:
    https://github.com/aksaraBali99/ProjectManagementTool/compare/production...main?template=release.md
 3. **Title it** `Release vYYYY.MM.N`, with the version from the entry. It must start with `Release v`: the PR is then labelled `release` and left out of GitHub's generated list.
@@ -189,7 +206,7 @@ For a fix that can't wait for the next release:
 1. Branch from **production**, not main:
    ```
    git fetch origin
-   git checkout -b Hotfix/<task>-<slug> origin/production
+   git checkout -b Hotfix/<code>-<slug> origin/production
    ```
    The name must start with `Hotfix/` (capital H), or `release-check` fails.
 2. Make the fix, and add its entry at the top of `resources/release-notes.json` **on the hotfix branch** (the next version, e.g. `v2026.11.4`). Open a PR into **production**. `test` and `release-check` run; the checklist and drift checks don't apply to hotfixes, but the release notes check does.
@@ -277,6 +294,13 @@ On the PROD server, in the app folder:
 GitHub emails you, and the run is red. Open the run, then the failed job (*deploy-dev* or *deploy-prod*), then the *Deploy* step.
 
 - **"Missing config for this environment"**: a variable or secret isn't set (section 1d). Nothing ran on the server.
+- **"SSH_GATE is on, but SSH_GATE_KEY isn't set"**: add the gate key as the environment's `SSH_GATE_KEY` secret, or set `SSH_GATE` to `false` to deploy the old way (section 8). Nothing ran on the server.
+- **"SSH_GATE_KEY in the 'production' environment is the gate key for 'dev'"** (or the other way round; gate on): before every gate deploy the action sends `ping` and checks the gate answers for the job's own environment. This one answered for the other, so the wrong environment's key is in the secret. Nothing was deployed. Put the right key in `SSH_GATE_KEY` (section 8, step 8).
+- **"The server didn't answer 'ping' like the gate"** (gate on): the key in `SSH_GATE_KEY` has no `command="…gate.sh …"` on its line (or it's the old unrestricted key), so the server's own shell ran `ping`. Nothing was deployed. Fix the key's line (section 8, steps 5 and 6) or set `SSH_GATE` to `false`. **"The server's gate refused even 'ping'"** means the environment on the key's line, or a `gate.conf` next to `gate.sh`, is wrong; `~/apps/solava/logs/gate.log` says which.
+- **"The server's SSH deploy gate refused the command (exit 126)"** (gate on): the gate ran but didn't accept what it was sent. Nothing was deployed. On the server, read the last lines of `~/apps/solava/logs/gate.log`, and check that `~/apps/solava/bin/gate.sh` is the current `server/solava-gate.sh` (section 8, step 3). To deploy meanwhile, set `SSH_GATE` to `false` and re-run.
+- **"Exit 127: most likely this key's line in authorized_keys has no gate"** (gate on): as for the `ping` message above. If the log shows deploy.sh output before it, a command inside deploy.sh wasn't found instead: read that output.
+- **"The gate stopped before deploy.sh ran (exit 65)"** (gate on): the line above it says why: the commit isn't on the branch, the app folder is missing, `git fetch` failed, or the commit has no `deploy.sh`. Nothing on the site changed (no maintenance mode, no pull). Fix the cause, then re-run.
+- **"Another deploy is running on this server"** (gate on, exit 75): the gate's lock for that environment is held by a running deploy. Re-run once it's done. A lock left by a killed deploy is taken over by itself: at once if its process is gone, after 5 minutes if it has no pid, and after 2 hours in any case.
 - **"APP_PATH must be the full path on the server"**: `APP_PATH` starts with `~` or is a relative path. Set it to the full path, starting with `/` (run `pwd` in the app folder over SSH to get it). Nothing ran on the server.
 - **"DEPLOY STOPPED before changing anything"**: a pre-flight check failed. The message says which one: wrong branch, local changes, wrong `APP_ENV`, a checkout that can't fast-forward, or a commit that isn't on the branch (the branch was rewritten or moved backwards). The site is untouched and still up. Fix the cause, then re-run (section 4).
 - **"the database backup failed … Nothing was pulled or migrated, and the site is up"**: the backup ran with the site down and failed. The script brought the site back up, unchanged. Check the space left on the server (hPanel > Files) and the backup's error above it, then re-run. If it also says **"'php artisan up' failed too: THE SITE IS STILL DOWN"**, SSH in and run `php artisan up`. Nothing else needs undoing.
@@ -309,12 +333,18 @@ No tag and no Release are created unless the deploy and the smoke test both pass
       "summary": "One or two sentences on the release.",
       "tasks": [
         {
-          "number": 123,
-          "type": "Bugfix",
-          "title": "Make a deactivated task read-only",
+          "code": "SOL-0025",
+          "type": "Enhancement",
+          "title": "Kanban board grouped by project",
           "before": "What people saw or could do before.",
           "after": "What changes for them now.",
-          "pr": 152
+          "prs": [159, 160]
+        },
+        {
+          "code": "SOL-0023",
+          "type": "Chore",
+          "title": "SSH deploy gate",
+          "pr": 158
         }
       ]
     }
@@ -323,17 +353,122 @@ No tag and no Release are created unless the deploy and the smoke test both pass
 ```
 
 - `version` is `vYYYY.MM.N`: the version the release **will** get. Versions are unique and newest first.
+- `code` is the task's code, like `SOL-0021`. Entries up to v2026.11.1 use the old `number` instead; a task has one or the other, never both.
 - `date` is the planned release date, `YYYY-MM-DD`.
 - `type` is `Enhancement`, `Bugfix` or `Chore`. `before` and `after` are required for Enhancement and Bugfix, and optional for Chore.
-- `pr` is one PR number, or `prs` a list of them (not both). A task number appears once per entry.
+- `pr` is one PR number, or `prs` a list of them (not both). A task appears once per entry.
 - **Plain text only**, line breaks allowed: the page shows it exactly as written, never as HTML. The file is shipped to PROD, so plain change descriptions only: no secrets, no internal hostnames.
 
 **The checks:**
 - A test checks the real file on every PR (`ReleaseNotesPageTest`), so a bad edit fails CI.
-- **release-check** (on release and hotfix PRs into production) checks that the newest entry's version is the one this release will get and isn't already a tag, and that it lists every `task #N` from the release's commits. Extra tasks in the entry only warn. If the entry's planned date is in another month than its version, it warns: the deploy still tags the entry's version (a November version deployed in December stays `v2026.11.N`), so for a version of the later month, update the entry and open the release PR in that month.
+- **release-check** (on release and hotfix PRs into production) checks that the newest entry's version is the one this release will get and isn't already a tag, and that it lists every task code (and any old `task #N`) from the release's commits. Extra tasks in the entry only warn. If the entry's planned date is in another month than its version, it warns: the deploy still tags the entry's version (a November version deployed in December stays `v2026.11.N`), so for a version of the later month, update the entry and open the release PR in that month.
 - An entry for a release that never happened (its release PR closed) is reused for the next release: the version check shows it, since the next release gets the same version.
 
-**The GitHub Release** for each PROD deploy is tagged with the newest entry's version, if it's a `vYYYY.MM.N`, isn't already a tag and is higher than the previous tag. Otherwise it gets the next version as before, and the run warns why. The Release starts with the entry's notes (**Release notes**: summary and each task's title and "after"), then **Tasks in this release** (the `task #N` references from the commit subjects since the previous tag), then GitHub's generated list of merged PRs under **Changes**, without release and back-merge PRs.
+**The GitHub Release** for each PROD deploy is tagged with the newest entry's version, if it's a `vYYYY.MM.N`, isn't already a tag and is higher than the previous tag. Otherwise it gets the next version as before, and the run warns why. The Release starts with the entry's notes (**Release notes**: summary and each task's title and "after"), then **Tasks in this release** (the task codes and old `task #N` references in the commit subjects (and in merged PR branch names) since the previous tag), then GitHub's generated list of merged PRs under **Changes**, without release and back-merge PRs.
+
+**The version in the menu** (SOL-0028): the sidebar shows, under "Solava", the newest entry's version: `v2026.11.2` on PROD (the version release-check gives the release, which the deploy tags; if a deploy ever falls back to another tag, its run warns and the menu still shows the entry's version), and the environment with it elsewhere, `[DEV] v2026.11.2`. It is read when the config is cached, which `deploy.sh` does after every pull; after a manual pull on a server, rebuild the config cache (`php artisan config:clear && php artisan config:cache`) or the menu keeps the previous version.
+
+## 8. SSH deploy gate
+
+All the sites share one Hostinger SSH account. The deploy keys in `SSH_KEY` (lines `github-deploy-dev` and `github-deploy-prod` in `~/.ssh/authorized_keys`) have no restriction, so whoever holds one has a full shell on every site and database on the account. The gate (SOL-0023) replaces them with keys that can only deploy Solava:
+
+- Each gate key's line in `authorized_keys` forces one command, `~/apps/solava/bin/gate.sh <env>`, with `restrict` (no shell, no port forwarding, no scp/sftp).
+- The gate accepts exactly `ping`, `deploy <40-hex sha>` or `deploy <40-hex sha> --dry-run`, and refuses anything else (exit 126).
+- Where it deploys, the branch, `APP_ENV` and PROD's `--maintenance --backup` are fixed in the gate, never sent by GitHub. A commit that isn't on the branch is stopped (exit 65) before anything from it runs.
+- Since GitHub no longer sends the environment, the action first sends `ping` and checks the gate answers `ok solava-gate <the job's environment>`. A key in the wrong environment's secret fails there, before any deploy.
+- One deploy per environment at a time (exit 75 while one runs). A lock left by a killed deploy is taken over by itself.
+- Every attempt is one line in `~/apps/solava/logs/gate.log`: time, environment, client IP, command, verdict and exit code.
+
+With `SSH_GATE` unset (as when this ships), deploys run exactly as before. Each environment switches on its own, with its own variable.
+
+**These steps are done by you, by hand, over your own SSH login.** Nothing here touches AdminTool: not `~/apps/admintool`, not its lines in `authorized_keys`. Never use hPanel's SSH keys page to add or delete keys: it rewrites `authorized_keys` from its own list, which doesn't have the hand-added gate lines, and may bring back the old unrestricted ones.
+
+### Switching DEV on
+
+1. **Back up `authorized_keys` and look at it, without changing anything:**
+   ```
+   cd ~/.ssh
+   cp -p authorized_keys "authorized_keys.bak-$(date +%Y%m%d-%H%M%S)"   # a dated copy, permissions kept
+   ssh-keygen -lf authorized_keys          # one fingerprint per line; no key material
+   tail -c1 authorized_keys | od -c        # must end in \n, or an append joins two lines
+   ```
+   If the last command doesn't show `\n`, add one first: `echo >> authorized_keys`.
+
+2. **Check `APP_ENV` on each server**, so the gate's built-in values match (DEV `dev`, PROD `production`):
+   ```
+   cd ~/domains/solavadev.aksaravirtualagency.com/solava && php artisan env   # [... environment is [dev].]
+   cd ~/domains/solava.aksaravirtualagency.com/solava && php artisan env      # [... environment is [production].]
+   ```
+   If either differs, stop: a gate deploy there would stop at deploy.sh's pre-flight check.
+
+3. **Install the gate**, from the DEV checkout (never inside `~/apps/admintool`):
+   ```
+   mkdir -p ~/apps/solava/{bin,logs,run} && chmod 700 ~/apps/solava ~/apps/solava/*   # private folders
+   cd ~/domains/solavadev.aksaravirtualagency.com/solava
+   git fetch --quiet origin main
+   git show origin/main:server/solava-gate.sh > ~/apps/solava/bin/gate.sh   # the reviewed copy from main
+   chmod 700 ~/apps/solava/bin/gate.sh
+   ```
+   Don't create a `gate.conf` on the server: the gate's built-in settings are the real ones (`gate.conf` exists for the tests). To update the gate later, repeat the `git show` line.
+
+4. **Make the new key, on your PC:**
+   ```
+   ssh-keygen -t ed25519 -N "" -C "solava-gate-dev" -f solava-gate-dev
+   ```
+
+5. **Add ONE line to `authorized_keys`, by hand** (in nano, or with `printf`), in single quotes, all on one line:
+   ```
+   cd ~/.ssh
+   printf '%s\n' 'command="/home/u738067934/apps/solava/bin/gate.sh dev",restrict <contents of solava-gate-dev.pub>' >> authorized_keys
+   ```
+
+6. **Check that the old lines are byte for byte unchanged, and only one line was added:**
+   ```
+   b=$(ls -t authorized_keys.bak-* | head -1)                                 # the newest backup
+   head -n "$(wc -l < "$b")" authorized_keys | cmp - "$b" && echo "old lines unchanged"
+   wc -l "$b" authorized_keys               # exactly one more
+   ssh-keygen -lf authorized_keys           # old fingerprints identical, one new
+   chmod 600 authorized_keys
+   ```
+
+7. **Test from your PC** (the expected result in brackets):
+   ```
+   K="-i solava-gate-dev -o IdentitiesOnly=yes -p 65002 u738067934@145.79.14.215"
+   ssh $K ping                               # [ok solava-gate dev]
+   ssh $K                                    # [refused, no shell]
+   ssh $K bash                               # [refused]
+   ssh $K 'ls ~'                             # [refused]
+   ssh $K "deploy $(git rev-parse origin/main); id"   # [refused]
+   sftp -i solava-gate-dev -P 65002 u738067934@145.79.14.215   # [fails]
+   ssh $K -N -L 3307:127.0.0.1:3306          # [port forwarding refused]
+   ssh $K "deploy $(git rev-parse origin/main) --dry-run"     # [deploy.sh dry-run output]
+   ```
+   Then, on the server, `cat ~/apps/solava/logs/gate.log` should show each attempt.
+
+8. **GitHub, environment `dev`:** add the secret `SSH_GATE_KEY` = the whole content of `solava-gate-dev` (the private key), and the variable `SSH_GATE` = `true`. Delete both `solava-gate-dev` files from your PC. Then Actions > Deploy > Run workflow (from main, dev, dry run); its log says "The server's gate answers for dev", and its summary "SSH gate | on". Then a real DEV deploy (the next merge, or a re-deploy, section 4).
+
+### Switching PROD on
+
+9. After at least 3 clean DEV deploys through the gate: repeat steps 1 and 4 to 8 for production, with `-C "solava-gate-prod"` / `-f solava-gate-prod` and `gate.sh production` on the line. From your PC, test **only** `ping` (`[ok solava-gate production]`) and `--dry-run` (with `$(git rev-parse origin/production)`): a real `deploy` from your PC would deploy PROD. Then set `SSH_GATE_KEY` and `SSH_GATE` in the `production` environment, and the next release deploys through the gate.
+
+### Removing the old keys
+
+10. Only after one PROD release through the gate and two more weeks with no problems:
+    - Back up `authorized_keys` again (step 1).
+    - Remove the `github-deploy-dev` and `github-deploy-prod` lines **by hand**, matching each by its comment and its fingerprint from `ssh-keygen -lf`, never by line number.
+    - Check that every other line (AdminTool's and the two gate lines) is byte for byte unchanged: `ssh-keygen -lf authorized_keys` shows the same fingerprints minus those two, and `diff` against the backup shows only those two lines removed.
+    - Delete the `SSH_KEY` secret in both environments.
+    - A follow-up PR removes the old path (`ssh-gate` false) from the deploy action.
+
+### Rollback
+
+- **The gate or a gate key misbehaves:** set `SSH_GATE` to `false` in that environment and re-run. The old key and its line stay until step 10, so the old way still works.
+- **`authorized_keys` is broken** (a joined or cut line, logins failing): copy the newest backup back, through your own SSH login or hPanel's browser terminal / File Manager:
+  ```
+  cd ~/.ssh && cp -p "$(ls -t authorized_keys.bak-* | head -1)" authorized_keys
+  ```
+- **A deploy itself breaks the site:** unchanged, sections 5 and 6, through your own login.
+- **Never** fix keys on hPanel's SSH keys page (see above).
 
 ## Edge cases, for reference
 

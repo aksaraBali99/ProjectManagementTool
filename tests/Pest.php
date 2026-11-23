@@ -16,6 +16,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
@@ -394,7 +395,8 @@ function withoutScripts(string $html): string
 
 /**
  * task #72 phase 10: Load more boxes are always rendered, hidden when the
- * column has nothing left to load. How many are shown?
+ * column (SOL-0025: lane cell) has nothing left to load. How many are
+ * shown?
  */
 function visibleKanbanLoadMoreCount(string $html): int
 {
@@ -404,25 +406,91 @@ function visibleKanbanLoadMoreCount(string $html): int
 }
 
 /**
- * task #72 phase 5: every card one Kanban column shows for $user — the
- * board's first batch, then Load more from offset 30, 60, ... until
- * `remaining` reaches 0 — in order. Asserts each Load more's `remaining`
- * counts down exactly, so a stuck or overshooting batch fails here.
+ * SOL-0025: the board's lanes for $user (KanbanController's laneSummaries():
+ * id, name, closed, totals, total, older), in the board's order.
  *
+ * @param  array<string, mixed>  $query
+ * @return Collection<int, array<string, mixed>>
+ */
+function kanbanLanes(User $user, int $organizationId, array $query = []): Collection
+{
+    return test()->actingAs($user)->get(route('kanban', [$organizationId] + $query))->assertOk()->viewData('lanes');
+}
+
+/**
+ * SOL-0025: one lane as the board fetches it when the lane is first
+ * opened (kanban.project): columns (html, total, remaining per status)
+ * and older.
+ *
+ * @param  array<string, mixed>  $query
+ */
+function kanbanLane(User $user, int $organizationId, int $projectId, array $query = []): array
+{
+    return test()->actingAs($user)
+        ->getJson(route('kanban.project', [$organizationId, $projectId] + $query))
+        ->assertOk()
+        ->json();
+}
+
+/**
+ * SOL-0025: one status of one lane: its first batch's card ids in order,
+ * html, total, remaining, and the lane's older count.
+ *
+ * @param  array<string, mixed>  $query
+ * @return array{ids: list<int>, html: string, total: int, remaining: int, older: int}
+ */
+function kanbanLaneColumn(User $user, int $organizationId, int $projectId, TaskStatus $status, array $query = []): array
+{
+    $lane = kanbanLane($user, $organizationId, $projectId, $query);
+    $column = $lane['columns'][$status->value];
+
+    return $column + ['ids' => kanbanCardIds($column['html']), 'older' => $lane['older']];
+}
+
+/**
+ * SOL-0025: every card the board shows $user once every lane is opened,
+ * as one HTML string (lane by lane, each lane's statuses in column
+ * order). The board page itself renders no cards.
+ *
+ * @param  array<string, mixed>  $query
+ */
+function kanbanBoardCardsHtml(User $user, int $organizationId, array $query = []): string
+{
+    return kanbanLanes($user, $organizationId, $query)
+        ->map(fn (array $lane) => collect(kanbanLane($user, $organizationId, $lane['id'], $query)['columns'])->pluck('html')->implode(''))
+        ->implode('');
+}
+
+/**
+ * task #72 phase 5: every card one Kanban column shows for $user — the
+ * first batch, then Load more from offset 30, 60, ... until `remaining`
+ * reaches 0 — in order. Asserts each Load more's `remaining` counts down
+ * exactly, so a stuck or overshooting batch fails here.
+ *
+ * SOL-0025: one project's lane (by default the board's only lane, which
+ * must be the only one): the first batch from kanban.project, then Load
+ * more with ?project=, as the board sends it.
+ *
+ * @param  array<string, mixed>  $query
  * @return list<int>
  */
-function kanbanColumnIdsAcrossBatches(User $user, int $organizationId, TaskStatus $status): array
+function kanbanColumnIdsAcrossBatches(User $user, int $organizationId, TaskStatus $status, ?int $projectId = null, array $query = []): array
 {
-    $column = test()->actingAs($user)->get(route('kanban', $organizationId))->assertOk()
-        ->viewData('columns')->firstWhere('status', $status);
+    if ($projectId === null) {
+        $lanes = kanbanLanes($user, $organizationId, $query);
+        expect($lanes)->toHaveCount(1);
+        $projectId = $lanes->first()['id'];
+    }
 
-    $ids = $column['tasks']->pluck('task.id')->all();
+    $column = kanbanLaneColumn($user, $organizationId, $projectId, $status, $query);
+
+    $ids = $column['ids'];
     $total = $column['total'];
     $remaining = $column['remaining'];
 
     while ($remaining > 0) {
         $json = test()->actingAs($user)
-            ->getJson(route('kanban.column', [$organizationId, $status->value]).'?offset='.count($ids))
+            ->getJson(route('kanban.column', [$organizationId, $status->value, 'project' => $projectId, 'offset' => count($ids)] + $query))
             ->assertOk()
             ->json();
 
