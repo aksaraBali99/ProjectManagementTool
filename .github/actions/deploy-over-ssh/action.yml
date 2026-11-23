@@ -86,6 +86,7 @@ runs:
       id: deploy
       shell: bash
       env:
+        ENVIRONMENT: ${{ inputs.environment }}
         SSH_GATE: ${{ inputs.ssh-gate }}
         BRANCH: ${{ inputs.branch }}
         SHA: ${{ inputs.sha }}
@@ -96,27 +97,51 @@ runs:
         # the commit's own deploy.sh. Tested by tests/scripts/run.sh.
         remote=$(bash "$GITHUB_WORKSPACE/.github/scripts/deploy-remote-command.sh")
 
+        ssh_to_server=(ssh -n -T -p "$SSH_PORT" -i "$RUNNER_TEMP/deploy_key"
+          -o IdentitiesOnly=yes -o BatchMode=yes
+          -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          -o ConnectTimeout=30 -o ServerAliveInterval=30
+          "$SSH_USER@$SSH_HOST")
+
+        # The gate decides where to deploy from the key's line, so first
+        # make sure this key's gate is this job's environment (replaces
+        # the --expect-env check the gate path doesn't send).
+        if [[ "$SSH_GATE" == "true" ]]; then
+          set +e
+          reply=$("${ssh_to_server[@]}" ping 2>/dev/null)
+          ping_code=$?
+          set -e
+          bash "$GITHUB_WORKSPACE/.github/scripts/check-gate-ping.sh" "$ENVIRONMENT" "$ping_code" "$reply"
+        fi
+
         set +e
-        ssh -n -T -p "$SSH_PORT" -i "$RUNNER_TEMP/deploy_key" \
-          -o IdentitiesOnly=yes -o BatchMode=yes \
-          -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-          -o ConnectTimeout=30 -o ServerAliveInterval=30 \
-          "$SSH_USER@$SSH_HOST" "$remote"
+        "${ssh_to_server[@]}" "$remote"
         code=$?
         set -e
+
+        # Exit codes only the gate gives (server/solava-gate.sh). deploy.sh
+        # itself exits 0, 1, 2 or 78, but a command inside it could in
+        # theory exit 126 or 127, so those messages say so.
+        if [[ "$SSH_GATE" == "true" ]]; then
+          case "$code" in
+            126)
+              echo "::error::The server's SSH deploy gate refused the command (exit 126). Nothing was deployed. Check ~/apps/solava/logs/gate.log on the server, and that ~/apps/solava/bin/gate.sh is the current server/solava-gate.sh (docs/release-process.md, section 8). If the log above shows deploy.sh output, a command inside deploy.sh couldn't run instead."
+              exit "$code" ;;
+            127)
+              echo "::error::Exit 127: most likely this key's line in authorized_keys has no gate, so the server's shell tried to run 'deploy' as a command. Fix the key line, or set SSH_GATE to false (docs/release-process.md, section 8). If the log above shows deploy.sh output, a command inside deploy.sh wasn't found instead."
+              exit "$code" ;;
+            75)
+              echo "::error::Another deploy is running on this server (the gate's lock is held). Nothing was deployed. Re-run once it's done."
+              exit "$code" ;;
+            65)
+              echo "::error::The gate stopped before deploy.sh ran (exit 65); the line above says why. Nothing on the site changed: no maintenance mode, no pull, no migration."
+              exit "$code" ;;
+          esac
+        fi
 
         if ((code == 78)); then
           echo "::notice::Skipped: a newer commit is on $BRANCH, and its own run deploys it."
           echo "result=skipped" >> "$GITHUB_OUTPUT"
-        elif ((code == 126)) && [[ "$SSH_GATE" == "true" ]]; then
-          echo "::error::The server's SSH deploy gate refused the command (exit 126). Nothing was deployed. Check that gate.sh is installed in ~/apps/solava/bin, that this key's line in authorized_keys runs it for the right environment, and gate.log next to it (docs/release-process.md, SSH deploy gate)."
-          exit "$code"
-        elif ((code == 127)) && [[ "$SSH_GATE" == "true" ]]; then
-          echo "::error::The server tried to run 'deploy' as a shell command (exit 127): this key's line in authorized_keys has no gate. SSH_GATE is on for a key without the gate. Fix the key line, or set SSH_GATE to false (docs/release-process.md, SSH deploy gate)."
-          exit "$code"
-        elif ((code == 75)) && [[ "$SSH_GATE" == "true" ]]; then
-          echo "::error::Another deploy is running on this server (the gate's lock is held). Nothing was deployed. Re-run once it's done."
-          exit "$code"
         elif ((code != 0)); then
           echo "::error::deploy.sh failed (exit $code). The log above says which step and how to recover; if maintenance mode was on, the site is still down."
           exit "$code"

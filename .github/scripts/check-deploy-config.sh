@@ -22,7 +22,7 @@ main() {
     for name in SSH_HOST SSH_PORT SSH_USER APP_PATH APP_URL EXPECTED_APP_ENV "$key" SSH_KNOWN_HOSTS; do
         if [[ -z "${!name:-}" ]]; then missing+=("$name"); fi
     done
-    if [[ "$key" == "SSH_GATE_KEY" && -z "${SSH_GATE_KEY:-}" ]]; then
+    if [[ " ${missing[*]} " == *" SSH_GATE_KEY "* ]]; then
         echo "::error::SSH_GATE is on, but SSH_GATE_KEY isn't set. Add the gate key as this environment's SSH_GATE_KEY secret, or set SSH_GATE to false to deploy with SSH_KEY (docs/release-process.md, SSH deploy gate)."
     fi
     if ((${#missing[@]} > 0)); then

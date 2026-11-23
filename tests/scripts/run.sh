@@ -43,6 +43,9 @@ expect_exit() {
     expect_equal "$name" "$expected" "$code"
 }
 
+# has <text> <part>: yes if the text contains the part.
+has() { [[ "$1" == *"$2"* ]] && echo yes || echo no; }
+
 # --- next-version.sh ----------------------------------------------------
 
 echo "next-version.sh"
@@ -350,6 +353,34 @@ expect_equal "gate on: just deploy <sha>, deploy-args ignored" \
 expect_equal "gate on, dry run: deploy <sha> --dry-run" \
     "deploy $fixed_sha --dry-run" "$(remote_cmd true main dev /home/u1/x "" true)"
 
+# --- check-gate-ping.sh -------------------------------------------------
+
+echo "check-gate-ping.sh"
+# ping_check <environment> <code> <reply>: the exit code in $ping_code, the output in $ping_output.
+ping_check() {
+    ping_code=0
+    ping_output=$(bash "$scripts/check-gate-ping.sh" "$@" 2>&1) || ping_code=$?
+}
+ping_check production 0 "ok solava-gate production"
+expect_equal "the gate answering for this environment passes" "0" "$ping_code"
+ping_check production 0 "ok solava-gate dev"
+expect_equal "the DEV gate key in the production environment fails" "1" "$ping_code"
+expect_equal "naming both" "yes" "$(has "$ping_output" "in the 'production' environment is the gate key for 'dev', not 'production'")"
+ping_check dev 0 "ok solava-gate production"
+expect_equal "the PROD gate key in the dev environment fails" "1" "$ping_code"
+ping_check dev 2 "Usage: ping [-aAbBdDfhLnOqrRUvV64] destination"
+expect_equal "a key with no gate (the shell ran ping) fails" "1" "$ping_code"
+expect_equal "saying the key line probably has no gate" "yes" "$(has "$ping_output" "probably has no gate")"
+ping_check dev 0 "ok solava-gate dev extra"
+expect_equal "anything but the exact answer fails" "1" "$ping_code"
+ping_check dev 126 ""
+expect_equal "the gate refusing ping fails" "1" "$ping_code"
+expect_equal "pointing at gate.log" "yes" "$(has "$ping_output" "gate.log")"
+ping_check dev 255 ""
+expect_equal "an SSH failure says so" "yes" "$(has "$ping_output" "SSH itself failed")"
+ping_check dev 2 $'line one\nline two'
+expect_equal "the reply is shown on one line" "yes" "$(has "$ping_output" "reply: 'line one line two'")"
+
 # --- deploy.sh ----------------------------------------------------------
 #
 # A throwaway origin and "server" checkout, with stub php and composer
@@ -525,7 +556,6 @@ run_gate() {
         PATH="$sandbox/bin:$PATH" bash "$gate" "$1" 2>&1) || gate_code=$?
 }
 deploy_ran() { [[ -e "$GATE_TEST_ARGS" ]] && echo yes || echo no; }
-has() { [[ "$1" == *"$2"* ]] && echo yes || echo no; }
 last_log() { tail -n 1 "$gate_log"; }
 
 run_gate dev ping
@@ -558,9 +588,21 @@ refused_case "a deploy for an unknown environment" staging "deploy $dev2"
 expect_equal "refused says so on stderr" "yes" "$(has "$(run_gate dev bash; echo "$gate_output")" "refused")"
 
 run_gate dev "deploy $off_branch"
-expect_equal "a commit not on the branch is refused (1)" "1" "$gate_code"
-expect_equal "and says so" "yes" "$(has "$gate_output" "isn't on origin/main")"
+expect_equal "a commit not on the branch stops before deploy.sh (65)" "65" "$gate_code"
+expect_equal "and says so" "yes" "$(has "$gate_output" "isn't on origin/main. Nothing on the site changed")"
 expect_equal "and its deploy.sh never ran" "no" "$([[ -e "$GATE_TEST_MARKER" ]] && echo yes || echo no)"
+expect_equal "the log says stopped, with the code" "yes" "$(has "$(last_log)" "verdict=stopped exit=65")"
+
+# A second sandbox gate whose gate.conf points at a folder that isn't there.
+mkdir -p "$g/badhome/bin"
+cp "$gate" "$g/badhome/bin/gate.sh"
+printf 'dev_app_path=%q\n' "$g/no-such-folder" >"$g/badhome/bin/gate.conf"
+chmod 600 "$g/badhome/bin/gate.conf"
+bad_code=0
+bad_output=$(SSH_ORIGINAL_COMMAND="deploy $dev2" bash "$g/badhome/bin/gate.sh" dev 2>&1) || bad_code=$?
+expect_equal "a missing app folder stops before deploy.sh (65), not a raw error" "65" "$bad_code"
+expect_equal "and names the folder" "yes" "$(has "$bad_output" "the app folder $g/no-such-folder doesn't exist")"
+expect_equal "and releases the lock" "no" "$([[ -e "$g/badhome/run/dev.lock" ]] && echo yes || echo no)"
 
 run_gate dev "deploy $dev2"
 expect_equal "dev: a deploy succeeds" "0" "$gate_code"
@@ -620,6 +662,26 @@ expect_equal "a lock with no pid file yet: busy (75)" "75" "$gate_code"
 touch -d '10 minutes ago' "$dev_lock"
 run_gate dev "deploy $dev2"
 expect_equal "a lock with no pid file, over 5 minutes old, is taken over" "0" "$gate_code"
+
+mkdir -p "$dev_lock"
+echo "$$" >"$dev_lock/pid"
+touch -d '3 hours ago' "$dev_lock"
+run_gate dev "deploy $dev2"
+expect_equal "a lock over 2 hours old is taken over even if its pid runs (pid reuse)" "0" "$gate_code"
+
+# Another gate in the middle of taking over (its guard is there): this one
+# leaves the stale lock alone instead of removing it a second time.
+dev_guard="$g/home/run/dev.takeover"
+mkdir -p "$dev_lock" "$dev_guard"
+echo "$dead_pid" >"$dev_lock/pid"
+run_gate dev "deploy $dev2"
+expect_equal "a takeover already in progress: busy (75)" "75" "$gate_code"
+expect_equal "and the stale lock is left to that takeover" "$dead_pid" "$(cat "$dev_lock/pid" 2>/dev/null)"
+expect_equal "and its guard too" "yes" "$([[ -d "$dev_guard" ]] && echo yes || echo no)"
+touch -d '2 minutes ago' "$dev_guard"
+run_gate dev "deploy $dev2"
+expect_equal "a guard over a minute old (a killed takeover) is cleared, and the lock taken over" "0" "$gate_code"
+expect_equal "with no guard or lock left behind" "no" "$([[ -e "$dev_guard" || -e "$dev_lock" ]] && echo yes || echo no)"
 
 lines_before=$(wc -l <"$gate_log")
 secret_value="s3cret-$RANDOM-must-not-be-logged"

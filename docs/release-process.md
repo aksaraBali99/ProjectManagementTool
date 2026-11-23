@@ -16,7 +16,7 @@ The moving parts:
 | `deploy.sh` | Runs on the server. Pre-flight checks, then (PROD) maintenance mode on and a backup, then fast-forward, composer, migrate, caches, and maintenance mode off. |
 | `php artisan solva:db-backup` | The gzipped database dump every PROD deploy takes with the site down, just before the pull, in `storage/app/backups` (5 kept). Each file is read back and checked before older ones are deleted. |
 | `.github/PULL_REQUEST_TEMPLATE/release.md` | The release PR template. |
-| `.github/scripts/*.sh` | Version number, task list, release checks and release notes checks (the release notes ones need `jq`), deploy config check and the command sent to the server, tested by `tests/scripts/run.sh`. |
+| `.github/scripts/*.sh` | Version number, task list, release checks and release notes checks (the release notes ones need `jq`), deploy config check, the command sent to the server and the check of the gate's `ping` answer, tested by `tests/scripts/run.sh`. |
 | `server/solava-gate.sh` | The SSH deploy gate (section 8): the only thing the restricted deploy keys can run on the server. Copied there by hand; tested by `tests/scripts/run.sh`. |
 | `resources/release-notes.json` | The release notes, one entry per release, shown in Settings > Release notes (section 7). |
 
@@ -281,9 +281,12 @@ GitHub emails you, and the run is red. Open the run, then the failed job (*deplo
 
 - **"Missing config for this environment"**: a variable or secret isn't set (section 1d). Nothing ran on the server.
 - **"SSH_GATE is on, but SSH_GATE_KEY isn't set"**: add the gate key as the environment's `SSH_GATE_KEY` secret, or set `SSH_GATE` to `false` to deploy the old way (section 8). Nothing ran on the server.
-- **"The server's SSH deploy gate refused the command (exit 126)"** (gate on): the gate ran but didn't accept what it was sent, or `gate.conf` next to it is unsafe. Nothing was deployed. On the server, read the last lines of `~/apps/solava/logs/gate.log`, check that `~/apps/solava/bin/gate.sh` is the current `server/solava-gate.sh` and that the key's line says `gate.sh dev` or `gate.sh production` for the right environment (section 8). To deploy meanwhile, set `SSH_GATE` to `false` and re-run.
-- **"The server tried to run 'deploy' as a shell command (exit 127)"** (gate on): the key in `SSH_GATE_KEY` has no `command="…gate.sh …"` on its line, so the server's shell got `deploy <sha>` and didn't know it. Fix the key's line (section 8, steps 4 and 5) or set `SSH_GATE` to `false`.
-- **"Another deploy is running on this server"** (gate on, exit 75): the gate's lock for that environment is held by a running deploy. Re-run once it's done. A lock left by a killed deploy is taken over by itself.
+- **"SSH_GATE_KEY in the 'production' environment is the gate key for 'dev'"** (or the other way round; gate on): before every gate deploy the action sends `ping` and checks the gate answers for the job's own environment. This one answered for the other, so the wrong environment's key is in the secret. Nothing was deployed. Put the right key in `SSH_GATE_KEY` (section 8, step 8).
+- **"The server didn't answer 'ping' like the gate"** (gate on): the key in `SSH_GATE_KEY` has no `command="…gate.sh …"` on its line (or it's the old unrestricted key), so the server's own shell ran `ping`. Nothing was deployed. Fix the key's line (section 8, steps 5 and 6) or set `SSH_GATE` to `false`. **"The server's gate refused even 'ping'"** means the environment on the key's line, or a `gate.conf` next to `gate.sh`, is wrong; `~/apps/solava/logs/gate.log` says which.
+- **"The server's SSH deploy gate refused the command (exit 126)"** (gate on): the gate ran but didn't accept what it was sent. Nothing was deployed. On the server, read the last lines of `~/apps/solava/logs/gate.log`, and check that `~/apps/solava/bin/gate.sh` is the current `server/solava-gate.sh` (section 8, step 3). To deploy meanwhile, set `SSH_GATE` to `false` and re-run.
+- **"Exit 127: most likely this key's line in authorized_keys has no gate"** (gate on): as for the `ping` message above. If the log shows deploy.sh output before it, a command inside deploy.sh wasn't found instead: read that output.
+- **"The gate stopped before deploy.sh ran (exit 65)"** (gate on): the line above it says why: the commit isn't on the branch, the app folder is missing, `git fetch` failed, or the commit has no `deploy.sh`. Nothing on the site changed (no maintenance mode, no pull). Fix the cause, then re-run.
+- **"Another deploy is running on this server"** (gate on, exit 75): the gate's lock for that environment is held by a running deploy. Re-run once it's done. A lock left by a killed deploy is taken over by itself: at once if its process is gone, after 5 minutes if it has no pid, and after 2 hours in any case.
 - **"APP_PATH must be the full path on the server"**: `APP_PATH` starts with `~` or is a relative path. Set it to the full path, starting with `/` (run `pwd` in the app folder over SSH to get it). Nothing ran on the server.
 - **"DEPLOY STOPPED before changing anything"**: a pre-flight check failed. The message says which one: wrong branch, local changes, wrong `APP_ENV`, a checkout that can't fast-forward, or a commit that isn't on the branch (the branch was rewritten or moved backwards). The site is untouched and still up. Fix the cause, then re-run (section 4).
 - **"the database backup failed … Nothing was pulled or migrated, and the site is up"**: the backup ran with the site down and failed. The script brought the site back up, unchanged. Check the space left on the server (hPanel > Files) and the backup's error above it, then re-run. If it also says **"'php artisan up' failed too: THE SITE IS STILL DOWN"**, SSH in and run `php artisan up`. Nothing else needs undoing.
@@ -348,8 +351,9 @@ All the sites share one Hostinger SSH account. The deploy keys in `SSH_KEY` (lin
 
 - Each gate key's line in `authorized_keys` forces one command, `~/apps/solava/bin/gate.sh <env>`, with `restrict` (no shell, no port forwarding, no scp/sftp).
 - The gate accepts exactly `ping`, `deploy <40-hex sha>` or `deploy <40-hex sha> --dry-run`, and refuses anything else (exit 126).
-- Where it deploys, the branch, `APP_ENV` and PROD's `--maintenance --backup` are fixed in the gate, never sent by GitHub. A commit that isn't on the branch is refused before anything from it runs.
-- One deploy per environment at a time (exit 75 while one runs).
+- Where it deploys, the branch, `APP_ENV` and PROD's `--maintenance --backup` are fixed in the gate, never sent by GitHub. A commit that isn't on the branch is stopped (exit 65) before anything from it runs.
+- Since GitHub no longer sends the environment, the action first sends `ping` and checks the gate answers `ok solava-gate <the job's environment>`. A key in the wrong environment's secret fails there, before any deploy.
+- One deploy per environment at a time (exit 75 while one runs). A lock left by a killed deploy is taken over by itself.
 - Every attempt is one line in `~/apps/solava/logs/gate.log`: time, environment, client IP, command, verdict and exit code.
 
 With `SSH_GATE` unset (as when this ships), deploys run exactly as before. Each environment switches on its own, with its own variable.
@@ -418,7 +422,7 @@ With `SSH_GATE` unset (as when this ships), deploys run exactly as before. Each 
    ```
    Then, on the server, `cat ~/apps/solava/logs/gate.log` should show each attempt.
 
-8. **GitHub, environment `dev`:** add the secret `SSH_GATE_KEY` = the whole content of `solava-gate-dev` (the private key), and the variable `SSH_GATE` = `true`. Delete both `solava-gate-dev` files from your PC. Then Actions > Deploy > Run workflow (from main, dev, dry run); its summary says "SSH gate | on". Then a real DEV deploy (the next merge, or a re-deploy, section 4).
+8. **GitHub, environment `dev`:** add the secret `SSH_GATE_KEY` = the whole content of `solava-gate-dev` (the private key), and the variable `SSH_GATE` = `true`. Delete both `solava-gate-dev` files from your PC. Then Actions > Deploy > Run workflow (from main, dev, dry run); its log says "The server's gate answers for dev", and its summary "SSH gate | on". Then a real DEV deploy (the next merge, or a re-deploy, section 4).
 
 ### Switching PROD on
 

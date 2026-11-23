@@ -18,9 +18,10 @@
 # Where to deploy, which branch, which APP_ENV and PROD's --maintenance
 # --backup are fixed below, never taken from the client.
 #
-# Exit codes: deploy.sh's own (0 done, 78 skipped: newer commit, 1 failed),
-# 126 refused, 75 another deploy is running, 1 the commit isn't on the
-# branch.
+# Exit codes: deploy.sh's own (0 done, 78 skipped: newer commit, 1 failed,
+# 2 bad arguments), 126 refused, 75 another deploy is running, 65 stopped
+# before deploy.sh ran (the commit isn't on the branch, or the checkout,
+# fetch or temp script failed): nothing on the site changed.
 #
 # umask is never set for the whole script: deploy.sh inherits it, and a
 # 077 umask makes every file git writes unreadable by the web server. Only
@@ -59,6 +60,8 @@ verdict=refused
 is_deploy=0
 lock=""
 lock_held=0
+guard=""
+guard_held=0
 tmp=""
 
 # One line per attempt, written on the way out (finish, below). Control
@@ -96,6 +99,7 @@ finish() {
     if ((finished)); then exit "$code"; fi
     finished=1
     if [[ -n "$tmp" ]]; then rm -f -- "$tmp"; fi
+    if ((guard_held)); then rmdir -- "$guard" 2>/dev/null || true; fi
     if ((lock_held)) && [[ "$(cat "$lock/pid" 2>/dev/null || true)" == "$$" ]]; then
         rm -f -- "$lock/pid"
         rmdir -- "$lock" 2>/dev/null || true
@@ -168,38 +172,75 @@ dry_run=()
 if [[ -n "${BASH_REMATCH[3]}" ]]; then dry_run=(--dry-run); fi
 is_deploy=1
 
-# --- One deploy at a time per environment --------------------------------
-# mkdir is atomic, and flock isn't always installed on shared hosting. A
-# lock whose pid is gone is taken over; one with no pid file yet (killed
-# between mkdir and writing it) only after 5 minutes.
+# Something failed before deploy.sh started: nothing on the site changed.
+# Its own code (65), so the action doesn't report it as a deploy.sh
+# failure.
+stop_before_deploy() {
+    verdict=stopped
+    echo "stopped before deploy.sh ran: $1. Nothing on the site changed." >&2
+    finish 65
+}
 
-(umask 077 && mkdir -p "$run_dir")
+# --- One deploy at a time per environment --------------------------------
+# mkdir is atomic, and flock isn't always installed on shared hosting.
+# A lock is stale, and taken over, when its pid is gone, when it has no
+# pid file (killed between mkdir and writing it) and is over 5 minutes
+# old, or when it's over 2 hours old whatever its pid (a deploy takes
+# minutes; after a hard kill the pid may belong to another process).
+# Taking over is guarded by a second mkdir, so two gates can't both
+# remove the stale lock and the second one delete the lock the first
+# has just taken.
+
+(umask 077 && mkdir -p "$run_dir") || stop_before_deploy "couldn't create $run_dir"
 lock="$run_dir/$env_label.lock"
+guard="$run_dir/$env_label.takeover"
+
+# age_of <path>: seconds since it was last changed (0 if it's gone).
+age_of() {
+    local mtime
+    mtime=$(stat -c %Y "$1" 2>/dev/null) || { echo 0; return; }
+    echo $(($(date +%s) - mtime))
+}
 
 lock_is_stale() {
     local pid age
     if [[ ! -d "$lock" ]]; then return 0; fi
+    age=$(age_of "$lock")
+    if ((age > 7200)); then return 0; fi
     pid=$(cat "$lock/pid" 2>/dev/null || true)
     if [[ "$pid" =~ ^[0-9]+$ ]]; then
         if kill -0 "$pid" 2>/dev/null; then return 1; fi
         return 0
     fi
-    age=$(($(date +%s) - $(stat -c %Y "$lock" 2>/dev/null || date +%s)))
     ((age > 300))
 }
 
-for _ in 1 2; do
+take_lock() {
     if mkdir "$lock" 2>/dev/null; then
         chmod 700 "$lock"
         (umask 077 && printf '%s\n' "$$" >"$lock/pid")
         lock_held=1
-        break
     fi
-    if ! lock_is_stale; then break; fi
-    echo "Taking over a stale lock ($lock)." >&2
-    rm -f -- "$lock/pid"
-    rmdir -- "$lock" 2>/dev/null || true
-done
+}
+
+take_lock
+if ((!lock_held)) && lock_is_stale; then
+    # A guard left by a killed takeover (it's held for a moment) goes after
+    # a minute.
+    if [[ -d "$guard" ]] && (($(age_of "$guard") > 60)); then rmdir -- "$guard" 2>/dev/null || true; fi
+    if mkdir "$guard" 2>/dev/null; then
+        guard_held=1
+        # Checked again now that no other gate can be taking it over.
+        if lock_is_stale; then
+            echo "Taking over a stale lock ($lock)." >&2
+            rm -f -- "$lock/pid"
+            rmdir -- "$lock" 2>/dev/null || true
+        fi
+        take_lock
+        rmdir -- "$guard" 2>/dev/null || true
+        guard_held=0
+    fi
+fi
 if ((!lock_held)); then
     verdict=busy
     is_deploy=0
@@ -210,20 +251,19 @@ verdict=accepted
 
 # --- Deploy ----------------------------------------------------------------
 
-cd "$app_path"
-git fetch --quiet origin "$branch"
+cd "$app_path" 2>/dev/null || stop_before_deploy "the app folder $app_path doesn't exist"
+git fetch --quiet origin "$branch" || stop_before_deploy "'git fetch origin $branch' failed"
 
 # Nothing from a commit that isn't on the branch is ever run.
 if ! git merge-base --is-ancestor "$sha" "origin/$branch" 2>/dev/null; then
-    echo "refused: $sha isn't on origin/$branch. Nothing was run." >&2
-    finish 1
+    stop_before_deploy "$sha isn't on origin/$branch"
 fi
 
 # The commit's own deploy.sh, in a private temp file. Not `bash -s`:
 # composer or artisan reading stdin would eat the script.
-tmp=$(mktemp "$run_dir/deploy.XXXXXXXX")
+tmp=$(mktemp "$run_dir/deploy.XXXXXXXX") || stop_before_deploy "couldn't create a temp file in $run_dir"
 chmod 600 "$tmp"
-git show "$sha:deploy.sh" >"$tmp"
+git show "$sha:deploy.sh" >"$tmp" 2>/dev/null || stop_before_deploy "$sha has no deploy.sh"
 
 set +e
 bash "$tmp" --branch "$branch" --expect-sha "$sha" --expect-env "$app_env" "${flags[@]}" "${dry_run[@]}"
