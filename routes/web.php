@@ -53,6 +53,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/kanban/{organization}/columns/{status}', [KanbanController::class, 'column'])->name('kanban.column');
     // task #72 phase 10: the board's 15-second poll.
     Route::get('/kanban/{organization}/changes', [KanbanController::class, 'changes'])->name('kanban.changes');
+    // SOL-0025: one project lane's cards, when the lane is opened.
+    Route::get('/kanban/{organization}/projects/{project}', [KanbanController::class, 'project'])->name('kanban.project');
     Route::get('/calendar/{organization?}', CalendarController::class)->name('calendar');
     Route::get('/settings', SettingsController::class)->name('settings.index');
     // task #124: the release notes, read from resources/release-notes.json.

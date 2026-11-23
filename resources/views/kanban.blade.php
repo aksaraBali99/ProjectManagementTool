@@ -18,72 +18,81 @@
         <p class="mt-6 text-[12px] text-gray-500">{{ $emptyMessage ?? "You don't have access to any companies yet." }}</p>
     @else
         <x-company-tabs :organizations="$organizations" :active="$organization" route="kanban">
-        {{-- Below md, columns become a horizontally scroll-snapping row
-             (each column ~85% of the viewport, so the next one peeks in as
-             a scroll affordance) rather than squeezing N columns into
-             unusable slivers. At md and up this reverts to equal-width
-             columns side by side via flex-1, same visual result as the
-             old fixed-N-column grid but without needing a per-count inline
-             style to get there. --}}
         {{-- task #72 phase 10: shown when the board stops updating itself
              (session expired, lost access, or too many changes at once). --}}
         <p id="kanban-live-note" class="mb-2 text-[11px] text-gray-500" hidden>
             <a href="{{ url()->full() }}" class="text-brand-700 hover:underline">Reload to see updates</a>
         </p>
-        {{-- task #72 phase 10: data-changes-url / data-cursor drive the poll
-             in the script below; the URL carries ?completed=all in that
-             mode, like Load more. --}}
-        <div id="kanban-board" class="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:snap-none md:overflow-visible"
-             data-changes-url="{{ route('kanban.changes', [$organization] + ($showAllCompleted ? ['completed' => 'all'] : [])) }}"
-             data-cursor="{{ $cursor }}">
-            @foreach ($columns as $column)
-                <div class="kanban-column w-[85vw] shrink-0 snap-center rounded-lg border border-gray-200 bg-white sm:w-[320px] md:min-w-0 md:flex-1 md:snap-align-none"
-                     data-status="{{ $column['status']->value }}" data-total="{{ $column['total'] }}">
-                    <div class="flex items-center justify-between rounded-t-lg border-b border-gray-200 px-3 py-2"
-                         style="background-color: {{ $column['status']->badgeBackground() }}">
-                        <span class="text-[10px] font-medium uppercase tracking-[0.06em]" style="color: {{ $column['status']->badgeText() }}">{{ $column['status']->label() }}</span>
-                        <span class="kanban-column-total text-[10px]" style="color: {{ $column['status']->badgeText() }}">{{ number_format($column['total']) }}</span>
+        {{-- task #72 phase 7: ?completed=all shows every completed task,
+             for this visit only. --}}
+        @if ($showAllCompleted)
+            <p class="kanban-completed-window mb-2 text-[11px] text-gray-500">
+                Showing all completed tasks ·
+                <a href="{{ route('kanban', $organization) }}" class="text-brand-700 hover:underline">Show recent only</a>
+            </p>
+        @else
+            {{-- SOL-0025: a project whose visible tasks were all completed
+                 before the window has no lane, so no lane's older line
+                 reaches them; this one does. The poll keeps it current. --}}
+            <p id="kanban-hidden-older" class="mb-2 text-[11px] text-gray-500"
+               data-show-all-url="{{ route('kanban', [$organization, 'completed' => 'all']) }}" @if ($hiddenOlder === 0) hidden @endif>
+                @if ($hiddenOlder > 0)
+                    {{ number_format($hiddenOlder) }} older completed {{ \Illuminate\Support\Str::plural('task', $hiddenOlder) }} in projects not shown ·
+                    <a href="{{ route('kanban', [$organization, 'completed' => 'all']) }}" class="text-brand-700 hover:underline">Show all</a>
+                @endif
+            </p>
+        @endif
+        {{-- SOL-0025: one collapsible lane per project, sorted by name,
+             under one header row of the four statuses. Below xl the board
+             keeps a min width and scrolls sideways inside the folder, so
+             the page never does (the header row only sticks to the top of
+             the page at xl and up, where nothing scrolls sideways).
+
+             task #72 phase 10: data-changes-url / data-cursor drive the
+             poll in the script below; the URL carries ?completed=all in
+             that mode, like the lanes and Load more. --}}
+        <div class="overflow-x-auto pb-1 xl:overflow-x-visible">
+            <div id="kanban-board" class="min-w-[880px]"
+                 data-changes-url="{{ route('kanban.changes', [$organization] + ($showAllCompleted ? ['completed' => 'all'] : [])) }}"
+                 data-cursor="{{ $cursor }}">
+                <div class="sticky top-0 z-10 grid grid-cols-[200px_repeat(4,minmax(0,1fr))] gap-2 px-[9px] pb-2"
+                     style="background-color: {{ $organization->badgeBackground() }}">
+                    <div class="flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2">
+                        <span class="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-600">Project</span>
+                        <span id="kanban-project-count" class="text-[10px] text-gray-600">{{ number_format($lanes->count()) }}</span>
                     </div>
-                    {{-- task #72 phase 10: "No tasks", Load more and the
-                         "older" line are always in the page, hidden (and
-                         empty) when they don't apply, so the poll can show
-                         them when cards arrive or leave. --}}
-                    <div class="kanban-column-body min-h-[80px] space-y-2 p-2">
-                        @foreach ($column['tasks'] as $item)
-                            @include('kanban._card', $item + ['eligibleAssignees' => $eligibleAssignees, 'returnTo' => $returnTo])
-                        @endforeach
-                        <p class="kanban-empty py-4 text-center text-[11px] text-gray-400" @if ($column['tasks']->isNotEmpty()) hidden @endif>{{ $column['tasks']->isEmpty() ? 'No tasks' : '' }}</p>
-                    </div>
-                    {{-- task #72 phase 5: a column shows its first 30 cards;
-                         the rest arrive 30 at a time from kanban.column. --}}
-                    <div class="kanban-load-more border-t border-gray-100 px-2 py-2 text-center"
-                         data-url="{{ route('kanban.column', [$organization, $column['status']->value] + ($column['showAllCompleted'] ? ['completed' => 'all'] : [])) }}"
-                         data-offset="{{ $column['tasks']->count() }}" @if ($column['remaining'] === 0) hidden @endif>
-                        <p class="kanban-more-count text-[10px] text-gray-500">{{ $column['remaining'] > 0 ? number_format($column['remaining']).' more' : '' }}</p>
-                        <button type="button" class="kanban-load-more-btn mt-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-wait disabled:opacity-60">
-                            Load more
-                        </button>
-                        <p class="kanban-load-more-error mt-1 text-[10px] text-[#A32D2D]" hidden>Couldn't load more cards. Try again.</p>
-                    </div>
-                    {{-- task #72 phase 7: the Completed column shows the
-                         company's window by default; ?completed=all for
-                         this visit only. --}}
-                    @if ($column['showAllCompleted'])
-                        <div class="kanban-completed-window border-t border-gray-100 px-2 py-2 text-center text-[10px] text-gray-500">
-                            <a href="{{ route('kanban', $organization) }}" class="text-brand-700 hover:underline">Show recent only</a>
+                    @foreach (\App\Enums\TaskStatus::cases() as $status)
+                        <div class="kanban-column-header flex items-center justify-between rounded-md px-3 py-2"
+                             style="background-color: {{ $status->badgeBackground() }}" data-status="{{ $status->value }}">
+                            <span class="text-[10px] font-medium uppercase tracking-[0.06em]" style="color: {{ $status->badgeText() }}">{{ $status->label() }}</span>
+                            <span class="kanban-column-total text-[10px]" style="color: {{ $status->badgeText() }}">{{ number_format($totals[$status->value]) }}</span>
                         </div>
-                    @elseif ($column['status'] === \App\Enums\TaskStatus::Completed)
-                        <div class="kanban-older border-t border-gray-100 px-2 py-2 text-center text-[10px] text-gray-500 @if ($column['older'] > 0) kanban-completed-window @endif"
-                             data-show-all-url="{{ route('kanban', [$organization, 'completed' => 'all']) }}" @if ($column['older'] === 0) hidden @endif>
-                            @if ($column['older'] > 0)
-                                {{ number_format($column['older']) }} older completed {{ \Illuminate\Support\Str::plural('task', $column['older']) }} ·
-                                <a href="{{ route('kanban', [$organization, 'completed' => 'all']) }}" class="text-brand-700 hover:underline">Show all</a>
-                            @endif
-                        </div>
-                    @endif
+                    @endforeach
                 </div>
-            @endforeach
+                <div id="kanban-lanes" class="space-y-2">
+                    @foreach ($lanes as $lane)
+                        @include('kanban._lane', ['lane' => $lane, 'organization' => $organization, 'showAllCompleted' => $showAllCompleted])
+                    @endforeach
+                </div>
+                <p id="kanban-no-lanes" class="rounded-lg border border-gray-200 bg-white py-6 text-center text-[12px] text-gray-500" @if ($lanes->isNotEmpty()) hidden @endif>No tasks</p>
+            </div>
         </div>
+        {{-- SOL-0025: an empty lane, for a project that gains its first
+             task while the page is open. --}}
+        <template id="kanban-lane-template">
+            @include('kanban._lane', [
+                'lane' => [
+                    'id' => '__PROJECT__',
+                    'name' => '',
+                    'closed' => false,
+                    'totals' => collect(\App\Enums\TaskStatus::cases())->mapWithKeys(fn ($status) => [$status->value => 0])->all(),
+                    'total' => 0,
+                    'older' => 0,
+                ],
+                'organization' => $organization,
+                'showAllCompleted' => $showAllCompleted,
+            ])
+        </template>
         </x-company-tabs>
     @endif
 </div>
@@ -94,9 +103,22 @@
         if (! board) return;
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const lanesEl = document.getElementById('kanban-lanes');
+        const laneTemplate = document.getElementById('kanban-lane-template');
+        const STATUSES = Array.from(board.querySelectorAll('.kanban-column-header')).map(function (header) {
+            return header.dataset.status;
+        });
 
         function cardEl(taskId) {
             return board.querySelector('.kanban-card[data-task-id="' + taskId + '"]');
+        }
+
+        function laneEl(projectId) {
+            return lanesEl.querySelector('.kanban-lane[data-project-id="' + projectId + '"]');
+        }
+
+        function cellOf(lane, status) {
+            return lane.querySelector('.kanban-cell[data-status="' + status + '"]');
         }
 
         // The value the server last saved, not whatever the select shows
@@ -233,36 +255,190 @@
             saveCardChange(taskId, '/tasks/' + taskId + '/assignee', { assignee_id: assigneeId || null }, select, 'Failed to change assignee.');
         }
 
+        // ---------------------------------------------------------------
+        // SOL-0025: project lanes. Every lane starts closed; its cards
+        // come from kanban.project the first time it opens. Closing only
+        // hides the body: the cards stay in the page and keep getting
+        // live updates, so reopening needs no request. openLane() is the
+        // one entry point for opening a lane by its project id.
+        // ---------------------------------------------------------------
+        function setLaneOpen(lane, open) {
+            lane.dataset.open = open ? '1' : '0';
+            lane.querySelector('.kanban-lane-body').hidden = ! open;
+            lane.querySelector('.kanban-lane-header').classList.toggle('border-b', open);
+            lane.querySelectorAll('.kanban-lane-count').forEach(function (count) {
+                count.classList.toggle('invisible', open);
+            });
+            const toggle = lane.querySelector('.kanban-lane-toggle');
+            toggle.textContent = open ? '−' : '+';
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            toggle.setAttribute('aria-label', (open ? 'Close ' : 'Open ') + lane.dataset.name);
+        }
+
+        function openLane(projectId) {
+            const lane = laneEl(projectId);
+            if (! lane) return;
+            setLaneOpen(lane, true);
+            if (lane.dataset.loaded !== '1') loadLane(lane);
+        }
+
+        function closeLane(projectId) {
+            const lane = laneEl(projectId);
+            if (lane) setLaneOpen(lane, false);
+        }
+
+        // "Loading…", the error line, or neither, in every cell of a lane.
+        function setLaneState(lane, state) {
+            lane.querySelectorAll('.kanban-cell').forEach(function (cell) {
+                cell.querySelector('.kanban-cell-loading').hidden = state !== 'loading';
+                cell.querySelector('.kanban-cell-error').hidden = state !== 'error';
+                if (state) {
+                    cell.querySelector('.kanban-empty').hidden = true;
+                    cell.querySelector('.kanban-load-more').hidden = true;
+                }
+            });
+        }
+
+        // A lane's first cards. On failure the lane stays unloaded, so the
+        // next open tries again. Cards the poll brought for this lane while
+        // it loaded were skipped (applyChanges() only fills loaded lanes),
+        // so the next poll re-reads from the time of this response.
+        function loadLane(lane) {
+            if (lane.dataset.loading === '1') return;
+            lane.dataset.loading = '1';
+            setLaneState(lane, 'loading');
+
+            fetch(lane.dataset.url, {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+            })
+                .then(function (response) {
+                    if (response.redirected) throw new Error('redirected to ' + response.url);
+                    if (! response.ok) throw new Error('HTTP ' + response.status);
+
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (! lane.isConnected) return;
+                    setLaneState(lane, null);
+                    Object.keys(data.columns).forEach(function (status) {
+                        const cell = cellOf(lane, status);
+                        if (! cell) return;
+                        const body = cell.querySelector('.kanban-cell-body');
+                        const template = document.createElement('template');
+                        template.innerHTML = data.columns[status].html;
+                        Array.from(template.content.querySelectorAll('.kanban-card')).forEach(function (card) {
+                            // Still shown in another lane (moved, and the
+                            // poll hasn't caught up): this is the newer
+                            // place, unless you're working on that card.
+                            const id = card.dataset.taskId;
+                            const existing = cardEl(id);
+                            if (existing) {
+                                // You're working on it there: it moves here
+                                // once free (counted in this cell's total
+                                // meanwhile), unless the poll already holds
+                                // an update for it.
+                                if (isBusy(id)) {
+                                    if (! pending.has(id)) {
+                                        pending.set(id, {
+                                            change: {
+                                                id: Number(id),
+                                                status: status,
+                                                project_id: Number(lane.dataset.projectId),
+                                                sort_key: card.dataset.sortKey,
+                                                html: card.outerHTML,
+                                            },
+                                            seq: pollSeq,
+                                        });
+                                    }
+                                    return;
+                                }
+                                existing.remove();
+                            }
+                            body.insertBefore(card, body.querySelector('.kanban-empty'));
+                        });
+                        cell.dataset.total = String(data.columns[status].total);
+                        refreshCell(cell);
+                    });
+                    setOlder(lane, data.older);
+                    lane.dataset.loaded = '1';
+                    // A poll that landed while this lane loaded skipped
+                    // its cards, and may have moved the cursor past a
+                    // change this response predates: the next poll
+                    // re-reads from this response's own time.
+                    rewindTo = rewindTo === null ? Number(data.cursor) : Math.min(rewindTo, Number(data.cursor));
+                })
+                .catch(function () {
+                    if (lane.isConnected) setLaneState(lane, 'error');
+                })
+                .finally(function () {
+                    delete lane.dataset.loading;
+                });
+        }
+
         // task #72 phase 5: every listener is delegated on the board rather
-        // than bound per card, so cards appended by Load more (or placed by
-        // the poll) drag and use both dropdowns without any re-binding.
+        // than bound per card, so cards from a lane, Load more or the poll
+        // drag and use both dropdowns without any re-binding.
         function closestIn(event, selector) {
             return event.target instanceof Element ? event.target.closest(selector) : null;
+        }
+
+        // SOL-0025: a card moves between the cells of its own lane only;
+        // another project's lane doesn't accept it. The target cell is
+        // highlighted from dragover alone (cleared over anything else, on
+        // drop and on dragend): some browsers send dragleave with no
+        // relatedTarget while still over the cell, which made it flicker.
+        let dragLane = null;
+        let dropTarget = null;
+
+        function setDropTarget(cell) {
+            if (dropTarget === cell) return;
+            if (dropTarget) {
+                dropTarget.classList.remove('outline-2', 'outline-dashed', 'outline-brand-600', 'bg-brand-50');
+                dropTarget.classList.add('bg-gray-100');
+            }
+            dropTarget = cell;
+            if (cell) {
+                cell.classList.remove('bg-gray-100');
+                cell.classList.add('outline-2', 'outline-dashed', 'outline-brand-600', 'bg-brand-50');
+            }
+        }
+
+        function sameLaneCell(event) {
+            const cell = closestIn(event, '.kanban-cell');
+
+            return cell && dragLane && cell.closest('.kanban-lane') === dragLane ? cell : null;
         }
 
         board.addEventListener('dragstart', function (event) {
             const card = closestIn(event, '.kanban-card[draggable="true"]');
             if (! card) return;
             draggingId = card.dataset.taskId;
+            dragLane = card.closest('.kanban-lane');
             event.dataTransfer.setData('text/plain', card.dataset.taskId);
         });
 
         board.addEventListener('dragend', function () {
             draggingId = null;
+            dragLane = null;
+            setDropTarget(null);
             flushPending();
         });
 
         board.addEventListener('dragover', function (event) {
-            if (closestIn(event, '.kanban-column')) event.preventDefault();
+            const cell = sameLaneCell(event);
+            setDropTarget(cell);
+            if (cell) event.preventDefault();
         });
 
         board.addEventListener('drop', function (event) {
-            const column = closestIn(event, '.kanban-column');
-            if (! column) return;
+            const cell = sameLaneCell(event);
+            setDropTarget(null);
+            if (! cell) return;
             event.preventDefault();
             const taskId = event.dataTransfer.getData('text/plain');
             if (! taskId) return;
-            changeStatus(taskId, column.dataset.status, null);
+            changeStatus(taskId, cell.dataset.status, null);
         });
 
         board.addEventListener('change', function (event) {
@@ -283,15 +459,30 @@
 
         board.addEventListener('click', function (event) {
             const button = closestIn(event, '.kanban-load-more-btn');
-            if (button) loadMore(button.closest('.kanban-load-more'));
+            if (button) {
+                loadMore(button.closest('.kanban-load-more'));
+                return;
+            }
+
+            // The whole header row toggles its lane (its + / − button is
+            // the keyboard's way in). A click while it loads is ignored.
+            const header = closestIn(event, '.kanban-lane-header');
+            if (! header) return;
+            const lane = header.closest('.kanban-lane');
+            if (lane.dataset.loading === '1') return;
+            if (lane.dataset.open === '1') {
+                closeLane(lane.dataset.projectId);
+            } else {
+                openLane(lane.dataset.projectId);
+            }
         });
 
-        // task #72 phase 5: the next 30 cards of one column. The offset is
-        // the number of cards this column shows (phase 10 keeps it equal
-        // to that as the poll adds and removes cards, so a card moving in
-        // or out above it shifts the server's list and the offset
-        // together). A card already on the board is skipped, never shown
-        // twice.
+        // task #72 phase 5: the next 30 cards of one cell (SOL-0025: of one
+        // project; the URL names it). The offset is the number of cards the
+        // cell shows (phase 10 keeps it equal to that as the poll adds and
+        // removes cards, so a card moving in or out above it shifts the
+        // server's list and the offset together). A card already on the
+        // board is skipped, never shown twice.
         function loadMore(container) {
             const button = container.querySelector('.kanban-load-more-btn');
             const error = container.querySelector('.kanban-load-more-error');
@@ -315,8 +506,8 @@
                     return response.json();
                 })
                 .then(function (data) {
-                    const column = container.closest('.kanban-column');
-                    const body = column.querySelector('.kanban-column-body');
+                    const cell = container.closest('.kanban-cell');
+                    const body = cell.querySelector('.kanban-cell-body');
                     const template = document.createElement('template');
                     template.innerHTML = data.html;
 
@@ -326,10 +517,10 @@
                         body.insertBefore(card, body.querySelector('.kanban-empty'));
                     });
 
-                    // The column's total as of this batch: what came before
+                    // The cell's total as of this batch: what came before
                     // it, the batch, and what is left after it.
-                    column.dataset.total = String(offset + cards.length + data.remaining);
-                    refreshColumn(column);
+                    cell.dataset.total = String(offset + cards.length + data.remaining);
+                    refreshCell(cell);
                 })
                 .catch(function () {
                     // The button stays, so the next click retries.
@@ -343,7 +534,8 @@
         // ---------------------------------------------------------------
         // task #72 phase 10: live updates. While the tab is visible, poll
         // kanban.changes every 15 s for what changed since the last poll,
-        // and move, update, add or remove cards in place.
+        // and move, update, add or remove cards (and, SOL-0025, lanes) in
+        // place.
         // ---------------------------------------------------------------
         const POLL_INTERVAL = 15000;
         const changesUrl = board.dataset.changesUrl;
@@ -366,6 +558,9 @@
         // triggers is numbered higher and brings the new state.
         let pollSeq = 0;
         const savedAfterPoll = new Map();
+        // SOL-0025: set when a lane finishes loading - its response's server
+        // time, for the next poll to read changes from (see loadLane()).
+        let rewindTo = null;
 
         // Never move a card under the user: one being dragged, one whose
         // status or assignee dropdown has focus, or one being saved.
@@ -382,27 +577,27 @@
             return number.toLocaleString('en-US');
         }
 
-        // Header total, "No tasks", "N more" and the Load more offset, from
-        // the column's total and the cards it shows.
-        function refreshColumn(column) {
-            const shown = column.querySelectorAll('.kanban-card').length;
-            const total = Number(column.dataset.total);
+        // "No tasks", "N more" and the Load more offset, from the cell's
+        // total and the cards it shows. Unloaded lanes have no cards yet
+        // and are left alone.
+        function refreshCell(cell) {
+            const shown = cell.querySelectorAll('.kanban-card').length;
+            const total = Number(cell.dataset.total);
             const remaining = Math.max(0, total - shown);
 
-            column.querySelector('.kanban-column-total').textContent = formatNumber(total);
-
-            const empty = column.querySelector('.kanban-empty');
+            const empty = cell.querySelector('.kanban-empty');
             empty.hidden = shown > 0;
             empty.textContent = shown > 0 ? '' : 'No tasks';
 
-            const more = column.querySelector('.kanban-load-more');
+            const more = cell.querySelector('.kanban-load-more');
             more.dataset.offset = String(shown);
             more.hidden = remaining === 0;
             more.querySelector('.kanban-more-count').textContent = remaining > 0 ? formatNumber(remaining) + ' more' : '';
         }
 
-        function setOlder(count) {
-            const older = board.querySelector('.kanban-older');
+        // A lane's "N older completed · Show all" line.
+        function setOlder(lane, count) {
+            const older = lane.querySelector('.kanban-older');
             if (! older) return;
 
             older.hidden = count === 0;
@@ -415,10 +610,125 @@
             link.href = older.dataset.showAllUrl;
             link.className = 'text-brand-700 hover:underline';
             link.textContent = 'Show all';
-            older.replaceChildren(
-                document.createTextNode(formatNumber(count) + ' older completed ' + (count === 1 ? 'task' : 'tasks') + ' · '),
+            older.replaceChildren(document.createTextNode(formatNumber(count) + ' older completed · '), link);
+        }
+
+        // A new, closed lane from the page's template. The project id is
+        // a number from the server; the name is set as text, never HTML.
+        function newLane(info) {
+            const template = document.createElement('template');
+            template.innerHTML = laneTemplate.innerHTML.split('__PROJECT__').join(String(Number(info.id)));
+            const lane = template.content.firstElementChild;
+            lane.dataset.name = info.name;
+            setLaneOpen(lane, false);
+
+            return lane;
+        }
+
+        // A lane's header from the poll: name, Closed tag, "N tasks" and
+        // its count per status; and, once loaded, each cell's total (read
+        // by applyChanges() when it places cards, so set first).
+        function updateLane(lane, info) {
+            lane.dataset.name = info.name;
+            const name = lane.querySelector('.kanban-lane-name');
+            name.textContent = info.name;
+            name.title = info.name;
+            lane.querySelector('.kanban-lane-toggle').setAttribute('aria-label', (lane.dataset.open === '1' ? 'Close ' : 'Open ') + info.name);
+            lane.querySelector('.kanban-lane-closed').hidden = ! info.closed;
+
+            let total = 0;
+            STATUSES.forEach(function (status) {
+                const count = Number(info.totals[status] || 0);
+                total += count;
+                const countEl = lane.querySelector('.kanban-lane-count[data-status="' + status + '"]');
+                countEl.textContent = formatNumber(count);
+                countEl.classList.toggle('text-gray-400', count === 0);
+                countEl.classList.toggle('font-medium', count > 0);
+                countEl.classList.toggle('text-[#1F2937]', count > 0);
+                if (lane.dataset.loaded === '1') cellOf(lane, status).dataset.total = String(count);
+            });
+            lane.querySelector('.kanban-lane-total').textContent = formatNumber(total) + ' ' + (total === 1 ? 'task' : 'tasks');
+            if (lane.dataset.loaded === '1') setOlder(lane, info.older);
+        }
+
+        function laneHasBusyCard(lane) {
+            return Array.from(lane.querySelectorAll('.kanban-card')).some(function (card) {
+                return isBusy(card.dataset.taskId);
+            });
+        }
+
+        // The lanes the server lists now, in its order: update each, add
+        // the missing ones (closed) after the lane listed before them, and
+        // remove the others - unless you're working on one of their cards,
+        // then they go on a later flush.
+        function applyLanes(lanes) {
+            const listed = new Set(lanes.map(function (info) { return String(info.id); }));
+
+            lanesEl.querySelectorAll('.kanban-lane').forEach(function (lane) {
+                if (listed.has(lane.dataset.projectId)) {
+                    delete lane.dataset.unlisted;
+                } else {
+                    lane.dataset.unlisted = '1';
+                }
+            });
+            removeUnlistedLanes();
+
+            let previous = null;
+            lanes.forEach(function (info) {
+                let lane = laneEl(info.id);
+                if (! lane) {
+                    lane = newLane(info);
+                    lanesEl.insertBefore(lane, previous ? previous.nextElementSibling : lanesEl.firstElementChild);
+                }
+                updateLane(lane, info);
+                previous = lane;
+            });
+
+            // A renamed project's lane moves to its new place - only while
+            // nothing is under the user (moving a lane would drop a drag or
+            // a dropdown's focus); otherwise on a later poll.
+            const ordered = lanes.map(function (info) { return laneEl(info.id); });
+            const shown = Array.from(lanesEl.querySelectorAll('.kanban-lane')).filter(function (lane) {
+                return listed.has(lane.dataset.projectId);
+            });
+            const outOfOrder = shown.some(function (lane, index) { return lane !== ordered[index]; });
+            const focused = document.activeElement;
+            const userBusy = draggingId !== null || busy.size > 0 || !! (focused && lanesEl.contains(focused) && focused.matches('select'));
+            if (outOfOrder && ! userBusy) {
+                ordered.forEach(function (lane) { lanesEl.appendChild(lane); });
+            }
+
+            document.getElementById('kanban-project-count').textContent = formatNumber(lanes.length);
+        }
+
+        // SOL-0025: "N older completed tasks in projects not shown · Show
+        // all" - the company's older count less the lanes' own.
+        function setHiddenOlder(companyOlder, lanes) {
+            const line = document.getElementById('kanban-hidden-older');
+            if (! line) return;
+            const count = Math.max(0, Number(companyOlder) - lanes.reduce(function (sum, info) { return sum + Number(info.older); }, 0));
+
+            line.hidden = count === 0;
+            if (count === 0) {
+                line.replaceChildren();
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.href = line.dataset.showAllUrl;
+            link.className = 'text-brand-700 hover:underline';
+            link.textContent = 'Show all';
+            line.replaceChildren(
+                document.createTextNode(formatNumber(count) + ' older completed ' + (count === 1 ? 'task' : 'tasks') + ' in projects not shown · '),
                 link,
             );
+        }
+
+        function removeUnlistedLanes() {
+            lanesEl.querySelectorAll('.kanban-lane[data-unlisted="1"]').forEach(function (lane) {
+                if (! laneHasBusyCard(lane)) lane.remove();
+            });
+            document.getElementById('kanban-no-lanes').hidden = lanesEl.querySelector('.kanban-lane') !== null;
         }
 
         function toCardElement(change) {
@@ -429,12 +739,15 @@
         }
 
         // Apply changed cards and removed ids. A changed card always
-        // replaces the one shown (two saves in the same second share an
-        // updated_at, so nothing is skipped as "already seen"). It goes in
-        // before the first card with a larger sort key; with no larger
-        // card it is appended only if the column shows everything —
-        // otherwise it belongs further down and will come with Load more,
-        // and only "N more" changes.
+        // replaces the one shown, wherever it is (SOL-0025: so a task
+        // moved to another project leaves its old lane), and two saves in
+        // the same second share an updated_at, so nothing is skipped as
+        // "already seen". It goes in its project's lane - only if that
+        // lane is loaded; an unloaded lane just has its counts - in the
+        // cell of its status, before the first card with a larger sort
+        // key. With no larger card it is appended only if the cell shows
+        // everything: otherwise it belongs further down and will come with
+        // Load more, and only "N more" changes.
         function applyChanges(cards, removed, seq) {
             const ready = [];
             // From a poll that started before your own save of this card.
@@ -467,32 +780,37 @@
                 ready.push(change);
             });
 
-            board.querySelectorAll('.kanban-column').forEach(function (column) {
-                const body = column.querySelector('.kanban-column-body');
-                const incoming = ready
-                    .filter(function (change) { return change.status === column.dataset.status; })
-                    .map(toCardElement)
-                    .filter(Boolean)
-                    .sort(function (a, b) { return a.dataset.sortKey < b.dataset.sortKey ? -1 : 1; });
-                const shown = body.querySelectorAll('.kanban-card').length;
-                const showsAll = Number(column.dataset.total) <= shown + incoming.length;
+            lanesEl.querySelectorAll('.kanban-lane[data-loaded="1"]').forEach(function (lane) {
+                lane.querySelectorAll('.kanban-cell').forEach(function (cell) {
+                    const body = cell.querySelector('.kanban-cell-body');
+                    const incoming = ready
+                        .filter(function (change) {
+                            return String(change.project_id) === lane.dataset.projectId && change.status === cell.dataset.status;
+                        })
+                        .map(toCardElement)
+                        .filter(Boolean)
+                        .sort(function (a, b) { return a.dataset.sortKey < b.dataset.sortKey ? -1 : 1; });
+                    const shown = body.querySelectorAll('.kanban-card').length;
+                    const showsAll = Number(cell.dataset.total) <= shown + incoming.length;
 
-                incoming.forEach(function (card) {
-                    const after = Array.from(body.querySelectorAll('.kanban-card')).find(function (other) {
-                        return other.dataset.sortKey > card.dataset.sortKey;
+                    incoming.forEach(function (card) {
+                        const after = Array.from(body.querySelectorAll('.kanban-card')).find(function (other) {
+                            return other.dataset.sortKey > card.dataset.sortKey;
+                        });
+                        if (after) {
+                            body.insertBefore(card, after);
+                        } else if (showsAll) {
+                            body.insertBefore(card, body.querySelector('.kanban-empty'));
+                        }
                     });
-                    if (after) {
-                        body.insertBefore(card, after);
-                    } else if (showsAll) {
-                        body.insertBefore(card, body.querySelector('.kanban-empty'));
-                    }
-                });
 
-                refreshColumn(column);
+                    refreshCell(cell);
+                });
             });
         }
 
-        // Updates held back for cards that are free now.
+        // Updates held back for cards that are free now, then any lane
+        // that was kept only for a busy card.
         function flushPending() {
             pending.forEach(function (entry, id) {
                 if (isBusy(id)) return;
@@ -503,6 +821,7 @@
                     applyChanges([], [id], entry.seq);
                 }
             });
+            removeUnlistedLanes();
         }
 
         function stop() {
@@ -515,7 +834,8 @@
         function pollOnce() {
             const seq = ++pollSeq;
             const url = new URL(changesUrl, window.location.origin);
-            url.searchParams.set('since', cursor);
+            const rewound = rewindTo;
+            url.searchParams.set('since', String(rewound === null ? cursor : Math.min(Number(cursor), rewound)));
 
             return fetch(url.toString(), {
                 credentials: 'same-origin',
@@ -545,14 +865,19 @@
                     }
 
                     // Advanced only after a successful poll, so a failed
-                    // one loses nothing.
+                    // one loses nothing. A rewind this poll covered is
+                    // done (unless another lane loaded meanwhile).
                     cursor = String(data.cursor);
-                    board.querySelectorAll('.kanban-column').forEach(function (column) {
-                        if (column.dataset.status in data.totals) {
-                            column.dataset.total = String(data.totals[column.dataset.status]);
+                    if (rewindTo === rewound) rewindTo = null;
+                    board.querySelectorAll('.kanban-column-header').forEach(function (header) {
+                        if (header.dataset.status in data.totals) {
+                            header.querySelector('.kanban-column-total').textContent = formatNumber(Number(data.totals[header.dataset.status]));
                         }
                     });
-                    setOlder(data.older);
+                    // Lanes first: the cells' totals must be current
+                    // before applyChanges() decides where cards go.
+                    applyLanes(data.lanes || []);
+                    setHiddenOlder(data.older || 0, data.lanes || []);
                     applyChanges(data.cards, data.removed, seq);
                     flushPending();
                 })

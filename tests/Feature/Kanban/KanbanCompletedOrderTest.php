@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * task #72 phase 6: the Kanban Completed column shows the most recently
  * completed first — completed_at DESC, then id DESC, no completed_at last
- * — on the board and through Load more. The other columns keep phase 5's
+ * — in the lane and through Load more. The other columns keep phase 5's
  * priority / due date / id order.
  *
  * Expected orders are built in PHP, independently of the SQL.
@@ -66,7 +66,7 @@ function expectedCompletedColumnOrder(int $organizationId): array
         ->all();
 }
 
-test('the Completed column is newest completion first, then id desc, nulls last, on the board and through Load more', function () {
+test('the Completed column is newest completion first, then id desc, nulls last, in the lane and through Load more', function () {
     // 70 completed cards: repeated completion times (so the id tie-break
     // matters), a few with no completed_at, and priorities that would
     // order them differently if priority still applied.
@@ -80,10 +80,10 @@ test('the Completed column is newest completion first, then id desc, nulls last,
     $expected = expectedCompletedColumnOrder($this->org->id);
     expect($expected)->toHaveCount(70);
 
-    $response = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk();
-    $completed = $response->viewData('columns')->firstWhere('status', TaskStatus::Completed);
+    // SOL-0025: the lane's first batch.
+    $completed = kanbanLaneColumn($this->management, $this->org->id, $this->project->id, TaskStatus::Completed);
 
-    expect($completed['tasks']->pluck('task.id')->all())->toBe(array_slice($expected, 0, 30));
+    expect($completed['ids'])->toBe(array_slice($expected, 0, 30));
 
     // Spot-check the shape of the order, not just the PHP mirror of it.
     $first = Task::find($expected[0]);
@@ -103,10 +103,9 @@ test('completing a card puts it at the top of the Completed column', function ()
 
     $this->actingAs($this->management)->patchJson(route('tasks.update-status', $justDone), ['status' => 'completed'])->assertOk();
 
-    $completed = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk()
-        ->viewData('columns')->firstWhere('status', TaskStatus::Completed);
+    $completed = kanbanLaneColumn($this->management, $this->org->id, $this->project->id, TaskStatus::Completed);
 
-    expect($completed['tasks']->first()['task']->id)->toBe($justDone->id);
+    expect($completed['ids'][0])->toBe($justDone->id);
 });
 
 test('the other columns keep the phase 5 order', function () {
@@ -122,8 +121,7 @@ test('the other columns keep the phase 5 order', function () {
             <=> [$priorityRank[$b->priority->value], $b->due_date === null, $b->due_date?->timestamp ?? 0, $b->id])
         ->pluck('id')->all();
 
-    $pending = $this->actingAs($this->management)->get(route('kanban', $this->org))->assertOk()
-        ->viewData('columns')->firstWhere('status', TaskStatus::Pending);
+    $pending = kanbanLaneColumn($this->management, $this->org->id, $this->project->id, TaskStatus::Pending);
 
-    expect($pending['tasks']->pluck('task.id')->all())->toBe($expected);
+    expect($pending['ids'])->toBe($expected);
 });
