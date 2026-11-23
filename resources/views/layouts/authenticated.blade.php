@@ -62,8 +62,12 @@
         <div id="sidebar-backdrop" class="fixed inset-0 z-30 hidden bg-black/40 md:hidden"></div>
 
         <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-[220px] -translate-x-full flex-col border-r border-gray-200 bg-white transition-transform duration-200 ease-in-out md:static md:z-auto md:w-[180px] md:translate-x-0">
-            <div class="flex h-12 shrink-0 items-center justify-between border-b border-gray-200 px-4">
-                <span class="text-sm font-medium text-gray-900">Solava</span>
+            <div class="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4">
+                {{-- SOL-0028: the version this server runs, next to the name. --}}
+                <div class="flex min-w-0 items-baseline gap-2">
+                    <span class="text-sm font-medium text-gray-900">Solava</span>
+                    <x-app-version />
+                </div>
                 <button type="button" id="sidebar-close" class="text-gray-400 hover:text-gray-600 md:hidden" aria-label="Close menu">
                     <i class="ti ti-x text-[16px]"></i>
                 </button>
