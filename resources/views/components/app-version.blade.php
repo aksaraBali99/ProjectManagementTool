@@ -36,10 +36,12 @@
 
     $classes = 'min-w-0 truncate text-[11px] font-normal tabular-nums '
         .($isProduction ? 'text-gray-400' : 'rounded bg-amber-50 px-1.5 text-amber-700');
+    // The link's hover keeps the pill amber, so "not PROD" never fades.
+    $hover = $isProduction ? 'hover:text-gray-700' : 'hover:text-amber-900';
 @endphp
 @if ($label !== null && $label !== '')
     @if (auth()->user()?->can('release-notes.view'))
-        <a href="{{ route('release-notes.index') }}" class="{{ $classes }} hover:text-gray-700" title="{{ $title }}" data-app-version>{{ $label }}</a>
+        <a href="{{ route('release-notes.index') }}" class="{{ $classes }} {{ $hover }}" title="{{ $title }}" data-app-version>{{ $label }}</a>
     @else
         <span class="{{ $classes }}" title="{{ $title }}" data-app-version>{{ $label }}</span>
     @endif

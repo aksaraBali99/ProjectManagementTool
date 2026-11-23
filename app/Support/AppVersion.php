@@ -6,10 +6,11 @@ namespace App\Support;
  * SOL-0028: the version the sidebar shows next to "Solava".
  *
  * - version: the newest entry of resources/release-notes.json. On PROD that
- *   is exactly the tag the deploy creates (release-check makes the release
- *   PR's or hotfix's entry the version it gets). The tag itself can't be
- *   read here: GitHub creates it after the deploy, and the server only
- *   fetches the branch.
+ *   is the version the release gets: release-check makes a release PR's or
+ *   hotfix's entry the next version, and the deploy tags it. If a deploy
+ *   ever falls back to another tag (its run warns why), the menu still
+ *   shows the entry's version. The tag itself can't be read here: GitHub
+ *   creates it after the deploy, and the server only fetches the branch.
  * - commit: the checked-out commit, read from .git with plain file reads,
  *   never by running git (shared hosting may block it, and it would cost a
  *   process per page).
