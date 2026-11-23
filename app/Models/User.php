@@ -17,7 +17,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
-#[Fillable(['username', 'name', 'employee_id', 'email', 'phone', 'password', 'must_change_password', 'is_active', 'auth_provider', 'provider_id', 'tasks_per_page'])]
+#[Fillable(['username', 'name', 'employee_id', 'email', 'phone', 'password', 'must_change_password', 'is_active', 'auth_provider', 'provider_id', 'tasks_per_page', 'kanban_open_lanes'])]
 #[Hidden(['password'])]
 class User extends Authenticatable
 {
@@ -31,6 +31,8 @@ class User extends Authenticatable
             'must_change_password' => 'boolean',
             'is_active' => 'boolean',
             'tasks_per_page' => 'integer',
+            // SOL-0025 phase 2: {"<organization_id>": [<project_id>, ...]}.
+            'kanban_open_lanes' => 'array',
         ];
     }
 

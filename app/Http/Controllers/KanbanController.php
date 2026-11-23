@@ -11,12 +11,15 @@ use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -48,6 +51,12 @@ class KanbanController extends Controller
      * read twice is simply replaced with itself.
      */
     public const CHANGES_OVERLAP_SECONDS = 10;
+
+    /**
+     * SOL-0025 phase 2: the most open lanes saved per company. Ids past it
+     * are dropped, not refused.
+     */
+    public const OPEN_LANES_LIMIT = 200;
 
     public function __invoke(?Organization $organization = null): View
     {
@@ -84,6 +93,7 @@ class KanbanController extends Controller
         $visible = Task::visibleTo($user, $organization->id);
         $since = $this->completedWindowStartFor($organization);
         $summary = $this->laneSummaries($visible, $since);
+        $savedLaneIds = $this->savedOpenLaneIds($user, $organization);
 
         return view('kanban', [
             'organizations' => $organizations,
@@ -104,7 +114,93 @@ class KanbanController extends Controller
             'returnTo' => route('kanban', $organization),
             'cursor' => $cursor,
             'showAllCompleted' => $since === null,
+            // SOL-0025 phase 2: the lanes this user left open in this
+            // company that are on the board now, in lane order; the script
+            // opens them. From the user already loaded, so no query.
+            'openLaneIds' => $summary['lanes']->pluck('id')->intersect($savedLaneIds)->values()->all(),
+            // Every id saved for this company, those with no lane now
+            // included: the script sends them back with each save, so a
+            // lane that disappears and comes back reopens.
+            'savedLaneIds' => $savedLaneIds,
         ]);
+    }
+
+    /**
+     * SOL-0025 phase 2: saves which lanes the user has open in this
+     * company: the complete list, sent by the board (debounced) after the
+     * user opens or closes lanes. Only the caller's own setting, and only
+     * this company's key; other companies' lists are left as they are.
+     *
+     * Stale or odd ids are cleaned, never refused: only positive whole
+     * numbers, unique, of this company's projects (whether or not they
+     * have a lane now: a lane can disappear and come back), the first
+     * OPEN_LANES_LIMIT of them. Only project_ids missing or not an array is
+     * a 422. Nothing is written when the list is the one already saved.
+     *
+     * Two tabs on the same board each send their own full list, so the
+     * last save wins. That's acceptable for a convenience setting. Saves
+     * for different companies don't clash: each changes only its own key,
+     * under a lock on the user's row.
+     *
+     * The board sends the lanes open on the page first, then saved ids of
+     * lanes not on it now, so the limit drops those first.
+     */
+    public function saveOpenLanes(Organization $organization): Response
+    {
+        $this->authorizeBoard($organization);
+
+        $projectIds = request()->validate(['project_ids' => ['present', 'array']])['project_ids'];
+
+        $ids = [];
+        foreach ($projectIds as $id) {
+            if (is_int($id) && $id > 0) {
+                $ids[] = $id;
+            } elseif (is_string($id) && ctype_digit($id) && (int) $id > 0) {
+                $ids[] = (int) $id;
+            }
+        }
+        // Capped before the query too, so a huge body can't make it huge.
+        $ids = array_slice(array_values(array_unique($ids)), 0, self::OPEN_LANES_LIMIT * 5);
+
+        if ($ids !== []) {
+            $ours = Project::withoutGlobalScope('organization')
+                ->where('organization_id', $organization->id)
+                ->whereIn('id', $ids)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+            $ids = array_slice(array_values(array_intersect($ids, $ours)), 0, self::OPEN_LANES_LIMIT);
+        }
+
+        // The column holds every company's list, and this changes one key
+        // of it: read and write under a lock on the user's row, so saves
+        // for two companies at once (two tabs) can't drop each other's.
+        DB::transaction(function () use ($organization, $ids) {
+            $user = User::whereKey(auth()->id())->lockForUpdate()->firstOrFail(['id', 'kanban_open_lanes']);
+
+            $current = $this->savedOpenLaneIds($user, $organization);
+            $sortedNew = $ids;
+            sort($sortedNew);
+            sort($current);
+            if ($sortedNew === $current) {
+                return;
+            }
+
+            $saved = is_array($user->kanban_open_lanes) ? $user->kanban_open_lanes : [];
+            if ($ids === []) {
+                unset($saved[$organization->id]);
+            } else {
+                $saved[$organization->id] = $ids;
+            }
+            $user->kanban_open_lanes = $saved === [] ? null : $saved;
+            $user->save();
+
+            // The signed-in user model of this request, in step with what
+            // was saved.
+            auth()->user()->forceFill(['kanban_open_lanes' => $user->kanban_open_lanes])->syncOriginalAttribute('kanban_open_lanes');
+        });
+
+        return response()->noContent();
     }
 
     /**
@@ -412,6 +508,20 @@ class KanbanController extends Controller
         }
 
         return ['counts' => $counts, 'totals' => $companyTotals, 'older' => $companyOlder];
+    }
+
+    /**
+     * SOL-0025 phase 2: the project ids the user saved as open in this
+     * company (none when never saved).
+     *
+     * @return list<int>
+     */
+    private function savedOpenLaneIds(User $user, Organization $organization): array
+    {
+        $saved = is_array($user->kanban_open_lanes) ? $user->kanban_open_lanes : [];
+        $ids = $saved[$organization->id] ?? [];
+
+        return is_array($ids) ? array_values(array_map('intval', $ids)) : [];
     }
 
     /**

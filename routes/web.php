@@ -55,6 +55,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/kanban/{organization}/changes', [KanbanController::class, 'changes'])->name('kanban.changes');
     // SOL-0025: one project lane's cards, when the lane is opened.
     Route::get('/kanban/{organization}/projects/{project}', [KanbanController::class, 'project'])->name('kanban.project');
+    // SOL-0025 phase 2: the lanes this user has open, saved per company.
+    Route::put('/kanban/{organization}/open-lanes', [KanbanController::class, 'saveOpenLanes'])->name('kanban.open-lanes');
     Route::get('/calendar/{organization?}', CalendarController::class)->name('calendar');
     Route::get('/settings', SettingsController::class)->name('settings.index');
     // task #124: the release notes, read from resources/release-notes.json.

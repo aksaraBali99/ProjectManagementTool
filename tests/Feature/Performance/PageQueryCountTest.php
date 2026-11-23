@@ -436,6 +436,38 @@ test('Kanban (SOL-0025): the board page renders no cards, and the same number of
         ->and($small)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
 })->with(['management', 'staff']);
 
+test('Kanban (SOL-0025 phase 2): the board page runs the same queries with 0 or 20 saved open lanes', function (string $who) {
+    // The saved lanes are a column on the user already loaded: opening
+    // them is the script's job (through kanban.project), not the page's.
+    $user = $this->{$who};
+    $projectIds = [];
+    foreach (range(1, 20) as $i) {
+        $project = Project::create(['organization_id' => $this->org->id, 'name' => 'Lane '.$i, 'description' => 'd']);
+        makePlainKanbanTasks($this, 1, 'pending', $project);
+        $projectIds[] = $project->id;
+    }
+    $measure = function () use ($user, &$html) {
+        return countRequestQueries(function () use ($user, &$html) {
+            $html = $this->actingAs($user->fresh())->get(route('kanban', $this->org, false))->assertOk()->getContent();
+        });
+    };
+
+    // Warm-up request: the first request in a test pays one-off cache
+    // misses the measured ones don't.
+    $measure();
+    $none = $measure();
+
+    $user->forceFill(['kanban_open_lanes' => [(string) $this->org->id => $projectIds]])->save();
+    $twenty = $measure();
+
+    // All 20 passed to the script (in lane order, which is by name).
+    preg_match('/data-open-lanes="([^"]*)"/', $html, $open);
+    expect(json_decode(html_entity_decode($open[1]), true))->toEqualCanonicalizing($projectIds)
+        ->and(substr_count($html, 'class="kanban-card '))->toBe(0)
+        ->and($twenty)->toBe($none)
+        ->and($twenty)->toBeLessThanOrEqual(PAGE_QUERY_TARGET);
+})->with(['management', 'staff']);
+
 test('Kanban lane (SOL-0025): the same number of queries for a project of 30 or 300 tasks, 30 cards per full status', function (string $who) {
     $url = route('kanban.project', [$this->org, $this->project], false);
     $user = $this->{$who};
