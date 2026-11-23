@@ -6,9 +6,9 @@ use App\Models\Role;
 use App\Models\User;
 
 /**
- * SOL-0028: the sidebar shows the version next to "Solava": the release on
- * PROD, the environment and commit elsewhere. A link to the Release notes
- * page for the owner and super_admin, plain text for everyone else.
+ * SOL-0028: the sidebar shows the version under "Solava": v2026.11.2 on
+ * PROD, [DEV] v2026.11.2 elsewhere. A link to the Release notes page for the
+ * owner and super_admin, plain text for everyone else; no tooltip.
  */
 beforeEach(function () {
     $this->owner = createOwner();
@@ -22,7 +22,7 @@ afterEach(function () {
     $this->app['env'] = $this->previousEnv;
 });
 
-/** The page's version element: its tag (a or span) and attributes, and label. */
+/** The page's version element: its tag (a or span), attributes and label. */
 function sidebarVersion(string $html): ?array
 {
     if (! preg_match('/<(a|span)\s([^>]*data-app-version[^>]*)>([^<]*)<\/\1>/', $html, $match)) {
@@ -32,14 +32,14 @@ function sidebarVersion(string $html): ?array
     return ['tag' => $match[1], 'attributes' => $match[2], 'label' => $match[3]];
 }
 
-function onEnvironment(object $context, string $env, ?string $version, ?string $commit): void
+function onEnvironment(string $env, ?string $version): void
 {
     app()['env'] = $env;
-    config(['solava.build' => ['version' => $version, 'commit' => $commit]]);
+    config(['solava.version' => $version]);
 }
 
-test('production: a plain member sees the release number next to Solava, not as a link', function () {
-    onEnvironment($this, 'production', 'v2026.11.2', 'a13a163');
+test('production: a plain member sees the release number under Solava, as plain text', function () {
+    onEnvironment('production', 'v2026.11.2');
 
     $html = $this->actingAs($this->member)->get(route('dashboard'))->assertOk()->getContent();
     $version = sidebarVersion($html);
@@ -47,55 +47,55 @@ test('production: a plain member sees the release number next to Solava, not as 
     expect($version)->not->toBeNull()
         ->and($version['tag'])->toBe('span')
         ->and($version['label'])->toBe('v2026.11.2')
-        ->and($version['attributes'])->toContain('title="Release v2026.11.2 · commit a13a163"')
-        ->toContain('text-gray-400')
-        ->not->toContain('bg-amber-50');
-    expect($html)->toMatch('/<span class="text-sm font-medium text-gray-900">Solava<\/span>\s*<span[^>]*data-app-version/')
-        ->not->toContain('href="'.route('release-notes.index').'" class="min-w-0');
+        ->and($version['attributes'])->toContain('text-gray-400')->toContain('whitespace-nowrap')
+        ->not->toContain('bg-amber-50')->not->toContain('title=')->not->toContain('truncate');
+    // Under the name, in the column wrapper.
+    expect($html)->toMatch('/<div class="flex min-w-0 flex-col justify-center leading-tight">\s*<span class="text-sm font-medium text-gray-900">Solava<\/span>\s*<span[^>]*data-app-version/');
 });
 
 test('production: the owner and a super_admin see it as a link to the Release notes page', function (string $who) {
-    onEnvironment($this, 'production', 'v2026.11.2', 'a13a163');
+    onEnvironment('production', 'v2026.11.2');
     $user = $who === 'owner' ? $this->owner : tap(User::factory()->create(), fn (User $u) => $u->roles()->attach(Role::where('slug', 'super_admin')->firstOrFail()->id));
 
     $version = sidebarVersion($this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent());
 
     expect($version['tag'])->toBe('a')
+        ->and($version['label'])->toBe('v2026.11.2')
         ->and($version['attributes'])->toContain('href="'.route('release-notes.index').'"')
         ->toContain('hover:text-gray-700')
-        ->and($version['label'])->toBe('v2026.11.2');
+        ->not->toContain('title=');
 })->with(['owner', 'super_admin']);
 
-test('production without a version shows the commit', function () {
-    onEnvironment($this, 'production', null, 'a13a163');
-
-    $version = sidebarVersion($this->actingAs($this->member)->get(route('dashboard'))->getContent());
-
-    expect($version['label'])->toBe('a13a163')
-        ->and($version['attributes'])->toContain('title="commit a13a163"');
-});
-
-test('dev: the environment and commit in an amber pill, and the tooltip names the release notes entry', function () {
-    onEnvironment($this, 'dev', 'v2026.11.2', 'a13a163');
+test('dev: [DEV] and the version in an amber pill, and the owner\'s link stays amber on hover', function () {
+    onEnvironment('dev', 'v2026.11.2');
 
     $version = sidebarVersion($this->actingAs($this->owner)->get(route('dashboard'))->getContent());
 
-    expect($version['label'])->toBe('dev · a13a163')
-        ->and($version['attributes'])->toContain('title="Newest release notes entry: v2026.11.2 · commit a13a163 · APP_ENV dev"')
-        ->toContain('bg-amber-50')->toContain('text-amber-700');
+    expect($version['label'])->toBe('[DEV] v2026.11.2')
+        ->and($version['attributes'])->toContain('bg-amber-50')->toContain('text-amber-700')->toContain('px-1 ')
+        ->toContain('hover:text-amber-900')
+        ->not->toContain('hover:text-gray-700')->not->toContain('title=');
 });
 
-test('local without a git checkout: just the environment', function () {
-    onEnvironment($this, 'local', 'v2026.11.2', null);
+test('local: [LOCAL] and the version', function () {
+    onEnvironment('local', 'v2026.11.2');
 
     $version = sidebarVersion($this->actingAs($this->member)->get(route('dashboard'))->getContent());
 
-    expect($version['label'])->toBe('local')
-        ->and($version['attributes'])->toContain('title="Newest release notes entry: v2026.11.2 · APP_ENV local"');
+    expect($version['label'])->toBe('[LOCAL] v2026.11.2')
+        ->and($version['attributes'])->not->toContain('title=');
 });
 
-test('production with neither a version nor a commit: the page renders with no version element', function () {
-    onEnvironment($this, 'production', null, null);
+test('dev without a version: just [DEV]', function () {
+    onEnvironment('dev', null);
+
+    $version = sidebarVersion($this->actingAs($this->member)->get(route('dashboard'))->getContent());
+
+    expect($version['label'])->toBe('[DEV]');
+});
+
+test('production without a version: the page renders with no version element', function () {
+    onEnvironment('production', null);
 
     $html = $this->actingAs($this->owner)->get(route('dashboard'))->assertOk()->getContent();
 
@@ -104,7 +104,7 @@ test('production with neither a version nor a commit: the page renders with no v
 });
 
 test('the version is escaped', function () {
-    onEnvironment($this, 'production', '<script>alert(1)</script>', 'a13a163');
+    onEnvironment('production', '<script>alert(1)</script>');
 
     $html = $this->actingAs($this->member)->get(route('dashboard'))->getContent();
 
@@ -113,7 +113,7 @@ test('the version is escaped', function () {
 });
 
 test('the login page shows no version', function () {
-    onEnvironment($this, 'production', 'v2026.11.2', 'a13a163');
+    onEnvironment('production', 'v2026.11.2');
 
     expect($this->get(route('login'))->assertOk()->getContent())->not->toContain('data-app-version');
 });
