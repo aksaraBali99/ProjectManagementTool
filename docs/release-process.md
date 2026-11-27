@@ -14,7 +14,7 @@ The moving parts:
 | `.github/workflows/deploy.yml` | On a push to main or production: CI, then deploy over SSH, smoke test, and (PROD) tag + Release. Also *Run workflow* by hand. |
 | `.github/workflows/release-check.yml` | On PRs into production: the required `release-check` check (source branch, checklist, drift), plus the job summary to paste into the PR. Also labels release and back-merge PRs `release`. |
 | `deploy.sh` | Runs on the server. Pre-flight checks, then (PROD) maintenance mode on and a backup, then fast-forward, composer, migrate, caches, and maintenance mode off. |
-| `php artisan solva:db-backup` | The gzipped database dump every PROD deploy takes with the site down, just before the pull, in `storage/app/backups` (5 kept). Each file is read back and checked before older ones are deleted. |
+| `php artisan solava:db-backup` | The gzipped database dump every PROD deploy takes with the site down, just before the pull, in `storage/app/backups` (5 kept). Each file is read back and checked before older ones are deleted. Called `solva:db-backup` before SOL-0013; that name still works, and `deploy.sh` uses whichever name the checkout on the server has. |
 | `.github/PULL_REQUEST_TEMPLATE/release.md` | The release PR template. |
 | `.github/scripts/*.sh` | Version number, task list, release checks and release notes checks (the release notes ones need `jq`), deploy config check, the command sent to the server and the check of the gate's `ping` answer, tested by `tests/scripts/run.sh`. |
 | `server/solava-gate.sh` | The SSH deploy gate (section 8): the only thing the restricted deploy keys can run on the server. Copied there by hand; tested by `tests/scripts/run.sh`. |
@@ -159,7 +159,7 @@ When ready: Settings > Secrets and variables > Actions > Variables > New reposit
 
 ### First release (once only)
 
-PROD's current checkout is older than `solva:db-backup`. On the very first release, the deploy's backup step stops it with "no 'solva:db-backup' command yet", before changing anything. For that one release:
+PROD's current checkout is older than `solava:db-backup`. On the very first release, the deploy's backup step stops it with "no 'solava:db-backup' command yet", before changing anything. For that one release:
 
 1. Add its release notes entry first, as `v2026.11.1` (section 2, step 1): everything on main since the commit live on PROD. Then merge the release PR as usual (section 2). The Deploy run waits for your approval. **Don't approve yet.**
 2. Check the latest hPanel backup completed (or take one in hPanel > Files > Backups).

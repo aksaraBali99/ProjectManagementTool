@@ -4,11 +4,12 @@ use App\Models\AuditLog;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 test('a fresh environment seeds reference data and creates one owner holding both global roles', function () {
-    $this->artisan('solva:bootstrap')
+    $this->artisan('solava:bootstrap')
         ->expectsQuestion('Username', 'jowner')
         ->expectsQuestion('Full Name', 'Jane Owner')
         ->expectsQuestion('Employee ID (leave blank to auto-generate)', '')
@@ -32,7 +33,7 @@ test('a fresh environment seeds reference data and creates one owner holding bot
 });
 
 test('running the command twice does not duplicate roles/permissions and does not silently create a second owner', function () {
-    $this->artisan('solva:bootstrap')
+    $this->artisan('solava:bootstrap')
         ->expectsQuestion('Username', 'first.owner')
         ->expectsQuestion('Full Name', 'First Owner')
         ->expectsQuestion('Employee ID (leave blank to auto-generate)', '')
@@ -49,7 +50,7 @@ test('running the command twice does not duplicate roles/permissions and does no
 
     // Second run — declines the "add another owner?" prompt, so the
     // command never even reaches the owner-detail questions.
-    $this->artisan('solva:bootstrap')
+    $this->artisan('solava:bootstrap')
         ->expectsConfirmation('Are you sure you want to add another owner account?', 'no')
         ->assertExitCode(0);
 
@@ -60,7 +61,7 @@ test('running the command twice does not duplicate roles/permissions and does no
 });
 
 test('explicitly confirming "yes" on a second run does create a second owner', function () {
-    $this->artisan('solva:bootstrap')
+    $this->artisan('solava:bootstrap')
         ->expectsQuestion('Username', 'first.owner')
         ->expectsQuestion('Full Name', 'First Owner')
         ->expectsQuestion('Employee ID (leave blank to auto-generate)', '')
@@ -70,7 +71,7 @@ test('explicitly confirming "yes" on a second run does create a second owner', f
         ->expectsConfirmation('Create this owner account?', 'yes')
         ->assertExitCode(0);
 
-    $this->artisan('solva:bootstrap')
+    $this->artisan('solava:bootstrap')
         ->expectsConfirmation('Are you sure you want to add another owner account?', 'yes')
         ->expectsQuestion('Username', 'second.owner')
         ->expectsQuestion('Full Name', 'Second Owner')
@@ -86,7 +87,7 @@ test('explicitly confirming "yes" on a second run does create a second owner', f
 });
 
 test('a weak password is rejected and re-prompted rather than accepted silently', function () {
-    $this->artisan('solva:bootstrap')
+    $this->artisan('solava:bootstrap')
         ->expectsQuestion('Username', 'jowner')
         ->expectsQuestion('Full Name', 'Jane Owner')
         ->expectsQuestion('Employee ID (leave blank to auto-generate)', '')
@@ -103,7 +104,7 @@ test('a weak password is rejected and re-prompted rather than accepted silently'
 test('an already-taken username or email fails clearly instead of creating a duplicate', function () {
     User::factory()->create(['username' => 'taken', 'email' => 'taken@example.com']);
 
-    $this->artisan('solva:bootstrap')
+    $this->artisan('solava:bootstrap')
         ->expectsQuestion('Username', 'taken')
         ->expectsQuestion('Full Name', 'Someone Else')
         ->expectsQuestion('Employee ID (leave blank to auto-generate)', '')
@@ -115,7 +116,7 @@ test('an already-taken username or email fails clearly instead of creating a dup
 });
 
 test('declining the final confirmation creates no owner account', function () {
-    $this->artisan('solva:bootstrap')
+    $this->artisan('solava:bootstrap')
         ->expectsQuestion('Username', 'jowner')
         ->expectsQuestion('Full Name', 'Jane Owner')
         ->expectsQuestion('Employee ID (leave blank to auto-generate)', '')
@@ -136,7 +137,7 @@ test('declining the final confirmation creates no owner account', function () {
 test('--reset-owner lists existing owner/super_admin accounts', function () {
     $owner = createOwner();
 
-    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+    $this->artisan('solava:bootstrap', ['--reset-owner' => true])
         ->expectsOutputToContain("[1] {$owner->username} — {$owner->name} <{$owner->email}> (Owner)")
         ->expectsQuestion('Which account do you want to reset? Enter the number.', '1')
         ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
@@ -149,7 +150,7 @@ test('selecting an account, providing a valid confirmed new password, and confir
     $owner = createOwner()->refresh();
     expect($owner->must_change_password)->toBeFalse();
 
-    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+    $this->artisan('solava:bootstrap', ['--reset-owner' => true])
         ->expectsQuestion('Which account do you want to reset? Enter the number.', '1')
         ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
         ->expectsQuestion('Confirm new password (hidden input)', 'N3wStr0ng!Pass')
@@ -164,7 +165,7 @@ test('selecting an account, providing a valid confirmed new password, and confir
 test('resetting a password writes an audit_log entry tagged as a CLI recovery action', function () {
     $owner = createOwner();
 
-    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+    $this->artisan('solava:bootstrap', ['--reset-owner' => true])
         ->expectsQuestion('Which account do you want to reset? Enter the number.', '1')
         ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
         ->expectsQuestion('Confirm new password (hidden input)', 'N3wStr0ng!Pass')
@@ -179,14 +180,14 @@ test('resetting a password writes an audit_log entry tagged as a CLI recovery ac
     expect($entry->user_id)->toBeNull();
     expect($entry->organization_id)->toBeNull();
     expect($entry->changes['source'])->toBe('cli_recovery');
-    expect($entry->changes['triggered_from'])->toBe('solva:bootstrap --reset-owner');
+    expect($entry->changes['triggered_from'])->toBe('solava:bootstrap --reset-owner');
 });
 
 test('mismatched password confirmation is rejected — only a matching pair is ever applied', function () {
     $owner = createOwner();
     $originalPasswordHash = $owner->password;
 
-    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+    $this->artisan('solava:bootstrap', ['--reset-owner' => true])
         ->expectsQuestion('Which account do you want to reset? Enter the number.', '1')
         ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
         ->expectsQuestion('Confirm new password (hidden input)', 'DoesNotMatch!1')
@@ -207,7 +208,7 @@ test('typing anything other than RESET at the final confirmation aborts without 
     $owner = createOwner();
     $originalPasswordHash = $owner->password;
 
-    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+    $this->artisan('solava:bootstrap', ['--reset-owner' => true])
         ->expectsQuestion('Which account do you want to reset? Enter the number.', '1')
         ->expectsQuestion('New password (hidden input)', 'N3wStr0ng!Pass')
         ->expectsQuestion('Confirm new password (hidden input)', 'N3wStr0ng!Pass')
@@ -221,8 +222,13 @@ test('typing anything other than RESET at the final confirmation aborts without 
 });
 
 test('--reset-owner explains clearly when no owner/super_admin account exists, and cannot create one', function () {
-    $this->artisan('solva:bootstrap', ['--reset-owner' => true])
+    $this->artisan('solava:bootstrap', ['--reset-owner' => true])
         ->assertExitCode(1);
 
     expect(User::count())->toBe(0);
+});
+
+test('the command still answers to its old name, solva:bootstrap (SOL-0013)', function () {
+    expect(Artisan::all())->toHaveKey('solva:bootstrap');
+    expect(Artisan::all()['solva:bootstrap']->getName())->toBe('solava:bootstrap');
 });

@@ -13,7 +13,7 @@
 #   --expect-sha   the commit to deploy; origin/<branch> must be exactly it
 #   --expect-env   this server's APP_ENV, so a deploy can't hit the wrong server
 #   --maintenance  site down (php artisan down) from before the backup until the caches are rebuilt
-#   --backup       php artisan solva:db-backup before the pull (after "down" with --maintenance)
+#   --backup       php artisan solava:db-backup before the pull (after "down" with --maintenance)
 #   --dry-run      print what would be deployed, change nothing
 #
 # By hand, for the commit at the tip of the branch:
@@ -123,11 +123,20 @@ ${actual_env}"
         return 0
     fi
 
+    # The backup runs before the pull, so on the code already checked out:
+    # its name is whichever that checkout has. SOL-0013 renamed
+    # solva:db-backup to solava:db-backup, so the first release after the
+    # rename still finds the old name on the server.
+    local backup_command=""
     if ((backup)); then
         local commands
         commands=$(php artisan list --raw --no-interaction </dev/null) || preflight_fail "'php artisan list' failed."
-        if ! grep -q '^solva:db-backup ' <<<"$commands"; then
-            preflight_fail "--backup asked for, but this checkout has no 'solva:db-backup' command yet (the first release after task #119). See 'First release' in docs/release-process.md."
+        if grep -q '^solava:db-backup ' <<<"$commands"; then
+            backup_command="solava:db-backup"
+        elif grep -q '^solva:db-backup ' <<<"$commands"; then
+            backup_command="solva:db-backup"
+        else
+            preflight_fail "--backup asked for, but this checkout has no 'solava:db-backup' command yet (the first release after task #119). See 'First release' in docs/release-process.md."
         fi
     fi
 
@@ -147,7 +156,7 @@ ${actual_env}"
 
     if ((backup)); then
         echo "==> Backing up the database"
-        if ! php artisan solva:db-backup --no-interaction </dev/null; then
+        if ! php artisan "$backup_command" --no-interaction </dev/null; then
             backup_failed
         fi
     fi

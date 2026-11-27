@@ -20,7 +20,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * Builds the live Import template as a PhpSpreadsheet Spreadsheet — pulls
  * current DB state at generation time rather than shipping a static file.
  * Structure (tab order, header/legend rows, frozen panes, dropdown source
- * ranges) mirrors docs/Reference/Solva_Import_Template.xlsx, which was
+ * ranges) mirrors docs/Reference/Solava_Import_Template.xlsx, which was
  * inspected directly (unzipped, raw XML read) to confirm the exact layout;
  * this class replaces that file's placeholder content with real data.
  *

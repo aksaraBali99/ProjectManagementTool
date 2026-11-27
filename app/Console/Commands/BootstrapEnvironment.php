@@ -32,8 +32,17 @@ use Illuminate\Validation\Validator as ValidatorContract;
  */
 class BootstrapEnvironment extends Command
 {
-    protected $signature = 'solva:bootstrap
+    protected $signature = 'solava:bootstrap
         {--reset-owner : Break-glass recovery — reset an existing Owner/Super Admin\'s password instead of creating a new account}';
+
+    /**
+     * SOL-0013: the command's name before the app was spelled Solava.
+     * Kept so runbooks, notes and older deploy scripts that use it still
+     * work.
+     *
+     * @var array<int, string>
+     */
+    protected $aliases = ['solva:bootstrap'];
 
     protected $description = 'Seeds reference data (roles + permissions) and creates exactly one Owner account — no companies, departments, projects, or test users.';
 
@@ -48,7 +57,7 @@ class BootstrapEnvironment extends Command
             return $this->handleResetOwner();
         }
 
-        $this->info('Solva environment bootstrap');
+        $this->info('Solava environment bootstrap');
         $this->line('Seeds the 5 system roles + permissions, then creates one Owner account. Never touches companies, departments, projects, or tasks.');
         $this->newLine();
 
@@ -250,7 +259,7 @@ class BootstrapEnvironment extends Command
      */
     private function handleResetOwner(): int
     {
-        $this->info('Solva owner recovery — reset an existing Owner/Super Admin\'s password');
+        $this->info('Solava owner recovery — reset an existing Owner/Super Admin\'s password');
         $this->line('This resets the password on an EXISTING account. It cannot create a new owner.');
         $this->newLine();
 
@@ -261,7 +270,7 @@ class BootstrapEnvironment extends Command
 
         if ($candidates->isEmpty()) {
             $this->error('No account currently holds the Owner or Super Admin role — there is nothing to reset.');
-            $this->line('Run "php artisan solva:bootstrap" without --reset-owner to create the first owner instead.');
+            $this->line('Run "php artisan solava:bootstrap" without --reset-owner to create the first owner instead.');
 
             return self::FAILURE;
         }
@@ -372,7 +381,7 @@ class BootstrapEnvironment extends Command
                 'entity_id' => $target->id,
                 'changes' => [
                     'source' => 'cli_recovery',
-                    'triggered_from' => 'solva:bootstrap --reset-owner',
+                    'triggered_from' => 'solava:bootstrap --reset-owner',
                 ],
             ]);
         });

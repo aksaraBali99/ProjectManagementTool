@@ -42,7 +42,7 @@ use Illuminate\Support\Facades\DB;
  * Writes go through the query builder: no model events, so no per-task
  * audit rows or notifications, and updated_at stays as it was. A real run
  * that writes anything adds ONE summary audit row
- * (tasks.completed_at_backfilled), like solva:bootstrap --reset-owner's
+ * (tasks.completed_at_backfilled), like solava:bootstrap --reset-owner's
  * CLI entry: no user, and no company unless --organization was given.
  */
 class BackfillTaskCompletedAt extends Command
