@@ -114,9 +114,12 @@
 
                 <div id="subtask-rows" class="mt-2 space-y-2">
                     @foreach (old('subtasks', []) as $index => $staged)
+                        {{-- SOL-0022: a refused description shows under its own
+                             subtask, with that row's description opened. --}}
+                        @php $descriptionError = $errors->first("subtasks.{$index}.description"); @endphp
                         <div data-subtask-row>
                             <div class="flex items-center gap-2">
-                                <button type="button" class="subtask-desc-toggle text-[11px] text-gray-500 hover:text-gray-700" title="Description">+</button>
+                                <button type="button" class="subtask-desc-toggle text-[11px] text-gray-500 hover:text-gray-700" title="Description">{{ $descriptionError ? '−' : '+' }}</button>
                                 <input type="checkbox" disabled class="rounded border-gray-300 text-gray-300">
                                 <input type="text" name="subtasks[{{ $index }}][title]" value="{{ $staged['title'] ?? '' }}" placeholder="Subtask title"
                                     class="subtask-title-input flex-1 rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
@@ -127,9 +130,12 @@
                                     class="subtask-due-date w-32 shrink-0 rounded-md border border-gray-300 px-1.5 py-2 text-[11px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
                                 <button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Remove</button>
                             </div>
-                            <div class="subtask-description-row mt-1 pl-5" style="display: none;">
-                                <textarea name="subtasks[{{ $index }}][description]" rows="2" placeholder="Description"
-                                    class="block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">{{ $staged['description'] ?? '' }}</textarea>
+                            <div class="subtask-description-row mt-1 pl-5" @unless ($descriptionError) style="display: none;" @endunless>
+                                <textarea name="subtasks[{{ $index }}][description]" rows="2" placeholder="Description" maxlength="{{ \App\Models\Subtask::MAX_DESCRIPTION_LENGTH }}"
+                                    class="block w-full rounded-md border {{ $descriptionError ? 'border-red-500' : 'border-gray-300' }} px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">{{ $staged['description'] ?? '' }}</textarea>
+                                @if ($descriptionError)
+                                    <p class="mt-1 text-[10px] text-red-600">{{ $descriptionError }}</p>
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -261,7 +267,7 @@
                         + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Remove</button>'
                         + '</div>'
                         + '<div class="subtask-description-row mt-1 pl-5" style="display: none;">'
-                        + '<textarea name="subtasks[' + index + '][description]" rows="2" placeholder="Description" class="block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>'
+                        + '<textarea name="subtasks[' + index + '][description]" rows="2" placeholder="Description" maxlength="{{ \App\Models\Subtask::MAX_DESCRIPTION_LENGTH }}" class="block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>'
                         + '</div>';
                     subtaskRows.appendChild(row);
 

@@ -194,3 +194,33 @@ test('the task page shows the rich description, with the pencil only for someone
 test('the length cap fits the TEXT column at 4 bytes a character', function () {
     expect(Subtask::MAX_DESCRIPTION_LENGTH * 4)->toBeLessThanOrEqual(65_535);
 });
+
+test('on Add Task, a refused subtask description shows under that subtask, with its row open', function () {
+    $html = $this->actingAs($this->management)
+        ->from('/tasks/create')
+        ->followingRedirects()
+        ->post('/tasks', [
+            'project_id' => $this->project->id,
+            'department_id' => $this->dept->id,
+            'title' => 'With subtasks',
+            'priority' => 'medium',
+            'status' => 'pending',
+            'subtasks' => [
+                ['title' => 'Fine one', 'assignee_id' => '', 'due_date' => '', 'description' => 'ok'],
+                ['title' => 'Long one', 'assignee_id' => '', 'due_date' => '', 'description' => str_repeat('a', Subtask::MAX_DESCRIPTION_LENGTH + 1)],
+            ],
+        ])->getContent();
+
+    $dom = new DOMDocument;
+    @$dom->loadHTML($html);
+    $rows = (new DOMXPath($dom))->query("//div[@id='subtask-rows']/div[@data-subtask-row]");
+    expect($rows->length)->toBe(2);
+
+    $longRow = $dom->saveHTML($rows->item(1));
+    expect($longRow)->toContain(Subtask::TOO_LONG_MESSAGE);
+    expect($longRow)->not->toMatch('/subtask-description-row[^>]*display: none/');
+
+    $fineRow = $dom->saveHTML($rows->item(0));
+    expect($fineRow)->not->toContain(Subtask::TOO_LONG_MESSAGE);
+    expect($fineRow)->toMatch('/subtask-description-row[^>]*display: none/');
+});

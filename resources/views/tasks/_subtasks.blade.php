@@ -272,11 +272,34 @@
             // briefly takes focus out of the editor, which counts as
             // clicking away; saving then would store the placeholder and
             // close the editor before the swap. So a save waits for every
-            // link to resolve, then goes ahead only if focus has really
-            // left; if the user is still typing, a later click-away saves.
+            // link to resolve, then goes ahead if focus has really left or
+            // Ctrl/Cmd+Enter was pressed; if the user is still typing, a
+            // later click-away saves.
             const RESOLVING_LINK = 'Resolving link… ';
+            // Ctrl/Cmd+Enter was pressed while a link was resolving: save
+            // once it has, wherever focus is.
+            let submitWhenResolved = false;
 
-            function saveOnceLinksResolve() {
+            // Has focus really left this editor? The emoji picker and the
+            // image alt-text box are added to <body>, not inside the
+            // editor, so they count as inside: the same list as the
+            // editor's own isBlurSettled() (rich-text-editor.js).
+            function focusIsOutside() {
+                const active = document.activeElement;
+                if (! active || active === document.body) return true;
+                if (editRoot && editRoot.contains(active)) return false;
+                return ! (active.closest && active.closest('.rte-emoji-picker, .rte-alt-edit-btn, .rte-alt-prompt'));
+            }
+
+            function currentHtml() {
+                return editor.isEmpty() ? '' : editor.getHTML();
+            }
+
+            // The editor swaps every placeholder within 15 seconds; 20 is
+            // only reached if the text itself contains the placeholder
+            // words, and then it saves as it is rather than waiting forever.
+            function saveOnceLinksResolve(submitted) {
+                if (submitted) submitWhenResolved = true;
                 if (waitingForLinks) return;
                 waitingForLinks = true;
                 const started = Date.now();
@@ -284,12 +307,16 @@
                     if (! editor) {
                         clearInterval(timer);
                         waitingForLinks = false;
+                        submitWhenResolved = false;
                         return;
                     }
-                    if (editor.getHTML().includes(RESOLVING_LINK) && Date.now() - started < 20000) return;
+                    const timedOut = Date.now() - started >= 20000;
+                    if (currentHtml().includes(RESOLVING_LINK) && ! timedOut) return;
                     clearInterval(timer);
                     waitingForLinks = false;
-                    if (! editRoot.contains(document.activeElement)) save();
+                    const submitted = submitWhenResolved;
+                    submitWhenResolved = false;
+                    if (submitted || focusIsOutside()) save(submitted, timedOut);
                 }, 250);
             }
 
@@ -301,11 +328,13 @@
                 viewRow.style.display = '';
             }
 
-            function save() {
+            // submitted: from Ctrl/Cmd+Enter. ignoreResolving: the wait for
+            // links timed out (see saveOnceLinksResolve()).
+            function save(submitted, ignoreResolving) {
                 if (! editor || saving) return;
-                const html = editor.isEmpty() ? '' : editor.getHTML();
-                if (html.includes(RESOLVING_LINK)) {
-                    saveOnceLinksResolve();
+                const html = currentHtml();
+                if (html.includes(RESOLVING_LINK) && ! ignoreResolving) {
+                    saveOnceLinksResolve(submitted);
                     return;
                 }
                 if (html === initialHtml) {
@@ -318,9 +347,17 @@
                     .then(function (response) { return response.json(); })
                     .then(function (data) {
                         viewRow.dataset.rawHtml = data.description_html || '';
-                        close();
                         renderDescription(holder, data.description_html || '');
                         showFeedback(row, 'Saved');
+                        // Typed more while it was saving (focus stays in the
+                        // editor after Ctrl/Cmd+Enter): keep the editor open
+                        // with that text, so the next click-away saves it,
+                        // rather than closing on the older saved version.
+                        if (editor && currentHtml() !== html) {
+                            initialHtml = html;
+                            return;
+                        }
+                        close();
                     })
                     .catch(function (error) {
                         // The editor stays open with the text.
@@ -345,7 +382,7 @@
                 viewRow.insertAdjacentElement('afterend', editRoot);
 
                 const root = editRoot;
-                root.addEventListener('rte:submit', save);
+                root.addEventListener('rte:submit', function () { save(true); });
                 // Capture phase: TipTap's own Escape shortcut takes focus out
                 // of the editor and marks the key handled, so a normal
                 // listener never gets to cancel. Only an Escape typed in the
@@ -375,7 +412,7 @@
                     // later and save only if focus really stayed outside.
                     created.onSettledBlur(function () {
                         setTimeout(function () {
-                            if (editRoot === root && ! root.contains(document.activeElement)) save();
+                            if (editRoot === root && focusIsOutside()) save(false);
                         }, 150);
                     });
                 });
