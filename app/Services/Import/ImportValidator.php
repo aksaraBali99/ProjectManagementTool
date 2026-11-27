@@ -17,6 +17,8 @@ use App\Models\Task;
 use App\Models\User;
 use App\Rules\ValidPhoneNumber;
 use App\Support\CompanyRoleRules;
+use App\Support\DateRange;
+use App\Support\TaskDueDateExtension;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -76,6 +78,7 @@ class ImportValidator
             $this->insertRows($batch, 'Projects', $this->validateProjects($sheets['Projects'], $context), $context);
             $this->insertRows($batch, 'Tasks', $this->validateTasks($sheets['Tasks'], $context), $context);
             $this->insertRows($batch, 'Subtasks', $this->validateSubtasks($sheets['Subtasks'], $context), $context);
+            $this->markExtendedTasksAsUpdates($batch, $context);
             $this->insertRows($batch, 'Task Documents', $this->validateTaskDocuments($sheets['Task Documents'], $context), $context);
             $this->insertRows($batch, 'Task Comments', $this->validateTaskComments($sheets['Task Comments'], $context), $context);
         });
@@ -792,6 +795,36 @@ class ImportValidator
                 continue;
             }
 
+            // SOL-0022: same rule as the task form, including its exception:
+            // a row repeating an existing task's own stored dates isn't
+            // checked, so a task started late (start after due, see
+            // TaskObserver::saving()) can still be re-imported, e.g. to
+            // change its assignee.
+            $taskStartDate = ImportFieldResolver::parseDate($cells['start_date'] ?? null);
+            $taskDueDate = ImportFieldResolver::parseDate($cells['due_date'] ?? null);
+            $matchingTask = ($existingTasksByProject[$context->projectKey($companyName, $projectName)] ?? collect())->firstWhere('title', $title);
+            $storedDates = $matchingTask
+                && DateRange::normalize($matchingTask->start_date) === $taskStartDate
+                && DateRange::normalize($matchingTask->due_date) === $taskDueDate;
+            if (! $storedDates && DateRange::dueBeforeStart($taskStartDate, $taskDueDate)) {
+                $result[] = $this->errorRow('Tasks', $row, DateRange::DUE_BEFORE_START);
+                $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: true);
+
+                continue;
+            }
+
+            // The start date this task will actually have, which a subtask
+            // with a blank start copies. A blank start on a task moving
+            // into In Progress becomes today when it's saved
+            // (TaskObserver::saving()); an existing task already In
+            // Progress isn't moving into it, so it stays blank.
+            $subtaskStartDefault = $taskStartDate;
+            $movesIntoInProgress = ImportFieldResolver::resolveEnumValue(TaskStatus::cases(), $cells['status']) === TaskStatus::InProgress->value
+                && $matchingTask?->status !== TaskStatus::InProgress;
+            if ($subtaskStartDefault === null && $movesIntoInProgress) {
+                $subtaskStartDefault = now()->toDateString();
+            }
+
             $assigneeUsername = $cells['assignee_username'];
             if (! empty($assigneeUsername)) {
                 $userInfo = $this->resolveUsername($assigneeUsername, $context);
@@ -815,19 +848,34 @@ class ImportValidator
             $existingTitles = $existingTasks->pluck('title')->all();
 
             $duplicateWarning = null;
+            $extensionWarning = null;
+            $existingTask = null;
             $action = 'insert';
 
             if (in_array($title, $existingTitles, true)) {
                 $existingTask = $existingTasks->firstWhere('title', $title);
                 $action = $this->taskUnchanged($existingTask, $departmentName, $assigneeUsername, $cells) ? 'no_change' : 'update';
+
+                // SOL-0022: a task is never due before its own subtasks.
+                // Nobody is there to confirm moving the date during an
+                // import, so the commit extends it (ImportCommitService)
+                // and the review page says so before Import is clicked.
+                $latestSubtaskDue = $taskDueDate !== null ? TaskDueDateExtension::latestSubtaskDue($existingTask) : null;
+                if ($latestSubtaskDue !== null && $latestSubtaskDue > $taskDueDate) {
+                    $extensionWarning = 'Existing subtasks are due after this date: the task\'s due date will move to '.DateRange::format($latestSubtaskDue).' to fit them.';
+                    // The commit changes this task, whatever the row says.
+                    $action = 'update';
+                }
             } else {
                 $duplicateWarning = $this->duplicateDetector->findSimilarTaskTitle($title, $existingTitles);
             }
 
-            $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: false);
+            $this->recordTaskRef($context, $taskRefNumber, $title, $companyName, $projectName, blocked: false,
+                startDate: $subtaskStartDefault, dueDate: $taskDueDate, existingTaskId: $existingTask?->id, rowNumber: $row['row_number']);
 
-            $status = $duplicateWarning ? 'warning' : 'valid';
-            $result[] = $this->row('Tasks', $row, $action, $status, $duplicateWarning);
+            $message = collect([$duplicateWarning, $extensionWarning])->filter()->implode(' ') ?: null;
+            $status = $message ? 'warning' : 'valid';
+            $result[] = $this->row('Tasks', $row, $action, $status, $message);
         }
 
         return $result;
@@ -842,6 +890,10 @@ class ImportValidator
     private function validateSubtasks(array $rows, ImportValidationContext $context): array
     {
         $result = [];
+        /** @var array<int, int> result index => Task Ref, for rows due after their task */
+        $dueAfterTask = [];
+        /** @var array<int, string> Task Ref => latest subtask due date in this file */
+        $latestDueByTaskRef = [];
 
         foreach ($rows as $row) {
             $cells = $row['cells'];
@@ -877,6 +929,27 @@ class ImportValidator
                 continue;
             }
 
+            // SOL-0022: checked on the dates the subtask will actually get.
+            // A blank date is copied from its task when it's saved
+            // (ImportCommitService::commitSubtasks()); for a blank start that
+            // can be today, see validateTasks().
+            $subtaskTaskRef = (int) $cells['task_ref'];
+            $taskInfo = $context->taskRefs[$subtaskTaskRef];
+            $ownStart = ImportFieldResolver::parseDate($cells['start_date'] ?? null);
+            $ownDue = ImportFieldResolver::parseDate($cells['due_date'] ?? null);
+            $subtaskStart = $ownStart ?? $taskInfo['startDate'];
+            $subtaskDue = $ownDue ?? $taskInfo['dueDate'];
+            // Exactly the task's own dates (e.g. both left blank under a
+            // task started late) aren't checked, the same exception as the
+            // Add row in the app (SubtaskController::store()).
+            $tasksOwnDates = $subtaskStart === $taskInfo['startDate'] && $subtaskDue === $taskInfo['dueDate'];
+            if (! $tasksOwnDates && DateRange::dueBeforeStart($subtaskStart, $subtaskDue)) {
+                $copied = $ownStart === null || $ownDue === null ? " A blank date is copied from its task (Ref {$subtaskTaskRef})." : '';
+                $result[] = $this->errorRow('Subtasks', $row, DateRange::DUE_BEFORE_START.$copied);
+
+                continue;
+            }
+
             $assigneeUsername = $cells['assignee_username'] ?? null;
             if (! empty($assigneeUsername)) {
                 $userInfo = $this->resolveUsername($assigneeUsername, $context);
@@ -902,7 +975,34 @@ class ImportValidator
                 }
             }
 
+            if ($taskInfo['dueDate'] !== null && $subtaskDue !== null && $subtaskDue > $taskInfo['dueDate']) {
+                $context->extendedTaskRefs[$subtaskTaskRef] = true;
+                $dueAfterTask[count($result)] = $subtaskTaskRef;
+                $latestDueByTaskRef[$subtaskTaskRef] = DateRange::latest([$latestDueByTaskRef[$subtaskTaskRef] ?? null, $subtaskDue]);
+            }
+
             $result[] = $this->row('Subtasks', $row, 'insert', 'valid');
+        }
+
+        // SOL-0022: a subtask due after its task moves the task's due date
+        // out on import (nobody can confirm it), to the latest subtask's,
+        // counting subtasks the task already has. Said on each such row,
+        // once the latest date for that task is known.
+        $newDueByTaskRef = [];
+        foreach ($dueAfterTask as $index => $taskRefNumber) {
+            $taskInfo = $context->taskRefs[$taskRefNumber];
+            // Once per task, not per row: the subtasks it already has.
+            $newDueByTaskRef[$taskRefNumber] ??= DateRange::latest([
+                $latestDueByTaskRef[$taskRefNumber],
+                $taskInfo['existingTaskId']
+                    ? TaskDueDateExtension::latestSubtaskDue(Task::withoutGlobalScopes()->find($taskInfo['existingTaskId']))
+                    : null,
+            ]);
+            $newDue = $newDueByTaskRef[$taskRefNumber];
+
+            $result[$index]['validation_status'] = 'warning';
+            $result[$index]['validation_message'] = 'This subtask is due after its task: the task\'s due date will move from '
+                .DateRange::format($taskInfo['dueDate']).' to '.DateRange::format($newDue).'.';
         }
 
         return $result;
@@ -1019,6 +1119,25 @@ class ImportValidator
         return null;
     }
 
+    /**
+     * SOL-0022: a Tasks row saved as 'no_change' whose task a subtask in
+     * this file will move out (ImportCommitService::extendTaskDueDates())
+     * is a change after all, so the review page says 'update'. The Tasks
+     * rows are already saved when the Subtasks sheet is checked, hence
+     * after the fact.
+     */
+    private function markExtendedTasksAsUpdates(ImportBatch $batch, ImportValidationContext $context): void
+    {
+        $rowNumbers = collect(array_keys($context->extendedTaskRefs))
+            ->map(fn (int $taskRef) => $context->taskRefs[$taskRef]['rowNumber'] ?? null)
+            ->filter()->values()->all();
+
+        if ($rowNumbers !== []) {
+            $batch->importRows()->where('sheet_name', 'Tasks')->whereIn('row_number', $rowNumbers)
+                ->where('resolved_action', 'no_change')->update(['resolved_action' => 'update']);
+        }
+    }
+
     // -- shared helpers --------------------------------------------------
 
     /**
@@ -1112,13 +1231,21 @@ class ImportValidator
      * this Task Ref via checkTaskRef() regardless of how this row turned
      * out.
      */
-    private function recordTaskRef(ImportValidationContext $context, int $taskRefNumber, ?string $title, ?string $companyName, ?string $projectName, bool $blocked): void
+    private function recordTaskRef(ImportValidationContext $context, int $taskRefNumber, ?string $title, ?string $companyName, ?string $projectName, bool $blocked,
+        ?string $startDate = null, ?string $dueDate = null, ?int $existingTaskId = null, ?int $rowNumber = null): void
     {
         $context->taskRefs[$taskRefNumber] = [
             'title' => (string) $title,
             'companyName' => (string) $companyName,
             'projectName' => (string) $projectName,
             'blocked' => $blocked,
+            // SOL-0022: the dates ('Y-m-d' or null) a subtask with a blank
+            // date copies from this task (the start can be today, see
+            // validateTasks()), and the task it updates, if any.
+            'startDate' => $startDate,
+            'dueDate' => $dueDate,
+            'existingTaskId' => $existingTaskId,
+            'rowNumber' => $rowNumber,
         ];
     }
 

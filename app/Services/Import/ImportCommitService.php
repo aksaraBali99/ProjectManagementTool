@@ -19,6 +19,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\CompanyRoleSyncer;
 use App\Support\Access\AccessProfileCache;
+use App\Support\TaskDueDateExtension;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -392,6 +393,7 @@ class ImportCommitService
         DB::transaction(function () use ($batch, $importer, $batchUuid, $resolution, $summary) {
             $this->commitTasks($batch, $resolution, $summary);
             $this->commitSubtasks($batch, $resolution, $summary);
+            $this->extendTaskDueDates($resolution);
             $this->commitTaskDocuments($batch, $importer, $batchUuid, $resolution, $summary);
             $this->commitTaskComments($batch, $importer, $resolution, $summary);
         });
@@ -477,6 +479,24 @@ class ImportCommitService
 
             $summary->increment('Subtasks', 'created');
             $row->update(['entity_id' => $subtask->id]);
+        }
+    }
+
+    /**
+     * SOL-0022: a task is never left due before one of its subtasks. In
+     * the app the user confirms moving the date; an import can't ask, so
+     * every task this file touched is moved out to its latest subtask's
+     * due date (subtasks it already had included), as the review page
+     * warned (ImportValidator). Saved through the model, so the audit log
+     * records it, tagged with this batch.
+     */
+    private function extendTaskDueDates(ImportCommitResolution $resolution): void
+    {
+        foreach (array_unique($resolution->taskIdsByRef) as $taskId) {
+            $task = Task::withoutGlobalScopes()->find($taskId);
+            if ($task) {
+                TaskDueDateExtension::extend($task);
+            }
         }
     }
 

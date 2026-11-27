@@ -1189,13 +1189,13 @@ test('a subtask created with an explicitly different assignee and due date saves
     $response = $this->actingAs($this->management)->post("/tasks/{$task->id}/subtasks", [
         'title' => 'Overridden values',
         'assignee_id' => $subtaskAssignee->id,
-        'due_date' => '2026-10-01',
+        'due_date' => '2026-09-10',
     ]);
 
     $response->assertCreated();
     $subtask = Subtask::where('title', 'Overridden values')->firstOrFail();
     expect($subtask->assignee_id)->toBe($subtaskAssignee->id);
-    expect($subtask->due_date->toDateString())->toBe('2026-10-01');
+    expect($subtask->due_date->toDateString())->toBe('2026-09-10');
 });
 
 test('changing the parent task\'s assignee or due date after a subtask already exists does not change the existing subtask', function () {

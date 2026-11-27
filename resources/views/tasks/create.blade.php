@@ -101,7 +101,10 @@
                 <div>
                     <label for="due_date" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Due date</label>
                     <input id="due_date" name="due_date" type="date" value="{{ old('due_date', $dueDate ?? '') }}"
-                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                        class="mt-1 block w-full rounded-md border {{ $errors->has('due_date') ? 'border-red-500' : 'border-gray-300' }} px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    @error('due_date')
+                        <p class="mt-1 text-[10px] text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -287,6 +290,46 @@
                         descRow.style.display = isHidden ? '' : 'none';
                         descToggle.textContent = isHidden ? '−' : '+';
                     }
+                });
+
+                // SOL-0022: a subtask due after the task. Ask first; on OK the
+                // task's due date moves out to the latest subtask's, on Cancel
+                // nothing is sent. StoreTaskRequest refuses the same thing
+                // without extend_task_due_date, so this is the fast path, not
+                // the guard. Dates are YYYY-MM-DD strings, which sort correctly.
+                function formatDate(value) {
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const parts = value.split('-');
+                    return Number(parts[2]) + ' ' + months[Number(parts[1]) - 1] + ' ' + parts[0];
+                }
+
+                document.getElementById('create-task-form').addEventListener('submit', function (event) {
+                    const taskDue = dueDateInput.value;
+                    if (! taskDue) return;
+
+                    let latest = '';
+                    subtaskRows.querySelectorAll('[data-subtask-row]').forEach(function (row) {
+                        const title = row.querySelector('.subtask-title-input');
+                        const due = row.querySelector('.subtask-due-date');
+                        // Rows without a title aren't saved (StoreTaskRequest).
+                        if (title && title.value.trim() !== '' && due && due.value > latest) latest = due.value;
+                    });
+                    if (! latest || latest <= taskDue) return;
+
+                    if (! confirm('A subtask is due after this task (' + formatDate(taskDue) + '). Continue to move the task\'s due date to ' + formatDate(latest) + '.')) {
+                        event.preventDefault();
+                        return;
+                    }
+
+                    dueDateInput.value = latest;
+                    let flag = this.querySelector('input[name="extend_task_due_date"]');
+                    if (! flag) {
+                        flag = document.createElement('input');
+                        flag.type = 'hidden';
+                        flag.name = 'extend_task_due_date';
+                        this.appendChild(flag);
+                    }
+                    flag.value = '1';
                 });
             })();
         </script>

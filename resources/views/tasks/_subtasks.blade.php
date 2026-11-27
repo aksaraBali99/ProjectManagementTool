@@ -7,7 +7,8 @@
      Assignee/due date default to the parent task's current values as a
      one-time starting point at creation — not an ongoing sync, so editing
      the parent afterward never touches already-created subtasks. --}}
-<div class="subtask-container" data-task-id="{{ $task->id }}" data-can-edit="{{ $canEdit ? '1' : '0' }}">
+<div class="subtask-container" data-task-id="{{ $task->id }}" data-can-edit="{{ $canEdit ? '1' : '0' }}"
+    data-task-start-date="{{ $task->start_date?->toDateString() }}" data-task-due-date="{{ $task->due_date?->toDateString() }}">
     <div class="subtask-rows space-y-2">
         @foreach ($task->subtasks as $subtask)
             <div data-subtask-id="{{ $subtask->id }}">
@@ -67,6 +68,8 @@
                 Add
             </button>
         </div>
+        {{-- Why the last Add was refused; stays until the row is changed. --}}
+        <p class="new-subtask-error mt-1 text-[10px] text-red-600" hidden></p>
         <p class="mt-1 text-[10px] text-gray-400">Assignee and due date default to this task's current values — change them per subtask as needed.</p>
     @endif
 </div>
@@ -100,7 +103,11 @@
                 return response.json().catch(function () { return null; }).then(function (data) {
                     const fieldErrors = data && data.errors ? Object.values(data.errors)[0] : null;
                     const message = (Array.isArray(fieldErrors) && fieldErrors[0]) || (data && data.message) || fallback;
-                    throw new Error(message);
+                    const error = new Error(message);
+                    // SOL-0022: lets a caller tell "the task's due date would
+                    // have to move" (needs_task_due_extension) from a real error.
+                    error.data = data || {};
+                    throw error;
                 });
             });
         }
@@ -112,6 +119,87 @@
             feedback.classList.toggle('text-red-600', !! isError);
             feedback.classList.toggle('text-gray-400', ! isError);
             setTimeout(function () { feedback.textContent = ''; }, 2000);
+        }
+
+        // SOL-0022: date rules, mirrored from SubtaskController (the real
+        // guard). Dates are YYYY-MM-DD strings, which sort correctly.
+        const dueBeforeStartMessage = @json(\App\Support\DateRange::DUE_BEFORE_START);
+
+        function datesInvalid(startValue, dueValue) {
+            return !! (startValue && dueValue && dueValue < startValue);
+        }
+
+        // Greys out the invalid days in each date picker.
+        function syncDateBounds(startInput, dueInput) {
+            if (! startInput || ! dueInput) return;
+            if (startInput.value) dueInput.min = startInput.value; else dueInput.removeAttribute('min');
+            if (dueInput.value) startInput.max = dueInput.value; else startInput.removeAttribute('max');
+        }
+
+        function formatDate(value) {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const parts = value.split('-');
+            return Number(parts[2]) + ' ' + months[Number(parts[1]) - 1] + ' ' + parts[0];
+        }
+
+        // A subtask starting before its task: only a note, nothing is
+        // blocked or moved.
+        function updateDateNote(row) {
+            const note = row.querySelector('.subtask-date-note');
+            const startInput = row.querySelector('.subtask-start-date');
+            if (! note || ! startInput) return;
+            const taskStart = container.dataset.taskStartDate;
+            const early = !! (taskStart && startInput.value && startInput.value < taskStart);
+            note.textContent = early ? 'Starts before the task (' + formatDate(taskStart) + ')' : '';
+            note.hidden = ! early;
+        }
+
+        // Tells the Edit page (tasks/edit.blade.php) the latest subtask due
+        // date, which its own Due date can't be earlier than.
+        function announceSubtaskDueDates() {
+            let latest = '';
+            rowsEl.querySelectorAll('.subtask-due-date').forEach(function (input) {
+                if (input.value && input.value > latest) latest = input.value;
+            });
+            document.dispatchEvent(new CustomEvent('solava:subtask-due-dates', { detail: { taskId: taskId, latestDue: latest } }));
+        }
+
+        // After a confirmed save moved the task's due date out.
+        function applyTaskDueDate(data) {
+            if (! data || ! ('task_due_date' in data)) return;
+            const dueDate = data.task_due_date || '';
+            const previous = container.dataset.taskDueDate || '';
+            if (dueDate === previous) return;
+            container.dataset.taskDueDate = dueDate;
+            // The Add row starts with the task's due date: keep it in step,
+            // so its untouched defaults still count as the task's own dates,
+            // unless the user already chose another one.
+            if (newDueDateInput && newDueDateInput.value === previous) {
+                newDueDateInput.value = dueDate;
+                syncDateBounds(newStartDateInput, newDueDateInput);
+            }
+            document.dispatchEvent(new CustomEvent('solava:task-due-changed', { detail: { taskId: taskId, dueDate: dueDate } }));
+        }
+
+        // Sends a subtask save. If the subtask would be due after its task,
+        // the server refuses it (needs_task_due_extension) and nothing is
+        // saved; the user is asked, and on OK the same request goes again
+        // with extend_task_due_date, which moves the task's due date out.
+        // Cancel rejects with error.cancelled, so the caller can revert.
+        function saveWithDueCheck(url, method, payload, fallback) {
+            return requestOrThrow(url, method, payload, fallback).catch(function (error) {
+                if (! error.data || ! error.data.needs_task_due_extension) throw error;
+                if (! confirm(error.message)) {
+                    error.cancelled = true;
+                    throw error;
+                }
+                return requestOrThrow(url, method, Object.assign({}, payload, { extend_task_due_date: true }), fallback);
+            }).then(function (response) {
+                return response.json();
+            }).then(function (data) {
+                applyTaskDueDate(data);
+                return data;
+            });
         }
 
         function clearEmptyState() {
@@ -208,39 +296,53 @@
                 });
             }
 
-            if (canEdit && startDateInput) {
-                let originalStartDate = startDateInput.value;
-                startDateInput.addEventListener('change', function () {
-                    const newStartDate = startDateInput.value;
-                    const subtaskId = row.dataset.subtaskId;
-                    requestOrThrow('/subtasks/' + subtaskId, 'PUT', { start_date: newStartDate === '' ? null : newStartDate }, 'Failed to save.')
+            // SOL-0022: the "starts before the task" note, created here so
+            // rows built after Add get it too.
+            const feedback = row.querySelector('.subtask-feedback');
+            if (feedback && ! row.querySelector('.subtask-date-note')) {
+                const note = document.createElement('span');
+                note.className = 'subtask-date-note text-[10px] text-amber-600';
+                note.hidden = true;
+                feedback.before(note);
+            }
+            syncDateBounds(startDateInput, dueDateInput);
+            updateDateNote(row);
+
+            // SOL-0022: one date per request, as before. An invalid pair is
+            // never sent: the input goes back to its saved value.
+            function wireDateInput(input, field) {
+                let originalValue = input.value;
+                input.addEventListener('change', function () {
+                    const newValue = input.value;
+                    const startValue = field === 'start_date' ? newValue : startDateInput.value;
+                    const dueValue = field === 'due_date' ? newValue : dueDateInput.value;
+                    if (datesInvalid(startValue, dueValue)) {
+                        input.value = originalValue;
+                        syncDateBounds(startDateInput, dueDateInput);
+                        showFeedback(row, dueBeforeStartMessage, true);
+                        return;
+                    }
+
+                    const payload = {};
+                    payload[field] = newValue === '' ? null : newValue;
+                    saveWithDueCheck('/subtasks/' + row.dataset.subtaskId, 'PUT', payload, 'Failed to save.')
                         .then(function () {
-                            originalStartDate = newStartDate;
+                            originalValue = newValue;
+                            syncDateBounds(startDateInput, dueDateInput);
+                            updateDateNote(row);
+                            if (field === 'due_date') announceSubtaskDueDates();
                             showFeedback(row, 'Saved');
                         })
                         .catch(function (error) {
-                            startDateInput.value = originalStartDate;
-                            showFeedback(row, error.message, true);
+                            input.value = originalValue;
+                            syncDateBounds(startDateInput, dueDateInput);
+                            if (! error.cancelled) showFeedback(row, error.message, true);
                         });
                 });
             }
 
-            if (canEdit && dueDateInput) {
-                let originalDueDate = dueDateInput.value;
-                dueDateInput.addEventListener('change', function () {
-                    const newDueDate = dueDateInput.value;
-                    const subtaskId = row.dataset.subtaskId;
-                    requestOrThrow('/subtasks/' + subtaskId, 'PUT', { due_date: newDueDate === '' ? null : newDueDate }, 'Failed to save.')
-                        .then(function () {
-                            originalDueDate = newDueDate;
-                            showFeedback(row, 'Saved');
-                        })
-                        .catch(function (error) {
-                            dueDateInput.value = originalDueDate;
-                            showFeedback(row, error.message, true);
-                        });
-                });
-            }
+            if (canEdit && startDateInput) wireDateInput(startDateInput, 'start_date');
+            if (canEdit && dueDateInput) wireDateInput(dueDateInput, 'due_date');
 
             if (removeBtn) {
                 removeBtn.addEventListener('click', function () {
@@ -250,6 +352,7 @@
                     requestOrThrow('/subtasks/' + subtaskId, 'DELETE', undefined, 'Failed to delete.')
                         .then(function () {
                             row.remove();
+                            announceSubtaskDueDates();
                             if (! rowsEl.querySelector('[data-subtask-id]')) {
                                 const empty = document.createElement('p');
                                 empty.className = 'subtask-empty text-[11px] text-gray-500';
@@ -281,10 +384,38 @@
         const newAssigneeSelect = container.querySelector('.new-subtask-assignee');
         const newStartDateInput = container.querySelector('.new-subtask-start-date');
         const newDueDateInput = container.querySelector('.new-subtask-due-date');
+        // Shown under the Add row, not in an alert (errors stay next to the
+        // field they're about); cleared once the row changes.
+        const addError = container.querySelector('.new-subtask-error');
+        function showAddError(message) {
+            if (! addError) return;
+            addError.textContent = message;
+            addError.hidden = ! message;
+        }
+
         if (addBtn) {
+            syncDateBounds(newStartDateInput, newDueDateInput);
+            [newStartDateInput, newDueDateInput].forEach(function (input) {
+                input.addEventListener('change', function () {
+                    syncDateBounds(newStartDateInput, newDueDateInput);
+                    showAddError('');
+                });
+            });
+
             addBtn.addEventListener('click', function () {
                 const title = newTitleInput.value.trim();
                 if (title === '') return;
+
+                // SOL-0022: the task's own dates, which the Add row starts
+                // with, are allowed even when they're an invalid pair (a task
+                // started late), same as SubtaskController::store().
+                const inheritedDates = newStartDateInput.value === (container.dataset.taskStartDate || '')
+                    && newDueDateInput.value === (container.dataset.taskDueDate || '');
+                if (! inheritedDates && datesInvalid(newStartDateInput.value, newDueDateInput.value)) {
+                    showAddError(dueBeforeStartMessage);
+                    return;
+                }
+                showAddError('');
 
                 const payload = {
                     title: title,
@@ -293,10 +424,7 @@
                     due_date: newDueDateInput.value === '' ? null : newDueDateInput.value,
                 };
 
-                requestOrThrow('/tasks/' + taskId + '/subtasks', 'POST', payload, 'Failed to add subtask.')
-                    .then(function (response) {
-                        return response.json();
-                    })
+                saveWithDueCheck('/tasks/' + taskId + '/subtasks', 'POST', payload, 'Failed to add subtask.')
                     .then(function (data) {
                         clearEmptyState();
                         const row = document.createElement('div');
@@ -317,12 +445,13 @@
                             + '</div>';
                         rowsEl.appendChild(row);
                         wireRow(row);
+                        announceSubtaskDueDates();
                         newTitleInput.value = '';
                         // Assignee/due date inputs stay at the parent task's
                         // defaults for the next add, per spec — not reset.
                     })
                     .catch(function (error) {
-                        alert(error.message);
+                        if (! error.cancelled) showAddError(error.message);
                     });
             });
         }
