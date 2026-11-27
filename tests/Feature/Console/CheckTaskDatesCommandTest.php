@@ -33,7 +33,7 @@ test('with nothing to report it says so', function () {
     checkDatesTask($this->project, $this->dept, 'Fine', '2026-12-01', '2026-12-05');
 
     $this->artisan('solava:check-task-dates')
-        ->expectsOutput('No task or subtask has a due date earlier than its start date.')
+        ->expectsOutput('No task or subtask breaks the due date rules.')
         ->assertSuccessful();
 });
 
@@ -52,4 +52,17 @@ test('it lists tasks and subtasks due before their start date, and changes nothi
         ->assertSuccessful();
 
     expect($late->fresh()->due_date->toDateString())->toBe('2026-12-05');
+});
+
+test('it lists tasks due before one of their subtasks', function () {
+    $task = checkDatesTask($this->project, $this->dept, 'Due before its subtask', '2026-12-01', '2026-12-05');
+    $task->subtasks()->create(['title' => 'Runs late', 'start_date' => '2026-12-01', 'due_date' => '2026-12-15']);
+    $fine = checkDatesTask($this->project, $this->dept, 'Due after its subtasks', '2026-12-01', '2026-12-20');
+    $fine->subtasks()->create(['title' => 'On time', 'start_date' => '2026-12-01', 'due_date' => '2026-12-15']);
+
+    $this->artisan('solava:check-task-dates')
+        ->expectsOutputToContain('Tasks due before one of their subtasks: 1')
+        ->expectsOutputToContain('Due before its subtask')
+        ->doesntExpectOutputToContain('Due after its subtasks')
+        ->assertSuccessful();
 });

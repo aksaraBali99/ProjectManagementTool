@@ -38,8 +38,14 @@ trait TagsImportBatch
         return array_merge($changes, ['source' => 'import']);
     }
 
+    /**
+     * Also while solava:fix-task-dates runs (SOL-0022), which binds
+     * 'datafix.running' for that run only: a data fix correcting many
+     * rows at once shouldn't notify anyone about each one. Its audit rows
+     * are still written, and aren't tagged as an import.
+     */
     protected function shouldSuppressNotification(): bool
     {
-        return $this->currentImportBatchId() !== null;
+        return $this->currentImportBatchId() !== null || app()->bound('datafix.running');
     }
 }

@@ -15,6 +15,8 @@ The moving parts:
 | `.github/workflows/release-check.yml` | On PRs into production: the required `release-check` check (source branch, checklist, drift), plus the job summary to paste into the PR. Also labels release and back-merge PRs `release`. |
 | `deploy.sh` | Runs on the server. Pre-flight checks, then (PROD) maintenance mode on and a backup, then fast-forward, composer, migrate, caches, and maintenance mode off. |
 | `php artisan solva:db-backup` | The gzipped database dump every PROD deploy takes with the site down, just before the pull, in `storage/app/backups` (5 kept). Each file is read back and checked before older ones are deleted. |
+| `php artisan solava:check-task-dates` | Read-only: lists tasks and subtasks whose dates break the due date rules (SOL-0022): due before start, or a task due before one of its subtasks. |
+| `php artisan solava:fix-task-dates` | Corrects those rows (section 2, "Data fix after a release"). A dry run unless `--apply --as=<owner>`. |
 | `.github/PULL_REQUEST_TEMPLATE/release.md` | The release PR template. |
 | `.github/scripts/*.sh` | Version number, task list, release checks and release notes checks (the release notes ones need `jq`), deploy config check, the command sent to the server and the check of the gate's `ping` answer, tested by `tests/scripts/run.sh`. |
 | `server/solava-gate.sh` | The SSH deploy gate (section 8): the only thing the restricted deploy keys can run on the server. Copied there by hand; tested by `tests/scripts/run.sh`. |
@@ -198,6 +200,22 @@ From then on every release goes through the workflow alone.
 12. **Fill in the version** in the PR. It's the entry's version, unless the run warned that it had to use another one (it says why); it's in the run's summary and on the Releases page either way.
 
 A release PR from main always contains everything on main. To leave something out, it has to be reverted on main first, or not merged yet.
+
+### Data fix after a release (SOL-0022 dates)
+
+The due date rules (SOL-0022) stop new bad dates, but rows saved before them stay as they are. `solava:fix-task-dates` corrects them, per task, in this order:
+
+1. a subtask due before its start date: its due date becomes its start date;
+2. a task due before its start date: its due date becomes its start date;
+3. a task due before one of its subtasks: its due date becomes its latest subtask's, as if someone confirmed it in the app.
+
+Only due dates change, and only to a later date; nothing is cleared. A task with no due date isn't given one, and a subtask starting before its task is left alone. Every company is covered, deactivated tasks included (they stay deactivated).
+
+With `--apply`, the changes are made as the `--as` user (an active owner or super admin), so each one shows in the Audit Trail as theirs. Nobody is notified. A CSV of what changed goes to `storage/app/datafix/`, and the command prints its path.
+
+1. **On DEV**, once the release is deployed there: `php artisan solava:check-task-dates`, then `php artisan solava:fix-task-dates` (a dry run: it only lists the changes). Check the list, then `php artisan solava:fix-task-dates --apply --as=<owner username>`. Open a few of the fixed tasks and their Audit Trail.
+2. **On PROD**, after the release deploy (which backs up the database first): the same three commands. Keep the CSV.
+3. **Any time later**, re-run it: it only changes what still breaks the rules. New rows can appear by design: moving an overdue task to Active sets its start date to today, after its due date.
 
 ## 3. A hotfix
 
