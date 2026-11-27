@@ -682,3 +682,42 @@ function makeStaffWhoCanCreateTasksForLinkPreview(Organization $org, Department 
 
     return $staff;
 }
+
+// ---------------------------------------------------------------------------
+// SOL-0022: link chips in a subtask description
+// ---------------------------------------------------------------------------
+
+test('someone who can edit the task\'s subtasks resolves a chip for a subtask description, tracked on the task\'s Documents', function () {
+    Http::fake(['example.com/*' => Http::response('<html><head><meta property="og:title" content="Subtask Link"></head></html>', 200)]);
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/subtask-link',
+        'context' => 'subtask',
+    ])->assertOk()->assertJson(['available' => true, 'title' => 'Subtask Link']);
+
+    $document = Document::where('link', 'https://example.com/subtask-link')->firstOrFail();
+    expect($this->task->fresh()->documents->pluck('id')->all())->toBe([$document->id]);
+});
+
+test('someone who can only view the task cannot resolve a chip for a subtask description', function () {
+    $client = makeClientWithProjectAccessForLinkPreview($this->org, $this->project);
+    grantRolePermissionForLinkPreview('client', 'manage_documents');
+    Http::fake();
+
+    $this->actingAs($client)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/x',
+        'context' => 'subtask',
+    ])->assertForbidden();
+
+    Http::assertNothingSent();
+});
+
+test('a chip for a subtask of a deactivated task is refused, like editing the subtask', function () {
+    Http::fake();
+    $this->task->delete();
+
+    $this->actingAs($this->management)->postJson("/tasks/{$this->task->id}/link-previews", [
+        'url' => 'https://example.com/x',
+        'context' => 'subtask',
+    ])->assertForbidden();
+});

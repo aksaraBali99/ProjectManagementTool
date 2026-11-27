@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Comment;
 use App\Models\Document;
 use App\Models\Project;
+use App\Models\Subtask;
 use App\Models\Task;
 use App\Services\LinkPreviewResult;
 use App\Services\LinkPreviewService;
@@ -39,11 +40,17 @@ class LinkPreviewController extends Controller
     {
         $data = $request->validate([
             'url' => ['required', 'string', 'max:2048'],
-            'context' => ['required', Rule::in(['description', 'comment'])],
+            'context' => ['required', Rule::in(['description', 'comment', 'subtask'])],
         ]);
 
         if ($data['context'] === 'description') {
             Gate::authorize('update', $task);
+        } elseif ($data['context'] === 'subtask') {
+            // SOL-0022: a chip pasted into a subtask description. Whoever
+            // may edit the task's subtasks may resolve one; it's tracked
+            // on the parent task's Documents, like the task Description's
+            // and a comment's (attachAsDocument() below).
+            Gate::authorize('create', [Subtask::class, $task]);
         } else {
             Gate::authorize('view', $task);
             Gate::authorize('create', [Comment::class, $task]);

@@ -6,6 +6,7 @@ use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Models\Subtask;
 use App\Models\Task;
 use App\Support\DateRange;
+use App\Support\RichText;
 use App\Support\TaskDueDateExtension;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,11 +24,12 @@ class SubtaskController extends Controller
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:'.Subtask::MAX_DESCRIPTION_LENGTH],
             'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'due_date' => ['nullable', 'date'],
             'start_date' => ['nullable', 'date'],
-        ]);
+        ], ['description.max' => Subtask::TOO_LONG_MESSAGE]);
+        $data['description'] = $this->cleanDescription($data['description'] ?? null);
 
         if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($task->project, $task->department_id, $data['assignee_id'])) {
             abort(422, 'Assignee must be assigned to this project.');
@@ -65,6 +67,7 @@ class SubtaskController extends Controller
 
         return response()->json([
             'subtask' => $subtask,
+            'description_html' => RichText::toHtml($subtask->description),
             'task_due_date' => DateRange::normalize($task->due_date),
         ], 201);
     }
@@ -84,11 +87,14 @@ class SubtaskController extends Controller
 
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
-            'description' => ['sometimes', 'nullable', 'string'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:'.Subtask::MAX_DESCRIPTION_LENGTH],
             'assignee_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'due_date' => ['sometimes', 'nullable', 'date'],
             'start_date' => ['sometimes', 'nullable', 'date'],
-        ]);
+        ], ['description.max' => Subtask::TOO_LONG_MESSAGE]);
+        if (array_key_exists('description', $data)) {
+            $data['description'] = $this->cleanDescription($data['description']);
+        }
 
         if (! empty($data['assignee_id']) && ! $this->isAssignableStaffForProject($subtask->task->project, $subtask->task->department_id, $data['assignee_id'])) {
             abort(422, 'Assignee must be assigned to this project.');
@@ -126,6 +132,7 @@ class SubtaskController extends Controller
 
         return response()->json([
             'subtask' => $subtask,
+            'description_html' => RichText::toHtml($subtask->description),
             'task_due_date' => DateRange::normalize($task->due_date),
         ]);
     }
@@ -137,6 +144,24 @@ class SubtaskController extends Controller
         $subtask->delete();
 
         return response()->json(['deleted' => true]);
+    }
+
+    /**
+     * SOL-0022: a subtask description is rich text, like the task's
+     * Description and comments: sanitized by the same RichText::normalize()
+     * (a blank editor becomes null; legacy plain text stays as it is),
+     * then checked again on the cleaned HTML, which is what gets stored
+     * (Subtask::MAX_DESCRIPTION_LENGTH). The page only ever shows
+     * RichText::toHtml() of it (description_html in the responses).
+     */
+    private function cleanDescription(?string $description): ?string
+    {
+        $clean = RichText::normalize($description);
+        if ($clean !== null && mb_strlen($clean) > Subtask::MAX_DESCRIPTION_LENGTH) {
+            throw ValidationException::withMessages(['description' => Subtask::TOO_LONG_MESSAGE]);
+        }
+
+        return $clean;
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Models\Department;
 use App\Models\Project;
+use App\Models\Subtask;
 use App\Support\DateRange;
 use App\Support\RichText;
 use App\Support\TaskDueDateExtension;
@@ -29,7 +30,10 @@ class StoreTaskRequest extends FormRequest
             ->map(fn ($row) => is_array($row) ? $row : [])
             ->map(fn ($row) => [
                 'title' => trim((string) ($row['title'] ?? '')),
-                'description' => trim((string) ($row['description'] ?? '')) ?: null,
+                // SOL-0022: through the same sanitizer as every other subtask
+                // description write (SubtaskController). The textarea here
+                // sends plain text, which normalize() keeps as it is.
+                'description' => RichText::normalize(trim((string) ($row['description'] ?? ''))),
                 'assignee_id' => $row['assignee_id'] ?: null,
                 'due_date' => $row['due_date'] ?: null,
             ])
@@ -60,10 +64,16 @@ class StoreTaskRequest extends FormRequest
             'due_date' => ['nullable', 'date'],
             'subtasks' => ['array'],
             'subtasks.*.title' => ['required', 'string', 'max:255'],
-            'subtasks.*.description' => ['nullable', 'string'],
+            // Checked on the cleaned value (prepareForValidation() above).
+            'subtasks.*.description' => ['nullable', 'string', 'max:'.Subtask::MAX_DESCRIPTION_LENGTH],
             'subtasks.*.assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'subtasks.*.due_date' => ['nullable', 'date'],
         ];
+    }
+
+    public function messages(): array
+    {
+        return ['subtasks.*.description.max' => Subtask::TOO_LONG_MESSAGE];
     }
 
     public function attributes(): array
