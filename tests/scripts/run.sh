@@ -498,6 +498,28 @@ ping_check dev 255 ""
 expect_equal "an SSH failure says so" "yes" "$(has "$ping_output" "SSH itself failed")"
 ping_check dev 2 $'line one\nline two'
 expect_equal "the reply is shown on one line" "yes" "$(has "$ping_output" "reply: 'line one line two'")"
+# SOL-0029: SSH's stderr at the end of the message.
+ping_check dev 255 "" "ssh: connect to host example.com port 22: Connection timed out"
+expect_equal "an SSH failure shows SSH's reason" "yes" "$(has "$ping_output" "SSH said: 'ssh: connect to host example.com port 22: Connection timed out'")"
+ping_check dev 255 "" $'Host key verification failed.\r\n'
+expect_equal "SSH's reason is shown on one line" "yes" "$(has "$ping_output" "SSH said: 'Host key verification failed.  '")"
+expect_equal "  with nothing after the error line" "1" "$(printf '%s\n' "$ping_output" | wc -l | tr -d ' ')"
+ping_check dev 255 "" $'reason\n::add-mask::x %0A::warning::y'
+expect_equal "SSH's stderr can't start a workflow command" "1" "$(printf '%s\n' "$ping_output" | grep -c '^::')"
+expect_equal "  and its % is escaped" "yes" "$(has "$ping_output" "%250A")"
+ping_check dev 255 "" "$(printf 'b%.0s' {1..400}) Connection reset by peer"
+expect_equal "long stderr keeps its last 300 characters" "yes" "$(has "$ping_output" "SSH said: '...$(printf 'b%.0s' {1..275}) Connection reset by peer'")"
+expect_equal "  and no more" "no" "$(has "$ping_output" "$(printf 'b%.0s' {1..276})")"
+ping_check dev 255 "" "$(printf 'x%.0s' {1..300})"
+expect_equal "stderr of exactly 300 characters isn't marked as cut" "yes" "$(has "$ping_output" "SSH said: '$(printf 'x%.0s' {1..300})'")"
+ping_check production 0 "ok solava-gate dev" "gate: note"
+expect_equal "the wrong-environment error shows stderr too" "yes" "$(has "$ping_output" "SSH said: 'gate: note'")"
+ping_check dev 255 "" $' \n '
+expect_equal "blank stderr adds nothing" "no" "$(has "$ping_output" "SSH said")"
+ping_check dev 126 "" "gate: refused"
+expect_equal "the gate refusing ping shows its stderr too" "yes" "$(has "$ping_output" "SSH said: 'gate: refused'")"
+ping_check dev 0 "ok solava-gate dev" "some warning"
+expect_equal "stderr doesn't fail a good answer" "0" "$ping_code"
 
 # --- deploy.sh ----------------------------------------------------------
 #
