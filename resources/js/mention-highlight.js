@@ -33,6 +33,14 @@
 // (buildBodyElement, restore(), syncComments()'s content-changed branch)
 // replaces that element's innerHTML wholesale first.
 //
+// The scope may be a body itself, not only an ancestor of one (SOL-0022):
+// restore() after an Edit's Save or Cancel, and syncComments()'s
+// content-changed branch, both pass the body element. querySelectorAll()
+// never returns the element it's called on, so a scope that matches is
+// added to the list on its own (`document` has no matches(), hence the
+// guard). Before this, those paths left a saved mention unhighlighted
+// until the page was refreshed.
+//
 // Known limitation, same one setupMentions()'s own text-based tracking
 // already accepts: if a saved mention's "@Full Name" text is itself split
 // across two DOM text nodes (e.g. only part of it was bolded), this won't
@@ -42,11 +50,16 @@ function escapeRegExp(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+const BODY_SELECTOR = '[data-rich-text-content][data-mentioned-users]';
+
 export function highlightMentions(scope) {
     const target = scope || document;
     const currentUserId = Number(document.querySelector('meta[name="current-user-id"]')?.getAttribute('content'));
 
-    target.querySelectorAll('[data-rich-text-content][data-mentioned-users]').forEach(function (bodyEl) {
+    const bodies = Array.from(target.querySelectorAll(BODY_SELECTOR));
+    if (target.matches && target.matches(BODY_SELECTOR)) bodies.unshift(target);
+
+    bodies.forEach(function (bodyEl) {
         let mentionedUsers;
         try {
             mentionedUsers = JSON.parse(bodyEl.dataset.mentionedUsers || '[]');
