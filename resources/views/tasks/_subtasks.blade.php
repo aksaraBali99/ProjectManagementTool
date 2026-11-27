@@ -68,6 +68,8 @@
                 Add
             </button>
         </div>
+        {{-- Why the last Add was refused; stays until the row is changed. --}}
+        <p class="new-subtask-error mt-1 text-[10px] text-red-600" hidden></p>
         <p class="mt-1 text-[10px] text-gray-400">Assignee and due date default to this task's current values — change them per subtask as needed.</p>
     @endif
 </div>
@@ -382,10 +384,22 @@
         const newAssigneeSelect = container.querySelector('.new-subtask-assignee');
         const newStartDateInput = container.querySelector('.new-subtask-start-date');
         const newDueDateInput = container.querySelector('.new-subtask-due-date');
+        // Shown under the Add row, not in an alert (errors stay next to the
+        // field they're about); cleared once the row changes.
+        const addError = container.querySelector('.new-subtask-error');
+        function showAddError(message) {
+            if (! addError) return;
+            addError.textContent = message;
+            addError.hidden = ! message;
+        }
+
         if (addBtn) {
             syncDateBounds(newStartDateInput, newDueDateInput);
             [newStartDateInput, newDueDateInput].forEach(function (input) {
-                input.addEventListener('change', function () { syncDateBounds(newStartDateInput, newDueDateInput); });
+                input.addEventListener('change', function () {
+                    syncDateBounds(newStartDateInput, newDueDateInput);
+                    showAddError('');
+                });
             });
 
             addBtn.addEventListener('click', function () {
@@ -398,9 +412,10 @@
                 const inheritedDates = newStartDateInput.value === (container.dataset.taskStartDate || '')
                     && newDueDateInput.value === (container.dataset.taskDueDate || '');
                 if (! inheritedDates && datesInvalid(newStartDateInput.value, newDueDateInput.value)) {
-                    alert(dueBeforeStartMessage);
+                    showAddError(dueBeforeStartMessage);
                     return;
                 }
+                showAddError('');
 
                 const payload = {
                     title: title,
@@ -436,7 +451,7 @@
                         // defaults for the next add, per spec — not reset.
                     })
                     .catch(function (error) {
-                        if (! error.cancelled) alert(error.message);
+                        if (! error.cancelled) showAddError(error.message);
                     });
             });
         }

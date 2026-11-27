@@ -9,6 +9,7 @@ use App\Support\TaskDateIssues;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -98,7 +99,7 @@ class FixTaskDates extends Command
         if ($applied !== []) {
             $this->table(self::COLUMNS, $this->rows($applied));
             $this->line($this->totals($applied));
-            $this->info('Report: '.$this->writeReport($applied, $user));
+            $this->reportChanges($applied, $user);
         }
 
         if ($failed !== []) {
@@ -120,7 +121,8 @@ class FixTaskDates extends Command
             return null;
         }
 
-        $user = User::where('username', $as)->orWhere('email', $as)->first();
+        // Username first: one user's email could be another's username.
+        $user = User::where('username', $as)->first() ?? User::where('email', $as)->first();
         if ($user === null) {
             $this->error("No user with the username or email \"{$as}\".");
 
@@ -162,6 +164,21 @@ class FixTaskDates extends Command
             .": {$subtaskChanges} subtask due ".str('date')->plural($subtaskChanges).", {$taskChanges} task due ".str('date')->plural($taskChanges).'.';
     }
 
+    /**
+     * The CSV of what changed, written after the changes (and their table)
+     * so a report that can't be written never hides what was done.
+     *
+     * @param  list<array<string, ?string>>  $fixes
+     */
+    private function reportChanges(array $fixes, User $user): void
+    {
+        try {
+            $this->info('Report: '.$this->writeReport($fixes, $user));
+        } catch (Throwable $e) {
+            $this->warn('The changes above were made, but the CSV report couldn\'t be written: '.$e->getMessage());
+        }
+    }
+
     /** @param  list<array<string, ?string>>  $fixes */
     private function writeReport(array $fixes, User $user): string
     {
@@ -170,7 +187,10 @@ class FixTaskDates extends Command
         $appliedAt = now();
         $path = $directory.DIRECTORY_SEPARATOR.'fix-task-dates-'.$appliedAt->format('Y-m-d_His').'.csv';
 
-        $handle = fopen($path, 'w');
+        $handle = @fopen($path, 'w');
+        if ($handle === false) {
+            throw new RuntimeException("can't open {$path} for writing");
+        }
         fputcsv($handle, ['Applied at', 'As', ...self::COLUMNS]);
         foreach ($fixes as $fix) {
             fputcsv($handle, [

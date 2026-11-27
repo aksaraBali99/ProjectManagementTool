@@ -14,12 +14,16 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class TaskDateIssues
 {
+    // Dates are compared with DATE(): MySQL stores a date column as a date,
+    // but SQLite (tests, local copies) keeps the text it was given, so the
+    // same day can be "2026-11-27" and "2026-11-27 00:00:00".
+
     /** Tasks whose due date is earlier than their start date. */
     public static function tasksDueBeforeStart(): Builder
     {
         return self::allTasks()
             ->whereNotNull('start_date')->whereNotNull('due_date')
-            ->whereColumn('due_date', '<', 'start_date');
+            ->whereRaw('DATE(due_date) < DATE(start_date)');
     }
 
     /** Subtasks whose due date is earlier than their start date. */
@@ -27,7 +31,7 @@ class TaskDateIssues
     {
         return Subtask::query()
             ->whereNotNull('start_date')->whereNotNull('due_date')
-            ->whereColumn('due_date', '<', 'start_date');
+            ->whereRaw('DATE(due_date) < DATE(start_date)');
     }
 
     /**
@@ -40,7 +44,7 @@ class TaskDateIssues
             ->whereNotNull('tasks.due_date')
             ->whereExists(fn ($query) => $query->selectRaw('1')->from('subtasks')
                 ->whereColumn('subtasks.task_id', 'tasks.id')
-                ->whereColumn('subtasks.due_date', '>', 'tasks.due_date'));
+                ->whereRaw('DATE(subtasks.due_date) > DATE(tasks.due_date)'));
     }
 
     /** Subtasks whose task row is gone (shouldn't happen): reported, never fixed. */

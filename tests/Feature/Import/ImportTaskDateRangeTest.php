@@ -237,3 +237,55 @@ test('a task already Active (in progress) keeps a blank start on import, so its 
 
     expect(importRow($batch, 'Subtasks')->validation_status->value)->toBe('valid');
 });
+
+// -- Second review ---------------------------------------------------------------
+
+test('a subtask copying both dates from a task started late is imported, like the Add row', function () {
+    $this->travelTo(now()->setDate(2026, 11, 27));
+
+    $batch = runImportValidation([
+        // Active with a blank start: it starts today, after its due date.
+        'Tasks' => [dateRangeImportTask(['status' => 'Active', 'due_date' => '20/11/2026'])],
+        'Subtasks' => [['task_ref' => '1', 'title' => 'Sub']],
+    ], $this->owner);
+
+    expect(importRow($batch, 'Subtasks')->validation_status->value)->toBe('valid');
+});
+
+test('a task row repeating its stored values is an update when its due date will move out', function (string $source) {
+    $task = Task::create([
+        'organization_id' => $this->org->id,
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'title' => 'Launch page',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => '2026-12-05',
+    ]);
+    if ($source === 'existing subtask') {
+        $task->subtasks()->create(['title' => 'Existing', 'due_date' => '2026-12-10']);
+    }
+
+    $batch = runImportValidation([
+        'Tasks' => [dateRangeImportTask(['due_date' => '05/12/2026'])],
+        'Subtasks' => $source === 'subtask in the file' ? [['task_ref' => '1', 'title' => 'New', 'due_date' => '10/12/2026']] : [],
+    ], $this->owner);
+
+    expect(importRow($batch, 'Tasks')->resolved_action->value)->toBe('update');
+})->with(['existing subtask', 'subtask in the file']);
+
+test('a task row repeating its stored values, with nothing moving, stays no_change', function () {
+    Task::create([
+        'organization_id' => $this->org->id,
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'title' => 'Launch page',
+        'priority' => 'medium',
+        'status' => 'pending',
+        'due_date' => '2026-12-05',
+    ]);
+
+    $batch = runImportValidation(['Tasks' => [dateRangeImportTask(['due_date' => '05/12/2026'])]], $this->owner);
+
+    expect(importRow($batch, 'Tasks')->resolved_action->value)->toBe('no_change');
+});

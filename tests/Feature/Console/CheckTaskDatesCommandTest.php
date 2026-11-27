@@ -66,3 +66,14 @@ test('it lists tasks due before one of their subtasks', function () {
         ->doesntExpectOutputToContain('Due after its subtasks')
         ->assertSuccessful();
 });
+
+test('the same day stored two ways is not listed (SQLite keeps the text it was given)', function () {
+    $task = checkDatesTask($this->project, $this->dept, 'Same day', '2026-11-27', '2026-11-27');
+    $subtask = $task->subtasks()->create(['title' => 'Same day subtask']);
+    DB::table('subtasks')->where('id', $subtask->id)->update(['start_date' => '2026-11-27 00:00:00', 'due_date' => '2026-11-27']);
+    DB::table('tasks')->where('id', $task->id)->update(['start_date' => '2026-11-27 00:00:00', 'due_date' => '2026-11-27']);
+
+    $this->artisan('solava:check-task-dates')
+        ->expectsOutput('No task or subtask breaks the due date rules.')
+        ->assertSuccessful();
+});

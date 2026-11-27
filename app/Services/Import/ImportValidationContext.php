@@ -44,8 +44,11 @@ class ImportValidationContext
     /** @var array<string, true> */
     public array $blockedProjectKeys = [];
 
-    /** @var array<int, array{title: string, companyName: string, projectName: string, blocked: bool, startDate: ?string, dueDate: ?string, existingTaskId: ?int}> Task Ref => info */
+    /** @var array<int, array{title: string, companyName: string, projectName: string, blocked: bool, startDate: ?string, dueDate: ?string, existingTaskId: ?int, rowNumber: ?int}> Task Ref => info */
     public array $taskRefs = [];
+
+    /** @var array<int, true> Task Ref => a subtask in this file will move its due date out (SOL-0022) */
+    public array $extendedTaskRefs = [];
 
     /** @var array<string, int> prefix => highest employee_id number claimed so far this pass */
     public array $employeeIdClaimed = [];

@@ -248,3 +248,32 @@ test('after the command, notifications are sent again in the same process', func
 
     expect($recipient->fresh()->notifications()->count())->toBe(1);
 });
+
+// -- Second review ---------------------------------------------------------------
+
+test('--as matches a username before an email', function () {
+    fixDatesScenario($this->project, $this->dept);
+    $this->owner->update(['email' => 'chief@example.test']);
+    // Another user whose username is the owner's email.
+    $staff = User::factory()->create(['username' => 'chief@example.test']);
+    OrgMember::create(['organization_id' => $this->org->id, 'user_id' => $staff->id, 'role_id' => Role::where('slug', 'staff')->value('id')]);
+
+    $this->artisan('solava:fix-task-dates', ['--apply' => true, '--as' => 'chief@example.test'])
+        ->expectsOutputToContain("isn't an owner or super admin")
+        ->assertFailed();
+
+    $this->artisan('solava:fix-task-dates', ['--apply' => true, '--as' => 'olive'])->assertSuccessful();
+});
+
+test('when the CSV can\'t be written, the changes still stand and it says so', function () {
+    $rows = fixDatesScenario($this->project, $this->dept);
+    // A file where the report folder should be.
+    File::put(storage_path('app/datafix'), 'in the way');
+
+    $this->artisan('solava:fix-task-dates', ['--apply' => true, '--as' => 'olive'])
+        ->expectsOutputToContain("The changes above were made, but the CSV report couldn't be written")
+        ->assertSuccessful();
+
+    expect(dueOf($rows['badTask']))->toBe('2026-12-10');
+    File::delete(storage_path('app/datafix'));
+});

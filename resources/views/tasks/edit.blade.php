@@ -342,6 +342,13 @@
 
                 editForm.addEventListener('submit', function (event) {
                     if (! showDateError()) return;
+                    // Only Save (or Enter, which presses Save) is stopped here.
+                    // The Description autosave submits with no button
+                    // (requestSubmit()): stopping it would drop the edit
+                    // without a word, so it goes on to the server, which
+                    // refuses it and shows the error under Due date, with
+                    // the edited description still in the form.
+                    if (! event.submitter) return;
                     event.preventDefault();
                     dueInput.focus();
                 });
