@@ -166,8 +166,16 @@
         function applyTaskDueDate(data) {
             if (! data || ! ('task_due_date' in data)) return;
             const dueDate = data.task_due_date || '';
-            if (dueDate === (container.dataset.taskDueDate || '')) return;
+            const previous = container.dataset.taskDueDate || '';
+            if (dueDate === previous) return;
             container.dataset.taskDueDate = dueDate;
+            // The Add row starts with the task's due date: keep it in step,
+            // so its untouched defaults still count as the task's own dates,
+            // unless the user already chose another one.
+            if (newDueDateInput && newDueDateInput.value === previous) {
+                newDueDateInput.value = dueDate;
+                syncDateBounds(newStartDateInput, newDueDateInput);
+            }
             document.dispatchEvent(new CustomEvent('solava:task-due-changed', { detail: { taskId: taskId, dueDate: dueDate } }));
         }
 

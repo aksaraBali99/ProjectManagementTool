@@ -237,3 +237,15 @@ test('a malformed subtask date only gets the date rule\'s error', function () {
         ->assertStatus(422)
         ->assertJsonMissing(['due_date' => [DUE_BEFORE_START]]);
 });
+
+// -- Errors show under the field -------------------------------------------
+
+test('a refused due date shows under the Due date field, not only at the top', function () {
+    $html = $this->actingAs($this->management)
+        ->from("/tasks/{$this->task->id}/edit")
+        ->followingRedirects()
+        ->put("/tasks/{$this->task->id}", dateRangeTaskPayload($this->task, ['start_date' => '2026-12-10', 'due_date' => '2026-12-05']))
+        ->getContent();
+
+    expect($html)->toMatch('/<p id="due_date_error" class="[^"]*"\s*>The due date can&#039;t be earlier than the start date\.<\/p>/');
+});

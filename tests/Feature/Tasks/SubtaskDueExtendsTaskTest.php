@@ -245,3 +245,11 @@ test('Add Task with no task due date has no limit', function () {
 
     expect(Task::withoutGlobalScopes()->where('title', 'New task')->firstOrFail()->due_date)->toBeNull();
 });
+
+test('Add Task shows the refusal under its Due date field', function () {
+    $this->actingAs($this->management)
+        ->from('/tasks/create')
+        ->followingRedirects()
+        ->post('/tasks', addTaskPayload($this->project, $this->dept))
+        ->assertSeeInOrder(['id="due_date"', 'A subtask is due after this task (5 Dec 2026).', '>Subtasks<'], false);
+});

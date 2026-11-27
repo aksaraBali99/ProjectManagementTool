@@ -149,8 +149,10 @@
                 <div>
                     <label for="due_date" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Due date</label>
                     <input id="due_date" name="due_date" type="date" value="{{ old('due_date', $task->due_date?->toDateString()) }}"
-                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
-                    <p id="due_date_error" class="mt-1 text-[10px] text-red-600" hidden></p>
+                        class="mt-1 block w-full rounded-md border {{ $errors->has('due_date') ? 'border-red-500' : 'border-gray-300' }} px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    {{-- Filled by the server after a refused save, and by the
+                         page's own date check (SOL-0022) as the user edits. --}}
+                    <p id="due_date_error" class="mt-1 text-[10px] text-red-600" @unless ($errors->has('due_date')) hidden @endunless>{{ $errors->first('due_date') }}</p>
                 </div>
             </div>
 
@@ -355,8 +357,10 @@
                 });
                 document.addEventListener('solava:task-due-changed', function (event) {
                     if (String(event.detail.taskId) !== String(taskIdForDates)) return;
-                    dueInput.value = event.detail.dueDate || '';
-                    storedDates.due = dueInput.value;
+                    // An unsaved Due date the user typed is theirs to keep:
+                    // only the stored value (what "changed" compares to) moves.
+                    if (dueInput.value === storedDates.due) dueInput.value = event.detail.dueDate || '';
+                    storedDates.due = event.detail.dueDate || '';
                     syncDateBounds();
                     showDateError();
                 });

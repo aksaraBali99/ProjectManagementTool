@@ -163,3 +163,77 @@ test('a task row moving an existing task before its existing subtasks warns, and
 
     expect($task->fresh()->due_date->toDateString())->toBe('2026-12-20');
 });
+
+// -- Review fixes -------------------------------------------------------------
+
+test('re-importing a task with its own stored start-after-due dates is not an error', function () {
+    // A task started late: moved to In Progress after its due date.
+    $task = Task::create([
+        'organization_id' => $this->org->id,
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'title' => 'Launch page',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    Task::withoutGlobalScopes()->whereKey($task->id)->update(['start_date' => '2026-11-27', 'due_date' => '2026-11-20']);
+
+    $batch = runImportValidation([
+        'Tasks' => [dateRangeImportTask(['priority' => 'High', 'start_date' => '27/11/2026', 'due_date' => '20/11/2026'])],
+        'Subtasks' => [['task_ref' => '1', 'title' => 'Sub', 'start_date' => '18/11/2026', 'due_date' => '19/11/2026']],
+    ], $this->owner);
+
+    expect(importRow($batch, 'Tasks')->validation_status->value)->not->toBe('error');
+    expect(importRow($batch, 'Subtasks')->resolved_action->value)->toBe('insert');
+});
+
+test('changing such a task\'s dates on import is still checked', function () {
+    $task = Task::create([
+        'organization_id' => $this->org->id,
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'title' => 'Launch page',
+        'priority' => 'medium',
+        'status' => 'pending',
+    ]);
+    Task::withoutGlobalScopes()->whereKey($task->id)->update(['start_date' => '2026-11-27', 'due_date' => '2026-11-20']);
+
+    $batch = runImportValidation([
+        'Tasks' => [dateRangeImportTask(['start_date' => '27/11/2026', 'due_date' => '21/11/2026'])],
+    ], $this->owner);
+
+    expect(importRow($batch, 'Tasks')->validation_status->value)->toBe('error');
+});
+
+test('a subtask copying the start date an Active (in progress) task gets today is checked against today', function () {
+    $this->travelTo(now()->setDate(2026, 11, 27));
+
+    $batch = runImportValidation([
+        'Tasks' => [dateRangeImportTask(['status' => 'Active', 'due_date' => '01/01/2026'])],
+        'Subtasks' => [['task_ref' => '1', 'title' => 'Sub', 'due_date' => '05/01/2026']],
+    ], $this->owner);
+
+    $row = importRow($batch, 'Subtasks');
+    expect($row->validation_status->value)->toBe('error');
+    expect($row->validation_message)->toContain('A blank date is copied from its task (Ref 1).');
+});
+
+test('a task already Active (in progress) keeps a blank start on import, so its subtasks copy no start', function () {
+    $this->travelTo(now()->setDate(2026, 11, 27));
+    Task::create([
+        'organization_id' => $this->org->id,
+        'project_id' => $this->project->id,
+        'department_id' => $this->dept->id,
+        'title' => 'Launch page',
+        'priority' => 'medium',
+        'status' => 'in_progress',
+    ]);
+    Task::withoutGlobalScopes()->where('title', 'Launch page')->update(['start_date' => null]);
+
+    $batch = runImportValidation([
+        'Tasks' => [dateRangeImportTask(['status' => 'Active', 'due_date' => '01/01/2026'])],
+        'Subtasks' => [['task_ref' => '1', 'title' => 'Sub', 'due_date' => '01/01/2026']],
+    ], $this->owner);
+
+    expect(importRow($batch, 'Subtasks')->validation_status->value)->toBe('valid');
+});
