@@ -263,6 +263,35 @@
             let editRoot = null;
             let initialHtml = '';
             let saving = false;
+            let waitingForLinks = false;
+
+            // A link chip shows "Resolving link… <token>" in the text while
+            // the server fetches the page (buildLinkPreview() in
+            // rich-text-editor.js), then swaps it for the chip, or for a
+            // plain link after at most 15 seconds. Closing the link bar
+            // briefly takes focus out of the editor, which counts as
+            // clicking away; saving then would store the placeholder and
+            // close the editor before the swap. So a save waits for every
+            // link to resolve, then goes ahead only if focus has really
+            // left; if the user is still typing, a later click-away saves.
+            const RESOLVING_LINK = 'Resolving link… ';
+
+            function saveOnceLinksResolve() {
+                if (waitingForLinks) return;
+                waitingForLinks = true;
+                const started = Date.now();
+                const timer = setInterval(function () {
+                    if (! editor) {
+                        clearInterval(timer);
+                        waitingForLinks = false;
+                        return;
+                    }
+                    if (editor.getHTML().includes(RESOLVING_LINK) && Date.now() - started < 20000) return;
+                    clearInterval(timer);
+                    waitingForLinks = false;
+                    if (! editRoot.contains(document.activeElement)) save();
+                }, 250);
+            }
 
             function close() {
                 if (editor) editor.destroy();
@@ -275,6 +304,10 @@
             function save() {
                 if (! editor || saving) return;
                 const html = editor.isEmpty() ? '' : editor.getHTML();
+                if (html.includes(RESOLVING_LINK)) {
+                    saveOnceLinksResolve();
+                    return;
+                }
                 if (html === initialHtml) {
                     close();
                     return;
@@ -313,13 +346,20 @@
 
                 const root = editRoot;
                 root.addEventListener('rte:submit', save);
+                // Capture phase: TipTap's own Escape shortcut takes focus out
+                // of the editor and marks the key handled, so a normal
+                // listener never gets to cancel. Only an Escape typed in the
+                // text itself cancels: the link bar's and the emoji panel's
+                // inputs keep theirs (they aren't in .ProseMirror), and so
+                // does an open @/: suggestion list (.rte-mentions, added to
+                // <body>), which Escape closes first.
                 root.addEventListener('keydown', function (event) {
-                    // The editor's own pop-ups (link, emoji, suggestions)
-                    // handle their Escape first and mark it handled.
-                    if (event.key !== 'Escape' || event.defaultPrevented) return;
+                    if (event.key !== 'Escape' || ! event.target.closest('.ProseMirror')) return;
+                    if (document.querySelector('.rte-mentions')) return;
                     event.preventDefault();
+                    event.stopPropagation();
                     close();
-                });
+                }, true);
 
                 withEditor(root).then(function (created) {
                     if (editRoot !== root) {
@@ -329,7 +369,15 @@
                     editor = created;
                     initialHtml = created.isEmpty() ? '' : created.getHTML();
                     created.focus();
-                    created.onSettledBlur(save);
+                    // onSettledBlur() also fires when the link bar closes
+                    // (Apply, Cancel or Escape), before the editor takes
+                    // focus back on the next frame. Look again a moment
+                    // later and save only if focus really stayed outside.
+                    created.onSettledBlur(function () {
+                        setTimeout(function () {
+                            if (editRoot === root && ! root.contains(document.activeElement)) save();
+                        }, 150);
+                    });
                 });
             });
         }
