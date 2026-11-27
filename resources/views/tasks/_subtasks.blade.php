@@ -41,9 +41,24 @@
                     @endif
                     <span class="subtask-feedback text-[10px] text-gray-400"></span>
                 </div>
+                {{-- SOL-0022: rich text, the task Description's view/edit split
+                     (tasks/_description-field.blade.php) in a compact form.
+                     View: the description through <x-rich-text>, so links
+                     work and nothing unsanitized is printed. data-raw-html
+                     seeds the editor (RichText::toHtml(), never the stored
+                     value as is). The pencil only for someone who can edit. --}}
                 <div class="subtask-description-row mt-1 pl-5" style="display: none;">
-                    <textarea rows="2" placeholder="Description" {{ $canEdit ? '' : 'disabled' }}
-                        class="subtask-description-input block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:border-transparent disabled:bg-gray-50">{{ $subtask->description }}</textarea>
+                    <div class="subtask-description-view-row flex items-start justify-between gap-3 rounded-md border border-gray-300 bg-white px-3 py-2"
+                        data-raw-html="{{ \App\Support\RichText::toHtml($subtask->description) }}">
+                        <div class="subtask-description-view min-w-0 flex-1 text-[12px] text-[#1F2937]">
+                            <x-rich-text :value="$subtask->description" empty="No description." />
+                        </div>
+                        @if ($canEdit)
+                            <button type="button" class="edit-subtask-description-btn shrink-0 text-gray-500 hover:text-gray-700" title="Edit description" aria-label="Edit description">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 2.5a1.5 1.5 0 0 1 2 2L5 13l-3 1 1-3z"/><path d="M9.5 4.5l2 2"/></svg>
+                            </button>
+                        @endif
+                    </div>
                 </div>
             </div>
         @endforeach
@@ -202,6 +217,208 @@
             });
         }
 
+        // SOL-0022: subtask descriptions are rich text, edited with the same
+        // editor as the task Description and comments. app.js (which
+        // mounts it) is a deferred module, so wait for it, as
+        // _description-field.blade.php and _comments.blade.php do.
+        function withEditor(root) {
+            return new Promise(function (resolve) {
+                function go() { window.solavaRichText.mount(root).then(resolve); }
+                if (window.solavaRichText) go();
+                else document.addEventListener('DOMContentLoaded', go);
+            });
+        }
+
+        // The read-only view. Only server-made HTML goes in here:
+        // description_html from SubtaskController (RichText::toHtml()).
+        // highlight() is given the holder, which CONTAINS the
+        // [data-rich-text-content] element: it looks inside its scope, and
+        // builds link chips, code colours and the lightbox hooks.
+        function renderDescription(holder, html) {
+            holder.innerHTML = '';
+            if (html) {
+                const content = document.createElement('div');
+                content.className = 'rich-text';
+                content.setAttribute('data-rich-text-content', '');
+                content.innerHTML = html;
+                holder.appendChild(content);
+                if (window.solavaRichText) window.solavaRichText.highlight(holder);
+            } else {
+                const empty = document.createElement('p');
+                empty.textContent = 'No description.';
+                holder.appendChild(empty);
+            }
+        }
+
+        // The pencil swaps the view for a compact editor: text formatting,
+        // links and link chips only (no upload or mention attributes, so
+        // those toolbar buttons hide themselves). It saves when focus
+        // leaves it, or on Ctrl/Cmd+Enter, like the task Description;
+        // Escape closes it without saving.
+        function wireDescriptionEditor(row) {
+            const viewRow = row.querySelector('.subtask-description-view-row');
+            const holder = row.querySelector('.subtask-description-view');
+            const editBtn = row.querySelector('.edit-subtask-description-btn');
+            let editor = null;
+            let editRoot = null;
+            let initialHtml = '';
+            let saving = false;
+            let waitingForLinks = false;
+
+            // A link chip shows "Resolving link… <token>" in the text while
+            // the server fetches the page (buildLinkPreview() in
+            // rich-text-editor.js), then swaps it for the chip, or for a
+            // plain link after at most 15 seconds. Closing the link bar
+            // briefly takes focus out of the editor, which counts as
+            // clicking away; saving then would store the placeholder and
+            // close the editor before the swap. So a save waits for every
+            // link to resolve, then goes ahead if focus has really left or
+            // Ctrl/Cmd+Enter was pressed; if the user is still typing, a
+            // later click-away saves.
+            const RESOLVING_LINK = 'Resolving link… ';
+            // Ctrl/Cmd+Enter was pressed while a link was resolving: save
+            // once it has, wherever focus is.
+            let submitWhenResolved = false;
+
+            // Has focus really left this editor? The emoji picker and the
+            // image alt-text box are added to <body>, not inside the
+            // editor, so they count as inside: the same list as the
+            // editor's own isBlurSettled() (rich-text-editor.js).
+            function focusIsOutside() {
+                const active = document.activeElement;
+                if (! active || active === document.body) return true;
+                if (editRoot && editRoot.contains(active)) return false;
+                return ! (active.closest && active.closest('.rte-emoji-picker, .rte-alt-edit-btn, .rte-alt-prompt'));
+            }
+
+            function currentHtml() {
+                return editor.isEmpty() ? '' : editor.getHTML();
+            }
+
+            // The editor swaps every placeholder within 15 seconds; 20 is
+            // only reached if the text itself contains the placeholder
+            // words, and then it saves as it is rather than waiting forever.
+            function saveOnceLinksResolve(submitted) {
+                if (submitted) submitWhenResolved = true;
+                if (waitingForLinks) return;
+                waitingForLinks = true;
+                const started = Date.now();
+                const timer = setInterval(function () {
+                    if (! editor) {
+                        clearInterval(timer);
+                        waitingForLinks = false;
+                        submitWhenResolved = false;
+                        return;
+                    }
+                    const timedOut = Date.now() - started >= 20000;
+                    if (currentHtml().includes(RESOLVING_LINK) && ! timedOut) return;
+                    clearInterval(timer);
+                    waitingForLinks = false;
+                    const submitted = submitWhenResolved;
+                    submitWhenResolved = false;
+                    if (submitted || focusIsOutside()) save(submitted, timedOut);
+                }, 250);
+            }
+
+            function close() {
+                if (editor) editor.destroy();
+                editor = null;
+                if (editRoot) editRoot.remove();
+                editRoot = null;
+                viewRow.style.display = '';
+            }
+
+            // submitted: from Ctrl/Cmd+Enter. ignoreResolving: the wait for
+            // links timed out (see saveOnceLinksResolve()).
+            function save(submitted, ignoreResolving) {
+                if (! editor || saving) return;
+                const html = currentHtml();
+                if (html.includes(RESOLVING_LINK) && ! ignoreResolving) {
+                    saveOnceLinksResolve(submitted);
+                    return;
+                }
+                if (html === initialHtml) {
+                    close();
+                    return;
+                }
+
+                saving = true;
+                requestOrThrow('/subtasks/' + row.dataset.subtaskId, 'PUT', { description: html === '' ? null : html }, 'Failed to save.')
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) {
+                        viewRow.dataset.rawHtml = data.description_html || '';
+                        renderDescription(holder, data.description_html || '');
+                        showFeedback(row, 'Saved');
+                        // Typed more while it was saving (focus stays in the
+                        // editor after Ctrl/Cmd+Enter): keep the editor open
+                        // with that text, so the next click-away saves it,
+                        // rather than closing on the older saved version.
+                        if (editor && currentHtml() !== html) {
+                            initialHtml = html;
+                            return;
+                        }
+                        close();
+                    })
+                    .catch(function (error) {
+                        // The editor stays open with the text.
+                        showFeedback(row, error.message, true);
+                    })
+                    .finally(function () { saving = false; });
+            }
+
+            editBtn.addEventListener('click', function () {
+                if (editRoot) return;
+                viewRow.style.display = 'none';
+
+                editRoot = document.createElement('div');
+                editRoot.className = 'subtask-description-editor rte-loading';
+                editRoot.setAttribute('data-rich-text', '');
+                editRoot.setAttribute('data-compact', '');
+                editRoot.dataset.content = viewRow.dataset.rawHtml || '';
+                editRoot.dataset.label = 'Subtask description';
+                editRoot.dataset.placeholder = 'Add a description…';
+                editRoot.dataset.linkPreviewTaskId = taskId;
+                editRoot.dataset.linkPreviewContext = 'subtask';
+                viewRow.insertAdjacentElement('afterend', editRoot);
+
+                const root = editRoot;
+                root.addEventListener('rte:submit', function () { save(true); });
+                // Capture phase: TipTap's own Escape shortcut takes focus out
+                // of the editor and marks the key handled, so a normal
+                // listener never gets to cancel. Only an Escape typed in the
+                // text itself cancels: the link bar's and the emoji panel's
+                // inputs keep theirs (they aren't in .ProseMirror), and so
+                // does an open @/: suggestion list (.rte-mentions, added to
+                // <body>), which Escape closes first.
+                root.addEventListener('keydown', function (event) {
+                    if (event.key !== 'Escape' || ! event.target.closest('.ProseMirror')) return;
+                    if (document.querySelector('.rte-mentions')) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    close();
+                }, true);
+
+                withEditor(root).then(function (created) {
+                    if (editRoot !== root) {
+                        created.destroy();
+                        return;
+                    }
+                    editor = created;
+                    initialHtml = created.isEmpty() ? '' : created.getHTML();
+                    created.focus();
+                    // onSettledBlur() also fires when the link bar closes
+                    // (Apply, Cancel or Escape), before the editor takes
+                    // focus back on the next frame. Look again a moment
+                    // later and save only if focus really stayed outside.
+                    created.onSettledBlur(function () {
+                        setTimeout(function () {
+                            if (editRoot === root && focusIsOutside()) save(false);
+                        }, 150);
+                    });
+                });
+            });
+        }
+
         function clearEmptyState() {
             const empty = rowsEl.querySelector('.subtask-empty');
             if (empty) empty.remove();
@@ -216,7 +433,7 @@
             const removeBtn = row.querySelector('.remove-subtask-row');
             const descToggle = row.querySelector('.subtask-desc-toggle');
             const descRow = row.querySelector('.subtask-description-row');
-            const descriptionInput = row.querySelector('.subtask-description-input');
+            const descEditBtn = row.querySelector('.edit-subtask-description-btn');
 
             // Collapsed by default regardless of content — expanding is
             // purely a local show/hide, scoped to this row only, same "+"/"−"
@@ -229,24 +446,7 @@
                 });
             }
 
-            if (canEdit && descriptionInput) {
-                let originalDescription = descriptionInput.value;
-                descriptionInput.addEventListener('blur', function () {
-                    const newDescription = descriptionInput.value;
-                    if (newDescription === originalDescription) return;
-
-                    const subtaskId = row.dataset.subtaskId;
-                    requestOrThrow('/subtasks/' + subtaskId, 'PUT', { description: newDescription === '' ? null : newDescription }, 'Failed to save.')
-                        .then(function () {
-                            originalDescription = newDescription;
-                            showFeedback(row, 'Saved');
-                        })
-                        .catch(function (error) {
-                            descriptionInput.value = originalDescription;
-                            showFeedback(row, error.message, true);
-                        });
-                });
-            }
+            if (canEdit && descEditBtn) wireDescriptionEditor(row);
 
             toggle.addEventListener('change', function () {
                 const subtaskId = row.dataset.subtaskId;
@@ -440,9 +640,20 @@
                             + '<button type="button" class="remove-subtask-row text-[11px] text-gray-500 hover:underline">Delete</button>'
                             + '<span class="subtask-feedback text-[10px] text-gray-400"></span>'
                             + '</div>'
+                            // SOL-0022: the same view/edit markup as a
+                            // server-rendered row; the view and its raw copy
+                            // are filled below from description_html, never
+                            // through this string.
                             + '<div class="subtask-description-row mt-1 pl-5" style="display: none;">'
-                            + '<textarea rows="2" placeholder="Description" class="subtask-description-input block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600"></textarea>'
+                            + '<div class="subtask-description-view-row flex items-start justify-between gap-3 rounded-md border border-gray-300 bg-white px-3 py-2">'
+                            + '<div class="subtask-description-view min-w-0 flex-1 text-[12px] text-[#1F2937]"></div>'
+                            + '<button type="button" class="edit-subtask-description-btn shrink-0 text-gray-500 hover:text-gray-700" title="Edit description" aria-label="Edit description">'
+                            + '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 2.5a1.5 1.5 0 0 1 2 2L5 13l-3 1 1-3z"/><path d="M9.5 4.5l2 2"/></svg>'
+                            + '</button>'
+                            + '</div>'
                             + '</div>';
+                        row.querySelector('.subtask-description-view-row').dataset.rawHtml = data.description_html || '';
+                        renderDescription(row.querySelector('.subtask-description-view'), data.description_html || '');
                         rowsEl.appendChild(row);
                         wireRow(row);
                         announceSubtaskDueDates();
