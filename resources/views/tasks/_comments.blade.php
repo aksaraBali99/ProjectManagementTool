@@ -898,14 +898,28 @@
         // and it's sent now, with the new session. takePendingComment()
         // removes it as it reads it, so it's sent once at most. If it
         // can't be sent, its text goes into the comment box, never lost.
+        //
+        // Sent straight away, without waiting for the comment box: the
+        // box only loads its editor once it's near the viewport
+        // (whenNearViewport() in app.js), and it sits at the bottom of the
+        // page, so waiting would hold a draft already taken from storage
+        // until the user scrolled down. Then the page scrolls to the
+        // result, so the note is seen.
         const POSTED_AFTER_SIGN_IN = 'Your comment was posted after you signed in again.';
 
-        function sendPendingComment(draft, composer) {
+        function sendPendingComment(draft) {
             const payload = { body: draft.body, mentioned_user_ids: draft.mentioned_user_ids || [] };
 
+            function posted(element) {
+                showMessage(errorEl, POSTED_AFTER_SIGN_IN, true);
+                (element || errorEl).scrollIntoView({ block: 'center' });
+            }
+
+            // Scrolling the box into view also loads its editor.
             function backInComposer(message) {
-                composer.setContent(draft.body);
                 showMessage(errorEl, message);
+                editorRoot.scrollIntoView({ block: 'center' });
+                withEditor(editorRoot).then(function (composer) { composer.setContent(draft.body); });
             }
 
             if (draft.action === 'edit') {
@@ -919,7 +933,7 @@
                             bodyText.replaceWith(body);
                             highlightCode(body);
                         }
-                        showMessage(errorEl, POSTED_AFTER_SIGN_IN, true);
+                        posted(card);
                     })
                     .catch(function (error) {
                         backInComposer(error.status === 403 || error.status === 404
@@ -940,7 +954,7 @@
                     } else {
                         insertPostedComment(data.comment);
                     }
-                    showMessage(errorEl, POSTED_AFTER_SIGN_IN, true);
+                    posted(findCard(data.comment.id));
                 })
                 .catch(function (error) {
                     // A parent comment deleted meanwhile fails on
@@ -964,13 +978,14 @@
             text.textContent = new DOMParser().parseFromString(draft.body, 'text/html').body.textContent;
             box.append(note, text);
             errorEl.insertAdjacentElement('beforebegin', box);
+            box.scrollIntoView({ block: 'center' });
         }
 
         withSession().then(function (session) {
             const draft = session ? session.takePendingComment(taskId) : null;
             if (! draft) return;
             if (postBtn && editorRoot) {
-                withEditor(editorRoot).then(function (composer) { sendPendingComment(draft, composer); });
+                sendPendingComment(draft);
             } else {
                 showUnsentComment(draft);
             }
