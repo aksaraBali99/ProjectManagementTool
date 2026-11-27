@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * A genuinely system-triggered audit entry (e.g. solva:bootstrap
+     * A genuinely system-triggered audit entry (e.g. solava:bootstrap
      * --reset-owner, run over SSH with no authenticated web session and
      * no natural "current organization") has no truthful non-null value
      * for either column — every other write site keeps passing real

@@ -2,12 +2,13 @@
 
 use App\Console\Commands\DbBackupCommand;
 use Illuminate\Process\PendingProcess;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Symfony\Component\Process\ExecutableFinder;
 
 /**
- * task #119: `solva:db-backup`, the backup every PROD deploy takes before
+ * task #119: `solava:db-backup`, the backup every PROD deploy takes before
  * it changes anything. mysqldump is faked; the files go to a throwaway
  * storage folder.
  */
@@ -67,7 +68,7 @@ function backupFiles(string $directory): array
 test('it runs mysqldump with the expected arguments, the password only in MYSQL_PWD', function () {
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup')->assertSuccessful();
+    $this->artisan('solava:db-backup')->assertSuccessful();
 
     Process::assertRan(function (PendingProcess $process) {
         expect($process->command)->toBe([
@@ -85,7 +86,7 @@ test('it uses mariadb-dump when the server has it', function () {
     useDumpBinary('/usr/bin/mariadb-dump');
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup')->assertSuccessful();
+    $this->artisan('solava:db-backup')->assertSuccessful();
 
     Process::assertRan(fn (PendingProcess $process) => $process->command[0] === '/usr/bin/mariadb-dump');
 });
@@ -94,7 +95,7 @@ test('a socket connection dumps through the socket', function () {
     config(['database.connections.mysql.unix_socket' => '/var/run/mysqld.sock']);
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup')->assertSuccessful();
+    $this->artisan('solava:db-backup')->assertSuccessful();
 
     Process::assertRan(fn (PendingProcess $process) => in_array('--socket=/var/run/mysqld.sock', $process->command, true)
         && ! collect($process->command)->contains(fn ($argument) => str_starts_with($argument, '--host=')));
@@ -104,7 +105,7 @@ test('the dump uses the connection\'s charset, utf8mb4 when it has none', functi
     config(['database.connections.mysql.charset' => $charset]);
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup')->assertSuccessful();
+    $this->artisan('solava:db-backup')->assertSuccessful();
 
     Process::assertRan(fn (PendingProcess $process) => in_array("--default-character-set={$expected}", $process->command, true));
 })->with([
@@ -117,7 +118,7 @@ test('an empty host or port is left out, not passed as "--port="', function () {
     config(['database.connections.mysql.host' => '', 'database.connections.mysql.port' => null]);
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup')->assertSuccessful();
+    $this->artisan('solava:db-backup')->assertSuccessful();
 
     Process::assertRan(fn (PendingProcess $process) => ! collect($process->command)
         ->contains(fn ($argument) => str_starts_with($argument, '--host') || str_starts_with($argument, '--port')));
@@ -126,7 +127,7 @@ test('an empty host or port is left out, not passed as "--port="', function () {
 test('it writes the dump gzipped under storage/app/backups, and prints its name and size but no credentials', function () {
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup')
+    $this->artisan('solava:db-backup')
         ->expectsOutputToContain('Backup written: db-20261105-143015.sql.gz (')
         ->doesntExpectOutputToContain('S3cret-Pa55!')
         ->assertSuccessful();
@@ -138,7 +139,7 @@ test('it writes the dump gzipped under storage/app/backups, and prints its name 
 test('the backups folder is 700 and each file 600', function () {
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup')->assertSuccessful();
+    $this->artisan('solava:db-backup')->assertSuccessful();
 
     expect(fileperms($this->backups) & 0777)->toBe(0700)
         ->and(fileperms($this->backups.'/db-20261105-143015.sql.gz') & 0777)->toBe(0600);
@@ -153,7 +154,7 @@ test('it keeps only the newest --keep backups, deleting the oldest', function ()
     File::put("{$this->backups}/notes.txt", 'keep me');
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup', ['--keep' => 3])
+    $this->artisan('solava:db-backup', ['--keep' => 3])
         ->expectsOutputToContain('Deleted old backup: db-20261101-010000.sql.gz')
         ->assertSuccessful();
 
@@ -169,7 +170,7 @@ test('it keeps 5 by default', function () {
     }
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup')->assertSuccessful();
+    $this->artisan('solava:db-backup')->assertSuccessful();
 
     expect(backupFiles($this->backups))->toHaveCount(5)
         ->toContain('db-20261105-143015.sql.gz')
@@ -181,7 +182,7 @@ test('it fails and keeps no file when the dump fails, is empty or was cut short'
     File::put("{$this->backups}/db-20261101-010000.sql.gz", 'old');
     Process::fake(['*' => $result()]);
 
-    $this->artisan('solva:db-backup', ['--keep' => 1])
+    $this->artisan('solava:db-backup', ['--keep' => 1])
         ->expectsOutputToContain($message)
         ->assertFailed();
 
@@ -205,7 +206,7 @@ test('it accepts the mariadb driver', function () {
     ]);
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup')->assertSuccessful();
+    $this->artisan('solava:db-backup')->assertSuccessful();
 
     Process::assertRan(fn (PendingProcess $process) => in_array('--host=maria.internal', $process->command, true)
         && end($process->command) === 'solava');
@@ -215,7 +216,7 @@ test('it refuses any other driver without running anything', function () {
     config(['database.default' => 'sqlite']);
     Process::fake();
 
-    $this->artisan('solva:db-backup')
+    $this->artisan('solava:db-backup')
         ->expectsOutputToContain("uses 'sqlite'")
         ->assertFailed();
 
@@ -226,7 +227,7 @@ test('it refuses any other driver without running anything', function () {
 test('--keep must be 1 or more', function (string $keep) {
     Process::fake();
 
-    $this->artisan('solva:db-backup', ['--keep' => $keep])->assertFailed();
+    $this->artisan('solava:db-backup', ['--keep' => $keep])->assertFailed();
 
     Process::assertNothingRan();
 })->with(['0', '-1', 'abc']);
@@ -257,7 +258,7 @@ test('a failed write (a full disk) fails the backup, keeps no file and deletes n
     useChunkWriter(fn ($gzip, string $data) => false);
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup', ['--keep' => 1])
+    $this->artisan('solava:db-backup', ['--keep' => 1])
         ->expectsOutputToContain('writing the backup file failed')
         ->doesntExpectOutputToContain('Backup written')
         ->assertFailed();
@@ -277,9 +278,14 @@ test('a file that doesn\'t read back as the whole dump fails the backup, keeps n
     });
     Process::fake(['*' => Process::result(output: completeDump())]);
 
-    $this->artisan('solva:db-backup', ['--keep' => 1])
+    $this->artisan('solava:db-backup', ['--keep' => 1])
         ->expectsOutputToContain("doesn't match the dump when read back")
         ->assertFailed();
 
     expect(backupFiles($this->backups))->toBe(['db-20261101-010000.sql.gz']);
+});
+
+test('the command still answers to its old name, solva:db-backup (SOL-0013)', function () {
+    expect(Artisan::all())->toHaveKey('solva:db-backup');
+    expect(Artisan::all()['solva:db-backup']->getName())->toBe('solava:db-backup');
 });

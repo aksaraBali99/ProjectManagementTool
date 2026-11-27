@@ -33,7 +33,16 @@ use Throwable;
  */
 class DbBackupCommand extends Command
 {
-    protected $signature = 'solva:db-backup {--keep=5 : How many backups to keep, newest first}';
+    protected $signature = 'solava:db-backup {--keep=5 : How many backups to keep, newest first}';
+
+    /**
+     * SOL-0013: the command's name before the app was spelled Solava.
+     * Kept so runbooks, notes and older deploy scripts that use it still
+     * work.
+     *
+     * @var array<int, string>
+     */
+    protected $aliases = ['solva:db-backup'];
 
     protected $description = 'Back up the MySQL/MariaDB database to storage/app/backups (gzipped).';
 
