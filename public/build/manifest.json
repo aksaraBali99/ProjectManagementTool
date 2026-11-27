@@ -182,7 +182,7 @@
     "src": "node_modules/intl-tel-input/dist/img/flags@2x.webp"
   },
   "resources/css/app.css": {
-    "file": "assets/app-VEgg_gLN.css",
+    "file": "assets/app-DqiL8PVU.css",
     "name": "app",
     "names": [
       "app.css"
@@ -235,7 +235,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-CvrwUeJw.js",
+    "file": "assets/app-Dbn5V7S0.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -258,10 +258,13 @@
     ]
   },
   "resources/js/code-highlight.js": {
-    "file": "assets/code-highlight-C7ppvf0-.js",
+    "file": "assets/code-highlight-BBWPPw8y.js",
     "name": "code-highlight",
     "src": "resources/js/code-highlight.js",
-    "isDynamicEntry": true
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
   },
   "resources/js/file-chip-status.js": {
     "file": "assets/file-chip-status-W6W-yJUa.js",
@@ -288,11 +291,12 @@
     "isDynamicEntry": true
   },
   "resources/js/rich-text-editor.js": {
-    "file": "assets/rich-text-editor-DA8Be0-M.js",
+    "file": "assets/rich-text-editor-7IMiY_Yu.js",
     "name": "rich-text-editor",
     "src": "resources/js/rich-text-editor.js",
     "isDynamicEntry": true,
     "imports": [
+      "resources/js/app.js",
       "resources/js/code-highlight.js"
     ]
   },

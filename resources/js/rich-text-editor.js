@@ -2212,6 +2212,11 @@ function setupMentions(editor, users) {
             return ids;
         },
         reset: function () { mentioned.clear(); },
+        // SOL-0022: after setContent(), track the mentions in the new text.
+        reseed: function () {
+            mentioned.clear();
+            seedFromText();
+        },
     };
 }
 
@@ -2599,6 +2604,13 @@ export function createRichTextEditor(root) {
         clear: function () {
             editor.commands.clearContent(true);
             if (mentions) mentions.reset();
+        },
+        // SOL-0022: puts saved text back into the editor (a comment that
+        // couldn't be sent after signing in again), with its @mentions
+        // tracked again so they're sent with it.
+        setContent: function (html) {
+            editor.commands.setContent(html || '', { emitUpdate: true });
+            if (mentions) mentions.reseed();
         },
         getMentionedUserIds: function () { return mentions ? mentions.ids() : []; },
         // task #4, description autosave — registers `callback` to run once

@@ -1,6 +1,7 @@
 import intlTelInput from 'intl-tel-input/intlTelInputWithUtils';
 import 'intl-tel-input/dist/css/intlTelInput.css';
 import { highlightMentions } from './mention-highlight.js';
+import * as sessionExpiry from './session-expiry.js';
 import { stripExtension, wireFileNameAutofill } from './document-name-autofill.js';
 
 function initPhoneInputs() {
@@ -272,6 +273,10 @@ function buildEmojiPicker(options) {
 }
 
 window.solavaRichText = { mount: mountRichText, highlight: highlightRichText, buildEmojiPicker: buildEmojiPicker };
+// SOL-0022: what a page does when its login session has expired (see
+// session-expiry.js). Inline scripts wait for it like they do for
+// solavaRichText (this module is deferred).
+window.solavaSession = Object.assign({}, sessionExpiry);
 
 // task #73 (document form fixes): shared by documents/create.blade.php and
 // tasks/_documents.blade.php's own inline scripts — see

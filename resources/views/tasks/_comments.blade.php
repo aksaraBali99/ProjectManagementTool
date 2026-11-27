@@ -244,6 +244,16 @@
         function requestOrThrow(url, method, body, fallback) {
             return request(url, method, body).then(function (response) {
                 if (response.ok) return response;
+                // SOL-0022: 401 (signed out) or 419 (the session was
+                // replaced, so this page's CSRF token is stale) both mean
+                // the login session expired. Callers that were sending a
+                // comment save it and take the user to sign in.
+                if (response.status === 401 || response.status === 419) {
+                    const expired = new Error('Your session has expired.');
+                    expired.sessionExpired = true;
+                    expired.status = response.status;
+                    throw expired;
+                }
                 // task #122: a request too large for the web server (an
                 // HTML 413 page) or for PHP's post_max_size (Laravel's
                 // PostTooLargeException, a 413 with an empty message)
@@ -256,8 +266,59 @@
                 return response.json().catch(function () { return null; }).then(function (data) {
                     const fieldErrors = data && data.errors ? Object.values(data.errors)[0] : null;
                     const message = (Array.isArray(fieldErrors) && fieldErrors[0]) || (data && data.message) || fallback;
-                    throw new Error(message);
+                    const error = new Error(message);
+                    // Lets a resent draft tell "the comment is gone" (403,
+                    // 404, 422) from other failures.
+                    error.status = response.status;
+                    error.fields = data && data.errors ? Object.keys(data.errors) : [];
+                    throw error;
                 });
+            });
+        }
+
+        // SOL-0022: session-expiry.js (window.solavaSession), from app.js,
+        // a deferred module that may not have run yet.
+        function withSession() {
+            return new Promise(function (resolve) {
+                if (window.solavaSession) resolve(window.solavaSession);
+                else document.addEventListener('DOMContentLoaded', function () { resolve(window.solavaSession); });
+            });
+        }
+
+        const SESSION_EXPIRED_RELOAD = 'Your session has expired. Reload the page to sign in again.';
+
+        // Shows a message in one of this section's message lines. Red for
+        // an error; a notice is shown in the normal text colour and hides
+        // itself after a few seconds.
+        function showMessage(el, text, isNotice) {
+            if (! el) return;
+            el.textContent = text;
+            el.classList.toggle('text-red-600', ! isNotice);
+            el.classList.toggle('text-gray-600', !! isNotice);
+            el.style.display = '';
+            if (isNotice) {
+                setTimeout(function () {
+                    if (el.textContent === text) el.style.display = 'none';
+                }, 6000);
+            }
+        }
+
+        // The session expired while sending a comment: keep it in this
+        // browser, then reload so the server sends the user to sign in and
+        // back here, where the draft is sent (sendPendingComment()).
+        // Resolves true when it's on its way to sign in. Without storage
+        // (private window, full) the text stays in the editor and nothing
+        // reloads.
+        function keepCommentAndSignIn(draft, messageEl, button) {
+            return withSession().then(function (session) {
+                if (! session || ! session.savePendingComment(taskId, draft)) {
+                    showMessage(messageEl, 'Your session has expired. Copy your comment, then reload the page to sign in again.');
+                    return false;
+                }
+                showMessage(messageEl, 'Your session has expired. Your comment is saved. Taking you to sign in…', true);
+                if (button) button.disabled = true;
+                setTimeout(session.redirectToSignIn, 1500);
+                return true;
             });
         }
 
@@ -358,7 +419,7 @@
                     card.querySelector('.reactions-list').dataset.reactionsHash = data.reactions_hash;
                 })
                 .catch(function (error) {
-                    alert(error.message);
+                    alert(error.sessionExpired ? SESSION_EXPIRED_RELOAD : error.message);
                 });
         }
 
@@ -523,6 +584,27 @@
         // skipping the pre-fill for either case is the safe default
         // rather than mentioning someone the eligibility check would
         // reject anyway.
+        // A reply the server just saved, added to its thread: from the
+        // Reply box, and from a reply sent again after signing in (SOL-0022).
+        function insertPostedReply(thread, comment) {
+            const repliesList = thread.querySelector('.replies-list');
+            const card = buildCommentCard(Object.assign({}, comment, { can_edit: true }));
+            insertInOrder(repliesList, card, comment.id);
+            wireCard(card);
+            highlightCode(card);
+        }
+
+        // A top-level comment the server just saved, added to the list:
+        // from the Post button, and from a comment sent again after
+        // signing in (SOL-0022).
+        function insertPostedComment(comment) {
+            removeEmptyState();
+            const thread = buildCommentThread(Object.assign({}, comment, { can_edit: true }));
+            insertInOrder(listEl, thread, comment.id);
+            wireCard(thread.querySelector('.comment-card'));
+            highlightCode(thread);
+        }
+
         function openReplyCompose(clickedCard) {
             // TC-55: belt-and-braces — the Reply button isn't rendered without
             // the permission, so this is only reachable if something else
@@ -588,30 +670,31 @@
 
             postWrap.querySelector('.cancel-reply-btn').addEventListener('click', closeCompose);
 
-            postWrap.querySelector('.post-reply-btn').addEventListener('click', function () {
+            const replyBtn = postWrap.querySelector('.post-reply-btn');
+            replyBtn.addEventListener('click', function () {
                 if (! editor || editor.isEmpty()) return;
 
                 errorEl.style.display = 'none';
-
-                requestOrThrow('/tasks/' + taskId + '/comments', 'POST', {
+                const payload = {
                     body: editor.getHTML(),
                     mentioned_user_ids: editor.getMentionedUserIds(),
                     parent_comment_id: Number(clickedCard.dataset.commentId),
-                }, 'Failed to post reply.')
+                };
+
+                requestOrThrow('/tasks/' + taskId + '/comments', 'POST', payload, 'Failed to post reply.')
                     .then(function (response) {
                         return response.json();
                     })
                     .then(function (data) {
-                        const repliesList = thread.querySelector('.replies-list');
-                        const card = buildCommentCard(Object.assign({}, data.comment, { can_edit: true }));
-                        insertInOrder(repliesList, card, data.comment.id);
-                        wireCard(card);
-                        highlightCode(card);
+                        insertPostedReply(thread, data.comment);
                         closeCompose();
                     })
                     .catch(function (error) {
-                        errorEl.textContent = error.message;
-                        errorEl.style.display = '';
+                        if (error.sessionExpired) {
+                            keepCommentAndSignIn(Object.assign({ action: 'reply' }, payload), errorEl, replyBtn);
+                            return;
+                        }
+                        showMessage(errorEl, error.message);
                     });
             });
 
@@ -688,6 +771,7 @@
                         const restored = buildBodyElement(html, hash, mentionedUsers);
                         editRoot.replaceWith(restored);
                         controls.remove();
+                        editMessage.remove();
                         card.querySelector('.comment-actions').style.display = '';
                         highlightCode(restored);
                     }
@@ -696,11 +780,18 @@
                         restore(currentHtml, currentHash, currentMentionedUsers);
                     });
 
+                    // SOL-0022: where an expired session says what happens next.
+                    const editMessage = document.createElement('p');
+                    editMessage.className = 'comment-edit-message mt-1 text-[10px] text-red-600';
+                    editMessage.style.display = 'none';
+                    controls.insertAdjacentElement('afterend', editMessage);
+
                     const saveBtn = controls.querySelector('.save-comment-btn');
                     saveBtn.addEventListener('click', function () {
                         if (! editor || editor.isEmpty()) return;
 
-                        requestOrThrow('/comments/' + card.dataset.commentId, 'PUT', { body: editor.getHTML(), mentioned_user_ids: editor.getMentionedUserIds() }, 'Failed to save comment.')
+                        const payload = { body: editor.getHTML(), mentioned_user_ids: editor.getMentionedUserIds() };
+                        requestOrThrow('/comments/' + card.dataset.commentId, 'PUT', payload, 'Failed to save comment.')
                             .then(function (response) {
                                 return response.json();
                             })
@@ -708,6 +799,10 @@
                                 restore(data.comment.body_html, data.comment.body_hash, data.comment.mentioned_users);
                             })
                             .catch(function (error) {
+                                if (error.sessionExpired) {
+                                    keepCommentAndSignIn(Object.assign({ action: 'edit', comment_id: Number(card.dataset.commentId) }, payload), editMessage, saveBtn);
+                                    return;
+                                }
                                 alert(error.message);
                             });
                     });
@@ -730,7 +825,9 @@
                             showEmptyStateIfNeeded();
                         })
                         .catch(function (error) {
-                            alert(error.message);
+                            // SOL-0022: a delete is never saved and replayed
+                            // after signing in.
+                            alert(error.sessionExpired ? SESSION_EXPIRED_RELOAD : error.message);
                         });
                 });
             }
@@ -768,26 +865,26 @@
 
                 errorEl.style.display = 'none';
                 postBtn.disabled = true;
+                const payload = { body: editor.getHTML(), mentioned_user_ids: editor.getMentionedUserIds() };
+                let signingIn = false;
 
-                requestOrThrow('/tasks/' + taskId + '/comments', 'POST', { body: editor.getHTML(), mentioned_user_ids: editor.getMentionedUserIds() }, 'Failed to post comment.')
+                requestOrThrow('/tasks/' + taskId + '/comments', 'POST', payload, 'Failed to post comment.')
                     .then(function (response) {
                         return response.json();
                     })
                     .then(function (data) {
-                        removeEmptyState();
-
-                        const thread = buildCommentThread(Object.assign({}, data.comment, { can_edit: true }));
-                        insertInOrder(listEl, thread, data.comment.id);
-                        wireCard(thread.querySelector('.comment-card'));
-                        highlightCode(thread);
+                        insertPostedComment(data.comment);
                         editor.clear();
                     })
                     .catch(function (error) {
-                        errorEl.textContent = error.message;
-                        errorEl.style.display = '';
+                        if (error.sessionExpired) {
+                            return keepCommentAndSignIn(Object.assign({ action: 'create' }, payload), errorEl, postBtn)
+                                .then(function (saved) { signingIn = saved; });
+                        }
+                        showMessage(errorEl, error.message);
                     })
                     .finally(function () {
-                        postBtn.disabled = false;
+                        if (! signingIn) postBtn.disabled = false;
                     });
             });
         });
@@ -795,6 +892,89 @@
         // Ctrl/Cmd+Enter inside the editor posts, same as clicking Post.
         editorRoot.addEventListener('rte:submit', function () { postBtn.click(); });
         }
+
+        // SOL-0022: a comment saved when the session expired (see
+        // keepCommentAndSignIn()). After signing in the user is back here,
+        // and it's sent now, with the new session. takePendingComment()
+        // removes it as it reads it, so it's sent once at most. If it
+        // can't be sent, its text goes into the comment box, never lost.
+        const POSTED_AFTER_SIGN_IN = 'Your comment was posted after you signed in again.';
+
+        function sendPendingComment(draft, composer) {
+            const payload = { body: draft.body, mentioned_user_ids: draft.mentioned_user_ids || [] };
+
+            function backInComposer(message) {
+                composer.setContent(draft.body);
+                showMessage(errorEl, message);
+            }
+
+            if (draft.action === 'edit') {
+                return requestOrThrow('/comments/' + draft.comment_id, 'PUT', payload, 'Failed to save comment.')
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) {
+                        const card = findCard(draft.comment_id);
+                        const bodyText = card && card.querySelector('.comment-body-text');
+                        if (bodyText) {
+                            const body = buildBodyElement(data.comment.body_html, data.comment.body_hash, data.comment.mentioned_users);
+                            bodyText.replaceWith(body);
+                            highlightCode(body);
+                        }
+                        showMessage(errorEl, POSTED_AFTER_SIGN_IN, true);
+                    })
+                    .catch(function (error) {
+                        backInComposer(error.status === 403 || error.status === 404
+                            ? 'The comment you were editing was deleted or can no longer be edited. Your text is in the comment box.'
+                            : error.message);
+                    });
+            }
+
+            if (draft.action === 'reply') payload.parent_comment_id = draft.parent_comment_id;
+
+            return requestOrThrow('/tasks/' + taskId + '/comments', 'POST', payload, 'Failed to post comment.')
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    if (draft.action === 'reply') {
+                        const thread = findThread(draft.parent_comment_id);
+                        // Its thread gone from this page: the poll shows it.
+                        if (thread) insertPostedReply(thread, data.comment);
+                    } else {
+                        insertPostedComment(data.comment);
+                    }
+                    showMessage(errorEl, POSTED_AFTER_SIGN_IN, true);
+                })
+                .catch(function (error) {
+                    // A parent comment deleted meanwhile fails on
+                    // parent_comment_id (CommentController::resolveParentCommentId()).
+                    const parentGone = draft.action === 'reply' && (error.fields || []).indexOf('parent_comment_id') !== -1;
+                    backInComposer(parentGone ? 'The comment you replied to was deleted. Your text is in the comment box.' : error.message);
+                });
+        }
+
+        // No comment box here (no permission, or a deactivated task): the
+        // draft can't be sent, so show its words once, as plain text, and
+        // drop it.
+        function showUnsentComment(draft) {
+            const box = document.createElement('div');
+            box.className = 'pending-comment-unsent mt-2 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-[11px] text-gray-700';
+            const note = document.createElement('p');
+            note.className = 'text-gray-500';
+            note.textContent = "Your comment from before you signed in again couldn't be posted: you can't comment on this task. Here is its text, to copy if you need it:";
+            const text = document.createElement('p');
+            text.className = 'mt-1 whitespace-pre-wrap';
+            text.textContent = new DOMParser().parseFromString(draft.body, 'text/html').body.textContent;
+            box.append(note, text);
+            errorEl.insertAdjacentElement('beforebegin', box);
+        }
+
+        withSession().then(function (session) {
+            const draft = session ? session.takePendingComment(taskId) : null;
+            if (! draft) return;
+            if (postBtn && editorRoot) {
+                withEditor(editorRoot).then(function (composer) { sendPendingComment(draft, composer); });
+            } else {
+                showUnsentComment(draft);
+            }
+        });
 
         // Scoped to this task's own comment list, not a full-page refetch —
         // and only while the container is actually visible, so collapsed
@@ -824,6 +1004,9 @@
 
             fetch('/tasks/' + taskId + '/comments', { headers: { Accept: 'application/json' } })
                 .then(function (response) {
+                    // SOL-0022: signed out, every tick would fail the same
+                    // way; stop polling until the page is reloaded.
+                    if (response.status === 401 || response.status === 419) clearInterval(pollTimer);
                     if (! response.ok) throw new Error();
                     return response.json();
                 })
@@ -895,6 +1078,6 @@
                 });
         }
 
-        setInterval(syncComments, 7000);
+        const pollTimer = setInterval(syncComments, 7000);
     })();
 </script>

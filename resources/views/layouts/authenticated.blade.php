@@ -160,7 +160,10 @@
                         @endif
                     </a>
                     <span class="max-w-[100px] truncate sm:max-w-none">{{ auth()->user()->name }}</span>
-                    <form method="POST" action="{{ route('logout') }}">
+                    {{-- SOL-0022: logging out clears any comment saved on this
+                         browser when a session expired (session-expiry.js),
+                         so a shared computer doesn't keep someone's draft. --}}
+                    <form method="POST" action="{{ route('logout') }}" onsubmit="if (window.solavaSession) window.solavaSession.clearAllPending();">
                         @csrf
                         <button type="submit" class="flex items-center gap-1 hover:text-gray-900" aria-label="Log out">
                             <i class="ti ti-logout text-[16px]"></i>
