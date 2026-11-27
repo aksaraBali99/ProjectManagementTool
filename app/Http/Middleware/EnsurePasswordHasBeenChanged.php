@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Enforces `users.must_change_password` — set by
- * `solva:bootstrap --reset-owner` (a CLI recovery reset, run outside any
+ * `solava:bootstrap --reset-owner` (a CLI recovery reset, run outside any
  * web session) so the fresh password it sets is only ever a bridge to a
  * password the affected user actually chose themselves. Reuses the
  * existing Change Password popup on the user's own edit page rather than

@@ -533,8 +533,13 @@ cat >"$sandbox/bin/php" <<'STUB'
 echo "php $*" >>"$DEPLOY_TEST_LOG"
 case "$*" in
     "artisan env"*) echo "   INFO  The application environment is [staging]." ;;
-    "artisan list"*) echo "solva:db-backup              Back up the database" ;;
-    "artisan solva:db-backup"*) if [[ -n "${FAIL_BACKUP:-}" ]]; then exit 1; fi ;;
+    # OLD_BACKUP_NAME: a checkout from before SOL-0013 renamed the command;
+    # NO_BACKUP_COMMAND: one from before task #119 added it.
+    "artisan list"*)
+        if [[ -n "${NO_BACKUP_COMMAND:-}" ]]; then echo "migrate                 Run the migrations"
+        elif [[ -n "${OLD_BACKUP_NAME:-}" ]]; then echo "solva:db-backup              Back up the database"
+        else echo "solava:db-backup              Back up the database"; fi ;;
+    "artisan solava:db-backup"*|"artisan solva:db-backup"*) if [[ -n "${FAIL_BACKUP:-}" ]]; then exit 1; fi ;;
 esac
 exit 0
 STUB
@@ -581,11 +586,19 @@ line_of() { grep -n -m1 -e "$1" "$DEPLOY_TEST_LOG" | cut -d: -f1; }
 run_deploy --branch main --expect-sha "$second" --expect-env staging --maintenance --backup
 expect_equal "a full deploy succeeds" "0" "$deploy_code"
 expect_equal "it deploys the expected commit" "$second" "$(git -C "$sandbox/server" rev-parse HEAD)"
-down=$(line_of "artisan down"); backup=$(line_of "artisan solva:db-backup")
+down=$(line_of "artisan down"); backup=$(line_of "artisan solava:db-backup")
 migrate=$(line_of "artisan migrate"); up=$(line_of "artisan up")
 expect_equal "the backup runs after 'down'" "yes" "$( ((down < backup)) && echo yes || echo no)"
 expect_equal "the backup runs before the migrations" "yes" "$( ((backup < migrate)) && echo yes || echo no)"
 expect_equal "'up' runs last" "yes" "$( ((migrate < up)) && echo yes || echo no)"
+
+OLD_BACKUP_NAME=1 run_deploy --branch main --expect-sha "$second" --expect-env staging --maintenance --backup
+expect_equal "a checkout from before the rename still backs up" "0" "$deploy_code"
+expect_equal "  with its own name for the command" "yes" "$([[ -n "$(line_of "artisan solva:db-backup")" ]] && echo yes || echo no)"
+
+NO_BACKUP_COMMAND=1 run_deploy --branch main --expect-sha "$second" --expect-env staging --maintenance --backup
+expect_equal "a checkout with no backup command stops before anything" "1" "$deploy_code"
+expect_equal "  and pulls nothing" "$first" "$(git -C "$sandbox/server" rev-parse HEAD)"
 
 FAIL_BACKUP=1 run_deploy --branch main --expect-sha "$second" --expect-env staging --maintenance --backup
 expect_equal "a failed backup fails the deploy" "1" "$deploy_code"
@@ -593,7 +606,7 @@ expect_equal "a failed backup pulls nothing" "$first" "$(git -C "$sandbox/server
 expect_equal "a failed backup migrates nothing" "" "$(line_of "artisan migrate")"
 expect_equal "a failed backup runs no composer" "" "$(line_of "composer")"
 expect_equal "a failed backup brings the site back up, after the backup" "yes" \
-    "$(up=$(line_of "artisan up"); backup=$(line_of "artisan solva:db-backup"); [[ -n "$up" ]] && ((backup < up)) && echo yes || echo no)"
+    "$(up=$(line_of "artisan up"); backup=$(line_of "artisan solava:db-backup"); [[ -n "$up" ]] && ((backup < up)) && echo yes || echo no)"
 expect_equal "and says so" "yes" "$([[ "$deploy_output" == *"Nothing was pulled or migrated, and the site is up"* ]] && echo yes || echo no)"
 
 FAIL_COMPOSER=1 run_deploy --branch main --expect-sha "$second" --expect-env staging --maintenance
@@ -748,7 +761,7 @@ run_gate dev "deploy $dev2"
 expect_equal "dev: a deploy succeeds" "0" "$gate_code"
 expect_equal "dev: deploy.sh gets no extra flags" "--branch main --expect-sha $dev2 --expect-env staging" "$(cat "$GATE_TEST_ARGS")"
 expect_equal "dev: it deploys the commit" "$dev2" "$(git -C "$g/server-dev" rev-parse HEAD)"
-expect_equal "dev: no maintenance mode or backup" "" "$(line_of "artisan down")$(line_of "solva:db-backup")"
+expect_equal "dev: no maintenance mode or backup" "" "$(line_of "artisan down")$(line_of "db-backup")"
 expect_equal "deploy.sh keeps the caller's umask (the gate never sets it)" "$(umask)" "$(cat "$GATE_TEST_UMASK")"
 expect_equal "the lock is gone afterwards" "no" "$([[ -e "$dev_lock" ]] && echo yes || echo no)"
 expect_equal "no temp script is left behind" "" "$(find "$g/home/run" -name 'deploy.*' 2>/dev/null)"
@@ -761,7 +774,7 @@ run_gate production "deploy $prod2"
 expect_equal "production: a deploy succeeds" "0" "$gate_code"
 expect_equal "production: always --maintenance --backup" \
     "--branch production --expect-sha $prod2 --expect-env staging --maintenance --backup" "$(cat "$GATE_TEST_ARGS")"
-expect_equal "production: the backup ran" "yes" "$([[ -n "$(line_of "solva:db-backup")" ]] && echo yes || echo no)"
+expect_equal "production: the backup ran" "yes" "$([[ -n "$(line_of "artisan solava:db-backup")" ]] && echo yes || echo no)"
 
 run_gate dev "deploy $dev2 --dry-run"
 expect_equal "dev dry run: --dry-run passes through" "--branch main --expect-sha $dev2 --expect-env staging --dry-run" "$(cat "$GATE_TEST_ARGS")"

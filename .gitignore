@@ -26,5 +26,5 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# task #119: database backups (solva:db-backup) hold all user data
+# task #119: database backups (solava:db-backup) hold all user data
 /storage/app/backups
