@@ -33,17 +33,23 @@ main() {
         return 0
     fi
 
-    # What SSH said on stderr, for the end of the message. SSH never
-    # writes key material there: at most the host, user, port and reason.
+    # What SSH said on stderr, for the end of the message. The SSH client
+    # writes no key material there (at most the host, user, port and
+    # reason), but once a key logs in, the server's own stderr is in it
+    # too: login scripts and the command's errors, e.g. with the old
+    # unrestricted key in SSH_GATE_KEY. Its last 300 characters are kept,
+    # since the reason usually comes after any banner or warnings.
     local ssh_said=""
     local trimmed="${stderr//[[:space:]]/}"
     if [[ -n "$trimmed" ]]; then
-        ssh_said=" SSH said: '$(one_line "$stderr" 300)'"
+        local tail="$stderr"
+        if ((${#tail} > 300)); then tail="...${tail: -300}"; fi
+        ssh_said=" SSH said: '$(one_line "$tail" 303)'"
     fi
 
     local gate_answer='^ok solava-gate (dev|production)$'
     if [[ "$code" == "0" && "$reply" =~ $gate_answer ]]; then
-        echo "::error::SSH_GATE_KEY in the '$environment' environment is the gate key for '${BASH_REMATCH[1]}', not '$environment'. Put the $environment gate key in this environment's SSH_GATE_KEY secret (docs/release-process.md, section 8). Nothing was deployed."
+        echo "::error::SSH_GATE_KEY in the '$environment' environment is the gate key for '${BASH_REMATCH[1]}', not '$environment'. Put the $environment gate key in this environment's SSH_GATE_KEY secret (docs/release-process.md, section 8). Nothing was deployed.$ssh_said"
         return 1
     fi
 
