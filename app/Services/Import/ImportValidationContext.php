@@ -44,7 +44,7 @@ class ImportValidationContext
     /** @var array<string, true> */
     public array $blockedProjectKeys = [];
 
-    /** @var array<int, array{title: string, companyName: string, projectName: string, blocked: bool}> Task Ref => info */
+    /** @var array<int, array{title: string, companyName: string, projectName: string, blocked: bool, startDate: ?string, dueDate: ?string, existingTaskId: ?int}> Task Ref => info */
     public array $taskRefs = [];
 
     /** @var array<string, int> prefix => highest employee_id number claimed so far this pass */

@@ -49,6 +49,12 @@ class TaskObserver
      */
     public function saving(Task $task): void
     {
+        // SOL-0022: deliberately not checked against the due date. An
+        // overdue task moved to In Progress gets today, after its due
+        // date: work that started late, a fact rather than a mistake, and
+        // a status change (form or Kanban) must never fail over it.
+        // UpdateTaskRequest only checks the dates when the user changes
+        // one, so such a task still saves.
         if ($task->isDirty('status') && $task->status === TaskStatus::InProgress && ! $task->start_date) {
             $task->start_date = now()->toDateString();
         }

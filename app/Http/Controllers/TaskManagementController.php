@@ -576,7 +576,9 @@ class TaskManagementController extends Controller
                 'description' => $request->string('description'),
                 'priority' => $request->input('priority'),
                 'status' => $request->input('status'),
-                'due_date' => $request->input('due_date') ?: null,
+                // SOL-0022: the user confirmed moving the due date out to
+                // the latest subtask's (StoreTaskRequest::extendedDueDate()).
+                'due_date' => $request->extendedDueDate() ?? ($request->input('due_date') ?: null),
             ]);
 
             foreach ($request->input('subtasks', []) as $subtask) {

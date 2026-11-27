@@ -8,7 +8,9 @@ use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\Task;
+use App\Support\DateRange;
 use App\Support\RichText;
+use App\Support\TaskDueDateExtension;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -84,6 +86,55 @@ class UpdateTaskRequest extends FormRequest
                 $validator->errors()->add('assignee_id', 'Select a user assigned to this project.');
             }
         });
+
+        // Its own callback: the one above returns early when the project
+        // isn't found, and the dates must be checked regardless.
+        $validator->after(fn (Validator $validator) => $this->validateDates($validator));
+    }
+
+    /**
+     * SOL-0022: the due date can't be earlier than the start date, nor
+     * earlier than the task's latest subtask (moving it out is done by
+     * confirming on the subtask, see TaskDueDateExtension).
+     *
+     * Only checked when this submit changes one of the dates, for the
+     * same reason as assignmentIsUnchanged() below: the Description field
+     * autosaves by submitting this whole form, and a task can already
+     * hold dates that break the rule. Old data from before this check, a
+     * Bulk Import, or a task started late: moving an overdue task into In
+     * Progress sets its start date to today (TaskObserver::saving()),
+     * after its due date. Re-checking those untouched dates would block
+     * every save, naming dates the user never edited.
+     */
+    private function validateDates(Validator $validator): void
+    {
+        // A malformed date already has the 'date' rule's error.
+        if ($validator->errors()->has('start_date') || $validator->errors()->has('due_date')) {
+            return;
+        }
+
+        $task = $this->route('task');
+        $start = DateRange::normalize($this->input('start_date'));
+        $due = DateRange::normalize($this->input('due_date'));
+        $dueChanged = ! $task instanceof Task || $due !== DateRange::normalize($task->due_date);
+        $startChanged = ! $task instanceof Task || $start !== DateRange::normalize($task->start_date);
+
+        if (! $dueChanged && ! $startChanged) {
+            return;
+        }
+
+        if (DateRange::dueBeforeStart($start, $due)) {
+            $validator->errors()->add('due_date', DateRange::DUE_BEFORE_START);
+
+            return;
+        }
+
+        if ($dueChanged && $due !== null && $task instanceof Task) {
+            $latestSubtaskDue = TaskDueDateExtension::latestSubtaskDue($task);
+            if ($latestSubtaskDue !== null && $due < $latestSubtaskDue) {
+                $validator->errors()->add('due_date', TaskDueDateExtension::tooEarlyMessage($latestSubtaskDue));
+            }
+        }
     }
 
     /**

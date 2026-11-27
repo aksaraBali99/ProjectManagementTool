@@ -7,7 +7,9 @@ use App\Enums\TaskStatus;
 use App\Http\Requests\Tasks\Concerns\ValidatesTaskAssignment;
 use App\Models\Department;
 use App\Models\Project;
+use App\Support\DateRange;
 use App\Support\RichText;
+use App\Support\TaskDueDateExtension;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -107,5 +109,32 @@ class StoreTaskRequest extends FormRequest
                 }
             }
         });
+
+        $validator->after(function (Validator $validator) {
+            if ($validator->errors()->isNotEmpty() || $this->boolean(TaskDueDateExtension::FLAG)) {
+                return;
+            }
+
+            $newDue = $this->extendedDueDate();
+            if ($newDue !== null) {
+                $validator->errors()->add('due_date', TaskDueDateExtension::newTaskMessage(DateRange::normalize($this->input('due_date')), $newDue));
+            }
+        });
+    }
+
+    /**
+     * SOL-0022: the due date this task needs so that no subtask is due
+     * after it, or null when its own is fine (or it has none: no due
+     * date, no limit). Without the extend_task_due_date flag the request
+     * is refused (above) and the page asks the user; with it, store()
+     * creates the task with this date.
+     */
+    public function extendedDueDate(): ?string
+    {
+        $taskDue = DateRange::normalize($this->input('due_date'));
+        $latest = DateRange::latest(collect($this->input('subtasks', []))
+            ->map(fn (array $subtask) => DateRange::normalize($subtask['due_date'] ?? null)));
+
+        return $taskDue !== null && $latest !== null && $latest > $taskDue ? $latest : null;
     }
 }

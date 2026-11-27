@@ -150,6 +150,7 @@
                     <label for="due_date" class="block text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">Due date</label>
                     <input id="due_date" name="due_date" type="date" value="{{ old('due_date', $task->due_date?->toDateString()) }}"
                         class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-[12px] focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600">
+                    <p id="due_date_error" class="mt-1 text-[10px] text-red-600" hidden></p>
                 </div>
             </div>
 
@@ -261,6 +262,106 @@
                 projectSelect.addEventListener('change', refreshDependents);
                 departmentSelect.addEventListener('change', refreshAssigneeOptions);
                 refreshDependents();
+
+                // SOL-0022: the due date can't be earlier than the start date,
+                // nor earlier than the latest subtask's. Same rules, and the
+                // same "only when a date changed" exception, as
+                // UpdateTaskRequest::validateDates(), which stays the real
+                // guard. Dates are compared as YYYY-MM-DD strings (the value
+                // of a date input), which sort correctly: no Date objects, no
+                // time zones.
+                const editForm = document.getElementById('edit-task-form');
+                const startInput = document.getElementById('start_date');
+                const dueInput = document.getElementById('due_date');
+                const dueError = document.getElementById('due_date_error');
+                const dueBeforeStartMessage = @json(\App\Support\DateRange::DUE_BEFORE_START);
+                // The stored dates, not the values on page load: after a
+                // refused save the form shows what was sent instead.
+                const storedDates = {
+                    start: @json($task->start_date?->toDateString()) || '',
+                    due: @json($task->due_date?->toDateString()) || '',
+                };
+                const taskIdForDates = @json($task->id);
+                let latestSubtaskDue = @json(\App\Support\TaskDueDateExtension::latestSubtaskDue($task)) || '';
+
+                function formatDate(value) {
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const parts = value.split('-');
+                    return Number(parts[2]) + ' ' + months[Number(parts[1]) - 1] + ' ' + parts[0];
+                }
+
+                function dateError() {
+                    const start = startInput.value;
+                    const due = dueInput.value;
+                    const dueChanged = due !== storedDates.due;
+                    if (! dueChanged && start === storedDates.start) return null;
+                    if (start && due && due < start) return dueBeforeStartMessage;
+                    if (dueChanged && due && latestSubtaskDue && due < latestSubtaskDue) {
+                        return 'Some subtasks are due after this date. Move them first, or choose ' + formatDate(latestSubtaskDue) + ' or later.';
+                    }
+                    return null;
+                }
+
+                // Greys out the invalid days in the date pickers. Never set
+                // to a bound the current value already breaks: this form
+                // uses the browser's own validation, which would then block
+                // every submit, the Description autosave included, of a task
+                // that already holds such dates.
+                function setBound(input, attribute, value, breaks) {
+                    if (value && ! (input.value && breaks(input.value, value))) {
+                        input.setAttribute(attribute, value);
+                    } else {
+                        input.removeAttribute(attribute);
+                    }
+                }
+
+                function syncDateBounds() {
+                    const dueMin = [startInput.value, latestSubtaskDue].filter(Boolean).sort().pop() || '';
+                    setBound(dueInput, 'min', dueMin, function (value, bound) { return value < bound; });
+                    setBound(startInput, 'max', dueInput.value, function (value, bound) { return value > bound; });
+                }
+
+                function showDateError() {
+                    const message = dateError();
+                    dueError.textContent = message || '';
+                    dueError.hidden = ! message;
+                    dueInput.classList.toggle('border-red-500', !! message);
+                    dueInput.classList.toggle('border-gray-300', ! message);
+                    return message;
+                }
+
+                [startInput, dueInput].forEach(function (input) {
+                    input.addEventListener('input', syncDateBounds);
+                    input.addEventListener('change', function () {
+                        syncDateBounds();
+                        showDateError();
+                    });
+                });
+
+                editForm.addEventListener('submit', function (event) {
+                    if (! showDateError()) return;
+                    event.preventDefault();
+                    dueInput.focus();
+                });
+
+                // From the Subtasks section (tasks/_subtasks.blade.php): the
+                // latest subtask due date moved, or the user confirmed moving
+                // this task's due date out to a subtask's.
+                document.addEventListener('solava:subtask-due-dates', function (event) {
+                    if (String(event.detail.taskId) !== String(taskIdForDates)) return;
+                    latestSubtaskDue = event.detail.latestDue || '';
+                    syncDateBounds();
+                    if (! dueError.hidden) showDateError();
+                });
+                document.addEventListener('solava:task-due-changed', function (event) {
+                    if (String(event.detail.taskId) !== String(taskIdForDates)) return;
+                    dueInput.value = event.detail.dueDate || '';
+                    storedDates.due = dueInput.value;
+                    syncDateBounds();
+                    showDateError();
+                });
+
+                syncDateBounds();
             })();
         </script>
     @else

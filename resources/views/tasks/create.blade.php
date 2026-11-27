@@ -288,6 +288,46 @@
                         descToggle.textContent = isHidden ? '−' : '+';
                     }
                 });
+
+                // SOL-0022: a subtask due after the task. Ask first; on OK the
+                // task's due date moves out to the latest subtask's, on Cancel
+                // nothing is sent. StoreTaskRequest refuses the same thing
+                // without extend_task_due_date, so this is the fast path, not
+                // the guard. Dates are YYYY-MM-DD strings, which sort correctly.
+                function formatDate(value) {
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const parts = value.split('-');
+                    return Number(parts[2]) + ' ' + months[Number(parts[1]) - 1] + ' ' + parts[0];
+                }
+
+                document.getElementById('create-task-form').addEventListener('submit', function (event) {
+                    const taskDue = dueDateInput.value;
+                    if (! taskDue) return;
+
+                    let latest = '';
+                    subtaskRows.querySelectorAll('[data-subtask-row]').forEach(function (row) {
+                        const title = row.querySelector('.subtask-title-input');
+                        const due = row.querySelector('.subtask-due-date');
+                        // Rows without a title aren't saved (StoreTaskRequest).
+                        if (title && title.value.trim() !== '' && due && due.value > latest) latest = due.value;
+                    });
+                    if (! latest || latest <= taskDue) return;
+
+                    if (! confirm('A subtask is due after this task (' + formatDate(taskDue) + '). Continue to move the task\'s due date to ' + formatDate(latest) + '.')) {
+                        event.preventDefault();
+                        return;
+                    }
+
+                    dueDateInput.value = latest;
+                    let flag = this.querySelector('input[name="extend_task_due_date"]');
+                    if (! flag) {
+                        flag = document.createElement('input');
+                        flag.type = 'hidden';
+                        flag.name = 'extend_task_due_date';
+                        this.appendChild(flag);
+                    }
+                    flag.value = '1';
+                });
             })();
         </script>
     @endif
