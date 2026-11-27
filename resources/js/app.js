@@ -277,6 +277,7 @@ window.solavaRichText = { mount: mountRichText, highlight: highlightRichText, bu
 // session-expiry.js). Inline scripts wait for it like they do for
 // solavaRichText (this module is deferred).
 window.solavaSession = Object.assign({}, sessionExpiry);
+sessionExpiry.purgeExpiredPending();
 
 // task #73 (document form fixes): shared by documents/create.blade.php and
 // tasks/_documents.blade.php's own inline scripts — see

@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -18,8 +19,11 @@ use Illuminate\Support\Facades\Hash;
  * JSON request to the comment endpoints gets a 401 JSON answer, never a
  * redirect, so the page can tell; and opening the task signed out sends
  * the user to sign in and back to the task, where the saved comment is
- * sent. The browser part is checked by hand (see the PR). Tests skip the
- * CSRF check, so the 419 answer is checked there too.
+ * sent. The browser part is checked by hand (see the PR).
+ *
+ * The other answer the page treats as "expired" is 419 (a stale CSRF
+ * token). Tests normally skip the CSRF check, so the 419 test turns it
+ * back on.
  */
 beforeEach(function () {
     $this->seed([RoleSeeder::class, PermissionSeeder::class]);
@@ -64,6 +68,25 @@ test('signed out, every comment endpoint answers 401 JSON, not a redirect', func
     'react' => ['POST', '/comments/{comment}/reactions', ['emoji' => '👍']],
     'poll' => ['GET', '/tasks/{task}/comments', []],
 ]);
+
+test('a stale CSRF token answers 419 JSON, not a redirect or an HTML page', function () {
+    // The real check, without its "running unit tests" skip.
+    $this->app->bind(PreventRequestForgery::class, fn ($app) => new class($app, $app['encrypter']) extends PreventRequestForgery
+    {
+        protected function runningUnitTests()
+        {
+            return false;
+        }
+    });
+
+    $this->actingAs($this->user)
+        ->withHeader('X-CSRF-TOKEN', 'stale-token')
+        ->postJson('/tasks/'.$this->task->id.'/comments', ['body' => '<p>New</p>'])
+        ->assertStatus(419)
+        ->assertJson(['message' => 'CSRF token mismatch.']);
+
+    expect(Comment::count())->toBe(1);
+});
 
 test('opening the task signed out goes to sign in, remembering the task', function () {
     $taskUrl = route('tasks.edit', $this->task);

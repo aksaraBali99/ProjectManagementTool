@@ -278,9 +278,11 @@
 
         // SOL-0022: session-expiry.js (window.solavaSession), from app.js,
         // a deferred module that may not have run yet.
+        // Resolves undefined if app.js never ran (e.g. a failed asset);
+        // callers treat that like storage being unavailable.
         function withSession() {
             return new Promise(function (resolve) {
-                if (window.solavaSession) resolve(window.solavaSession);
+                if (window.solavaSession || document.readyState !== 'loading') resolve(window.solavaSession);
                 else document.addEventListener('DOMContentLoaded', function () { resolve(window.solavaSession); });
             });
         }
@@ -308,15 +310,17 @@
         // back here, where the draft is sent (sendPendingComment()).
         // Resolves true when it's on its way to sign in. Without storage
         // (private window, full) the text stays in the editor and nothing
-        // reloads.
-        function keepCommentAndSignIn(draft, messageEl, button) {
+        // reloads. Once saved, every button of that box (Save and Cancel
+        // too) is disabled: cancelling now couldn't take back what will be
+        // sent after signing in.
+        function keepCommentAndSignIn(draft, messageEl, buttons) {
             return withSession().then(function (session) {
                 if (! session || ! session.savePendingComment(taskId, draft)) {
                     showMessage(messageEl, 'Your session has expired. Copy your comment, then reload the page to sign in again.');
                     return false;
                 }
                 showMessage(messageEl, 'Your session has expired. Your comment is saved. Taking you to sign in…', true);
-                if (button) button.disabled = true;
+                buttons.forEach(function (button) { if (button) button.disabled = true; });
                 setTimeout(session.redirectToSignIn, 1500);
                 return true;
             });
@@ -691,7 +695,7 @@
                     })
                     .catch(function (error) {
                         if (error.sessionExpired) {
-                            keepCommentAndSignIn(Object.assign({ action: 'reply' }, payload), errorEl, replyBtn);
+                            keepCommentAndSignIn(Object.assign({ action: 'reply' }, payload), errorEl, [replyBtn, postWrap.querySelector('.cancel-reply-btn')]);
                             return;
                         }
                         showMessage(errorEl, error.message);
@@ -800,7 +804,7 @@
                             })
                             .catch(function (error) {
                                 if (error.sessionExpired) {
-                                    keepCommentAndSignIn(Object.assign({ action: 'edit', comment_id: Number(card.dataset.commentId) }, payload), editMessage, saveBtn);
+                                    keepCommentAndSignIn(Object.assign({ action: 'edit', comment_id: Number(card.dataset.commentId) }, payload), editMessage, [saveBtn, controls.querySelector('.cancel-comment-btn')]);
                                     return;
                                 }
                                 alert(error.message);
@@ -878,7 +882,7 @@
                     })
                     .catch(function (error) {
                         if (error.sessionExpired) {
-                            return keepCommentAndSignIn(Object.assign({ action: 'create' }, payload), errorEl, postBtn)
+                            return keepCommentAndSignIn(Object.assign({ action: 'create' }, payload), errorEl, [postBtn])
                                 .then(function (saved) { signingIn = saved; });
                         }
                         showMessage(errorEl, error.message);
@@ -893,36 +897,59 @@
         editorRoot.addEventListener('rte:submit', function () { postBtn.click(); });
         }
 
-        // SOL-0022: a comment saved when the session expired (see
+        // SOL-0022: comments saved when the session expired (see
         // keepCommentAndSignIn()). After signing in the user is back here,
-        // and it's sent now, with the new session. takePendingComment()
-        // removes it as it reads it, so it's sent once at most. If it
-        // can't be sent, its text goes into the comment box, never lost.
+        // and they're sent now, with the new session, oldest first (two
+        // tabs may each have saved one). takePendingComments() removes
+        // them as it reads them, so each is sent once at most. One that
+        // can't be sent goes into the comment box, never lost.
         //
         // Sent straight away, without waiting for the comment box: the
         // box only loads its editor once it's near the viewport
         // (whenNearViewport() in app.js), and it sits at the bottom of the
-        // page, so waiting would hold a draft already taken from storage
+        // page, so waiting would hold drafts already taken from storage
         // until the user scrolled down. Then the page scrolls to the
-        // result, so the note is seen.
-        const POSTED_AFTER_SIGN_IN = 'Your comment was posted after you signed in again.';
+        // result, so its note is seen.
+        const SENT_AFTER_SIGN_IN = {
+            create: 'Your comment was posted after you signed in again.',
+            reply: 'Your reply was posted after you signed in again.',
+            edit: 'Your edit was saved after you signed in again.',
+        };
 
+        // The comment box only posts new top-level comments, so an edit or
+        // a reply put back into it says so: posting it doesn't edit or
+        // reply to anything.
+        const NOW_IN_COMMENT_BOX = {
+            create: 'Your comment is in the comment box.',
+            reply: 'Your reply is in the comment box: posting it there adds a new comment, not a reply.',
+            edit: "Your edit is in the comment box: posting it there adds a new comment and doesn't change the original.",
+        };
+
+        // The note sits under the card it's about, where the page scrolls.
+        function noteOnCard(card, text) {
+            if (! card) {
+                showMessage(errorEl, text, true);
+                errorEl.scrollIntoView({ block: 'center' });
+                return;
+            }
+            const note = document.createElement('p');
+            note.className = 'pending-comment-note mt-1 text-[10px] text-gray-600';
+            note.textContent = text;
+            card.appendChild(note);
+            card.scrollIntoView({ block: 'center' });
+            setTimeout(function () { note.remove(); }, 8000);
+        }
+
+        // Resolves null once sent, or { body, message } when it couldn't be.
         function sendPendingComment(draft) {
+            const action = SENT_AFTER_SIGN_IN[draft.action] ? draft.action : 'create';
             const payload = { body: draft.body, mentioned_user_ids: draft.mentioned_user_ids || [] };
 
-            function posted(element) {
-                showMessage(errorEl, POSTED_AFTER_SIGN_IN, true);
-                (element || errorEl).scrollIntoView({ block: 'center' });
+            function notSent(reason) {
+                return { body: draft.body, message: reason + ' ' + NOW_IN_COMMENT_BOX[action] };
             }
 
-            // Scrolling the box into view also loads its editor.
-            function backInComposer(message) {
-                showMessage(errorEl, message);
-                editorRoot.scrollIntoView({ block: 'center' });
-                withEditor(editorRoot).then(function (composer) { composer.setContent(draft.body); });
-            }
-
-            if (draft.action === 'edit') {
+            if (action === 'edit') {
                 return requestOrThrow('/comments/' + draft.comment_id, 'PUT', payload, 'Failed to save comment.')
                     .then(function (response) { return response.json(); })
                     .then(function (data) {
@@ -933,61 +960,89 @@
                             bodyText.replaceWith(body);
                             highlightCode(body);
                         }
-                        posted(card);
+                        noteOnCard(card, SENT_AFTER_SIGN_IN.edit);
+                        return null;
                     })
                     .catch(function (error) {
-                        backInComposer(error.status === 403 || error.status === 404
-                            ? 'The comment you were editing was deleted or can no longer be edited. Your text is in the comment box.'
-                            : error.message);
+                        return notSent(error.status === 403 || error.status === 404
+                            ? 'The comment you were editing was deleted or can no longer be edited.'
+                            : "Your edit from before you signed in again couldn't be saved: " + error.message);
                     });
             }
 
-            if (draft.action === 'reply') payload.parent_comment_id = draft.parent_comment_id;
+            if (action === 'reply') payload.parent_comment_id = draft.parent_comment_id;
 
             return requestOrThrow('/tasks/' + taskId + '/comments', 'POST', payload, 'Failed to post comment.')
                 .then(function (response) { return response.json(); })
                 .then(function (data) {
-                    if (draft.action === 'reply') {
+                    if (action === 'reply') {
                         const thread = findThread(draft.parent_comment_id);
                         // Its thread gone from this page: the poll shows it.
                         if (thread) insertPostedReply(thread, data.comment);
                     } else {
                         insertPostedComment(data.comment);
                     }
-                    posted(findCard(data.comment.id));
+                    noteOnCard(findCard(data.comment.id), SENT_AFTER_SIGN_IN[action]);
+                    return null;
                 })
                 .catch(function (error) {
                     // A parent comment deleted meanwhile fails on
                     // parent_comment_id (CommentController::resolveParentCommentId()).
-                    const parentGone = draft.action === 'reply' && (error.fields || []).indexOf('parent_comment_id') !== -1;
-                    backInComposer(parentGone ? 'The comment you replied to was deleted. Your text is in the comment box.' : error.message);
+                    const parentGone = action === 'reply' && (error.fields || []).indexOf('parent_comment_id') !== -1;
+                    return notSent(parentGone
+                        ? 'The comment you replied to was deleted.'
+                        : "Your comment from before you signed in again couldn't be posted: " + error.message);
                 });
         }
 
+        // One after another, oldest first. Whatever couldn't be sent goes
+        // into the comment box together, with every reason; scrolling the
+        // box into view also loads its editor.
+        function sendPendingComments(drafts) {
+            const unsent = [];
+            return drafts.reduce(function (chain, draft) {
+                return chain.then(function () {
+                    return sendPendingComment(draft).then(function (result) { if (result) unsent.push(result); });
+                });
+            }, Promise.resolve()).then(function () {
+                if (! unsent.length) return;
+                showMessage(errorEl, unsent.map(function (item) { return item.message; }).join(' '));
+                editorRoot.scrollIntoView({ block: 'center' });
+                withEditor(editorRoot).then(function (composer) {
+                    composer.setContent(unsent.map(function (item) { return item.body; }).join(''));
+                });
+            });
+        }
+
         // No comment box here (no permission, or a deactivated task): the
-        // draft can't be sent, so show its words once, as plain text, and
-        // drop it.
-        function showUnsentComment(draft) {
+        // drafts can't be sent, so show their words once, as plain text,
+        // and drop them.
+        function showUnsentComments(drafts) {
             const box = document.createElement('div');
             box.className = 'pending-comment-unsent mt-2 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-[11px] text-gray-700';
             const note = document.createElement('p');
             note.className = 'text-gray-500';
-            note.textContent = "Your comment from before you signed in again couldn't be posted: you can't comment on this task. Here is its text, to copy if you need it:";
-            const text = document.createElement('p');
-            text.className = 'mt-1 whitespace-pre-wrap';
-            text.textContent = new DOMParser().parseFromString(draft.body, 'text/html').body.textContent;
-            box.append(note, text);
+            note.textContent = drafts.length > 1
+                ? "Your comments from before you signed in again couldn't be posted: you can't comment on this task. Here is their text, to copy if you need it:"
+                : "Your comment from before you signed in again couldn't be posted: you can't comment on this task. Here is its text, to copy if you need it:";
+            box.appendChild(note);
+            drafts.forEach(function (draft) {
+                const text = document.createElement('p');
+                text.className = 'mt-1 whitespace-pre-wrap';
+                text.textContent = new DOMParser().parseFromString(draft.body, 'text/html').body.textContent;
+                box.appendChild(text);
+            });
             errorEl.insertAdjacentElement('beforebegin', box);
             box.scrollIntoView({ block: 'center' });
         }
 
         withSession().then(function (session) {
-            const draft = session ? session.takePendingComment(taskId) : null;
-            if (! draft) return;
+            const drafts = session ? session.takePendingComments(taskId) : [];
+            if (! drafts.length) return;
             if (postBtn && editorRoot) {
-                sendPendingComment(draft);
+                sendPendingComments(drafts);
             } else {
-                showUnsentComment(draft);
+                showUnsentComments(drafts);
             }
         });
 
@@ -1014,14 +1069,26 @@
         // what keeps an open Edit-in-place editor, an open reply-compose
         // draft, and the page's scroll position all untouched by a
         // routine poll tick.
+        function showPollStopped() {
+            if (container.querySelector('.comments-signed-out')) return;
+            const note = document.createElement('p');
+            note.className = 'comments-signed-out mb-2 text-[11px] text-gray-600';
+            note.textContent = "You're signed out, so new comments won't show here. Reload the page to sign in again.";
+            listEl.insertAdjacentElement('beforebegin', note);
+        }
+
         function syncComments() {
             if (container.offsetParent === null) return;
 
             fetch('/tasks/' + taskId + '/comments', { headers: { Accept: 'application/json' } })
                 .then(function (response) {
                     // SOL-0022: signed out, every tick would fail the same
-                    // way; stop polling until the page is reloaded.
-                    if (response.status === 401 || response.status === 419) clearInterval(pollTimer);
+                    // way; stop polling until the page is reloaded, and
+                    // say so, or the list would look live while it isn't.
+                    if (response.status === 401 || response.status === 419) {
+                        clearInterval(pollTimer);
+                        showPollStopped();
+                    }
                     if (! response.ok) throw new Error();
                     return response.json();
                 })
