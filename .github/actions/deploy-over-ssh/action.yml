@@ -106,12 +106,18 @@ runs:
         # The gate decides where to deploy from the key's line, so first
         # make sure this key's gate is this job's environment (replaces
         # the --expect-env check the gate path doesn't send).
+        # SSH's stderr goes to a file, not the reply, so the reply stays
+        # exactly the gate's answer; the check shows it if the ping fails
+        # (SOL-0029: before, an exit 255 hid why SSH failed).
         if [[ "$SSH_GATE" == "true" ]]; then
+          ping_err="$RUNNER_TEMP/gate_ping_stderr"
           set +e
-          reply=$("${ssh_to_server[@]}" ping 2>/dev/null)
+          reply=$("${ssh_to_server[@]}" ping 2>"$ping_err")
           ping_code=$?
           set -e
-          bash "$GITHUB_WORKSPACE/.github/scripts/check-gate-ping.sh" "$ENVIRONMENT" "$ping_code" "$reply"
+          ping_stderr=$(cat "$ping_err" 2>/dev/null || true)
+          rm -f "$ping_err"
+          bash "$GITHUB_WORKSPACE/.github/scripts/check-gate-ping.sh" "$ENVIRONMENT" "$ping_code" "$reply" "$ping_stderr"
         fi
 
         set +e
